@@ -12,7 +12,6 @@ import Signup from "./pages/Signup";
 import MyList from "./pages/MyList";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
-import FocusNavigator from "@/components/FocusNavigator";
 
 const queryClient = new QueryClient();
 
@@ -22,7 +21,6 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <FocusNavigator />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />

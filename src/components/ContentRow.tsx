@@ -24,34 +24,25 @@ export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDo
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
 
-  // Função para verificar o estado das setas de scroll
-  const checkScrollArrows = () => {
-    if (scrollRef.current) {
-      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-      setShowLeftArrow(scrollLeft > 0);
-      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 1); // -1 para tolerância
-    }
-  };
-
   useEffect(() => {
-    // Monitorar scroll para mostrar/esconder setas
-    const currentRef = scrollRef.current;
-    if (currentRef) {
-      currentRef.addEventListener('scroll', checkScrollArrows);
-      // Inicializa o estado das setas após a renderização
-      checkScrollArrows();
-    }
-    
-    // Adiciona um listener para redimensionamento para recalcular as setas
-    window.addEventListener('resize', checkScrollArrows);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeElement = document.activeElement;
+      const isCardFocused = activeElement?.closest('.content-card-item');
+      
+      if (!isCardFocused) return;
 
-    return () => {
-      if (currentRef) {
-        currentRef.removeEventListener('scroll', checkScrollArrows);
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        scroll('left');
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        scroll('right');
       }
-      window.removeEventListener('resize', checkScrollArrows);
     };
-  }, [contents]); // Recalcula se o conteúdo mudar
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
@@ -65,8 +56,16 @@ export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDo
         left: newScrollPosition,
         behavior: "smooth",
       });
-      
-      // O checkScrollArrows será chamado pelo evento 'scroll'
+
+      setTimeout(() => {
+        if (scrollRef.current) {
+          setShowLeftArrow(scrollRef.current.scrollLeft > 0);
+          setShowRightArrow(
+            scrollRef.current.scrollLeft <
+              scrollRef.current.scrollWidth - scrollRef.current.clientWidth
+          );
+        }
+      }, 300);
     }
   };
 
@@ -80,7 +79,7 @@ export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDo
             variant="ghost"
             size="icon"
             className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/70 text-foreground h-full rounded-none opacity-0 group-hover/row:opacity-100 transition-opacity"
-            tabIndex={-1} // Não deve ser focado pela navegação de teclado
+            tabIndex={-1}
           >
             <ChevronLeft className="w-8 h-8" />
           </Button>
@@ -109,7 +108,7 @@ export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDo
             variant="ghost"
             size="icon"
             className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-black/50 hover:bg-black/70 text-foreground h-full rounded-none opacity-0 group-hover/row:opacity-100 transition-opacity"
-            tabIndex={-1} // Não deve ser focado pela navegação de teclado
+            tabIndex={-1}
           >
             <ChevronRight className="w-8 h-8" />
           </Button>
