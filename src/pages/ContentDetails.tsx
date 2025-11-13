@@ -150,18 +150,19 @@ const ContentDetails = () => {
           Voltar
         </Button>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Poster */}
-          <div className="lg:col-span-1">
+        {/* Ajustando o grid: lg:grid-cols-4 para 4 colunas, onde a imagem ocupa 1 e os detalhes 3 */}
+        <div className="grid lg:grid-cols-4 gap-8">
+          {/* Poster - Ocupa 1/4 em telas grandes, e é centralizado em telas pequenas */}
+          <div className="lg:col-span-1 flex justify-center lg:justify-start">
             <img
               src={content.thumbnail_url || "/placeholder.svg"}
               alt={content.title}
-              className="w-full rounded-lg shadow-2xl"
+              className="w-2/3 sm:w-1/2 lg:w-full max-w-xs rounded-lg shadow-2xl"
             />
           </div>
 
-          {/* Details */}
-          <div className="lg:col-span-2 space-y-6">
+          {/* Details - Ocupa 3/4 em telas grandes */}
+          <div className="lg:col-span-3 space-y-6">
             <div>
               <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">
                 {content.title}
