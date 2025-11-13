@@ -163,27 +163,44 @@ const Admin = () => {
       return;
     }
 
+    // Cria uma cópia limpa para salvar
     const contentToSave: Partial<Content> = {
       ...editingContent,
       video_url: normalizedVideo || undefined,
     };
     
+    // Limpeza de campos irrelevantes
     if (isMovie) {
-      contentToSave.episodes = undefined;
+      delete contentToSave.episodes;
     } else if (isTV) {
-      contentToSave.episodes = undefined;
-      contentToSave.download_url = undefined;
-      contentToSave.trailer_url = undefined;
+      delete contentToSave.episodes;
+      delete contentToSave.download_url;
+      delete contentToSave.trailer_url;
     } else if (isSeries) {
-      contentToSave.download_url = undefined;
-      contentToSave.video_url = undefined; // Série usa episódios
+      delete contentToSave.download_url;
+      delete contentToSave.video_url;
     }
+
+    // Garante que campos vazios sejam undefined para serem removidos pelo removeUndefinedDeep no firebase.ts
+    if (!contentToSave.description) delete contentToSave.description;
+    if (!contentToSave.download_url) delete contentToSave.download_url;
+    if (!contentToSave.trailer_url) delete contentToSave.trailer_url;
+    if (!contentToSave.language) delete contentToSave.language;
+    if (!contentToSave.release_date) delete contentToSave.release_date;
+    if (!contentToSave.video_url) delete contentToSave.video_url;
+    if (!contentToSave.rating) delete contentToSave.rating;
+    if (!contentToSave.tmdb_id) delete contentToSave.tmdb_id;
+
 
     try {
       if (editingContent.id) {
+        // Se estiver editando, enviamos apenas as atualizações
         await updateContent(editingContent.id, contentToSave);
         toast.success("Conteúdo atualizado!");
       } else {
+        // Se estiver adicionando, precisamos garantir que os campos obrigatórios estejam presentes
+        // O addContent espera Omit<Content, 'id'>, mas como removeUndefinedDeep limpa undefineds,
+        // e já validamos os obrigatórios, podemos forçar o cast.
         await addContent(contentToSave as Omit<Content, 'id'>);
         toast.success("Conteúdo adicionado!");
       }
