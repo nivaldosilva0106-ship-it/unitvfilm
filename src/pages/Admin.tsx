@@ -139,17 +139,33 @@ const Admin = () => {
   };
 
   const handleSave = async () => {
-    if (!editingContent.title || !editingContent.category) {
-      toast.error("Preencha os campos obrigatórios");
+    if (!editingContent.title || !editingContent.category || !editingContent.thumbnail_url) {
+      toast.error("Preencha os campos obrigatórios (Título, Categoria, URL da Imagem)");
       return;
     }
+    
+    // Limpar campos irrelevantes dependendo da categoria antes de salvar
+    const contentToSave: Partial<Content> = { ...editingContent };
+    
+    if (contentToSave.category === 'movie') {
+      contentToSave.episodes = undefined;
+    } else if (contentToSave.category === 'tv') {
+      contentToSave.episodes = undefined;
+      contentToSave.download_url = undefined;
+      contentToSave.trailer_url = undefined;
+      // video_url é usado para o iframe/stream
+    } else if (contentToSave.category === 'series') {
+      contentToSave.download_url = undefined;
+      contentToSave.video_url = undefined; // O vídeo é acessado via episódios
+    }
+
 
     try {
       if (editingContent.id) {
-        await updateContent(editingContent.id, editingContent);
+        await updateContent(editingContent.id, contentToSave);
         toast.success("Conteúdo atualizado!");
       } else {
-        await addContent(editingContent as Omit<Content, 'id'>);
+        await addContent(contentToSave as Omit<Content, 'id'>);
         toast.success("Conteúdo adicionado!");
       }
       
@@ -181,6 +197,10 @@ const Admin = () => {
     }
   };
 
+  const isTV = editingContent.category === 'tv';
+  const isSeries = editingContent.category === 'series';
+  const isMovie = editingContent.category === 'movie';
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -193,7 +213,7 @@ const Admin = () => {
             
             <div className="space-y-4">
               <div>
-                <Label>Categoria</Label>
+                <Label>Categoria *</Label>
                 <Select 
                   value={editingContent.category} 
                   onValueChange={(value) => setEditingContent({...editingContent, category: value as any})}
@@ -209,7 +229,7 @@ const Admin = () => {
                 </Select>
               </div>
 
-              {editingContent.category !== 'tv' && (
+              {!isTV && (
                 <div className="space-y-2">
                   <Label>Buscar no TMDB</Label>
                   <div className="flex gap-2">
@@ -279,17 +299,20 @@ const Admin = () => {
                 />
               </div>
 
-              <div>
-                <Label>URL do Vídeo/Stream {editingContent.category === 'movie' && '(Filme)'}</Label>
-                <Input
-                  value={editingContent.video_url}
-                  onChange={(e) => setEditingContent({...editingContent, video_url: e.target.value})}
-                  className="bg-input border-border"
-                  placeholder="https://..."
-                />
-              </div>
+              {/* Campo de URL de Vídeo/Iframe Condicional */}
+              {(isMovie || isTV) && (
+                <div>
+                  <Label>URL do Vídeo / Iframe (para {isTV ? 'TV ao Vivo' : 'Filme'})</Label>
+                  <Input
+                    value={editingContent.video_url}
+                    onChange={(e) => setEditingContent({...editingContent, video_url: e.target.value})}
+                    className="bg-input border-border"
+                    placeholder="https://..."
+                  />
+                </div>
+              )}
 
-              {editingContent.category === 'series' && (
+              {isSeries && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <Label>Episódios / Temporadas</Label>
@@ -363,25 +386,29 @@ const Admin = () => {
                 </div>
               )}
 
-              <div>
-                <Label>URL do Trailer</Label>
-                <Input
-                  value={editingContent.trailer_url}
-                  onChange={(e) => setEditingContent({...editingContent, trailer_url: e.target.value})}
-                  className="bg-input border-border"
-                  placeholder="https://youtube.com/... (preenchido automaticamente)"
-                />
-              </div>
+              {!isTV && (
+                <div>
+                  <Label>URL do Trailer</Label>
+                  <Input
+                    value={editingContent.trailer_url}
+                    onChange={(e) => setEditingContent({...editingContent, trailer_url: e.target.value})}
+                    className="bg-input border-border"
+                    placeholder="https://youtube.com/... (preenchido automaticamente)"
+                  />
+                </div>
+              )}
 
-              <div>
-                <Label>URL de Download {editingContent.category === 'movie' && '(Filme)'}</Label>
-                <Input
-                  value={editingContent.download_url}
-                  onChange={(e) => setEditingContent({...editingContent, download_url: e.target.value})}
-                  className="bg-input border-border"
-                  placeholder="https://..."
-                />
-              </div>
+              {isMovie && (
+                <div>
+                  <Label>URL de Download (Filme)</Label>
+                  <Input
+                    value={editingContent.download_url}
+                    onChange={(e) => setEditingContent({...editingContent, download_url: e.target.value})}
+                    className="bg-input border-border"
+                    placeholder="https://..."
+                  />
+                </div>
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <div>

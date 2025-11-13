@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
 import { TrailerModal } from "@/components/TrailerModal";
+import { IframeModal } from "@/components/IframeModal"; // Importando o novo modal
 import { Play, Download, ArrowLeft, Calendar, Globe, Star, Film, Heart } from "lucide-react";
 import { getAllContents, addToMyList, removeFromMyList, getMyList } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,6 +19,7 @@ const ContentDetails = () => {
   const [loading, setLoading] = useState(true);
   const [showEpisodes, setShowEpisodes] = useState(false);
   const [showTrailerModal, setShowTrailerModal] = useState(false);
+  const [showIframeModal, setShowIframeModal] = useState(false); // Novo estado para IframeModal
   const [inMyList, setInMyList] = useState(false);
   const [myListItemId, setMyListItemId] = useState<string | null>(null);
 
@@ -50,15 +52,16 @@ const ContentDetails = () => {
   };
 
   const handlePlay = (url?: string) => {
-    if (content?.category === 'series' && content.episodes && content.episodes.length > 0) {
+    const videoUrl = url || content?.video_url;
+
+    if (content?.category === 'tv' && videoUrl) {
+      setShowIframeModal(true);
+    } else if (content?.category === 'series' && content.episodes && content.episodes.length > 0) {
       setShowEpisodes(true);
+    } else if (videoUrl) {
+      window.open(videoUrl, '_blank');
     } else {
-      const videoUrl = url || content?.video_url;
-      if (videoUrl) {
-        window.open(videoUrl, '_blank');
-      } else {
-        toast.error("Link de vídeo não disponível");
-      }
+      toast.error("Link de vídeo não disponível");
     }
   };
 
@@ -135,6 +138,8 @@ const ContentDetails = () => {
 
   if (!content) return null;
 
+  const isTV = content.category === 'tv';
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -168,7 +173,7 @@ const ContentDetails = () => {
                 {content.title}
               </h1>
               <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                {content.release_date && (
+                {content.release_date && !isTV && (
                   <div className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
                     {new Date(content.release_date).getFullYear()}
@@ -180,14 +185,14 @@ const ContentDetails = () => {
                     {content.language.toUpperCase()}
                   </div>
                 )}
-                {content.rating && (
+                {content.rating && !isTV && (
                   <div className="flex items-center gap-1">
                     <Star className="w-4 h-4 fill-primary text-primary" />
                     {content.rating.toFixed(1)}
                   </div>
                 )}
                 <span className="px-3 py-1 bg-primary/20 text-primary rounded-full capitalize">
-                  {content.category === 'movie' ? 'Filme' : content.category === 'series' ? 'Série' : 'TV'}
+                  {content.category === 'movie' ? 'Filme' : content.category === 'series' ? 'Série' : 'TV ao Vivo'}
                 </span>
               </div>
             </div>
@@ -199,7 +204,7 @@ const ContentDetails = () => {
                 tabIndex={0}
               >
                 <Play className="w-5 h-5 mr-2" />
-                {content.category === 'series' ? 'Ver Episódios' : 'Assistir Agora'}
+                {isTV ? 'Assistir Canal' : content.category === 'series' ? 'Ver Episódios' : 'Assistir Agora'}
               </Button>
               
               <Button
@@ -212,7 +217,7 @@ const ContentDetails = () => {
                 {inMyList ? 'Na Minha Lista' : 'Adicionar à Lista'}
               </Button>
 
-              {content.trailer_url && (
+              {content.trailer_url && !isTV && (
                 <Button
                   onClick={handleTrailer}
                   variant="secondary"
@@ -223,7 +228,7 @@ const ContentDetails = () => {
                 </Button>
               )}
               
-              {content.download_url && content.category !== 'series' && (
+              {content.download_url && content.category === 'movie' && (
                 <Button
                   onClick={handleDownload}
                   variant="outline"
@@ -264,6 +269,16 @@ const ContentDetails = () => {
           open={showTrailerModal}
           onClose={() => setShowTrailerModal(false)}
           trailerUrl={content.trailer_url}
+          title={content.title}
+        />
+      )}
+      
+      {/* Iframe Modal for TV Channels */}
+      {isTV && showIframeModal && content.video_url && (
+        <IframeModal
+          open={showIframeModal}
+          onClose={() => setShowIframeModal(false)}
+          iframeUrl={content.video_url}
           title={content.title}
         />
       )}
