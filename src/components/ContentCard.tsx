@@ -12,39 +12,28 @@ interface ContentCardProps {
 }
 
 export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload }: ContentCardProps) => {
-  const [isFocused, setIsFocused] = useState(false);
+  // Não precisamos mais de isFocused no card principal, pois o foco será nos botões.
+  // O efeito visual de hover/foco será tratado pelas classes de grupo e foco nativas.
   const cardRef = useRef<HTMLDivElement>(null);
+  const { playNavigationSound } = useKeyboardNavigation({}); // O hook agora é usado apenas para emitir sons nos cliques/focos dos botões
 
-  const { playNavigationSound } = useKeyboardNavigation({
-    enabled: isFocused,
-    onEnter: () => onPlay?.(),
-  });
+  // Função para emitir som ao focar um botão
+  const handleButtonFocus = () => {
+    playNavigationSound('focus');
+  };
 
-  useEffect(() => {
-    const handleFocus = () => {
-      setIsFocused(true);
-      playNavigationSound('focus');
-    };
-    const handleBlur = () => setIsFocused(false);
-
-    const card = cardRef.current;
-    if (card) {
-      card.addEventListener('focus', handleFocus);
-      card.addEventListener('blur', handleBlur);
-      return () => {
-        card.removeEventListener('focus', handleFocus);
-        card.removeEventListener('blur', handleBlur);
-      };
-    }
-  }, [playNavigationSound]);
+  // Função para emitir som ao clicar/selecionar um botão
+  const handleButtonClick = (callback: (() => void) | undefined) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    playNavigationSound('select');
+    callback?.();
+  };
 
   return (
     <div 
       ref={cardRef}
-      className={`relative group min-w-[140px] sm:min-w-[160px] cursor-pointer card-hover rounded-lg transition-all ${
-        isFocused ? 'ring-2 ring-primary scale-105' : ''
-      }`}
-      tabIndex={0}
+      className={`relative group min-w-[140px] sm:min-w-[160px] cursor-pointer card-hover rounded-lg transition-all`}
+      // Removendo tabIndex={0} do card principal
     >
       <div className="relative overflow-hidden rounded-lg">
         <img
@@ -53,45 +42,38 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload }: Co
           className="w-full h-[200px] sm:h-[240px] object-cover"
           loading="lazy"
         />
-        <div className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent transition-opacity duration-300 flex items-end p-3 ${
-          isFocused ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-        }`}>
+        {/* Adicionando um overlay para simular o foco no card quando um botão interno está focado */}
+        <div className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent transition-opacity duration-300 flex items-end p-3 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100`}>
           <div className="w-full space-y-2">
             <h3 className="text-foreground font-semibold text-sm mb-2 line-clamp-2">{title}</h3>
             <div className="flex justify-center gap-2">
               <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  playNavigationSound('select');
-                  onPlay?.();
-                }}
+                onClick={handleButtonClick(onPlay)}
+                onFocus={handleButtonFocus}
                 size="icon"
                 className="bg-primary hover:bg-primary/90 text-primary-foreground h-8 w-8 glow-effect-hover rounded-full"
+                tabIndex={0} // Garantindo que o botão é focável
               >
                 <Play className="w-4 h-4" />
               </Button>
               <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  playNavigationSound('select');
-                  onInfo?.();
-                }}
+                onClick={handleButtonClick(onInfo)}
+                onFocus={handleButtonFocus}
                 size="icon"
                 variant="secondary"
                 className="h-8 w-8 rounded-full"
+                tabIndex={0} // Garantindo que o botão é focável
               >
                 <Info className="w-4 h-4" />
               </Button>
               {onDownload && (
                 <Button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    playNavigationSound('select');
-                    onDownload?.();
-                  }}
+                  onClick={handleButtonClick(onDownload)}
+                  onFocus={handleButtonFocus}
                   size="icon"
                   variant="outline"
                   className="h-8 w-8 rounded-full"
+                  tabIndex={0} // Garantindo que o botão é focável
                 >
                   <Download className="w-4 h-4" />
                 </Button>
