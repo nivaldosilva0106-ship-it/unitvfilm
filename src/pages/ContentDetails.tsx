@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
 import { TrailerModal } from "@/components/TrailerModal";
 import { Play, Download, ArrowLeft, Calendar, Globe, Star, Film, Heart } from "lucide-react";
-import { getAllContents, addToMyList, removeFromMyList, isInMyList, getMyList } from "@/lib/firebase";
+import { getAllContents, addToMyList, removeFromMyList, getMyList } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { Content } from "@/types/content";

@@ -18,7 +18,8 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl }: 
   const [selectedSeason, setSelectedSeason] = useState<number>(1);
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [showTrailerModal, setShowTrailerModal] = useState(false);
-  const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const episodeRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const seasonButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const seasons = [...new Set(episodes.map(ep => ep.season))].sort((a, b) => a - b);
   const seasonEpisodes = episodes
@@ -28,17 +29,34 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl }: 
   const { playNavigationSound } = useKeyboardNavigation({
     enabled: open,
     onEscape: onClose,
-    onArrowUp: () => setFocusedIndex(prev => Math.max(prev - 1, 0)),
-    onArrowDown: () => setFocusedIndex(prev => Math.min(prev + 1, seasonEpisodes.length - 1)),
+    onArrowUp: () => {
+      // Se o foco estiver no trailer ou nos botões de temporada, não faça nada aqui.
+      // Se estiver na lista de episódios, navegue.
+      if (focusedIndex > 0) {
+        setFocusedIndex(prev => Math.max(prev - 1, 0));
+      } else {
+        // Tenta focar o botão de trailer ou o primeiro botão de temporada
+        if (trailerUrl) {
+          document.getElementById('trailer-button')?.focus();
+        } else if (seasonButtonRefs.current[0]) {
+          seasonButtonRefs.current[0].focus();
+        }
+      }
+    },
+    onArrowDown: () => {
+      setFocusedIndex(prev => Math.min(prev + 1, seasonEpisodes.length - 1));
+    },
     onArrowLeft: () => {
-      if (selectedSeason > seasons[0]) {
-        setSelectedSeason(prev => prev - 1);
+      const currentSeasonIndex = seasons.indexOf(selectedSeason);
+      if (currentSeasonIndex > 0) {
+        setSelectedSeason(seasons[currentSeasonIndex - 1]);
         setFocusedIndex(0);
       }
     },
     onArrowRight: () => {
-      if (selectedSeason < seasons[seasons.length - 1]) {
-        setSelectedSeason(prev => prev + 1);
+      const currentSeasonIndex = seasons.indexOf(selectedSeason);
+      if (currentSeasonIndex < seasons.length - 1) {
+        setSelectedSeason(seasons[currentSeasonIndex + 1]);
         setFocusedIndex(0);
       }
     },
@@ -50,10 +68,26 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl }: 
   });
 
   useEffect(() => {
-    if (open && buttonRefs.current[focusedIndex]) {
-      buttonRefs.current[focusedIndex]?.focus();
+    // Garante que o foco visual siga o focusedIndex
+    if (open && episodeRefs.current[focusedIndex]) {
+      episodeRefs.current[focusedIndex]?.focus();
     }
   }, [focusedIndex, open, selectedSeason]);
+
+  useEffect(() => {
+    // Quando o modal abre, tenta focar o primeiro elemento interativo
+    if (open) {
+      setTimeout(() => {
+        if (trailerUrl) {
+          document.getElementById('trailer-button')?.focus();
+        } else if (seasonButtonRefs.current[0]) {
+          seasonButtonRefs.current[0].focus();
+        } else if (episodeRefs.current[0]) {
+          episodeRefs.current[0].focus();
+        }
+      }, 100);
+    }
+  }, [open, trailerUrl]);
 
 
   const handlePlay = (url: string) => {
@@ -78,6 +112,7 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl }: 
           {trailerUrl && (
             <div className="flex justify-center">
               <Button
+                id="trailer-button"
                 onClick={() => setShowTrailerModal(true)}
                 variant="secondary"
                 size="lg"
@@ -92,9 +127,10 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl }: 
 
           {/* Season Selector */}
           <div className="flex gap-2 flex-wrap">
-            {seasons.map((season) => (
+            {seasons.map((season, index) => (
               <Button
                 key={season}
+                ref={(el) => (seasonButtonRefs.current[index] = el)}
                 variant={selectedSeason === season ? "default" : "outline"}
                 onClick={() => {
                   setSelectedSeason(season);
@@ -113,8 +149,20 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl }: 
             {seasonEpisodes.map((episode, index) => (
               <div
                 key={`${episode.season}-${episode.episode}`}
-                className={`p-4 bg-secondary rounded-lg transition-all ${
-                  focusedIndex === index ? 'ring-2 ring-primary' : ''
+                ref={(el) => (episodeRefs.current[index] = el)}
+                tabIndex={0} // Torna o item da lista focável
+                onFocus={() => {
+                  setFocusedIndex(index);
+                  playNavigationSound('focus');
+                }}
+                onClick={() => handlePlay(episode.url)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handlePlay(episode.url);
+                  }
+                }}
+                className={`p-4 bg-secondary rounded-lg transition-all cursor-pointer ${
+                  focusedIndex === index ? 'ring-2 ring-primary glow-effect' : 'hover:bg-secondary/80'
                 }`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -125,26 +173,29 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl }: 
                   </div>
                   <div className="flex gap-2">
                     <Button
-                      ref={(el) => (buttonRefs.current[index] = el)}
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         playNavigationSound('select');
                         handlePlay(episode.url);
                       }}
-                      size="default"
-                      className="bg-primary hover:bg-primary/90 h-10 px-4"
+                      size="sm"
+                      className="bg-primary hover:bg-primary/90 h-8 px-3"
+                      tabIndex={-1} // Evita que o botão dentro do item focável seja focado separadamente
                     >
                       <Play className="w-4 h-4 mr-2" />
                       Assistir
                     </Button>
                     {episode.download_url && (
                       <Button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           playNavigationSound('select');
                           handleDownload(episode.download_url);
                         }}
-                        size="default"
+                        size="sm"
                         variant="outline"
-                        className="h-10 px-4"
+                        className="h-8 px-3"
+                        tabIndex={-1} // Evita que o botão dentro do item focável seja focado separadamente
                       >
                         <Download className="w-4 h-4 mr-2" />
                         Baixar
