@@ -14,11 +14,11 @@ import type { Content, Episode } from "@/types/content";
 import type { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 
 const Admin = () => {
-  const [allContents, setAllContents] = useState<Content[]>([]); // Lista completa
-  const [filteredContents, setFilteredContents] = useState<Content[]>([]); // Lista filtrada para exibição
-  const [listSearchQuery, setListSearchQuery] = useState(""); // Query para busca na lista
+  const [allContents, setAllContents] = useState<Content[]>([]);
+  const [filteredContents, setFilteredContents] = useState<Content[]>([]);
+  const [listSearchQuery, setListSearchQuery] = useState("");
   
-  const [tmdbSearchQuery, setTmdbSearchQuery] = useState(""); // Query para busca no TMDB
+  const [tmdbSearchQuery, setTmdbSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<(TMDBMovie | TMDBSeries)[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [editingContent, setEditingContent] = useState<Partial<Content>>({
@@ -39,7 +39,6 @@ const Admin = () => {
   }, []);
 
   useEffect(() => {
-    // Filtra a lista de conteúdos cadastrados sempre que a query de busca ou a lista completa mudar
     if (listSearchQuery.trim() === "") {
       setFilteredContents(allContents);
     } else {
@@ -83,7 +82,6 @@ const Admin = () => {
   const fillFromTMDB = async (item: TMDBMovie | TMDBSeries) => {
     const isMovie = 'title' in item;
     
-    // Buscar trailer automaticamente
     let trailerUrl = '';
     try {
       trailerUrl = isMovie 
@@ -138,45 +136,58 @@ const Admin = () => {
     });
   };
 
+  const normalizeVideoUrl = (value?: string) => {
+    if (!value) return value;
+    const trimmed = value.trim();
+    // Se for um iframe colado, extrai o src
+    const match = trimmed.match(/<iframe[^>]+src=["']([^"']+)["']/i);
+    if (match && match[1]) return match[1];
+    return trimmed;
+  };
+
   const handleSave = async () => {
-    // 1. Validação de campos obrigatórios
     if (!editingContent.title || !editingContent.category || !editingContent.thumbnail_url) {
       toast.error("Preencha os campos obrigatórios (Título, Categoria, URL da Imagem)");
       return;
     }
     
-    if (editingContent.category === 'tv' && !editingContent.video_url) {
-      toast.error("Para canais de TV, a URL do Vídeo/Iframe é obrigatória.");
+    const isTV = editingContent.category === 'tv';
+    const isSeries = editingContent.category === 'series';
+    const isMovie = editingContent.category === 'movie';
+
+    // Normaliza URL de vídeo (extrai src caso seja iframe colado)
+    const normalizedVideo = normalizeVideoUrl(editingContent.video_url || undefined);
+
+    if ((isTV || isMovie) && !normalizedVideo) {
+      toast.error(`Para ${isTV ? 'TV' : 'Filme'}, informe a URL do vídeo.`);
       return;
     }
 
-    // 2. Limpeza de campos irrelevantes dependendo da categoria antes de salvar
-    const contentToSave: Partial<Content> = { ...editingContent };
+    const contentToSave: Partial<Content> = {
+      ...editingContent,
+      video_url: normalizedVideo || undefined,
+    };
     
-    if (contentToSave.category === 'movie') {
+    if (isMovie) {
       contentToSave.episodes = undefined;
-    } else if (contentToSave.category === 'tv') {
+    } else if (isTV) {
       contentToSave.episodes = undefined;
       contentToSave.download_url = undefined;
       contentToSave.trailer_url = undefined;
-      // video_url é mantido
-    } else if (contentToSave.category === 'series') {
+    } else if (isSeries) {
       contentToSave.download_url = undefined;
-      contentToSave.video_url = undefined; // O vídeo é acessado via episódios
+      contentToSave.video_url = undefined; // Série usa episódios
     }
-
 
     try {
       if (editingContent.id) {
         await updateContent(editingContent.id, contentToSave);
         toast.success("Conteúdo atualizado!");
       } else {
-        // Omit<Content, 'id'> é necessário para o addContent
         await addContent(contentToSave as Omit<Content, 'id'>);
         toast.success("Conteúdo adicionado!");
       }
       
-      // Resetar formulário
       setEditingContent({
         title: "",
         category: "movie",
@@ -308,16 +319,18 @@ const Admin = () => {
                 />
               </div>
 
-              {/* Campo de URL de Vídeo/Iframe Condicional */}
               {(isMovie || isTV) && (
                 <div>
-                  <Label>URL do Vídeo / Iframe (para {isTV ? 'TV ao Vivo *' : 'Filme'})</Label>
+                  <Label>URL do Vídeo {isTV ? '(TV ao Vivo)' : '(Filme)'}</Label>
                   <Input
                     value={editingContent.video_url}
                     onChange={(e) => setEditingContent({...editingContent, video_url: e.target.value})}
                     className="bg-input border-border"
-                    placeholder="https://..."
+                    placeholder="https://... (se colar um iframe, extrairemos o src)"
                   />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Cole uma URL do player. Se colar um iframe, extrairemos automaticamente o src.
+                  </p>
                 </div>
               )}
 
@@ -449,7 +462,6 @@ const Admin = () => {
           <Card className="p-6 bg-card border-border">
             <h2 className="text-xl font-semibold text-foreground mb-4">Conteúdos Cadastrados</h2>
             
-            {/* Search Input for Content List */}
             <div className="relative mb-4">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input

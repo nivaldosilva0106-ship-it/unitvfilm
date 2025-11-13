@@ -4,7 +4,6 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
 import { TrailerModal } from "@/components/TrailerModal";
-import { IframeModal } from "@/components/IframeModal"; // Importando o novo modal
 import { Play, Download, ArrowLeft, Calendar, Globe, Star, Film, Heart } from "lucide-react";
 import { getAllContents, addToMyList, removeFromMyList, getMyList } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -19,7 +18,6 @@ const ContentDetails = () => {
   const [loading, setLoading] = useState(true);
   const [showEpisodes, setShowEpisodes] = useState(false);
   const [showTrailerModal, setShowTrailerModal] = useState(false);
-  const [showIframeModal, setShowIframeModal] = useState(false); // Novo estado para IframeModal
   const [inMyList, setInMyList] = useState(false);
   const [myListItemId, setMyListItemId] = useState<string | null>(null);
 
@@ -54,15 +52,17 @@ const ContentDetails = () => {
   const handlePlay = (url?: string) => {
     const videoUrl = url || content?.video_url;
 
-    if (content?.category === 'tv' && videoUrl) {
-      setShowIframeModal(true);
-    } else if (content?.category === 'series' && content.episodes && content.episodes.length > 0) {
+    if (content?.category === 'series' && content.episodes && content.episodes.length > 0) {
       setShowEpisodes(true);
-    } else if (videoUrl) {
-      window.open(videoUrl, '_blank');
-    } else {
-      toast.error("Link de vídeo não disponível");
+      return;
     }
+
+    if (videoUrl) {
+      window.open(videoUrl, '_blank');
+      return;
+    }
+
+    toast.error("Link de vídeo não disponível");
   };
 
   const handleTrailer = () => {
@@ -155,9 +155,7 @@ const ContentDetails = () => {
           Voltar
         </Button>
 
-        {/* Ajustando o grid: lg:grid-cols-4 para 4 colunas, onde a imagem ocupa 1 e os detalhes 3 */}
         <div className="grid lg:grid-cols-4 gap-8">
-          {/* Poster - Ocupa 1/4 em telas grandes, e é centralizado em telas pequenas */}
           <div className="lg:col-span-1 flex justify-center lg:justify-start">
             <img
               src={content.thumbnail_url || "/placeholder.svg"}
@@ -166,7 +164,6 @@ const ContentDetails = () => {
             />
           </div>
 
-          {/* Details - Ocupa 3/4 em telas grandes */}
           <div className="lg:col-span-3 space-y-6">
             <div>
               <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">
@@ -252,7 +249,6 @@ const ContentDetails = () => {
         </div>
       </div>
 
-      {/* Episode Selector Modal */}
       {content.category === 'series' && showEpisodes && content.episodes && (
         <EpisodeSelector
           open={showEpisodes}
@@ -263,22 +259,11 @@ const ContentDetails = () => {
         />
       )}
 
-      {/* Trailer Modal */}
       {showTrailerModal && content.trailer_url && (
         <TrailerModal
           open={showTrailerModal}
           onClose={() => setShowTrailerModal(false)}
           trailerUrl={content.trailer_url}
-          title={content.title}
-        />
-      )}
-      
-      {/* Iframe Modal for TV Channels */}
-      {isTV && showIframeModal && content.video_url && (
-        <IframeModal
-          open={showIframeModal}
-          onClose={() => setShowIframeModal(false)}
-          iframeUrl={content.video_url}
           title={content.title}
         />
       )}
