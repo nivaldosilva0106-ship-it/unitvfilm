@@ -2,6 +2,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { X } from "lucide-react";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { Button } from "./ui/button";
+import { useRef, useEffect } from "react";
 
 interface ContentPlayerModalProps {
   open: boolean;
@@ -11,12 +12,23 @@ interface ContentPlayerModalProps {
 }
 
 export const ContentPlayerModal = ({ open, onClose, videoUrl, title }: ContentPlayerModalProps) => {
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   
   // Garante que o ESC feche o modal
   useKeyboardNavigation({
     enabled: open,
     onEscape: onClose,
   });
+
+  // Foca o iframe quando o modal abre para permitir controle direto do player
+  useEffect(() => {
+    if (open && iframeRef.current) {
+      // Adiciona um pequeno delay para garantir que o modal esteja totalmente renderizado
+      setTimeout(() => {
+        iframeRef.current?.focus();
+      }, 100);
+    }
+  }, [open]);
 
   if (!videoUrl) return null;
 
@@ -38,12 +50,13 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title }: ContentPl
         {/* Iframe Container (Aspect Ratio 16:9) */}
         <div className="relative w-full h-full" style={{ paddingBottom: '56.25%' }}>
           <iframe
+            ref={iframeRef}
             src={videoUrl}
             title={`Player - ${title}`}
             className="absolute inset-0 w-full h-full"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
             allowFullScreen
-            // Adiciona tabindex para garantir que o iframe possa ser focado se necessário, embora o foco principal seja no modal.
+            // O tabindex 0 é crucial para que o iframe possa ser focado
             tabIndex={0}
           />
         </div>
