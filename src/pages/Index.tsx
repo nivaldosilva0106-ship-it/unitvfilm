@@ -68,6 +68,14 @@ const Index = () => {
   const handleInfoContent = (content: Content) => {
     navigate(`/content/${content.id}`);
   };
+  
+  const handleDownloadContent = (content: Content) => {
+    if (content.download_url) {
+      window.open(content.download_url, '_blank');
+    } else {
+      toast.error("Link de download não disponível");
+    }
+  };
 
   if (loading) {
     return (
@@ -126,6 +134,7 @@ const Index = () => {
             contents={randomContent}
             onPlayContent={handlePlayContent}
             onInfoContent={handleInfoContent}
+            onDownloadContent={handleDownloadContent}
           />
         )}
 
@@ -135,6 +144,7 @@ const Index = () => {
             contents={movies}
             onPlayContent={handlePlayContent}
             onInfoContent={handleInfoContent}
+            onDownloadContent={handleDownloadContent}
           />
         )}
         
@@ -144,6 +154,7 @@ const Index = () => {
             contents={series}
             onPlayContent={handlePlayContent}
             onInfoContent={handleInfoContent}
+            onDownloadContent={handleDownloadContent}
           />
         )}
         
@@ -153,6 +164,7 @@ const Index = () => {
             contents={tvChannels}
             onPlayContent={handlePlayContent}
             onInfoContent={handleInfoContent}
+            onDownloadContent={handleDownloadContent}
           />
         )}
 
