@@ -22,9 +22,9 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title }: ContentPl
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-7xl w-[95vw] max-h-[95vh] p-0 bg-black border-border/50 shadow-2xl">
+      <DialogContent className="max-w-7xl w-[95vw] max-h-[95vh] p-0 bg-black border-border/50 shadow-2xl [&>button]:hidden">
         
-        {/* Close Button */}
+        {/* Close Button (Customizado) */}
         <Button
           onClick={onClose}
           variant="ghost"

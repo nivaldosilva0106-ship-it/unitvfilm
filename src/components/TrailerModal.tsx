@@ -1,6 +1,8 @@
 import { useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
+import { Button } from "./ui/button";
+import { X } from "lucide-react";
 
 interface TrailerModalProps {
   open: boolean;
@@ -28,6 +30,18 @@ export const TrailerModal = ({ open, onClose, trailerUrl, title }: TrailerModalP
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-5xl max-h-[90vh] p-0 bg-black border-border [&>button]:hidden">
+        
+        {/* Close Button (Customizado) */}
+        <Button
+          onClick={onClose}
+          variant="ghost"
+          size="icon"
+          className="absolute top-4 right-4 z-50 text-white hover:bg-white/20 transition-colors"
+          title="Fechar Trailer (ESC)"
+        >
+          <X className="w-6 h-6" />
+        </Button>
+        
         <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
           <iframe
             src={embedUrl}
