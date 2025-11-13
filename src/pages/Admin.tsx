@@ -14,8 +14,11 @@ import type { Content, Episode } from "@/types/content";
 import type { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 
 const Admin = () => {
-  const [contents, setContents] = useState<Content[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [allContents, setAllContents] = useState<Content[]>([]); // Lista completa
+  const [filteredContents, setFilteredContents] = useState<Content[]>([]); // Lista filtrada para exibição
+  const [listSearchQuery, setListSearchQuery] = useState(""); // Query para busca na lista
+  
+  const [tmdbSearchQuery, setTmdbSearchQuery] = useState(""); // Query para busca no TMDB
   const [searchResults, setSearchResults] = useState<(TMDBMovie | TMDBSeries)[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [editingContent, setEditingContent] = useState<Partial<Content>>({
@@ -35,24 +38,38 @@ const Admin = () => {
     loadContents();
   }, []);
 
+  useEffect(() => {
+    // Filtra a lista de conteúdos cadastrados sempre que a query de busca ou a lista completa mudar
+    if (listSearchQuery.trim() === "") {
+      setFilteredContents(allContents);
+    } else {
+      const lowerCaseQuery = listSearchQuery.toLowerCase();
+      const filtered = allContents.filter(content =>
+        content.title.toLowerCase().includes(lowerCaseQuery) ||
+        content.category.toLowerCase().includes(lowerCaseQuery)
+      );
+      setFilteredContents(filtered);
+    }
+  }, [listSearchQuery, allContents]);
+
   const loadContents = async () => {
     try {
       const data = await getAllContents();
-      setContents(data);
+      setAllContents(data);
     } catch (error) {
       toast.error("Erro ao carregar conteúdos");
     }
   };
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+  const handleTmdbSearch = async () => {
+    if (!tmdbSearchQuery.trim()) return;
 
     setIsSearching(true);
     try {
       const category = editingContent.category || "movie";
       const results = category === "movie" 
-        ? await searchMovies(searchQuery)
-        : await searchSeries(searchQuery);
+        ? await searchMovies(tmdbSearchQuery)
+        : await searchSeries(tmdbSearchQuery);
       
       setSearchResults(results);
       toast.success(`${results.length} resultados encontrados`);
@@ -198,12 +215,12 @@ const Admin = () => {
                   <div className="flex gap-2">
                     <Input
                       placeholder="Digite o título..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                      value={tmdbSearchQuery}
+                      onChange={(e) => setTmdbSearchQuery(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleTmdbSearch()}
                       className="bg-input border-border"
                     />
-                    <Button onClick={handleSearch} disabled={isSearching}>
+                    <Button onClick={handleTmdbSearch} disabled={isSearching}>
                       <Search className="w-4 h-4" />
                     </Button>
                   </div>
@@ -395,8 +412,20 @@ const Admin = () => {
 
           <Card className="p-6 bg-card border-border">
             <h2 className="text-xl font-semibold text-foreground mb-4">Conteúdos Cadastrados</h2>
-            <div className="space-y-4 max-h-[600px] overflow-y-auto">
-              {contents.map((content) => (
+            
+            {/* Search Input for Content List */}
+            <div className="relative mb-4">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar por título ou categoria..."
+                value={listSearchQuery}
+                onChange={(e) => setListSearchQuery(e.target.value)}
+                className="pl-10 bg-input border-border"
+              />
+            </div>
+
+            <div className="space-y-4 max-h-[500px] overflow-y-auto">
+              {filteredContents.map((content) => (
                 <div key={content.id} className="flex items-center gap-4 p-3 bg-secondary rounded-lg">
                   <img 
                     src={content.thumbnail_url || "/placeholder.svg"} 
@@ -425,8 +454,10 @@ const Admin = () => {
                   </div>
                 </div>
               ))}
-              {contents.length === 0 && (
-                <p className="text-center text-muted-foreground py-8">Nenhum conteúdo cadastrado</p>
+              {filteredContents.length === 0 && (
+                <p className="text-center text-muted-foreground py-8">
+                  {listSearchQuery ? "Nenhum resultado encontrado para sua busca." : "Nenhum conteúdo cadastrado"}
+                </p>
               )}
             </div>
           </Card>
