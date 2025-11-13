@@ -48,19 +48,19 @@ export const CategoryNavigation = ({ categories, selectedCategory, onSelectCateg
   };
 
   return (
-    <div className="flex flex-wrap justify-center gap-2 p-4">
+    <div className="flex flex-wrap justify-center gap-3 p-4">
       {categories.map((category, index) => (
         <Button
           key={category}
           ref={(el) => (buttonRefs.current[index] = el)}
           variant={selectedCategory === category ? "default" : "outline"}
-          size="sm" // Tamanho pequeno
+          size="sm" // Alterado para tamanho pequeno
           onClick={() => onSelectCategory(category)}
           onFocus={() => handleFocus(index)}
           className={cn(
-            "capitalize transition-all duration-200 text-xs sm:text-sm",
+            "capitalize transition-all duration-200",
             selectedCategory === category 
-              ? "bg-primary text-primary-foreground glow-effect" // Brilho verde escuro
+              ? "bg-primary text-primary-foreground glow-effect" // Adicionado glow-effect
               : "border-primary/50 hover:border-primary hover:bg-primary/10"
           )}
           tabIndex={0}

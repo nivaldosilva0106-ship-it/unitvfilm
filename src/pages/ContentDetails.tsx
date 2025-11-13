@@ -4,8 +4,9 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
 import { TrailerModal } from "@/components/TrailerModal";
+import { ContentPlayerModal } from "@/components/ContentPlayerModal";
 import { Play, Download, ArrowLeft, Calendar, Globe, Star, Film, Heart } from "lucide-react";
-import { getAllContents, addToMyList, removeFromMyList, isInMyList, getMyList } from "@/lib/firebase";
+import { getAllContents, addToMyList, removeFromMyList, getMyList } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { Content } from "@/types/content";
@@ -20,6 +21,8 @@ const ContentDetails = () => {
   const [showTrailerModal, setShowTrailerModal] = useState(false);
   const [inMyList, setInMyList] = useState(false);
   const [myListItemId, setMyListItemId] = useState<string | null>(null);
+  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, title: string }>({ open: false, url: '', title: '' });
+
 
   useEffect(() => {
     loadContent();
@@ -50,16 +53,19 @@ const ContentDetails = () => {
   };
 
   const handlePlay = (url?: string) => {
+    const videoUrl = url || content?.video_url;
+
     if (content?.category === 'series' && content.episodes && content.episodes.length > 0) {
       setShowEpisodes(true);
-    } else {
-      const videoUrl = url || content?.video_url;
-      if (videoUrl) {
-        window.open(videoUrl, '_blank');
-      } else {
-        toast.error("Link de vídeo não disponível");
-      }
+      return;
     }
+
+    if (videoUrl && content) {
+      setPlayerModal({ open: true, url: videoUrl, title: content.title });
+      return;
+    }
+
+    toast.error("Link de vídeo não disponível");
   };
 
   const handleTrailer = () => {
@@ -135,6 +141,8 @@ const ContentDetails = () => {
 
   if (!content) return null;
 
+  const isTV = content.category === 'tv';
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -150,24 +158,22 @@ const ContentDetails = () => {
           Voltar
         </Button>
 
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Poster */}
-          <div className="lg:col-span-1">
+        <div className="grid lg:grid-cols-4 gap-8">
+          <div className="lg:col-span-1 flex justify-center lg:justify-start">
             <img
               src={content.thumbnail_url || "/placeholder.svg"}
               alt={content.title}
-              className="w-full rounded-lg shadow-2xl"
+              className="w-2/3 sm:w-1/2 lg:w-full max-w-xs rounded-lg shadow-2xl"
             />
           </div>
 
-          {/* Details */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-3 space-y-6">
             <div>
               <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">
                 {content.title}
               </h1>
               <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                {content.release_date && (
+                {content.release_date && !isTV && (
                   <div className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
                     {new Date(content.release_date).getFullYear()}
@@ -179,14 +185,14 @@ const ContentDetails = () => {
                     {content.language.toUpperCase()}
                   </div>
                 )}
-                {content.rating && (
+                {content.rating && !isTV && (
                   <div className="flex items-center gap-1">
                     <Star className="w-4 h-4 fill-primary text-primary" />
                     {content.rating.toFixed(1)}
                   </div>
                 )}
                 <span className="px-3 py-1 bg-primary/20 text-primary rounded-full capitalize">
-                  {content.category === 'movie' ? 'Filme' : content.category === 'series' ? 'Série' : 'TV'}
+                  {content.category === 'movie' ? 'Filme' : content.category === 'series' ? 'Série' : 'TV ao Vivo'}
                 </span>
               </div>
             </div>
@@ -198,7 +204,7 @@ const ContentDetails = () => {
                 tabIndex={0}
               >
                 <Play className="w-5 h-5 mr-2" />
-                {content.category === 'series' ? 'Ver Episódios' : 'Assistir Agora'}
+                {isTV ? 'Assistir Canal' : content.category === 'series' ? 'Ver Episódios' : 'Assistir Agora'}
               </Button>
               
               <Button
@@ -211,7 +217,7 @@ const ContentDetails = () => {
                 {inMyList ? 'Na Minha Lista' : 'Adicionar à Lista'}
               </Button>
 
-              {content.trailer_url && (
+              {content.trailer_url && !isTV && (
                 <Button
                   onClick={handleTrailer}
                   variant="secondary"
@@ -222,7 +228,7 @@ const ContentDetails = () => {
                 </Button>
               )}
               
-              {content.download_url && content.category !== 'series' && (
+              {content.download_url && content.category === 'movie' && (
                 <Button
                   onClick={handleDownload}
                   variant="outline"
@@ -246,7 +252,6 @@ const ContentDetails = () => {
         </div>
       </div>
 
-      {/* Episode Selector Modal */}
       {content.category === 'series' && showEpisodes && content.episodes && (
         <EpisodeSelector
           open={showEpisodes}
@@ -254,10 +259,10 @@ const ContentDetails = () => {
           episodes={content.episodes}
           title={content.title}
           trailerUrl={content.trailer_url}
+          onPlayEpisode={(url) => setPlayerModal({ open: true, url, title: content.title })}
         />
       )}
 
-      {/* Trailer Modal */}
       {showTrailerModal && content.trailer_url && (
         <TrailerModal
           open={showTrailerModal}
@@ -266,6 +271,14 @@ const ContentDetails = () => {
           title={content.title}
         />
       )}
+      
+      {/* Main Player Modal */}
+      <ContentPlayerModal
+        open={playerModal.open}
+        onClose={() => setPlayerModal({ open: false, url: '', title: '' })}
+        videoUrl={playerModal.url}
+        title={playerModal.title}
+      />
     </div>
   );
 };

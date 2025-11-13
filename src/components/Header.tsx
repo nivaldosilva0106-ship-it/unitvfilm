@@ -1,5 +1,5 @@
-import { Film, Search, User, LogOut, List, Settings, Home } from "lucide-react";
-import { useState, useRef, useEffect } from "react";
+import { Film, Search, User, LogOut, List, Settings, Home, Download } from "lucide-react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAllContents } from "@/lib/firebase";
@@ -17,15 +17,92 @@ import { toast } from "sonner";
 import type { Content } from "@/types/content";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 
+declare global {
+  interface BeforeInstallPromptEvent extends Event {
+    prompt: () => Promise<void>;
+    userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+  }
+}
+
 export const Header = () => {
   const navigate = useNavigate();
-  const location = useLocation();
   const { user, logout } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Content[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [focusedResultIndex, setFocusedResultIndex] = useState(0);
+
+  // PWA install
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  
+  // Controla a visibilidade do botão de instalação (se suportado ou se for iOS)
+  const [installButtonVisible, setInstallButtonVisible] = useState(false);
+
+  const isIOS = () => {
+    const ua = window.navigator.userAgent.toLowerCase();
+    return /iphone|ipad|ipod/.test(ua);
+  };
+  
+  const isStandalone = () => {
+    return window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone;
+  };
+
+  useEffect(() => {
+    const checkInstalled = () => {
+      const installed = isStandalone();
+      setIsInstalled(installed);
+      // O botão de instalação deve ser visível se não estiver instalado E se for iOS OU se o prompt estiver disponível.
+      setInstallButtonVisible(!installed && (isIOS() || !!deferredPrompt));
+    };
+
+    const onBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      const promptEvent = e as BeforeInstallPromptEvent;
+      setDeferredPrompt(promptEvent);
+      checkInstalled(); // Re-check visibility after prompt is set
+    };
+
+    window.addEventListener("beforeinstallprompt", onBeforeInstall);
+    window.addEventListener("appinstalled", () => {
+      setDeferredPrompt(null);
+      setIsInstalled(true);
+      setInstallButtonVisible(false);
+      toast.success("Aplicativo instalado com sucesso!");
+    });
+
+    checkInstalled();
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+    };
+  }, [deferredPrompt]); // Dependência adicionada para reavaliar a visibilidade
+
+  const handleInstallPWA = async () => {
+    if (deferredPrompt) {
+      try {
+        await deferredPrompt.prompt();
+        const choice = await deferredPrompt.userChoice;
+        if (choice.outcome === "accepted") {
+          toast.success("Instalação iniciada");
+        } else {
+          toast.info("Instalação cancelada");
+        }
+        setDeferredPrompt(null);
+      } catch (e) {
+        console.error("Erro ao chamar prompt de instalação:", e);
+        toast.error("Não foi possível iniciar a instalação.");
+      }
+    } else if (isIOS() && !isInstalled) {
+      toast.info("No iOS: toque em Compartilhar (Share) e depois em 'Adicionar à Tela de Início' (Add to Home Screen).");
+    } else if (isInstalled) {
+      toast.info("Aplicativo já instalado.");
+    } else {
+      // Este fallback só deve ser atingido se o navegador realmente não suportar PWAs
+      toast.info("Instalação PWA não suportada neste navegador.");
+    }
+  };
 
   const { playNavigationSound } = useKeyboardNavigation({
     enabled: searchOpen && searchResults.length > 0,
@@ -93,6 +170,19 @@ export const Header = () => {
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
+            {/* PWA Install Icon */}
+            {installButtonVisible && (
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={handleInstallPWA}
+                className="border-primary/50 hover:border-primary hover:bg-primary/10"
+                title="Instalar aplicativo"
+              >
+                <Download className="h-5 w-5" />
+              </Button>
+            )}
+
             {/* Search Icon with Dropdown */}
             <DropdownMenu open={searchOpen} onOpenChange={setSearchOpen}>
               <DropdownMenuTrigger asChild>

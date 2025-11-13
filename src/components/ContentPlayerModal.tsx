@@ -1,46 +1,40 @@
-import { useEffect, useRef } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { X } from "lucide-react";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { Button } from "./ui/button";
-import { X } from "lucide-react";
+import { useRef, useEffect } from "react";
 
-interface TrailerModalProps {
+interface ContentPlayerModalProps {
   open: boolean;
   onClose: () => void;
-  trailerUrl: string;
+  videoUrl: string;
   title: string;
 }
 
-export const TrailerModal = ({ open, onClose, trailerUrl, title }: TrailerModalProps) => {
+export const ContentPlayerModal = ({ open, onClose, videoUrl, title }: ContentPlayerModalProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   
-  // Extract YouTube video ID from URL
-  const getYoutubeEmbedUrl = (url: string) => {
-    const videoId = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&\s]+)/)?.[1];
-    return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1` : "";
-  };
-
+  // Garante que o ESC feche o modal
   useKeyboardNavigation({
     enabled: open,
     onEscape: onClose,
   });
-  
-  // Foca o iframe quando o modal abre
+
+  // Foca o iframe quando o modal abre para permitir controle direto do player
   useEffect(() => {
     if (open && iframeRef.current) {
+      // Adiciona um pequeno delay para garantir que o modal esteja totalmente renderizado
       setTimeout(() => {
         iframeRef.current?.focus();
       }, 100);
     }
   }, [open]);
 
-  const embedUrl = getYoutubeEmbedUrl(trailerUrl);
-
-  if (!embedUrl) return null;
+  if (!videoUrl) return null;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-5xl max-h-[90vh] p-0 bg-black border-border [&>button]:hidden">
+      <DialogContent className="max-w-7xl w-[95vw] max-h-[95vh] p-0 bg-black border-border/50 shadow-2xl [&>button]:hidden">
         
         {/* Close Button (Customizado) */}
         <Button
@@ -48,19 +42,21 @@ export const TrailerModal = ({ open, onClose, trailerUrl, title }: TrailerModalP
           variant="ghost"
           size="icon"
           className="absolute top-4 right-4 z-50 text-white hover:bg-white/20 transition-colors"
-          title="Fechar Trailer (ESC)"
+          title="Fechar Player (ESC)"
         >
           <X className="w-6 h-6" />
         </Button>
-        
-        <div className="relative w-full" style={{ paddingBottom: '56.25%' }}>
+
+        {/* Iframe Container (Aspect Ratio 16:9) */}
+        <div className="relative w-full h-full" style={{ paddingBottom: '56.25%' }}>
           <iframe
             ref={iframeRef}
-            src={embedUrl}
-            title={`Trailer - ${title}`}
+            src={videoUrl}
+            title={`Player - ${title}`}
             className="absolute inset-0 w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
             allowFullScreen
+            // O tabindex 0 é crucial para que o iframe possa ser focado
             tabIndex={0}
           />
         </div>

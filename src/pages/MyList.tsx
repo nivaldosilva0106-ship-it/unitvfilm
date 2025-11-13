@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
 import { ContentCard } from '@/components/ContentCard';
+import { ContentPlayerModal } from '@/components/ContentPlayerModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { getMyList, removeFromMyList } from '@/lib/firebase';
 import { toast } from 'sonner';
@@ -13,6 +14,8 @@ const MyList = () => {
   const { user, loading: authLoading } = useAuth();
   const [myList, setMyList] = useState<MyListItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, title: string }>({ open: false, url: '', title: '' });
+
 
   useEffect(() => {
     if (!authLoading) {
@@ -51,7 +54,10 @@ const MyList = () => {
 
   const handlePlayContent = (item: MyListItem) => {
     if (item.content.video_url) {
-      window.open(item.content.video_url, '_blank');
+      setPlayerModal({ open: true, url: item.content.video_url, title: item.content.title });
+    } else if (item.content.category === 'series' && item.content.episodes && item.content.episodes.length > 0) {
+      // Se for série, redireciona para a página de detalhes para abrir o seletor de episódios
+      navigate(`/content/${item.content.id}`);
     } else {
       toast.error('Link de vídeo não disponível');
     }
@@ -59,14 +65,6 @@ const MyList = () => {
 
   const handleInfoContent = (item: MyListItem) => {
     navigate(`/content/${item.content.id}`);
-  };
-
-  const handleDownloadContent = (item: MyListItem) => {
-    if (item.content.download_url) {
-      window.open(item.content.download_url, '_blank');
-    } else {
-      toast.error('Link de download não disponível');
-    }
   };
 
   if (authLoading || loading) {
@@ -104,7 +102,6 @@ const MyList = () => {
                   thumbnail={item.content.thumbnail_url}
                   onPlay={() => handlePlayContent(item)}
                   onInfo={() => handleInfoContent(item)}
-                  onDownload={item.content.download_url ? () => handleDownloadContent(item) : undefined}
                 />
                 <button
                   onClick={() => handleRemove(item.id)}
@@ -134,6 +131,14 @@ const MyList = () => {
           </div>
         )}
       </div>
+      
+      {/* Main Player Modal */}
+      <ContentPlayerModal
+        open={playerModal.open}
+        onClose={() => setPlayerModal({ open: false, url: '', title: '' })}
+        videoUrl={playerModal.url}
+        title={playerModal.title}
+      />
     </div>
   );
 };

@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, set, get, remove, update, push, query, orderByChild, equalTo } from 'firebase/database';
+import { getDatabase, ref, set, get, remove, update, push } from 'firebase/database';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import type { Content } from '@/types/content';
 import type { UserProfile, MyListItem } from '@/types/user';
@@ -16,10 +16,29 @@ const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 const auth = getAuth(app);
 
+// Helper to remove undefined values deeply (Firebase RTDB doesn't accept undefined)
+function removeUndefinedDeep<T>(obj: T): T {
+  if (Array.isArray(obj)) {
+    return (obj as unknown[]).map((item) => removeUndefinedDeep(item)) as unknown as T;
+  }
+  if (obj !== null && typeof obj === 'object') {
+    const result: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+      const cleaned = removeUndefinedDeep(value as unknown);
+      if (cleaned !== undefined) {
+        result[key] = cleaned;
+      }
+    }
+    return result as T;
+  }
+  return obj;
+}
+
 export const addContent = async (content: Omit<Content, 'id'>) => {
   const contentRef = ref(database, 'contents');
   const newContentRef = push(contentRef);
-  const contentWithId = { ...content, id: newContentRef.key };
+  const base = removeUndefinedDeep(content);
+  const contentWithId = removeUndefinedDeep({ ...base, id: newContentRef.key }) as Content;
   await set(newContentRef, contentWithId);
   return contentWithId;
 };
@@ -41,7 +60,8 @@ export const getContentsByCategory = async (category: string): Promise<Content[]
 
 export const updateContent = async (id: string, updates: Partial<Content>) => {
   const contentRef = ref(database, `contents/${id}`);
-  await update(contentRef, updates);
+  const cleaned = removeUndefinedDeep(updates);
+  await update(contentRef, cleaned);
 };
 
 export const deleteContent = async (id: string) => {
@@ -90,7 +110,8 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
 
 export const updateUserProfile = async (userId: string, updates: Partial<UserProfile>) => {
   const profileRef = ref(database, `profiles/${userId}`);
-  await update(profileRef, updates);
+  const cleaned = removeUndefinedDeep(updates);
+  await update(profileRef, cleaned);
 };
 
 // My List functions
@@ -100,7 +121,7 @@ export const addToMyList = async (userId: string, content: Content) => {
   const item: MyListItem = {
     id: newItemRef.key!,
     contentId: content.id,
-    content,
+    content: removeUndefinedDeep(content),
     addedAt: new Date().toISOString(),
   };
   await set(newItemRef, item);
