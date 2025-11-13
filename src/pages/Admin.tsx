@@ -139,12 +139,18 @@ const Admin = () => {
   };
 
   const handleSave = async () => {
+    // 1. Validação de campos obrigatórios
     if (!editingContent.title || !editingContent.category || !editingContent.thumbnail_url) {
       toast.error("Preencha os campos obrigatórios (Título, Categoria, URL da Imagem)");
       return;
     }
     
-    // Limpar campos irrelevantes dependendo da categoria antes de salvar
+    if (editingContent.category === 'tv' && !editingContent.video_url) {
+      toast.error("Para canais de TV, a URL do Vídeo/Iframe é obrigatória.");
+      return;
+    }
+
+    // 2. Limpeza de campos irrelevantes dependendo da categoria antes de salvar
     const contentToSave: Partial<Content> = { ...editingContent };
     
     if (contentToSave.category === 'movie') {
@@ -153,7 +159,7 @@ const Admin = () => {
       contentToSave.episodes = undefined;
       contentToSave.download_url = undefined;
       contentToSave.trailer_url = undefined;
-      // video_url é usado para o iframe/stream
+      // video_url é mantido
     } else if (contentToSave.category === 'series') {
       contentToSave.download_url = undefined;
       contentToSave.video_url = undefined; // O vídeo é acessado via episódios
@@ -165,10 +171,12 @@ const Admin = () => {
         await updateContent(editingContent.id, contentToSave);
         toast.success("Conteúdo atualizado!");
       } else {
+        // Omit<Content, 'id'> é necessário para o addContent
         await addContent(contentToSave as Omit<Content, 'id'>);
         toast.success("Conteúdo adicionado!");
       }
       
+      // Resetar formulário
       setEditingContent({
         title: "",
         category: "movie",
@@ -183,7 +191,8 @@ const Admin = () => {
       });
       loadContents();
     } catch (error) {
-      toast.error("Erro ao salvar conteúdo");
+      console.error("Firebase Save Error:", error);
+      toast.error("Erro ao salvar conteúdo. Verifique o console para detalhes.");
     }
   };
 
@@ -302,7 +311,7 @@ const Admin = () => {
               {/* Campo de URL de Vídeo/Iframe Condicional */}
               {(isMovie || isTV) && (
                 <div>
-                  <Label>URL do Vídeo / Iframe (para {isTV ? 'TV ao Vivo' : 'Filme'})</Label>
+                  <Label>URL do Vídeo / Iframe (para {isTV ? 'TV ao Vivo *' : 'Filme'})</Label>
                   <Input
                     value={editingContent.video_url}
                     onChange={(e) => setEditingContent({...editingContent, video_url: e.target.value})}
