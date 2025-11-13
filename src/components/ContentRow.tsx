@@ -46,7 +46,7 @@ export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDo
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
-      const scrollAmount = 800;
+      const scrollAmount = 600;
       const newScrollPosition =
         direction === "left"
           ? scrollRef.current.scrollLeft - scrollAmount
@@ -87,7 +87,7 @@ export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDo
         
         <div
           ref={scrollRef}
-          className="flex gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-8 py-2"
+          className="flex gap-3 overflow-x-auto scrollbar-hide px-4 sm:px-8 py-2"
         >
           {contents.map((content) => (
             <div key={content.id} className="content-card-item">

@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { ContentRow } from "@/components/ContentRow";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
-import { SearchDropdown } from "@/components/SearchDropdown";
 import { getContentsByCategory, getAllContents } from "@/lib/firebase";
 import { toast } from "sonner";
 import type { Content } from "@/types/content";
@@ -15,6 +14,7 @@ const Index = () => {
   const [tvChannels, setTvChannels] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
   const [allContents, setAllContents] = useState<Content[]>([]);
+  const [randomContent, setRandomContent] = useState<Content[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedSeries, setSelectedSeries] = useState<Content | null>(null);
 
@@ -44,6 +44,10 @@ const Index = () => {
       setSeries(seriesData);
       setTvChannels(tvData);
       setAllContents(allData);
+      
+      // Set random content once after data is loaded
+      const shuffled = [...allData].sort(() => 0.5 - Math.random());
+      setRandomContent(shuffled.slice(0, 10));
     } catch (error) {
       toast.error("Erro ao carregar conteúdos");
     } finally {
@@ -89,7 +93,7 @@ const Index = () => {
       <Header />
       
       {/* Hero Section */}
-      <div className="relative py-24 flex items-center justify-center overflow-hidden">
+      <div className="relative py-16 flex items-center justify-center overflow-hidden">
         {/* Background Images Carousel */}
         {allContents.length > 0 && (
           <div className="absolute inset-0 z-0">
@@ -112,20 +116,28 @@ const Index = () => {
         )}
 
         <div className="relative z-20 text-center px-4 max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-7xl font-bold text-foreground mb-4 drop-shadow-lg">
+          <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-3 drop-shadow-lg">
             Bem-vindo ao Uni<span className="text-primary glow-effect">Tv</span>Film
           </h1>
-          <p className="text-xl text-foreground/90 drop-shadow-md mb-6">
+          <p className="text-lg text-foreground/90 drop-shadow-md">
             Sua plataforma de streaming com os melhores filmes, séries e canais de TV
           </p>
-          <div className="flex justify-center">
-            <SearchDropdown />
-          </div>
         </div>
       </div>
 
       {/* Content Sections */}
-      <div className="pt-8 pb-16">
+      <div className="pt-4 pb-16">
+        {/* Featured Random Content - Always First */}
+        {randomContent.length > 0 && (
+          <ContentRow 
+            title="Em Destaque" 
+            contents={randomContent}
+            onPlayContent={handlePlayContent}
+            onInfoContent={handleInfoContent}
+            onDownloadContent={handleDownloadContent}
+          />
+        )}
+
         {movies.length > 0 && (
           <ContentRow 
             title="Filmes" 

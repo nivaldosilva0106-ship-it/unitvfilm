@@ -96,7 +96,7 @@ const MyList = () => {
         </div>
 
         {myList.length > 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3">
             {myList.map((item) => (
               <div key={item.id} className="relative group">
                 <ContentCard
@@ -108,10 +108,10 @@ const MyList = () => {
                 />
                 <button
                   onClick={() => handleRemove(item.id)}
-                  className="absolute top-2 right-2 bg-destructive/90 hover:bg-destructive text-destructive-foreground p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  className="absolute top-2 right-2 bg-destructive/90 hover:bg-destructive text-destructive-foreground p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
                   title="Remover da lista"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3 h-3" />
                 </button>
               </div>
             ))}
