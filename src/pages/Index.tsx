@@ -5,7 +5,7 @@ import { ContentRow } from "@/components/ContentRow";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
 import { ContentPlayerModal } from "@/components/ContentPlayerModal";
 import { CategoryNavigation } from "@/components/CategoryNavigation";
-import { getContentsByCategory, getAllContents } from "@/lib/firebase";
+import { getAllContents } from "@/lib/firebase";
 import { toast } from "sonner";
 import type { Content } from "@/types/content";
 
