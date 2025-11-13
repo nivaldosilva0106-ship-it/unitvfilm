@@ -1,4 +1,4 @@
-import { Play, Info, Download } from "lucide-react";
+import { Play, Info } from "lucide-react";
 import { Button } from "./ui/button";
 import { useState, useEffect, useRef } from "react";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
@@ -8,10 +8,9 @@ interface ContentCardProps {
   thumbnail: string;
   onPlay?: () => void;
   onInfo?: () => void;
-  onDownload?: () => void;
 }
 
-export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload }: ContentCardProps) => {
+export const ContentCard = ({ title, thumbnail, onPlay, onInfo }: ContentCardProps) => {
   const [isFocused, setIsFocused] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -58,18 +57,17 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload }: Co
         }`}>
           <div className="w-full space-y-2">
             <h3 className="text-foreground font-semibold text-sm mb-2 line-clamp-2">{title}</h3>
-            <div className="flex justify-center gap-1.5">
+            <div className="flex justify-center gap-2">
               <Button
                 onClick={(e) => {
                   e.stopPropagation();
                   playNavigationSound('select');
                   onPlay?.();
                 }}
-                size="sm"
-                className="bg-primary hover:bg-primary/90 text-primary-foreground h-8 text-xs glow-effect-hover"
+                size="icon"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground h-8 w-8 glow-effect-hover rounded-full"
               >
-                <Play className="w-3.5 h-3.5 mr-1" />
-                Assistir
+                <Play className="w-4 h-4" />
               </Button>
               <Button
                 onClick={(e) => {
@@ -77,28 +75,12 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload }: Co
                   playNavigationSound('select');
                   onInfo?.();
                 }}
-                size="sm"
+                size="icon"
                 variant="secondary"
-                className="h-8 text-xs"
+                className="h-8 w-8 rounded-full"
               >
-                <Info className="w-3.5 h-3.5 mr-1" />
-                Info
+                <Info className="w-4 h-4" />
               </Button>
-              {onDownload && (
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    playNavigationSound('select');
-                    onDownload?.();
-                  }}
-                  size="sm"
-                  variant="outline"
-                  className="h-8 text-xs"
-                >
-                  <Download className="w-3.5 h-3.5 mr-1" />
-                  Baixar
-                </Button>
-              )}
             </div>
           </div>
         </div>

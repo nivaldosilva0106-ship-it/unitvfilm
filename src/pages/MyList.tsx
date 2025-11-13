@@ -61,14 +61,6 @@ const MyList = () => {
     navigate(`/content/${item.content.id}`);
   };
 
-  const handleDownloadContent = (item: MyListItem) => {
-    if (item.content.download_url) {
-      window.open(item.content.download_url, '_blank');
-    } else {
-      toast.error('Link de download não disponível');
-    }
-  };
-
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -104,7 +96,6 @@ const MyList = () => {
                   thumbnail={item.content.thumbnail_url}
                   onPlay={() => handlePlayContent(item)}
                   onInfo={() => handleInfoContent(item)}
-                  onDownload={item.content.download_url ? () => handleDownloadContent(item) : undefined}
                 />
                 <button
                   onClick={() => handleRemove(item.id)}
