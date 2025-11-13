@@ -58,7 +58,7 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload }: Co
         }`}>
           <div className="w-full space-y-2">
             <h3 className="text-foreground font-semibold text-sm mb-2 line-clamp-2">{title}</h3>
-            <div className="flex gap-1.5">
+            <div className="flex justify-center gap-1.5">
               <Button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -66,7 +66,7 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload }: Co
                   onPlay?.();
                 }}
                 size="sm"
-                className="bg-primary hover:bg-primary/90 text-primary-foreground flex-1 h-9 text-xs glow-effect-hover"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground h-8 text-xs glow-effect-hover"
               >
                 <Play className="w-3.5 h-3.5 mr-1" />
                 Assistir
@@ -79,27 +79,27 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload }: Co
                 }}
                 size="sm"
                 variant="secondary"
-                className="flex-1 h-9 text-xs"
+                className="h-8 text-xs"
               >
                 <Info className="w-3.5 h-3.5 mr-1" />
                 Info
               </Button>
+              {onDownload && (
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    playNavigationSound('select');
+                    onDownload?.();
+                  }}
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs"
+                >
+                  <Download className="w-3.5 h-3.5 mr-1" />
+                  Baixar
+                </Button>
+              )}
             </div>
-            {onDownload && (
-              <Button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  playNavigationSound('select');
-                  onDownload?.();
-                }}
-                size="sm"
-                variant="outline"
-                className="w-full h-9 text-xs"
-              >
-                <Download className="w-3.5 h-3.5 mr-1" />
-                Baixar
-              </Button>
-            )}
           </div>
         </div>
       </div>
