@@ -12,9 +12,10 @@ interface EpisodeSelectorProps {
   episodes: Episode[];
   title: string;
   trailerUrl?: string;
+  onPlayEpisode: (url: string) => void; // Nova prop para reproduzir no modal
 }
 
-export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl }: EpisodeSelectorProps) => {
+export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, onPlayEpisode }: EpisodeSelectorProps) => {
   const [selectedSeason, setSelectedSeason] = useState<number>(1);
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [showTrailerModal, setShowTrailerModal] = useState(false);
@@ -25,6 +26,11 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl }: 
   const seasonEpisodes = episodes
     .filter(ep => ep.season === selectedSeason)
     .sort((a, b) => a.episode - b.episode);
+
+  const handlePlay = (url: string) => {
+    onPlayEpisode(url);
+    onClose(); // Fecha o seletor de episódios após iniciar a reprodução
+  };
 
   const { playNavigationSound } = useKeyboardNavigation({
     enabled: open,
@@ -77,6 +83,8 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl }: 
   useEffect(() => {
     // Quando o modal abre, tenta focar o primeiro elemento interativo
     if (open) {
+      // Resetar o foco visual para o primeiro episódio da temporada selecionada
+      setFocusedIndex(0); 
       setTimeout(() => {
         if (trailerUrl) {
           document.getElementById('trailer-button')?.focus();
@@ -89,10 +97,6 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl }: 
     }
   }, [open, trailerUrl]);
 
-
-  const handlePlay = (url: string) => {
-    window.open(url, '_blank');
-  };
 
   const handleDownload = (url?: string) => {
     if (url) {

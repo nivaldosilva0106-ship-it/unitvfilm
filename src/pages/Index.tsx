@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { ContentRow } from "@/components/ContentRow";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
+import { ContentPlayerModal } from "@/components/ContentPlayerModal";
 import { getContentsByCategory, getAllContents } from "@/lib/firebase";
 import { toast } from "sonner";
 import type { Content } from "@/types/content";
@@ -17,6 +18,8 @@ const Index = () => {
   const [randomContent, setRandomContent] = useState<Content[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedSeries, setSelectedSeries] = useState<Content | null>(null);
+  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, title: string }>({ open: false, url: '', title: '' });
+
 
   useEffect(() => {
     loadContent();
@@ -59,7 +62,7 @@ const Index = () => {
     if (content.category === 'series' && content.episodes && content.episodes.length > 0) {
       setSelectedSeries(content);
     } else if (content.video_url) {
-      window.open(content.video_url, '_blank');
+      setPlayerModal({ open: true, url: content.video_url, title: content.title });
     } else {
       toast.error("Link de vídeo não disponível");
     }
@@ -184,8 +187,18 @@ const Index = () => {
           onClose={() => setSelectedSeries(null)}
           episodes={selectedSeries.episodes || []}
           title={selectedSeries.title}
+          trailerUrl={selectedSeries.trailer_url}
+          onPlayEpisode={(url) => setPlayerModal({ open: true, url, title: selectedSeries.title })}
         />
       )}
+      
+      {/* Main Player Modal */}
+      <ContentPlayerModal
+        open={playerModal.open}
+        onClose={() => setPlayerModal({ open: false, url: '', title: '' })}
+        videoUrl={playerModal.url}
+        title={playerModal.title}
+      />
     </div>
   );
 };

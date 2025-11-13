@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
 import { TrailerModal } from "@/components/TrailerModal";
+import { ContentPlayerModal } from "@/components/ContentPlayerModal";
 import { Play, Download, ArrowLeft, Calendar, Globe, Star, Film, Heart } from "lucide-react";
 import { getAllContents, addToMyList, removeFromMyList, getMyList } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -20,6 +21,8 @@ const ContentDetails = () => {
   const [showTrailerModal, setShowTrailerModal] = useState(false);
   const [inMyList, setInMyList] = useState(false);
   const [myListItemId, setMyListItemId] = useState<string | null>(null);
+  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, title: string }>({ open: false, url: '', title: '' });
+
 
   useEffect(() => {
     loadContent();
@@ -57,8 +60,8 @@ const ContentDetails = () => {
       return;
     }
 
-    if (videoUrl) {
-      window.open(videoUrl, '_blank');
+    if (videoUrl && content) {
+      setPlayerModal({ open: true, url: videoUrl, title: content.title });
       return;
     }
 
@@ -256,6 +259,7 @@ const ContentDetails = () => {
           episodes={content.episodes}
           title={content.title}
           trailerUrl={content.trailer_url}
+          onPlayEpisode={(url) => setPlayerModal({ open: true, url, title: content.title })}
         />
       )}
 
@@ -267,6 +271,14 @@ const ContentDetails = () => {
           title={content.title}
         />
       )}
+      
+      {/* Main Player Modal */}
+      <ContentPlayerModal
+        open={playerModal.open}
+        onClose={() => setPlayerModal({ open: false, url: '', title: '' })}
+        videoUrl={playerModal.url}
+        title={playerModal.title}
+      />
     </div>
   );
 };
