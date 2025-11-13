@@ -1,0 +1,273 @@
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Header } from "@/components/Header";
+import { Button } from "@/components/ui/button";
+import { EpisodeSelector } from "@/components/EpisodeSelector";
+import { TrailerModal } from "@/components/TrailerModal";
+import { Play, Download, ArrowLeft, Calendar, Globe, Star, Film, Heart } from "lucide-react";
+import { getAllContents, addToMyList, removeFromMyList, isInMyList, getMyList } from "@/lib/firebase";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
+import type { Content } from "@/types/content";
+
+const ContentDetails = () => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [content, setContent] = useState<Content | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [showEpisodes, setShowEpisodes] = useState(false);
+  const [showTrailerModal, setShowTrailerModal] = useState(false);
+  const [inMyList, setInMyList] = useState(false);
+  const [myListItemId, setMyListItemId] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadContent();
+  }, [id]);
+
+  useEffect(() => {
+    if (user && content) {
+      checkMyList();
+    }
+  }, [user, content]);
+
+  const loadContent = async () => {
+    try {
+      const contents = await getAllContents();
+      const found = contents.find((c) => c.id === id);
+      if (found) {
+        setContent(found);
+      } else {
+        toast.error("Conteúdo não encontrado");
+        navigate("/");
+      }
+    } catch (error) {
+      toast.error("Erro ao carregar conteúdo");
+      navigate("/");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePlay = (url?: string) => {
+    if (content?.category === 'series' && content.episodes && content.episodes.length > 0) {
+      setShowEpisodes(true);
+    } else {
+      const videoUrl = url || content?.video_url;
+      if (videoUrl) {
+        window.open(videoUrl, '_blank');
+      } else {
+        toast.error("Link de vídeo não disponível");
+      }
+    }
+  };
+
+  const handleTrailer = () => {
+    if (content?.trailer_url) {
+      setShowTrailerModal(true);
+    } else {
+      toast.error("Trailer não disponível");
+    }
+  };
+
+  const handleDownload = () => {
+    if (content?.download_url) {
+      window.open(content.download_url, '_blank');
+    } else {
+      toast.error("Link de download não disponível");
+    }
+  };
+
+  const checkMyList = async () => {
+    if (!user || !content) return;
+    
+    try {
+      const myList = await getMyList(user.uid);
+      const item = myList.find(i => i.contentId === content.id);
+      if (item) {
+        setInMyList(true);
+        setMyListItemId(item.id);
+      } else {
+        setInMyList(false);
+        setMyListItemId(null);
+      }
+    } catch (error) {
+      console.error("Erro ao verificar lista:", error);
+    }
+  };
+
+  const handleToggleMyList = async () => {
+    if (!user) {
+      toast.error("Faça login para adicionar à sua lista");
+      navigate("/login");
+      return;
+    }
+
+    if (!content) return;
+
+    try {
+      if (inMyList && myListItemId) {
+        await removeFromMyList(user.uid, myListItemId);
+        setInMyList(false);
+        setMyListItemId(null);
+        toast.success("Removido da sua lista");
+      } else {
+        const item = await addToMyList(user.uid, content);
+        setInMyList(true);
+        setMyListItemId(item.id);
+        toast.success("Adicionado à sua lista");
+      }
+    } catch (error) {
+      toast.error("Erro ao atualizar lista");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!content) return null;
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      
+      <div className="container mx-auto px-4 sm:px-8 pt-24 pb-16">
+        <Button
+          variant="ghost"
+          onClick={() => navigate("/")}
+          className="mb-6"
+          tabIndex={0}
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          Voltar
+        </Button>
+
+        <div className="grid lg:grid-cols-3 gap-8">
+          {/* Poster */}
+          <div className="lg:col-span-1">
+            <img
+              src={content.thumbnail_url || "/placeholder.svg"}
+              alt={content.title}
+              className="w-full rounded-lg shadow-2xl"
+            />
+          </div>
+
+          {/* Details */}
+          <div className="lg:col-span-2 space-y-6">
+            <div>
+              <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">
+                {content.title}
+              </h1>
+              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                {content.release_date && (
+                  <div className="flex items-center gap-1">
+                    <Calendar className="w-4 h-4" />
+                    {new Date(content.release_date).getFullYear()}
+                  </div>
+                )}
+                {content.language && (
+                  <div className="flex items-center gap-1">
+                    <Globe className="w-4 h-4" />
+                    {content.language.toUpperCase()}
+                  </div>
+                )}
+                {content.rating && (
+                  <div className="flex items-center gap-1">
+                    <Star className="w-4 h-4 fill-primary text-primary" />
+                    {content.rating.toFixed(1)}
+                  </div>
+                )}
+                <span className="px-3 py-1 bg-primary/20 text-primary rounded-full capitalize">
+                  {content.category === 'movie' ? 'Filme' : content.category === 'series' ? 'Série' : 'TV'}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-3">
+              <Button
+                onClick={() => handlePlay()}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground glow-effect-hover"
+                tabIndex={0}
+              >
+                <Play className="w-5 h-5 mr-2" />
+                {content.category === 'series' ? 'Ver Episódios' : 'Assistir Agora'}
+              </Button>
+              
+              <Button
+                onClick={handleToggleMyList}
+                variant={inMyList ? "default" : "outline"}
+                className={inMyList ? "bg-primary/20 hover:bg-primary/30" : ""}
+                tabIndex={0}
+              >
+                <Heart className={`w-5 h-5 mr-2 ${inMyList ? 'fill-primary text-primary' : ''}`} />
+                {inMyList ? 'Na Minha Lista' : 'Adicionar à Lista'}
+              </Button>
+
+              {content.trailer_url && (
+                <Button
+                  onClick={handleTrailer}
+                  variant="secondary"
+                  tabIndex={0}
+                >
+                  <Film className="w-5 h-5 mr-2" />
+                  Trailer
+                </Button>
+              )}
+              
+              {content.download_url && content.category !== 'series' && (
+                <Button
+                  onClick={handleDownload}
+                  variant="outline"
+                  tabIndex={0}
+                >
+                  <Download className="w-5 h-5 mr-2" />
+                  Baixar
+                </Button>
+              )}
+            </div>
+
+            {content.description && (
+              <div>
+                <h2 className="text-2xl font-semibold text-foreground mb-3">Sinopse</h2>
+                <p className="text-foreground/80 leading-relaxed">
+                  {content.description}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Episode Selector Modal */}
+      {content.category === 'series' && showEpisodes && content.episodes && (
+        <EpisodeSelector
+          open={showEpisodes}
+          onClose={() => setShowEpisodes(false)}
+          episodes={content.episodes}
+          title={content.title}
+          trailerUrl={content.trailer_url}
+        />
+      )}
+
+      {/* Trailer Modal */}
+      {showTrailerModal && content.trailer_url && (
+        <TrailerModal
+          open={showTrailerModal}
+          onClose={() => setShowTrailerModal(false)}
+          trailerUrl={content.trailer_url}
+          title={content.title}
+        />
+      )}
+    </div>
+  );
+};
+
+export default ContentDetails;

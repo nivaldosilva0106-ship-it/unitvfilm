@@ -1,0 +1,141 @@
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Header } from '@/components/Header';
+import { ContentCard } from '@/components/ContentCard';
+import { useAuth } from '@/contexts/AuthContext';
+import { getMyList, removeFromMyList } from '@/lib/firebase';
+import { toast } from 'sonner';
+import { Heart, Trash2 } from 'lucide-react';
+import type { MyListItem } from '@/types/user';
+
+const MyList = () => {
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const [myList, setMyList] = useState<MyListItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!authLoading) {
+      if (!user) {
+        navigate('/login');
+      } else {
+        loadMyList();
+      }
+    }
+  }, [user, authLoading, navigate]);
+
+  const loadMyList = async () => {
+    if (!user) return;
+    
+    try {
+      const items = await getMyList(user.uid);
+      setMyList(items);
+    } catch (error) {
+      toast.error('Erro ao carregar sua lista');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemove = async (itemId: string) => {
+    if (!user) return;
+    
+    try {
+      await removeFromMyList(user.uid, itemId);
+      setMyList(myList.filter(item => item.id !== itemId));
+      toast.success('Removido da sua lista');
+    } catch (error) {
+      toast.error('Erro ao remover da lista');
+    }
+  };
+
+  const handlePlayContent = (item: MyListItem) => {
+    if (item.content.video_url) {
+      window.open(item.content.video_url, '_blank');
+    } else {
+      toast.error('Link de vídeo não disponível');
+    }
+  };
+
+  const handleInfoContent = (item: MyListItem) => {
+    navigate(`/content/${item.content.id}`);
+  };
+
+  const handleDownloadContent = (item: MyListItem) => {
+    if (item.content.download_url) {
+      window.open(item.content.download_url, '_blank');
+    } else {
+      toast.error('Link de download não disponível');
+    }
+  };
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Header />
+      
+      <div className="container mx-auto px-4 pt-24 pb-16">
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-foreground mb-2 flex items-center gap-3">
+            <Heart className="w-8 h-8 text-primary fill-primary" />
+            Minha Lista
+          </h1>
+          <p className="text-muted-foreground">
+            {myList.length} {myList.length === 1 ? 'item' : 'itens'} na sua lista
+          </p>
+        </div>
+
+        {myList.length > 0 ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {myList.map((item) => (
+              <div key={item.id} className="relative group">
+                <ContentCard
+                  title={item.content.title}
+                  thumbnail={item.content.thumbnail_url}
+                  onPlay={() => handlePlayContent(item)}
+                  onInfo={() => handleInfoContent(item)}
+                  onDownload={item.content.download_url ? () => handleDownloadContent(item) : undefined}
+                />
+                <button
+                  onClick={() => handleRemove(item.id)}
+                  className="absolute top-2 right-2 bg-destructive/90 hover:bg-destructive text-destructive-foreground p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  title="Remover da lista"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-16 px-4">
+            <Heart className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <p className="text-xl text-muted-foreground mb-4">
+              Sua lista está vazia
+            </p>
+            <p className="text-muted-foreground mb-8">
+              Adicione filmes e séries à sua lista para assistir depois
+            </p>
+            <button
+              onClick={() => navigate('/')}
+              className="text-primary hover:underline"
+            >
+              Explorar conteúdo
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default MyList;
