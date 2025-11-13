@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 
 interface TrailerModalProps {
   open: boolean;
@@ -15,19 +16,10 @@ export const TrailerModal = ({ open, onClose, trailerUrl, title }: TrailerModalP
     return videoId ? `https://www.youtube.com/embed/${videoId}?autoplay=1` : "";
   };
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (!open) return;
-      
-      if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [open, onClose]);
+  useKeyboardNavigation({
+    enabled: open,
+    onEscape: onClose,
+  });
 
   const embedUrl = getYoutubeEmbedUrl(trailerUrl);
 

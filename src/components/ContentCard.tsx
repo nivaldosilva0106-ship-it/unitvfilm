@@ -1,5 +1,7 @@
 import { Play, Info, Download } from "lucide-react";
 import { Button } from "./ui/button";
+import { useState, useEffect, useRef } from "react";
+import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 
 interface ContentCardProps {
   title: string;
@@ -10,9 +12,38 @@ interface ContentCardProps {
 }
 
 export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload }: ContentCardProps) => {
+  const [isFocused, setIsFocused] = useState(false);
+  const cardRef = useRef<HTMLDivElement>(null);
+
+  const { playNavigationSound } = useKeyboardNavigation({
+    enabled: isFocused,
+    onEnter: () => onPlay?.(),
+  });
+
+  useEffect(() => {
+    const handleFocus = () => {
+      setIsFocused(true);
+      playNavigationSound('focus');
+    };
+    const handleBlur = () => setIsFocused(false);
+
+    const card = cardRef.current;
+    if (card) {
+      card.addEventListener('focus', handleFocus);
+      card.addEventListener('blur', handleBlur);
+      return () => {
+        card.removeEventListener('focus', handleFocus);
+        card.removeEventListener('blur', handleBlur);
+      };
+    }
+  }, [playNavigationSound]);
+
   return (
     <div 
-      className="relative group min-w-[140px] sm:min-w-[160px] cursor-pointer card-hover focus-within:ring-2 focus-within:ring-primary rounded-lg" 
+      ref={cardRef}
+      className={`relative group min-w-[140px] sm:min-w-[160px] cursor-pointer card-hover rounded-lg transition-all ${
+        isFocused ? 'ring-2 ring-primary scale-105' : ''
+      }`}
       tabIndex={0}
     >
       <div className="relative overflow-hidden rounded-lg">
@@ -22,36 +53,50 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload }: Co
           className="w-full h-[200px] sm:h-[240px] object-cover"
           loading="lazy"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-300 flex items-end p-3">
+        <div className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent transition-opacity duration-300 flex items-end p-3 ${
+          isFocused ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+        }`}>
           <div className="w-full space-y-2">
             <h3 className="text-foreground font-semibold text-sm mb-2 line-clamp-2">{title}</h3>
             <div className="flex gap-1.5">
               <Button
-                onClick={onPlay}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  playNavigationSound('select');
+                  onPlay?.();
+                }}
                 size="sm"
-                className="bg-primary hover:bg-primary/90 text-primary-foreground flex-1 h-8 text-xs glow-effect-hover"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground flex-1 h-9 text-xs glow-effect-hover"
               >
-                <Play className="w-3 h-3 mr-1" />
+                <Play className="w-3.5 h-3.5 mr-1" />
                 Assistir
               </Button>
               <Button
-                onClick={onInfo}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  playNavigationSound('select');
+                  onInfo?.();
+                }}
                 size="sm"
                 variant="secondary"
-                className="flex-1 h-8 text-xs"
+                className="flex-1 h-9 text-xs"
               >
-                <Info className="w-3 h-3 mr-1" />
+                <Info className="w-3.5 h-3.5 mr-1" />
                 Info
               </Button>
             </div>
             {onDownload && (
               <Button
-                onClick={onDownload}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  playNavigationSound('select');
+                  onDownload?.();
+                }}
                 size="sm"
                 variant="outline"
-                className="w-full h-8 text-xs"
+                className="w-full h-9 text-xs"
               >
-                <Download className="w-3 h-3 mr-1" />
+                <Download className="w-3.5 h-3.5 mr-1" />
                 Baixar
               </Button>
             )}

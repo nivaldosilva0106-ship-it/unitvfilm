@@ -1,5 +1,5 @@
 import { Film, Search, User, LogOut, List, Settings, Home } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { getAllContents } from "@/lib/firebase";
@@ -15,6 +15,7 @@ import {
 import { Input } from "./ui/input";
 import { toast } from "sonner";
 import type { Content } from "@/types/content";
+import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 
 export const Header = () => {
   const navigate = useNavigate();
@@ -24,9 +25,26 @@ export const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Content[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [focusedResultIndex, setFocusedResultIndex] = useState(0);
+
+  const { playNavigationSound } = useKeyboardNavigation({
+    enabled: searchOpen && searchResults.length > 0,
+    onEscape: () => setSearchOpen(false),
+    onArrowUp: () => setFocusedResultIndex(prev => Math.max(prev - 1, 0)),
+    onArrowDown: () => setFocusedResultIndex(prev => Math.min(prev + 1, searchResults.length - 1)),
+    onEnter: () => {
+      if (searchResults[focusedResultIndex]) {
+        navigate(`/content/${searchResults[focusedResultIndex].id}`);
+        setSearchOpen(false);
+        setSearchQuery("");
+        setSearchResults([]);
+      }
+    },
+  });
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
+    setFocusedResultIndex(0);
     if (query.length < 2) {
       setSearchResults([]);
       return;
@@ -39,6 +57,7 @@ export const Header = () => {
         content.title.toLowerCase().includes(query.toLowerCase())
       );
       setSearchResults(filtered);
+      playNavigationSound('focus');
     } catch (error) {
       toast.error("Erro ao buscar conteúdos");
     } finally {
@@ -99,19 +118,28 @@ export const Header = () => {
                   )}
                   {searchResults.length > 0 && (
                     <div className="max-h-[300px] overflow-y-auto space-y-1">
-                      {searchResults.slice(0, 5).map((content) => (
+                      {searchResults.slice(0, 5).map((content, index) => (
                         <button
                           key={content.id}
                           onClick={() => {
+                            playNavigationSound('select');
                             navigate(`/content/${content.id}`);
                             setSearchOpen(false);
                             setSearchQuery("");
                             setSearchResults([]);
                           }}
-                          className="w-full text-left p-2 hover:bg-accent rounded-md transition-colors"
+                          className={`w-full text-left p-2 rounded-md transition-colors ${
+                            focusedResultIndex === index 
+                              ? 'bg-primary text-primary-foreground' 
+                              : 'hover:bg-accent'
+                          }`}
                         >
                           <p className="font-medium text-sm">{content.title}</p>
-                          <p className="text-xs text-muted-foreground capitalize">{content.category}</p>
+                          <p className={`text-xs ${
+                            focusedResultIndex === index 
+                              ? 'text-primary-foreground/80' 
+                              : 'text-muted-foreground'
+                          } capitalize`}>{content.category}</p>
                         </button>
                       ))}
                     </div>
