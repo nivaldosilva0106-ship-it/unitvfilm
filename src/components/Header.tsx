@@ -1,4 +1,4 @@
-import { Film, Search, User, LogOut, List, Settings, Home } from "lucide-react";
+import { Film, Search, User, LogOut, List, Settings, Home, Download } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -17,6 +17,13 @@ import { toast } from "sonner";
 import type { Content } from "@/types/content";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 
+declare global {
+  interface BeforeInstallPromptEvent extends Event {
+    prompt: () => Promise<void>;
+    userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+  }
+}
+
 export const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -26,6 +33,67 @@ export const Header = () => {
   const [searchResults, setSearchResults] = useState<Content[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [focusedResultIndex, setFocusedResultIndex] = useState(0);
+
+  // PWA install
+  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [installVisible, setInstallVisible] = useState(false);
+
+  const isIOS = () => {
+    const ua = window.navigator.userAgent.toLowerCase();
+    return /iphone|ipad|ipod/.test(ua);
+  };
+
+  useEffect(() => {
+    const onBeforeInstall = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e as BeforeInstallPromptEvent);
+      setInstallVisible(true);
+    };
+
+    const checkInstalled = () => {
+      const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone;
+      setIsInstalled(!!standalone);
+      setInstallVisible(!standalone);
+    };
+
+    window.addEventListener("beforeinstallprompt", onBeforeInstall);
+    window.addEventListener("appinstalled", () => {
+      setDeferredPrompt(null);
+      setIsInstalled(true);
+      setInstallVisible(false);
+      toast.success("Aplicativo instalado com sucesso!");
+    });
+
+    checkInstalled();
+
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+    };
+  }, []);
+
+  const handleInstallPWA = async () => {
+    if (deferredPrompt) {
+      try {
+        await deferredPrompt.prompt();
+        const choice = await deferredPrompt.userChoice;
+        if (choice.outcome === "accepted") {
+          toast.success("Instalação iniciada");
+        } else {
+          toast.info("Instalação cancelada");
+        }
+        setDeferredPrompt(null);
+      } catch {
+        toast.error("Não foi possível iniciar a instalação");
+      }
+    } else if (isIOS()) {
+      toast.info("No iOS: toque em Compartilhar e depois em 'Adicionar à Tela de Início'.");
+    } else if (isInstalled) {
+      toast.info("Aplicativo já instalado");
+    } else {
+      toast.info("Instalação não suportada neste navegador.");
+    }
+  };
 
   const { playNavigationSound } = useKeyboardNavigation({
     enabled: searchOpen && searchResults.length > 0,
@@ -93,6 +161,19 @@ export const Header = () => {
           </div>
 
           <div className="flex items-center gap-2 flex-shrink-0">
+            {/* PWA Install Icon */}
+            {installVisible && (
+              <Button 
+                variant="outline" 
+                size="icon" 
+                onClick={handleInstallPWA}
+                className="border-primary/50 hover:border-primary hover:bg-primary/10"
+                title="Instalar aplicativo"
+              >
+                <Download className="h-5 w-5" />
+              </Button>
+            )}
+
             {/* Search Icon with Dropdown */}
             <DropdownMenu open={searchOpen} onOpenChange={setSearchOpen}>
               <DropdownMenuTrigger asChild>
