@@ -1,4 +1,4 @@
-import { Play, Info } from "lucide-react";
+import { Play, Info, Download } from "lucide-react";
 import { Button } from "./ui/button";
 import { useState, useEffect, useRef } from "react";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
@@ -8,9 +8,10 @@ interface ContentCardProps {
   thumbnail: string;
   onPlay?: () => void;
   onInfo?: () => void;
+  onDownload?: () => void;
 }
 
-export const ContentCard = ({ title, thumbnail, onPlay, onInfo }: ContentCardProps) => {
+export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload }: ContentCardProps) => {
   const [isFocused, setIsFocused] = useState(false);
   const cardRef = useRef<HTMLDivElement>(null);
 
@@ -81,6 +82,20 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo }: ContentCardPro
               >
                 <Info className="w-4 h-4" />
               </Button>
+              {onDownload && (
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    playNavigationSound('select');
+                    onDownload?.();
+                  }}
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8 rounded-full"
+                >
+                  <Download className="w-4 h-4" />
+                </Button>
+              )}
             </div>
           </div>
         </div>
