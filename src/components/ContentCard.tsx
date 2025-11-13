@@ -1,6 +1,6 @@
 import { Play, Info, Download } from "lucide-react";
 import { Button } from "./ui/button";
-import { useState, useEffect, useRef } from "react";
+import { useRef } from "react";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 
 interface ContentCardProps {
@@ -12,10 +12,8 @@ interface ContentCardProps {
 }
 
 export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload }: ContentCardProps) => {
-  // Não precisamos mais de isFocused no card principal, pois o foco será nos botões.
-  // O efeito visual de hover/foco será tratado pelas classes de grupo e foco nativas.
   const cardRef = useRef<HTMLDivElement>(null);
-  const { playNavigationSound } = useKeyboardNavigation({}); // O hook agora é usado apenas para emitir sons nos cliques/focos dos botões
+  const { playNavigationSound } = useKeyboardNavigation({});
 
   // Função para emitir som ao focar um botão
   const handleButtonFocus = () => {
@@ -33,7 +31,7 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload }: Co
     <div 
       ref={cardRef}
       className={`relative group min-w-[140px] sm:min-w-[160px] cursor-pointer card-hover rounded-lg transition-all`}
-      // Removendo tabIndex={0} do card principal
+      // O card principal não é focável, apenas os botões internos
     >
       <div className="relative overflow-hidden rounded-lg">
         <img
@@ -52,7 +50,7 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload }: Co
                 onFocus={handleButtonFocus}
                 size="icon"
                 className="bg-primary hover:bg-primary/90 text-primary-foreground h-8 w-8 glow-effect-hover rounded-full"
-                tabIndex={0} // Garantindo que o botão é focável
+                tabIndex={0} // Focável
               >
                 <Play className="w-4 h-4" />
               </Button>
@@ -62,7 +60,7 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload }: Co
                 size="icon"
                 variant="secondary"
                 className="h-8 w-8 rounded-full"
-                tabIndex={0} // Garantindo que o botão é focável
+                tabIndex={0} // Focável
               >
                 <Info className="w-4 h-4" />
               </Button>
@@ -73,7 +71,7 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload }: Co
                   size="icon"
                   variant="outline"
                   className="h-8 w-8 rounded-full"
-                  tabIndex={0} // Garantindo que o botão é focável
+                  tabIndex={0} // Focável
                 >
                   <Download className="w-4 h-4" />
                 </Button>
