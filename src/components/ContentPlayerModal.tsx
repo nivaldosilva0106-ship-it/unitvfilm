@@ -36,15 +36,15 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title }: ContentPl
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-full w-screen h-screen p-0 bg-black border-none [&>button]:hidden">
         
-        {/* Close Button (Customizado) */}
+        {/* Close Button - Mais Visível */}
         <Button
           onClick={onClose}
           variant="ghost"
           size="icon"
-          className="absolute top-4 right-4 z-50 text-white bg-black/50 hover:bg-white/20 backdrop-blur-sm transition-colors rounded-full"
+          className="absolute top-6 right-6 z-50 w-12 h-12 text-white bg-black/70 hover:bg-red-600 hover:scale-110 backdrop-blur-md transition-all rounded-full shadow-lg border-2 border-white/20"
           title="Fechar Player (ESC)"
         >
-          <X className="w-6 h-6" />
+          <X className="w-7 h-7" />
         </Button>
 
         {/* Iframe Container - Fullscreen */}
