@@ -1,4 +1,4 @@
-import { Play, Info, Download } from "lucide-react";
+import { Play, Info, Download, Lock } from "lucide-react";
 import { Button } from "./ui/button";
 import { useRef } from "react";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
@@ -9,9 +9,10 @@ interface ContentCardProps {
   onPlay?: () => void;
   onInfo?: () => void;
   onDownload?: () => void;
+  isPremium?: boolean;
 }
 
-export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload }: ContentCardProps) => {
+export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload, isPremium }: ContentCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
   // Use only the sound helper, without installing key listeners
   const { playNavigationSound } = useKeyboardNavigation({ enabled: false });
@@ -29,6 +30,12 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload }: Co
       ref={cardRef}
       className="relative group min-w-[140px] sm:min-w-[160px] cursor-pointer card-hover rounded-lg transition-all"
     >
+      {isPremium && (
+        <div className="absolute top-2 right-2 z-10 bg-primary/90 backdrop-blur-sm px-2 py-1 rounded-full flex items-center gap-1">
+          <Lock className="w-3 h-3 text-primary-foreground" />
+          <span className="text-xs font-semibold text-primary-foreground">Premium</span>
+        </div>
+      )}
       <div className="relative overflow-hidden rounded-lg">
         <img
           src={thumbnail || "/placeholder.svg"}

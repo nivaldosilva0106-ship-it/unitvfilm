@@ -14,7 +14,7 @@ const MyList = () => {
   const { user, loading: authLoading } = useAuth();
   const [myList, setMyList] = useState<MyListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, title: string }>({ open: false, url: '', title: '' });
+  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, title: string, isPremium?: boolean }>({ open: false, url: '', title: '', isPremium: false });
 
 
   useEffect(() => {
@@ -54,9 +54,8 @@ const MyList = () => {
 
   const handlePlayContent = (item: MyListItem) => {
     if (item.content.video_url) {
-      setPlayerModal({ open: true, url: item.content.video_url, title: item.content.title });
+      setPlayerModal({ open: true, url: item.content.video_url, title: item.content.title, isPremium: item.content.isPremium });
     } else if (item.content.category === 'series' && item.content.episodes && item.content.episodes.length > 0) {
-      // Se for série, redireciona para a página de detalhes para abrir o seletor de episódios
       navigate(`/content/${item.content.id}`);
     } else {
       toast.error('Link de vídeo não disponível');
@@ -102,6 +101,7 @@ const MyList = () => {
                   thumbnail={item.content.thumbnail_url}
                   onPlay={() => handlePlayContent(item)}
                   onInfo={() => handleInfoContent(item)}
+                  isPremium={item.content.isPremium}
                 />
                 <button
                   onClick={() => handleRemove(item.id)}
@@ -135,9 +135,10 @@ const MyList = () => {
       {/* Main Player Modal */}
       <ContentPlayerModal
         open={playerModal.open}
-        onClose={() => setPlayerModal({ open: false, url: '', title: '' })}
+        onClose={() => setPlayerModal({ open: false, url: '', title: '', isPremium: false })}
         videoUrl={playerModal.url}
         title={playerModal.title}
+        isPremium={playerModal.isPremium}
       />
     </div>
   );

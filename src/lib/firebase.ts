@@ -3,6 +3,7 @@ import { getDatabase, ref, set, get, remove, update, push } from 'firebase/datab
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import type { Content } from '@/types/content';
 import type { UserProfile, MyListItem } from '@/types/user';
+import type { Ad } from '@/types/ad';
 
 // Firebase configuration for UniTvFilm
 const firebaseConfig = {
@@ -152,6 +153,41 @@ export const isInMyList = async (userId: string, contentId: string): Promise<boo
     return items.some(item => item.contentId === contentId);
   }
   return false;
+};
+
+// Ad Management functions
+export const addAd = async (ad: Omit<Ad, 'id'>) => {
+  const adRef = ref(database, 'ads');
+  const newAdRef = push(adRef);
+  const adWithId = removeUndefinedDeep({ ...ad, id: newAdRef.key }) as Ad;
+  await set(newAdRef, adWithId);
+  return adWithId;
+};
+
+export const getAllAds = async (): Promise<Ad[]> => {
+  const adRef = ref(database, 'ads');
+  const snapshot = await get(adRef);
+  if (snapshot.exists()) {
+    const data = snapshot.val();
+    return Object.values(data);
+  }
+  return [];
+};
+
+export const getActiveAdsByPlacement = async (placement: Ad['placement']): Promise<Ad[]> => {
+  const ads = await getAllAds();
+  return ads.filter(ad => ad.active && ad.placement === placement);
+};
+
+export const updateAd = async (id: string, updates: Partial<Ad>) => {
+  const adRef = ref(database, `ads/${id}`);
+  const cleaned = removeUndefinedDeep(updates);
+  await update(adRef, cleaned);
+};
+
+export const deleteAd = async (id: string) => {
+  const adRef = ref(database, `ads/${id}`);
+  await remove(adRef);
 };
 
 export { database, auth };

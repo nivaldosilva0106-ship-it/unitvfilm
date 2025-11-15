@@ -145,6 +145,19 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           </Select>
         </div>
 
+        <div className="flex items-center space-x-2 p-4 bg-secondary/30 rounded-lg border border-primary/20">
+          <input
+            type="checkbox"
+            id="isPremium"
+            checked={editingContent.isPremium || false}
+            onChange={(e) => setEditingContent(prev => ({...prev, isPremium: e.target.checked}))}
+            className="w-4 h-4 accent-primary"
+          />
+          <Label htmlFor="isPremium" className="cursor-pointer font-medium">
+            🔒 Conteúdo Premium (requer assinatura)
+          </Label>
+        </div>
+
         {!isTV && (
           <div className="space-y-2">
             <Label>Buscar no TMDB</Label>

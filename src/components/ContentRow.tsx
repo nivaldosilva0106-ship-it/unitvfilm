@@ -9,6 +9,7 @@ interface Content {
   thumbnail_url: string;
   video_url?: string;
   download_url?: string;
+  isPremium?: boolean;
 }
 
 interface ContentRowProps {
@@ -98,6 +99,7 @@ export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDo
                 onPlay={() => onPlayContent?.(content)}
                 onInfo={() => onInfoContent?.(content)}
                 onDownload={content.download_url ? () => onDownloadContent?.(content) : undefined}
+                isPremium={content.isPremium}
               />
             </div>
           ))}
