@@ -18,7 +18,7 @@ const Index = () => {
   const [randomContent, setRandomContent] = useState<Content[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedSeries, setSelectedSeries] = useState<Content | null>(null);
-  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, title: string }>({ open: false, url: '', title: '' });
+  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, title: string, isPremium?: boolean }>({ open: false, url: '', title: '', isPremium: false });
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
 
 
@@ -109,7 +109,12 @@ const Index = () => {
     if (content.category === 'series' && content.episodes && content.episodes.length > 0) {
       setSelectedSeries(content);
     } else if (content.video_url) {
-      setPlayerModal({ open: true, url: content.video_url, title: content.title });
+      setPlayerModal({ 
+        open: true, 
+        url: content.video_url, 
+        title: content.title,
+        isPremium: content.isPremium 
+      });
     } else {
       toast.error("Link de vídeo não disponível");
     }
@@ -267,16 +272,17 @@ const Index = () => {
           episodes={selectedSeries.episodes || []}
           title={selectedSeries.title}
           trailerUrl={selectedSeries.trailer_url}
-          onPlayEpisode={(url) => setPlayerModal({ open: true, url, title: selectedSeries.title })}
+          onPlayEpisode={(url) => setPlayerModal({ open: true, url, title: selectedSeries.title, isPremium: selectedSeries.isPremium })}
         />
       )}
       
       {/* Main Player Modal */}
       <ContentPlayerModal
         open={playerModal.open}
-        onClose={() => setPlayerModal({ open: false, url: '', title: '' })}
+        onClose={() => setPlayerModal({ open: false, url: '', title: '', isPremium: false })}
         videoUrl={playerModal.url}
         title={playerModal.title}
+        isPremium={playerModal.isPremium}
       />
     </div>
   );

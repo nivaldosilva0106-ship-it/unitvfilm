@@ -20,4 +20,5 @@ export interface Content {
   release_date?: string;
   tmdb_id?: number;
   rating?: number;
+  isPremium?: boolean;
 }

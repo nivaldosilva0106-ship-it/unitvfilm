@@ -21,7 +21,7 @@ const ContentDetails = () => {
   const [showTrailerModal, setShowTrailerModal] = useState(false);
   const [inMyList, setInMyList] = useState(false);
   const [myListItemId, setMyListItemId] = useState<string | null>(null);
-  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, title: string }>({ open: false, url: '', title: '' });
+  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, title: string, isPremium?: boolean }>({ open: false, url: '', title: '', isPremium: false });
 
 
   useEffect(() => {
@@ -61,7 +61,7 @@ const ContentDetails = () => {
     }
 
     if (videoUrl && content) {
-      setPlayerModal({ open: true, url: videoUrl, title: content.title });
+      setPlayerModal({ open: true, url: videoUrl, title: content.title, isPremium: content.isPremium });
       return;
     }
 
@@ -259,7 +259,7 @@ const ContentDetails = () => {
           episodes={content.episodes}
           title={content.title}
           trailerUrl={content.trailer_url}
-          onPlayEpisode={(url) => setPlayerModal({ open: true, url, title: content.title })}
+          onPlayEpisode={(url) => setPlayerModal({ open: true, url, title: content.title, isPremium: content.isPremium })}
         />
       )}
 
@@ -275,9 +275,10 @@ const ContentDetails = () => {
       {/* Main Player Modal */}
       <ContentPlayerModal
         open={playerModal.open}
-        onClose={() => setPlayerModal({ open: false, url: '', title: '' })}
+        onClose={() => setPlayerModal({ open: false, url: '', title: '', isPremium: false })}
         videoUrl={playerModal.url}
         title={playerModal.title}
+        isPremium={playerModal.isPremium}
       />
     </div>
   );

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Header } from "@/components/Header";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { addContent, getAllContents, deleteContent, updateContent } from "@/lib/firebase";
 import type { Content } from "@/types/content";
@@ -21,6 +22,7 @@ const Admin = () => {
     trailer_url: "",
     language: "pt-BR",
     release_date: "",
+    isPremium: false,
   });
 
   useEffect(() => {
@@ -114,6 +116,7 @@ const Admin = () => {
         trailer_url: "",
         language: "pt-BR",
         release_date: "",
+        isPremium: false,
       });
       loadContents();
     } catch (error) {
@@ -136,7 +139,15 @@ const Admin = () => {
     <div className="min-h-screen bg-background">
       <Header />
       <div className="container mx-auto px-4 sm:px-8 pt-24 pb-8">
-        <h1 className="text-3xl font-bold text-foreground mb-8">Painel Administrativo</h1>
+        <div className="flex items-center justify-between mb-8">
+          <h1 className="text-3xl font-bold text-foreground">Painel Administrativo</h1>
+          <Button
+            onClick={() => window.location.href = '/admin/ads'}
+            variant="outline"
+          >
+            Gerenciar Anúncios
+          </Button>
+        </div>
 
         <div className="grid lg:grid-cols-2 gap-8">
           <AdminContentForm
