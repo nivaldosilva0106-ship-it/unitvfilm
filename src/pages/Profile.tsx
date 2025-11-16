@@ -4,8 +4,9 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Calendar, Crown, LogOut } from "lucide-react";
+import { User, Mail, Calendar, Crown, LogOut, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
+import { SUBSCRIPTION_BENEFITS } from "@/types/payment";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ const Profile = () => {
                 {profile?.isPremium && (
                   <Badge className="bg-primary text-primary-foreground">
                     <Crown className="w-4 h-4 mr-1" />
-                    Premium
+                    {SUBSCRIPTION_BENEFITS[profile.subscriptionTier || 'basic'].name}
                   </Badge>
                 )}
               </CardTitle>
@@ -72,13 +73,32 @@ const Profile = () => {
 
               <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                 <Crown className="w-5 h-5 text-primary" />
-                <div>
+                <div className="flex-1">
                   <p className="text-sm text-muted-foreground">Status da conta</p>
                   <p className="text-foreground font-medium">
-                    {profile?.isPremium ? 'Premium' : 'Gratuito'}
+                    {profile?.isPremium
+                      ? SUBSCRIPTION_BENEFITS[profile.subscriptionTier || 'basic'].name
+                      : 'Gratuito'}
                   </p>
+                  {profile?.subscriptionExpiresAt && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Expira em {new Date(profile.subscriptionExpiresAt).toLocaleDateString('pt-BR')}
+                    </p>
+                  )}
                 </div>
               </div>
+
+              {!profile?.isPremium && (
+                <div className="flex items-start gap-3 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+                  <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-sm font-medium text-destructive">Conta não ativa</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Complete o pagamento para acessar o conteúdo
+                    </p>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -89,6 +109,16 @@ const Profile = () => {
               <CardDescription>Gerenciar sua conta</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
+              {!profile?.isPremium && (
+                <Button 
+                  className="w-full"
+                  onClick={() => navigate("/payment", { state: { tier: 'basic' } })}
+                >
+                  <Crown className="w-4 h-4 mr-2" />
+                  Ativar Assinatura
+                </Button>
+              )}
+              
               <Button 
                 variant="outline" 
                 className="w-full justify-start"

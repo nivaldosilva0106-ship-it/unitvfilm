@@ -2,8 +2,9 @@ import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, set, get, remove, update, push } from 'firebase/database';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
 import type { Content } from '@/types/content';
-import type { UserProfile, MyListItem } from '@/types/user';
+import type { UserProfile, MyListItem, SubscriptionTier } from '@/types/user';
 import type { Ad } from '@/types/ad';
+import type { Payment } from '@/types/payment';
 
 // Firebase configuration for UniTvFilm
 const firebaseConfig = {
@@ -71,7 +72,7 @@ export const deleteContent = async (id: string) => {
 };
 
 // Authentication functions
-export const signUp = async (email: string, password: string, isPremium: boolean = false) => {
+export const signUp = async (email: string, password: string, subscriptionTier: SubscriptionTier = 'free') => {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
   
@@ -79,7 +80,9 @@ export const signUp = async (email: string, password: string, isPremium: boolean
   const profile: UserProfile = {
     id: user.uid,
     email: user.email || '',
-    isPremium,
+    isPremium: subscriptionTier !== 'free',
+    subscriptionTier,
+    subscriptionExpiresAt: null,
     createdAt: new Date().toISOString(),
   };
   
@@ -188,6 +191,96 @@ export const updateAd = async (id: string, updates: Partial<Ad>) => {
 export const deleteAd = async (id: string) => {
   const adRef = ref(database, `ads/${id}`);
   await remove(adRef);
+};
+
+// Payment Management functions
+export const createPayment = async (payment: Omit<Payment, 'id' | 'createdAt'>) => {
+  const paymentRef = ref(database, 'payments');
+  const newPaymentRef = push(paymentRef);
+  const paymentWithId: Payment = {
+    ...removeUndefinedDeep(payment),
+    id: newPaymentRef.key!,
+    createdAt: new Date().toISOString(),
+  };
+  await set(newPaymentRef, paymentWithId);
+  return paymentWithId;
+};
+
+export const getAllPayments = async (): Promise<Payment[]> => {
+  const paymentRef = ref(database, 'payments');
+  const snapshot = await get(paymentRef);
+  if (snapshot.exists()) {
+    const data = snapshot.val();
+    return Object.values(data);
+  }
+  return [];
+};
+
+export const getPendingPayments = async (): Promise<Payment[]> => {
+  const payments = await getAllPayments();
+  return payments.filter(payment => payment.status === 'pending');
+};
+
+export const getUserPayments = async (userId: string): Promise<Payment[]> => {
+  const payments = await getAllPayments();
+  return payments.filter(payment => payment.userId === userId);
+};
+
+export const updatePayment = async (id: string, updates: Partial<Payment>) => {
+  const paymentRef = ref(database, `payments/${id}`);
+  const cleaned = removeUndefinedDeep(updates);
+  await update(paymentRef, cleaned);
+};
+
+export const approvePayment = async (paymentId: string, adminId: string) => {
+  const payments = await getAllPayments();
+  const payment = payments.find(p => p.id === paymentId);
+  
+  if (!payment) throw new Error('Pagamento não encontrado');
+  
+  // Atualizar pagamento
+  await updatePayment(paymentId, {
+    status: 'approved',
+    approvedAt: new Date().toISOString(),
+    approvedBy: adminId,
+  });
+  
+  // Atualizar perfil do usuário
+  const expiresAt = new Date();
+  expiresAt.setMonth(expiresAt.getMonth() + 1); // 1 mês
+  
+  await updateUserProfile(payment.userId, {
+    isPremium: true,
+    subscriptionTier: payment.subscriptionTier,
+    subscriptionExpiresAt: expiresAt.toISOString(),
+  });
+};
+
+export const rejectPayment = async (paymentId: string, reason: string) => {
+  await updatePayment(paymentId, {
+    status: 'rejected',
+    rejectedReason: reason,
+  });
+};
+
+export const checkSubscriptionExpired = async (userId: string): Promise<boolean> => {
+  const profile = await getUserProfile(userId);
+  if (!profile || !profile.subscriptionExpiresAt) return true;
+  
+  const expiresAt = new Date(profile.subscriptionExpiresAt);
+  const now = new Date();
+  
+  if (now > expiresAt) {
+    // Assinatura expirada, atualizar para free
+    await updateUserProfile(userId, {
+      isPremium: false,
+      subscriptionTier: 'free',
+      subscriptionExpiresAt: null,
+    });
+    return true;
+  }
+  
+  return false;
 };
 
 export { database, auth };

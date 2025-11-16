@@ -141,12 +141,19 @@ const Admin = () => {
       <div className="container mx-auto px-4 sm:px-8 pt-24 pb-8">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-3xl font-bold text-foreground">Painel Administrativo</h1>
-          <Button
-            onClick={() => window.location.href = '/admin/ads'}
-            variant="outline"
-          >
-            Gerenciar Anúncios
-          </Button>
+          <div className="flex gap-3">
+            <Button
+              onClick={() => window.location.href = '/admin/ads'}
+              variant="outline"
+            >
+              Gerenciar Anúncios
+            </Button>
+            <Button
+              onClick={() => window.location.href = '/admin/payments'}
+            >
+              Aprovar Pagamentos
+            </Button>
+          </div>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">

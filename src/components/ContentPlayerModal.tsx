@@ -1,5 +1,5 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X, Lock } from "lucide-react";
+import { X, Crown } from "lucide-react";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { Button } from "./ui/button";
 import { useRef, useEffect } from "react";
@@ -37,8 +37,12 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium =
 
   if (!videoUrl) return null;
 
-  // Verifica se o conteúdo é premium e se o usuário não é premium
-  const isBlocked = isPremium && !profile?.isPremium;
+  // Verificar se o usuário tem assinatura ativa
+  const hasActiveSubscription = profile?.isPremium && 
+    profile.subscriptionExpiresAt && 
+    new Date(profile.subscriptionExpiresAt) > new Date();
+
+  const isBlocked = isPremium && !hasActiveSubscription;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -60,14 +64,15 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium =
           <div className="relative w-full h-full flex items-center justify-center bg-gradient-to-br from-black via-primary/10 to-black">
             <div className="text-center max-w-md px-8">
               <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-primary/20 border-2 border-primary mb-6">
-                <Lock className="w-12 h-12 text-primary" />
+                <Crown className="w-12 h-12 text-primary" />
               </div>
               <h2 className="text-3xl font-bold text-foreground mb-4">
                 Conteúdo Premium
               </h2>
               <p className="text-muted-foreground mb-8 text-lg">
-                Este conteúdo está disponível apenas para assinantes premium.
-                Faça upgrade para acessar este e todos os outros conteúdos exclusivos!
+                {profile?.isPremium && !hasActiveSubscription 
+                  ? 'Sua assinatura expirou. Renove para continuar assistindo.'
+                  : 'Este conteúdo está disponível apenas para assinantes ativos. Complete o pagamento para ter acesso ilimitado.'}
               </p>
               <div className="flex flex-col gap-3">
                 <Button
@@ -75,10 +80,11 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium =
                   className="w-full"
                   onClick={() => {
                     onClose();
-                    navigate('/profile');
+                    navigate('/payment');
                   }}
                 >
-                  Fazer Upgrade Premium
+                  <Crown className="w-4 h-4 mr-2" />
+                  {profile?.isPremium ? 'Renovar Assinatura' : 'Ativar Assinatura'}
                 </Button>
                 <Button
                   size="lg"
@@ -90,6 +96,7 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium =
                 </Button>
               </div>
             </div>
+            <AdManager placement="player" />
           </div>
         ) : (
           <>
