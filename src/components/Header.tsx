@@ -26,7 +26,7 @@ declare global {
 
 export const Header = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, isAdmin, logout } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Content[]>([]);
@@ -270,10 +270,12 @@ export const Header = () => {
                     <List className="mr-2 h-4 w-4" />
                     Minha Lista
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/admin")}>
-                    <Settings className="mr-2 h-4 w-4" />
-                    Admin
-                  </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem onClick={() => navigate("/admin")}>
+                      <Settings className="mr-2 h-4 w-4" />
+                      Admin
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                     <LogOut className="mr-2 h-4 w-4" />

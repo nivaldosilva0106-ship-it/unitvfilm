@@ -283,5 +283,16 @@ export const checkSubscriptionExpired = async (userId: string): Promise<boolean>
   return false;
 };
 
+// Admin role functions
+export const isUserAdmin = async (userId: string): Promise<boolean> => {
+  try {
+    const profile = await getUserProfile(userId);
+    return profile?.email === 'www.nivaldo.com.ao@gmail.com';
+  } catch (error) {
+    console.error('Error checking admin role:', error);
+    return false;
+  }
+};
+
 export { database, auth };
 export type { Content };

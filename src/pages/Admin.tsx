@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -6,8 +7,11 @@ import { addContent, getAllContents, deleteContent, updateContent } from "@/lib/
 import type { Content } from "@/types/content";
 import { AdminContentForm } from "@/components/admin/AdminContentForm";
 import { AdminContentList } from "@/components/admin/AdminContentList";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Admin = () => {
+  const navigate = useNavigate();
+  const { isAdmin, loading } = useAuth();
   const [allContents, setAllContents] = useState<Content[]>([]);
   const [listSearchQuery, setListSearchQuery] = useState("");
   
@@ -26,8 +30,14 @@ const Admin = () => {
   });
 
   useEffect(() => {
-    loadContents();
-  }, []);
+    if (!loading && !isAdmin) {
+      navigate('/');
+      return;
+    }
+    if (isAdmin) {
+      loadContents();
+    }
+  }, [isAdmin, loading, navigate]);
 
   const loadContents = async () => {
     try {
@@ -134,6 +144,21 @@ const Admin = () => {
       toast.error("Erro ao remover conteúdo");
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-12">
+          <p className="text-center text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">

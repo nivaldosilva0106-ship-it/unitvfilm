@@ -17,7 +17,7 @@ interface ContentPlayerModalProps {
 
 export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium = false }: ContentPlayerModalProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const { profile } = useAuth();
+  const { profile, isAdmin } = useAuth();
   const navigate = useNavigate();
   
   // Garante que o ESC feche o modal
@@ -37,12 +37,12 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium =
 
   if (!videoUrl) return null;
 
-  // Verificar se o usuário tem assinatura ativa
+  // Admin tem acesso total, ou verifica se tem assinatura ativa
   const hasActiveSubscription = profile?.isPremium && 
     profile.subscriptionExpiresAt && 
     new Date(profile.subscriptionExpiresAt) > new Date();
 
-  const isBlocked = isPremium && !hasActiveSubscription;
+  const isBlocked = isPremium && !isAdmin && !hasActiveSubscription;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>

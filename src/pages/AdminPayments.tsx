@@ -16,7 +16,7 @@ import { SUBSCRIPTION_BENEFITS } from '@/types/payment';
 
 const AdminPayments = () => {
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const { user, profile, isAdmin, loading: authLoading } = useAuth();
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
@@ -25,13 +25,12 @@ const AdminPayments = () => {
   const [actionLoading, setActionLoading] = useState(false);
 
   useEffect(() => {
-    if (!user || user.email !== 'admin@unitvfilm.com') {
+    if (!loading && !profile) {
       navigate('/');
       return;
     }
-
     loadPayments();
-  }, [user, navigate]);
+  }, [profile, loading, navigate]);
 
   const loadPayments = async () => {
     try {
@@ -85,7 +84,7 @@ const AdminPayments = () => {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background">
         <Header />
@@ -94,6 +93,10 @@ const AdminPayments = () => {
         </div>
       </div>
     );
+  }
+
+  if (!isAdmin) {
+    return null;
   }
 
   return (
