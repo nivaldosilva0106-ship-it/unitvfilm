@@ -1,19 +1,22 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Film } from 'lucide-react';
+import { Film, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { signUp } from '@/lib/firebase';
 import { toast } from 'sonner';
+import { SUBSCRIPTION_BENEFITS } from '@/types/payment';
+import type { SubscriptionTier } from '@/types/user';
 
 const Signup = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [isPremium, setIsPremium] = useState(false);
+  const [selectedTier, setSelectedTier] = useState<SubscriptionTier>('basic');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -32,9 +35,9 @@ const Signup = () => {
     setLoading(true);
 
     try {
-      await signUp(email, password, isPremium);
-      toast.success('Conta criada com sucesso!');
-      navigate('/');
+      await signUp(email, password, 'free');
+      toast.success('Conta criada! Complete o pagamento para acessar o conteúdo.');
+      navigate('/payment', { state: { tier: selectedTier } });
     } catch (error: any) {
       console.error('Erro no cadastro:', error);
       
@@ -53,8 +56,8 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
+      <div className="w-full max-w-5xl">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-4">
             <div className="bg-primary p-3 rounded-lg glow-effect">
@@ -64,11 +67,59 @@ const Signup = () => {
           <h1 className="text-3xl font-bold text-foreground mb-2">
             Uni<span className="text-primary">Tv</span>Film
           </h1>
-          <p className="text-muted-foreground">Crie sua conta</p>
+          <p className="text-muted-foreground">Crie sua conta e escolha seu plano</p>
         </div>
 
-        <div className="bg-card border border-border rounded-lg p-8">
-          <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="grid md:grid-cols-3 gap-6 mb-8">
+          {(['basic', 'premium', 'vip'] as const).map((tier) => {
+            const info = SUBSCRIPTION_BENEFITS[tier];
+            return (
+              <Card
+                key={tier}
+                className={`cursor-pointer transition-all ${
+                  selectedTier === tier
+                    ? 'border-primary shadow-lg scale-105'
+                    : 'border-border hover:border-primary/50'
+                }`}
+                onClick={() => setSelectedTier(tier)}
+              >
+                <CardHeader>
+                  <CardTitle className="flex items-center justify-between">
+                    <span>{info.name}</span>
+                    {tier === 'premium' && (
+                      <Crown className="w-5 h-5 text-primary" />
+                    )}
+                  </CardTitle>
+                  <CardDescription className="text-2xl font-bold text-primary">
+                    {info.price.toLocaleString('pt-AO')} Kzs
+                    <span className="text-sm text-muted-foreground">/mês</span>
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  <p>✓ Qualidade {info.videoQuality}</p>
+                  <p>
+                    ✓{' '}
+                    {info.downloads === -1
+                      ? 'Downloads ilimitados'
+                      : `${info.downloads} downloads`}
+                  </p>
+                  {info.earlyAccess && <p>✓ Acesso antecipado</p>}
+                  {info.adsRemoval && <p>✓ Sem anúncios</p>}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        <Card className="bg-card border border-border">
+          <CardHeader>
+            <CardTitle>Dados da Conta</CardTitle>
+            <CardDescription>
+              Após criar sua conta, você será direcionado para o pagamento
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -108,41 +159,23 @@ const Signup = () => {
               />
             </div>
 
-            <div className="flex items-center space-x-2 p-4 bg-primary/10 border border-primary/30 rounded-lg">
-              <Checkbox
-                id="premium"
-                checked={isPremium}
-                onCheckedChange={(checked) => setIsPremium(checked as boolean)}
-              />
-              <div className="flex-1">
-                <Label
-                  htmlFor="premium"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                >
-                  Conta Premium
-                </Label>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Sem anúncios e conteúdo exclusivo
-                </p>
-              </div>
-            </div>
-
             <Button
               type="submit"
               className="w-full"
               disabled={loading}
             >
-              {loading ? 'Criando conta...' : 'Criar conta'}
+              {loading ? 'Criando conta...' : 'Continuar para Pagamento'}
             </Button>
-          </form>
 
-          <div className="mt-6 text-center text-sm">
-            <span className="text-muted-foreground">Já tem uma conta? </span>
-            <Link to="/login" className="text-primary hover:underline">
-              Entre aqui
-            </Link>
-          </div>
-        </div>
+            <div className="mt-4 text-center text-sm">
+              <span className="text-muted-foreground">Já tem uma conta? </span>
+              <Link to="/login" className="text-primary hover:underline">
+                Entre aqui
+              </Link>
+            </div>
+          </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
