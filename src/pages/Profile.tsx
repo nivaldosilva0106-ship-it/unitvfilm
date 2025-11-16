@@ -4,13 +4,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Calendar, Crown, LogOut, AlertCircle } from "lucide-react";
+import { User, Mail, Calendar, Crown, LogOut, AlertCircle, Settings } from "lucide-react";
 import { toast } from "sonner";
 import { SUBSCRIPTION_BENEFITS } from "@/types/payment";
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user, profile, logout } = useAuth();
+  const { user, profile, isAdmin, logout } = useAuth();
 
   const handleLogout = async () => {
     try {
@@ -41,9 +41,15 @@ const Profile = () => {
           {/* Profile Information Card */}
           <Card className="bg-card border-border">
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-3">
                 <span>Informações da Conta</span>
-                {profile?.isPremium && (
+                {isAdmin && (
+                  <Badge className="bg-primary text-primary-foreground">
+                    <Settings className="w-4 h-4 mr-1" />
+                    Admin
+                  </Badge>
+                )}
+                {profile?.isPremium && !isAdmin && (
                   <Badge className="bg-primary text-primary-foreground">
                     <Crown className="w-4 h-4 mr-1" />
                     {SUBSCRIPTION_BENEFITS[profile.subscriptionTier || 'basic'].name}
@@ -76,11 +82,13 @@ const Profile = () => {
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground">Status da conta</p>
                   <p className="text-foreground font-medium">
-                    {profile?.isPremium
-                      ? SUBSCRIPTION_BENEFITS[profile.subscriptionTier || 'basic'].name
-                      : 'Gratuito'}
+                    {isAdmin 
+                      ? 'Administrador - Acesso Total'
+                      : profile?.isPremium
+                        ? SUBSCRIPTION_BENEFITS[profile.subscriptionTier || 'basic'].name
+                        : 'Gratuito'}
                   </p>
-                  {profile?.subscriptionExpiresAt && (
+                  {profile?.subscriptionExpiresAt && !isAdmin && (
                     <p className="text-xs text-muted-foreground mt-1">
                       Expira em {new Date(profile.subscriptionExpiresAt).toLocaleDateString('pt-BR')}
                     </p>
@@ -88,7 +96,7 @@ const Profile = () => {
                 </div>
               </div>
 
-              {!profile?.isPremium && (
+              {!isAdmin && !profile?.isPremium && (
                 <div className="flex items-start gap-3 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
                   <AlertCircle className="w-5 h-5 text-destructive flex-shrink-0 mt-0.5" />
                   <div>
@@ -97,6 +105,14 @@ const Profile = () => {
                       Complete o pagamento para acessar o conteúdo
                     </p>
                   </div>
+                </div>
+              )}
+              
+              {isAdmin && (
+                <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                  <p className="text-sm font-medium text-primary">
+                    Como administrador, você tem acesso ilimitado a todos os conteúdos e recursos da plataforma.
+                  </p>
                 </div>
               )}
             </CardContent>
@@ -109,13 +125,23 @@ const Profile = () => {
               <CardDescription>Gerenciar sua conta</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {!profile?.isPremium && (
+              {!isAdmin && !profile?.isPremium && (
                 <Button 
                   className="w-full"
                   onClick={() => navigate("/payment", { state: { tier: 'basic' } })}
                 >
                   <Crown className="w-4 h-4 mr-2" />
                   Ativar Assinatura
+                </Button>
+              )}
+              
+              {isAdmin && (
+                <Button 
+                  className="w-full"
+                  onClick={() => navigate("/admin")}
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Painel Administrativo
                 </Button>
               )}
               

@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,6 +15,8 @@ import type { Ad } from "@/types/ad";
 import { Plus, Save, Trash2, Edit } from "lucide-react";
 
 const AdminAds = () => {
+  const navigate = useNavigate();
+  const { isAdmin, loading } = useAuth();
   const [ads, setAds] = useState<Ad[]>([]);
   const [editingAd, setEditingAd] = useState<Partial<Ad>>({
     name: "",
@@ -22,8 +26,14 @@ const AdminAds = () => {
   });
 
   useEffect(() => {
-    loadAds();
-  }, []);
+    if (!loading && !isAdmin) {
+      navigate('/');
+      return;
+    }
+    if (isAdmin) {
+      loadAds();
+    }
+  }, [isAdmin, loading, navigate]);
 
   const loadAds = async () => {
     try {
@@ -80,6 +90,21 @@ const AdminAds = () => {
     setEditingAd(ad);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="container mx-auto px-4 py-12">
+          <p className="text-center text-muted-foreground">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">
