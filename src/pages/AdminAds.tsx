@@ -217,27 +217,33 @@ const AdminAds = () => {
                 />
               </div>
 
-              {editingAd.network && (
-                <Alert className="bg-primary/5 border-primary/20">
-                  <Info className="h-4 w-4" />
-                  <AlertDescription className="text-xs whitespace-pre-line">
-                    <strong>Como obter o código {AD_NETWORK_LABELS[editingAd.network as AdNetwork]}:</strong>
-                    {AD_NETWORK_INSTRUCTIONS[editingAd.network as AdNetwork]}
-                  </AlertDescription>
-                </Alert>
-              )}
+              <div className="space-y-3">
+                <Label htmlFor="ad-code" className="text-base font-semibold">
+                  Código do Anúncio (HTML/Script) *
+                </Label>
+                
+                {editingAd.network && (
+                  <Alert className="bg-primary/5 border-primary/20">
+                    <Info className="h-4 w-4" />
+                    <AlertDescription className="text-xs whitespace-pre-line">
+                      <strong>Como obter o código {AD_NETWORK_LABELS[editingAd.network as AdNetwork]}:</strong>
+                      {AD_NETWORK_INSTRUCTIONS[editingAd.network as AdNetwork]}
+                      <span className="block mt-2 text-primary font-semibold">
+                        👇 Cole o código no campo abaixo:
+                      </span>
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-              <div>
-                <Label htmlFor="ad-code">Código do Anúncio (HTML/Script) *</Label>
                 <Textarea
                   id="ad-code"
                   value={editingAd.code || ""}
                   onChange={(e) => setEditingAd({ ...editingAd, code: e.target.value })}
                   placeholder='<script async src="https://pagead2.googlesyndication.com/..."></script>'
-                  rows={6}
-                  className="font-mono text-sm"
+                  rows={8}
+                  className="font-mono text-sm border-2 border-primary/30 focus:border-primary"
                 />
-                <p className="text-xs text-muted-foreground mt-1">
+                <p className="text-xs text-muted-foreground">
                   Cole aqui o código fornecido pelo Google AdSense, AdMob ou outra plataforma
                 </p>
               </div>
