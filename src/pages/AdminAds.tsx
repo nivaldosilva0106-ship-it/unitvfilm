@@ -11,8 +11,10 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "sonner";
 import { addAd, getAllAds, updateAd, deleteAd } from "@/lib/firebase";
-import type { Ad } from "@/types/ad";
-import { Plus, Save, Trash2, Edit } from "lucide-react";
+import type { Ad, AdNetwork, AdType, AdPlacement } from "@/types/ad";
+import { AD_PLACEMENT_LABELS, AD_NETWORK_LABELS, AD_TYPE_LABELS, AD_NETWORK_INSTRUCTIONS } from "@/types/ad";
+import { Plus, Save, Trash2, Edit, Info, Eye } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const AdminAds = () => {
   const navigate = useNavigate();
@@ -22,7 +24,10 @@ const AdminAds = () => {
     name: "",
     code: "",
     placement: "content-top",
+    network: "adsense",
+    adType: "banner",
     active: true,
+    description: "",
   });
 
   useEffect(() => {
@@ -45,19 +50,24 @@ const AdminAds = () => {
   };
 
   const handleSave = async () => {
-    if (!editingAd.name || !editingAd.code || !editingAd.placement) {
+    if (!editingAd.name || !editingAd.code || !editingAd.placement || !editingAd.network || !editingAd.adType) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
 
     try {
       if (editingAd.id) {
-        await updateAd(editingAd.id, editingAd);
+        await updateAd(editingAd.id, {
+          ...editingAd,
+          updatedAt: new Date().toISOString(),
+        });
         toast.success("Anúncio atualizado!");
       } else {
         await addAd({
           ...editingAd,
           createdAt: new Date().toISOString(),
+          impressions: 0,
+          clicks: 0,
         } as Omit<Ad, 'id'>);
         toast.success("Anúncio adicionado!");
       }
@@ -66,7 +76,10 @@ const AdminAds = () => {
         name: "",
         code: "",
         placement: "content-top",
+        network: "adsense",
+        adType: "banner",
         active: true,
+        description: "",
       });
       loadAds();
     } catch (error) {
@@ -112,6 +125,17 @@ const AdminAds = () => {
       <div className="container mx-auto px-4 sm:px-8 pt-24 pb-8">
         <h1 className="text-3xl font-bold text-foreground mb-8">Gerenciar Anúncios</h1>
 
+        <Alert className="mb-6 bg-primary/5 border-primary/20">
+          <Info className="h-5 w-5" />
+          <AlertDescription>
+            <strong>Sistema de Monetização Integrado</strong>
+            <p className="text-sm mt-1">
+              Configure anúncios de múltiplas redes (AdSense, AdMob, outros) em posições estratégicas do site. 
+              Consulte o guia completo em <code>docs/AD_SYSTEM_GUIDE.md</code> para melhores práticas e instruções detalhadas.
+            </p>
+          </AlertDescription>
+        </Alert>
+
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Formulário */}
           <Card className="p-6 bg-card border-border">
@@ -130,25 +154,78 @@ const AdminAds = () => {
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label htmlFor="ad-network">Rede de Anúncios *</Label>
+                  <Select
+                    value={editingAd.network}
+                    onValueChange={(value) => setEditingAd({ ...editingAd, network: value as AdNetwork })}
+                  >
+                    <SelectTrigger id="ad-network">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(AD_NETWORK_LABELS).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="ad-type">Tipo de Anúncio *</Label>
+                  <Select
+                    value={editingAd.adType}
+                    onValueChange={(value) => setEditingAd({ ...editingAd, adType: value as AdType })}
+                  >
+                    <SelectTrigger id="ad-type">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(AD_TYPE_LABELS).map(([key, label]) => (
+                        <SelectItem key={key} value={key}>{label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
               <div>
                 <Label htmlFor="ad-placement">Posição *</Label>
                 <Select
                   value={editingAd.placement}
-                  onValueChange={(value) => setEditingAd({ ...editingAd, placement: value as Ad['placement'] })}
+                  onValueChange={(value) => setEditingAd({ ...editingAd, placement: value as AdPlacement })}
                 >
                   <SelectTrigger id="ad-placement">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="header">Cabeçalho</SelectItem>
-                    <SelectItem value="footer">Rodapé</SelectItem>
-                    <SelectItem value="sidebar">Barra Lateral</SelectItem>
-                    <SelectItem value="content-top">Topo do Conteúdo</SelectItem>
-                    <SelectItem value="content-bottom">Final do Conteúdo</SelectItem>
-                    <SelectItem value="player">Player de Vídeo</SelectItem>
+                    {Object.entries(AD_PLACEMENT_LABELS).map(([key, label]) => (
+                      <SelectItem key={key} value={key}>{label}</SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
+
+              <div>
+                <Label htmlFor="ad-description">Descrição (opcional)</Label>
+                <Input
+                  id="ad-description"
+                  value={editingAd.description || ""}
+                  onChange={(e) => setEditingAd({ ...editingAd, description: e.target.value })}
+                  placeholder="Descrição interna do anúncio"
+                />
+              </div>
+
+              {editingAd.network && (
+                <Alert className="bg-primary/5 border-primary/20">
+                  <Info className="h-4 w-4" />
+                  <AlertDescription className="text-xs whitespace-pre-line">
+                    <strong>Como obter o código {AD_NETWORK_LABELS[editingAd.network as AdNetwork]}:</strong>
+                    {AD_NETWORK_INSTRUCTIONS[editingAd.network as AdNetwork]}
+                  </AlertDescription>
+                </Alert>
+              )}
 
               <div>
                 <Label htmlFor="ad-code">Código do Anúncio (HTML/Script) *</Label>
@@ -186,7 +263,10 @@ const AdminAds = () => {
                       name: "",
                       code: "",
                       placement: "content-top",
+                      network: "adsense",
+                      adType: "banner",
                       active: true,
+                      description: "",
                     })}
                   >
                     Cancelar
@@ -212,24 +292,36 @@ const AdminAds = () => {
                   <Card key={ad.id} className="p-4 bg-background/50">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <h3 className="font-semibold text-foreground">{ad.name}</h3>
                           <span className={`text-xs px-2 py-0.5 rounded ${
                             ad.active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
                           }`}>
                             {ad.active ? 'Ativo' : 'Inativo'}
                           </span>
+                          <span className="text-xs px-2 py-0.5 rounded bg-primary/20 text-primary">
+                            {AD_NETWORK_LABELS[ad.network]}
+                          </span>
+                          <span className="text-xs px-2 py-0.5 rounded bg-secondary/20 text-secondary-foreground">
+                            {AD_TYPE_LABELS[ad.adType]}
+                          </span>
                         </div>
+                        
+                        {ad.description && (
+                          <p className="text-xs text-muted-foreground mb-1 italic">{ad.description}</p>
+                        )}
+                        
                         <p className="text-sm text-muted-foreground mb-2">
-                          Posição: <span className="font-medium">{
-                            ad.placement === 'header' ? 'Cabeçalho' :
-                            ad.placement === 'footer' ? 'Rodapé' :
-                            ad.placement === 'sidebar' ? 'Barra Lateral' :
-                            ad.placement === 'content-top' ? 'Topo do Conteúdo' :
-                            ad.placement === 'content-bottom' ? 'Final do Conteúdo' :
-                            'Player de Vídeo'
-                          }</span>
+                          <strong>Posição:</strong> {AD_PLACEMENT_LABELS[ad.placement]}
                         </p>
+
+                        {(ad.impressions !== undefined || ad.clicks !== undefined) && (
+                          <div className="flex gap-3 text-xs text-muted-foreground mb-2">
+                            <span><Eye className="w-3 h-3 inline mr-1" />{ad.impressions || 0} impressões</span>
+                            <span>👆 {ad.clicks || 0} cliques</span>
+                          </div>
+                        )}
+                        
                         <details className="text-xs">
                           <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
                             Ver código

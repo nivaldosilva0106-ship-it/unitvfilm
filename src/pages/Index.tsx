@@ -5,6 +5,7 @@ import { ContentRow } from "@/components/ContentRow";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
 import { ContentPlayerModal } from "@/components/ContentPlayerModal";
 import { CategoryNavigation } from "@/components/CategoryNavigation";
+import { AdManager } from "@/components/AdManager";
 import { getAllContents } from "@/lib/firebase";
 import { toast } from "sonner";
 import type { Content } from "@/types/content";
@@ -150,6 +151,9 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <Header />
       
+      {/* Header Ad */}
+      <AdManager placement="header" className="container mx-auto px-4 pt-20" />
+      
       {/* Hero Section */}
       <div className="relative py-16 flex items-center justify-center overflow-hidden">
         {/* Background Images Carousel */}
@@ -215,6 +219,9 @@ const Index = () => {
               />
             )}
             
+            {/* Between Content Ad */}
+            <AdManager placement="between-content" className="container mx-auto px-4" />
+            
             {categorizedContent.series.length > 0 && (
               <ContentRow 
                 title="Séries" 
@@ -263,6 +270,12 @@ const Index = () => {
           </div>
         )}
       </div>
+
+      {/* Footer Ad */}
+      <AdManager placement="footer" className="container mx-auto px-4 pb-8" />
+
+      {/* Mobile Bottom Ad */}
+      <AdManager placement="mobile-bottom" className="md:hidden fixed bottom-0 left-0 right-0 z-40" />
 
       {/* Episode Selector Modal */}
       {selectedSeries && (

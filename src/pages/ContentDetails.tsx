@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
 import { TrailerModal } from "@/components/TrailerModal";
 import { ContentPlayerModal } from "@/components/ContentPlayerModal";
+import { AdManager } from "@/components/AdManager";
 import { Play, Download, ArrowLeft, Calendar, Globe, Star, Film, Heart } from "lucide-react";
 import { getAllContents, addToMyList, removeFromMyList, getMyList } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -148,6 +149,9 @@ const ContentDetails = () => {
       <Header />
       
       <div className="container mx-auto px-4 sm:px-8 pt-24 pb-16">
+        {/* Content Top Ad */}
+        <AdManager placement="content-top" />
+        
         <Button
           variant="ghost"
           onClick={() => navigate("/")}
@@ -250,7 +254,13 @@ const ContentDetails = () => {
             )}
           </div>
         </div>
+
+        {/* Content Bottom Ad */}
+        <AdManager placement="content-bottom" className="mt-8" />
       </div>
+
+      {/* Mobile Bottom Ad */}
+      <AdManager placement="mobile-bottom" className="md:hidden fixed bottom-0 left-0 right-0 z-40" />
 
       {content.category === 'series' && showEpisodes && content.episodes && (
         <EpisodeSelector
