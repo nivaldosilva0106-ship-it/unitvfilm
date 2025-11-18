@@ -235,14 +235,16 @@ const AdminAds = () => {
                   </Alert>
                 )}
 
-                <Textarea
-                  id="ad-code"
-                  value={editingAd.code || ""}
-                  onChange={(e) => setEditingAd({ ...editingAd, code: e.target.value })}
-                  placeholder='<script async src="https://pagead2.googlesyndication.com/..."></script>'
-                  rows={8}
-                  className="font-mono text-sm border-2 border-primary/30 focus:border-primary"
-                />
+                <div className="w-full">
+                  <Textarea
+                    id="ad-code"
+                    value={editingAd.code || ""}
+                    onChange={(e) => setEditingAd({ ...editingAd, code: e.target.value })}
+                    placeholder='<script async src="https://pagead2.googlesyndication.com/..."></script>'
+                    rows={8}
+                    className="w-full min-h-[200px] font-mono text-sm bg-background/50 border-2 border-primary/30 focus:border-primary focus-visible:ring-primary"
+                  />
+                </div>
                 <p className="text-xs text-muted-foreground">
                   Cole aqui o código fornecido pelo Google AdSense, AdMob ou outra plataforma
                 </p>
