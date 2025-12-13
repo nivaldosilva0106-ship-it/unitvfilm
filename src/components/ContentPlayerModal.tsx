@@ -166,16 +166,7 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium =
                 <ArrowLeft className="w-6 h-6" />
               </Button>
 
-              {/* Overlay de proteção transparente sobre o iframe - Z-Index Alto */}
-              <div
-                className="absolute inset-0 z-[100] w-full h-full"
-                style={{ background: 'transparent' }}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  return false;
-                }}
-              />
+
 
               <iframe
                 ref={iframeRef}
