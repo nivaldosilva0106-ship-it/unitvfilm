@@ -147,7 +147,6 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium =
                 onClick={(e) => {
                   e.stopPropagation();
                   onClose();
-                  navigate(-1);
                 }}
                 variant="ghost"
                 size="icon"
