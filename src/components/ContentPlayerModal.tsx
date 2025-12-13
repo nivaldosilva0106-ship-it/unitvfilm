@@ -2,10 +2,11 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { X, Crown, ArrowLeft } from "lucide-react";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { Button } from "./ui/button";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AdManager } from "./AdManager";
 import { useNavigate } from "react-router-dom";
+import { useContentProtection } from "@/hooks/useContentProtection";
 
 interface ContentPlayerModalProps {
   open: boolean;
@@ -23,6 +24,17 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium =
   const [showBackButton, setShowBackButton] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   
+  // Ativar proteção de conteúdo quando o modal está aberto
+  useContentProtection(open);
+
+  // Gerar URL segura com timestamp para evitar cache
+  const secureVideoUrl = useMemo(() => {
+    if (!videoUrl) return '';
+    const timestamp = Date.now();
+    const separator = videoUrl.includes('?') ? '&' : '?';
+    return `${videoUrl}${separator}_t=${timestamp}`;
+  }, [videoUrl]);
+
   // Detectar se é mobile
   useEffect(() => {
     const checkMobile = () => setIsMobile(window.innerWidth < 768);
@@ -64,7 +76,7 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium =
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-full w-screen h-screen p-0 bg-black border-none [&>button]:hidden">
+      <DialogContent className="max-w-full w-screen h-screen p-0 bg-black border-none [&>button]:hidden protected-content">
         
         {/* Close Button */}
         <Button
@@ -121,15 +133,16 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium =
             {/* Anúncio antes do player */}
             <AdManager placement="player" className="absolute top-20 left-1/2 -translate-x-1/2 z-40" />
             
-            {/* Iframe Container - Fullscreen */}
+            {/* Iframe Container - Fullscreen com proteção */}
             <div 
               ref={playerContainerRef}
-              className="relative w-full h-full group"
+              className="relative w-full h-full group protected-content"
               onMouseEnter={() => !isMobile && setShowBackButton(true)}
               onMouseLeave={() => !isMobile && setShowBackButton(false)}
               onClick={() => isMobile && setShowBackButton(prev => !prev)}
+              onContextMenu={(e) => e.preventDefault()}
             >
-              {/* Botão Voltar - aparece no hover (PC) ou tap (mobile) */}
+              {/* Botão Voltar - animação suave de fade */}
               <Button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -138,22 +151,32 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium =
                 }}
                 variant="ghost"
                 size="icon"
-                className={`absolute top-6 left-6 z-50 w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md transition-all duration-300 rounded-full shadow-lg border border-white/20 ${
-                  showBackButton ? 'opacity-100' : 'opacity-0 pointer-events-none'
-                } md:group-hover:opacity-100 md:group-hover:pointer-events-auto`}
+                className={`absolute top-6 left-6 z-50 w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20 transition-all duration-500 ease-in-out ${
+                  showBackButton 
+                    ? 'opacity-100 translate-x-0 scale-100' 
+                    : 'opacity-0 -translate-x-4 scale-90 pointer-events-none'
+                } md:group-hover:opacity-100 md:group-hover:translate-x-0 md:group-hover:scale-100 md:group-hover:pointer-events-auto`}
                 title="Voltar"
               >
                 <ArrowLeft className="w-6 h-6" />
               </Button>
 
+              {/* Overlay de proteção transparente sobre o iframe */}
+              <div 
+                className="absolute inset-0 z-10 pointer-events-none"
+                style={{ background: 'transparent' }}
+              />
+
               <iframe
                 ref={iframeRef}
-                src={videoUrl}
+                src={secureVideoUrl}
                 title={`Player - ${title}`}
                 className="absolute inset-0 w-full h-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                 allowFullScreen
                 tabIndex={0}
+                referrerPolicy="no-referrer"
+                sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
               />
             </div>
           </>
