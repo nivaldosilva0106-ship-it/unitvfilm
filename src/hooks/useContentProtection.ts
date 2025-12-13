@@ -26,14 +26,13 @@ export const decodeVideoUrl = (encoded: string): string => {
 
 // Hook para proteção de conteúdo
 export const useContentProtection = (enabled: boolean = true) => {
-  // Bloquear menu de contexto (botão direito)
-  const handleContextMenu = useCallback((e: MouseEvent) => {
-    if (enabled) {
-      e.preventDefault();
-      e.stopPropagation();
-      return false;
-    }
-  }, [enabled]);
+  // Bloquear menu de contexto (botão direito) - FORÇADO
+  const handleContextMenu = useCallback((e: Event) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.stopImmediatePropagation();
+    return false;
+  }, []);
 
   // Bloquear atalhos de teclado para inspecionar
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -146,11 +145,16 @@ export const useContentProtection = (enabled: boolean = true) => {
   useEffect(() => {
     if (!enabled) return;
 
-    // Adicionar listeners
-    document.addEventListener('contextmenu', handleContextMenu, true);
+    // Adicionar listeners com capture para garantir prioridade
+    document.addEventListener('contextmenu', handleContextMenu, { capture: true, passive: false });
+    window.addEventListener('contextmenu', handleContextMenu, { capture: true, passive: false });
+    document.body.addEventListener('contextmenu', handleContextMenu, { capture: true, passive: false });
     document.addEventListener('keydown', handleKeyDown, true);
     document.addEventListener('dragstart', handleDragStart, true);
     document.addEventListener('selectstart', handleSelectStart, true);
+    
+    // Bloquear botão direito via atributo também
+    document.body.setAttribute('oncontextmenu', 'return false');
 
     // Verificar DevTools periodicamente
     const devToolsInterval = setInterval(detectDevTools, 1000);
@@ -194,11 +198,14 @@ export const useContentProtection = (enabled: boolean = true) => {
 
     return () => {
       document.removeEventListener('contextmenu', handleContextMenu, true);
+      window.removeEventListener('contextmenu', handleContextMenu, true);
+      document.body.removeEventListener('contextmenu', handleContextMenu, true);
       document.removeEventListener('keydown', handleKeyDown, true);
       document.removeEventListener('dragstart', handleDragStart, true);
       document.removeEventListener('selectstart', handleSelectStart, true);
       clearInterval(devToolsInterval);
       document.body.classList.remove('devtools-open');
+      document.body.removeAttribute('oncontextmenu');
       document.getElementById('content-protection-styles')?.remove();
     };
   }, [enabled, handleContextMenu, handleKeyDown, handleDragStart, handleSelectStart, detectDevTools]);
