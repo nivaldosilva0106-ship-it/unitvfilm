@@ -1,10 +1,14 @@
 import { useContentProtection } from '@/hooks/useContentProtection';
+import { useLocation } from 'react-router-dom';
 
 // Componente que aplica proteção de conteúdo globalmente em todas as páginas
 const GlobalContentProtection = () => {
-  // Sempre ativo - bloqueia botão direito e atalhos de inspeção em todo o site
-  useContentProtection(true);
-  
+  const location = useLocation();
+  const isAdmin = location.pathname.startsWith('/admin');
+
+  // Ativo apenas se NÃO estiver na área administrativa
+  useContentProtection(!isAdmin);
+
   return null;
 };
 

@@ -26,9 +26,10 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload, isPr
   const handleButtonFocus = () => playNavigationSound('focus');
 
   return (
-    <div 
+    <div
       ref={cardRef}
       className="relative group min-w-[140px] sm:min-w-[160px] cursor-pointer card-hover rounded-lg transition-all"
+      onClick={() => onInfo?.()}
     >
       {isPremium && (
         <div className="absolute top-2 right-2 z-10 bg-primary/90 backdrop-blur-sm px-2 py-1 rounded-full flex items-center gap-1">

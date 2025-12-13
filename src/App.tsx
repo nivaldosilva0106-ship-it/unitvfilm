@@ -27,8 +27,8 @@ const App = () => (
         <Toaster />
         <Sonner />
         <FocusNavigator />
-        <GlobalContentProtection />
         <BrowserRouter>
+          <GlobalContentProtection />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/login" element={<Login />} />

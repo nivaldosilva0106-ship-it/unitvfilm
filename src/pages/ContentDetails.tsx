@@ -87,7 +87,7 @@ const ContentDetails = () => {
 
   const checkMyList = async () => {
     if (!user || !content) return;
-    
+
     try {
       const myList = await getMyList(user.uid);
       const item = myList.find(i => i.contentId === content.id);
@@ -147,11 +147,11 @@ const ContentDetails = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <div className="container mx-auto px-4 sm:px-8 pt-24 pb-16">
         {/* Content Top Ad */}
         <AdManager placement="content-top" />
-        
+
         <Button
           variant="ghost"
           onClick={() => navigate("/")}
@@ -163,12 +163,14 @@ const ContentDetails = () => {
         </Button>
 
         <div className="grid lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-1 flex justify-center lg:justify-start">
+          <div className="lg:col-span-1 flex flex-col items-center lg:items-start gap-4">
             <img
               src={content.thumbnail_url || "/placeholder.svg"}
               alt={content.title}
               className="w-2/3 sm:w-1/2 lg:w-full max-w-xs rounded-lg shadow-2xl"
             />
+            {/* Sidebar Ad */}
+            <AdManager placement="sidebar" className="w-full max-w-xs" />
           </div>
 
           <div className="lg:col-span-3 space-y-6">
@@ -210,7 +212,7 @@ const ContentDetails = () => {
                 <Play className="w-5 h-5 mr-2" />
                 {isTV ? 'Assistir Canal' : content.category === 'series' ? 'Ver Episódios' : 'Assistir Agora'}
               </Button>
-              
+
               <Button
                 onClick={handleToggleMyList}
                 variant={inMyList ? "default" : "outline"}
@@ -231,7 +233,7 @@ const ContentDetails = () => {
                   Trailer
                 </Button>
               )}
-              
+
               {content.download_url && content.category === 'movie' && (
                 <Button
                   onClick={handleDownload}
@@ -281,7 +283,7 @@ const ContentDetails = () => {
           title={content.title}
         />
       )}
-      
+
       {/* Main Player Modal */}
       <ContentPlayerModal
         open={playerModal.open}
