@@ -16,6 +16,7 @@ import MyList from "./pages/MyList";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import FocusNavigator from "@/components/FocusNavigator";
+import GlobalContentProtection from "@/components/GlobalContentProtection";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <FocusNavigator />
+        <GlobalContentProtection />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
