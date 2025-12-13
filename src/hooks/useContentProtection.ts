@@ -4,7 +4,7 @@ import { useEffect, useCallback } from 'react';
 export const encodeVideoUrl = (url: string): string => {
   try {
     const encoded = btoa(encodeURIComponent(url).split('').reverse().join(''));
-    return encoded.split('').map((c, i) => 
+    return encoded.split('').map((c, i) =>
       String.fromCharCode(c.charCodeAt(0) + (i % 5))
     ).join('');
   } catch {
@@ -15,7 +15,7 @@ export const encodeVideoUrl = (url: string): string => {
 // Decodifica URL ofuscada
 export const decodeVideoUrl = (encoded: string): string => {
   try {
-    const decoded = encoded.split('').map((c, i) => 
+    const decoded = encoded.split('').map((c, i) =>
       String.fromCharCode(c.charCodeAt(0) - (i % 5))
     ).join('');
     return decodeURIComponent(atob(decoded).split('').reverse().join(''));
@@ -152,7 +152,7 @@ export const useContentProtection = (enabled: boolean = true) => {
     document.addEventListener('keydown', handleKeyDown, true);
     document.addEventListener('dragstart', handleDragStart, true);
     document.addEventListener('selectstart', handleSelectStart, true);
-    
+
     // Bloquear botão direito via atributo também
     document.body.setAttribute('oncontextmenu', 'return false');
 
@@ -162,7 +162,7 @@ export const useContentProtection = (enabled: boolean = true) => {
 
     // Desabilitar console.log em produção
     if (import.meta.env.PROD) {
-      const noop = () => {};
+      const noop = () => { };
       ['log', 'debug', 'info', 'warn'].forEach(method => {
         (console as any)[method] = noop;
       });
@@ -207,8 +207,22 @@ export const useContentProtection = (enabled: boolean = true) => {
       document.body.classList.remove('devtools-open');
       document.body.removeAttribute('oncontextmenu');
       document.getElementById('content-protection-styles')?.remove();
+
+      // Limpeza agressiva extra
+      window.oncontextmenu = null;
+      document.oncontextmenu = null;
     };
   }, [enabled, handleContextMenu, handleKeyDown, handleDragStart, handleSelectStart, detectDevTools]);
+
+  // Garantir que a proteção seja reaplicada se algo tentar removê-la
+  useEffect(() => {
+    if (!enabled) return;
+    const interval = setInterval(() => {
+      window.oncontextmenu = () => false;
+      document.oncontextmenu = () => false;
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [enabled]);
 
   return { encodeVideoUrl, decodeVideoUrl };
 };

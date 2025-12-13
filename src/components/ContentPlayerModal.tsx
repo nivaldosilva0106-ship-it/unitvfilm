@@ -23,7 +23,7 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium =
   const navigate = useNavigate();
   const [showBackButton, setShowBackButton] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  
+
   // Ativar proteção de conteúdo quando o modal está aberto
   useContentProtection(open);
 
@@ -68,16 +68,23 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium =
   if (!videoUrl) return null;
 
   // Admin tem acesso total, ou verifica se tem assinatura ativa
-  const hasActiveSubscription = profile?.isPremium && 
-    profile.subscriptionExpiresAt && 
+  const hasActiveSubscription = profile?.isPremium &&
+    profile.subscriptionExpiresAt &&
     new Date(profile.subscriptionExpiresAt) > new Date();
 
   const isBlocked = isPremium && !isAdmin && !hasActiveSubscription;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-full w-screen h-screen p-0 bg-black border-none [&>button]:hidden protected-content">
-        
+      <DialogContent
+        className="max-w-full w-screen h-screen p-0 bg-black border-none [&>button]:hidden protected-content"
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          return false;
+        }}
+      >
+
         {/* Close Button */}
         <Button
           onClick={onClose}
@@ -100,7 +107,7 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium =
                 Conteúdo Premium
               </h2>
               <p className="text-muted-foreground mb-8 text-lg">
-                {profile?.isPremium && !hasActiveSubscription 
+                {profile?.isPremium && !hasActiveSubscription
                   ? 'Sua assinatura expirou. Renove para continuar assistindo.'
                   : 'Este conteúdo está disponível apenas para assinantes ativos. Complete o pagamento para ter acesso ilimitado.'}
               </p>
@@ -132,9 +139,9 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium =
           <>
             {/* Anúncio antes do player */}
             <AdManager placement="player" className="absolute top-20 left-1/2 -translate-x-1/2 z-40" />
-            
+
             {/* Iframe Container - Fullscreen com proteção */}
-            <div 
+            <div
               ref={playerContainerRef}
               className="relative w-full h-full group protected-content"
               onMouseEnter={() => !isMobile && setShowBackButton(true)}
@@ -150,20 +157,24 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium =
                 }}
                 variant="ghost"
                 size="icon"
-                className={`absolute top-6 left-6 z-50 w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20 transition-all duration-500 ease-in-out ${
-                  showBackButton 
-                    ? 'opacity-100 translate-x-0 scale-100' 
-                    : 'opacity-0 -translate-x-4 scale-90 pointer-events-none'
-                } md:group-hover:opacity-100 md:group-hover:translate-x-0 md:group-hover:scale-100 md:group-hover:pointer-events-auto`}
+                className={`absolute top-6 left-6 z-50 w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20 transition-all duration-500 ease-in-out ${showBackButton
+                  ? 'opacity-100 translate-x-0 scale-100'
+                  : 'opacity-0 -translate-x-4 scale-90 pointer-events-none'
+                  } md:group-hover:opacity-100 md:group-hover:translate-x-0 md:group-hover:scale-100 md:group-hover:pointer-events-auto`}
                 title="Voltar"
               >
                 <ArrowLeft className="w-6 h-6" />
               </Button>
 
-              {/* Overlay de proteção transparente sobre o iframe */}
-              <div 
-                className="absolute inset-0 z-10 pointer-events-none"
+              {/* Overlay de proteção transparente sobre o iframe - Z-Index Alto */}
+              <div
+                className="absolute inset-0 z-[100] w-full h-full"
                 style={{ background: 'transparent' }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  return false;
+                }}
               />
 
               <iframe
