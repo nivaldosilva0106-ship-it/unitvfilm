@@ -110,8 +110,12 @@ const Index = () => {
     if (content.category === 'series' && content.episodes && content.episodes.length > 0) {
       setSelectedSeries(content);
     } else if (content.video_url) {
-      // Abre o vídeo em uma nova aba do navegador
-      window.open(content.video_url, '_blank');
+      setPlayerModal({ 
+        open: true, 
+        url: content.video_url, 
+        title: content.title,
+        isPremium: content.isPremium 
+      });
     } else {
       toast.error("Link de vídeo não disponível");
     }
