@@ -1,8 +1,8 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X, Crown } from "lucide-react";
+import { X, Crown, ArrowLeft } from "lucide-react";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { Button } from "./ui/button";
-import { useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { AdManager } from "./AdManager";
 import { useNavigate } from "react-router-dom";
@@ -17,14 +17,32 @@ interface ContentPlayerModalProps {
 
 export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium = false }: ContentPlayerModalProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
   const { profile, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const [showBackButton, setShowBackButton] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   
+  // Detectar se é mobile
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Garante que o ESC feche o modal
   useKeyboardNavigation({
     enabled: open,
     onEscape: onClose,
   });
+
+  // Para mobile: toggle ao clicar, esconde após 3s
+  useEffect(() => {
+    if (!isMobile || !showBackButton) return;
+    const timer = setTimeout(() => setShowBackButton(false), 3000);
+    return () => clearTimeout(timer);
+  }, [showBackButton, isMobile]);
 
   // Foca o iframe quando o modal abre para permitir controle direto do player
   useEffect(() => {
@@ -104,7 +122,30 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium =
             <AdManager placement="player" className="absolute top-20 left-1/2 -translate-x-1/2 z-40" />
             
             {/* Iframe Container - Fullscreen */}
-            <div className="relative w-full h-full">
+            <div 
+              ref={playerContainerRef}
+              className="relative w-full h-full group"
+              onMouseEnter={() => !isMobile && setShowBackButton(true)}
+              onMouseLeave={() => !isMobile && setShowBackButton(false)}
+              onClick={() => isMobile && setShowBackButton(prev => !prev)}
+            >
+              {/* Botão Voltar - aparece no hover (PC) ou tap (mobile) */}
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onClose();
+                  navigate(-1);
+                }}
+                variant="ghost"
+                size="icon"
+                className={`absolute top-6 left-6 z-50 w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md transition-all duration-300 rounded-full shadow-lg border border-white/20 ${
+                  showBackButton ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                } md:group-hover:opacity-100 md:group-hover:pointer-events-auto`}
+                title="Voltar"
+              >
+                <ArrowLeft className="w-6 h-6" />
+              </Button>
+
               <iframe
                 ref={iframeRef}
                 src={videoUrl}
