@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Volume2, VolumeX, Play, Info, Plus, Check, Star } from "lucide-react";
 import { ContentRow } from "@/components/ContentRow";
+import { MarqueeContentRow } from "@/components/MarqueeContentRow";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
 import { ContentPlayerModal } from "@/components/ContentPlayerModal";
 import { CategoryNavigation } from "@/components/CategoryNavigation";
@@ -117,6 +118,14 @@ const Index = () => {
 
     return () => clearTimeout(timer);
   }, [currentTrailerIndex, playerModal.open]);
+
+  /* Auto-advance slider when returning from player modal */
+  useEffect(() => {
+    if (!playerModal.open && trailerContents.length > 0) {
+      /* When modal closes, advance to next trailer */
+      setCurrentTrailerIndex((prev) => (prev + 1) % trailerContents.length);
+    }
+  }, [playerModal.open]);
 
   const loadContent = async () => {
     try {
@@ -335,7 +344,7 @@ const Index = () => {
         )}
 
         <div className="relative z-20 text-center px-4 max-w-5xl mx-auto w-full flex flex-col items-center">
-          <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-3 drop-shadow-lg">
+          <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-3 drop-shadow-lg pt-8">
             Bem-vindo ao Uni<span className="text-primary glow-effect">Tv</span>Film
           </h1>
           <p className="text-lg text-foreground/90 drop-shadow-md mb-8">
@@ -430,12 +439,13 @@ const Index = () => {
           <>
             {/* Featured Random Content - Always First */}
             {categorizedContent.featured.length > 0 && (
-              <ContentRow
+              <MarqueeContentRow
                 title="Em Destaque"
                 contents={categorizedContent.featured}
                 onPlayContent={handlePlayContent}
                 onInfoContent={handleInfoContent}
                 onDownloadContent={handleDownloadContent}
+                showNumbers={true}
               />
             )}
 
