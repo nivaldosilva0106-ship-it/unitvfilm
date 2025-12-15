@@ -6,6 +6,10 @@ import { EpisodeSelector } from "@/components/EpisodeSelector";
 import { ContentPlayerModal } from "@/components/ContentPlayerModal";
 import { CategoryNavigation } from "@/components/CategoryNavigation";
 import { DownloadModal } from "@/components/DownloadModal";
+import { AdManager } from "@/components/AdManager";
+import { Content } from "@/types/content";
+import { getAllContents } from "@/lib/firebase";
+import { toast } from "sonner";
 
 const ALL_CATEGORIES = ['Todos', 'Filmes', 'Séries', 'TV ao Vivo', 'Lançamentos', 'Ação', 'Terror'];
 
