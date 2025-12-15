@@ -1,12 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Header } from "@/components/Header";
-import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { addContent, getAllContents, deleteContent, updateContent } from "@/lib/firebase";
 import type { Content } from "@/types/content";
 import { AdminContentForm } from "@/components/admin/AdminContentForm";
 import { AdminContentList } from "@/components/admin/AdminContentList";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Admin = () => {
@@ -48,11 +47,9 @@ const Admin = () => {
     }
   };
 
-  // Função auxiliar movida para Admin.tsx, pois é usada na lógica de salvamento
   const normalizeVideoUrl = (value?: string) => {
     if (!value) return value;
     const trimmed = value.trim();
-    // Se for um iframe colado, extrai o src
     const match = trimmed.match(/<iframe[^>]+src=["']([^"']+)["']/i);
     if (match && match[1]) return match[1];
     return trimmed;
@@ -68,7 +65,6 @@ const Admin = () => {
     const isSeries = editingContent.category === 'series';
     const isMovie = editingContent.category === 'movie';
 
-    // Normaliza URL de vídeo (extrai src caso seja iframe colado)
     const normalizedVideo = normalizeVideoUrl(editingContent.video_url || undefined);
 
     if ((isTV || isMovie) && !normalizedVideo) {
@@ -76,13 +72,11 @@ const Admin = () => {
       return;
     }
 
-    // Cria uma cópia limpa para salvar
     const contentToSave: Partial<Content> = {
       ...editingContent,
       video_url: normalizedVideo || undefined,
     };
 
-    // Limpeza de campos irrelevantes
     if (isMovie) {
       delete contentToSave.episodes;
     } else if (isTV) {
@@ -94,7 +88,6 @@ const Admin = () => {
       delete contentToSave.video_url;
     }
 
-    // Garante que campos vazios sejam deletados para evitar problemas no Firebase
     if (!contentToSave.description) delete contentToSave.description;
     if (!contentToSave.download_url) delete contentToSave.download_url;
     if (!contentToSave.trailer_url) delete contentToSave.trailer_url;
@@ -103,7 +96,6 @@ const Admin = () => {
     if (!contentToSave.video_url) delete contentToSave.video_url;
     if (!contentToSave.rating) delete contentToSave.rating;
     if (!contentToSave.tmdb_id) delete contentToSave.tmdb_id;
-
 
     try {
       if (editingContent.id) {
@@ -114,7 +106,6 @@ const Admin = () => {
         toast.success("Conteúdo adicionado!");
       }
 
-      // Resetar formulário
       setEditingContent({
         title: "",
         category: "movie",
@@ -147,12 +138,11 @@ const Admin = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="container mx-auto px-4 py-12">
-          <p className="text-center text-muted-foreground">Carregando...</p>
+      <AdminLayout title="Gerenciar Conteúdos">
+        <div className="flex items-center justify-center py-12">
+          <p className="text-muted-foreground">Carregando...</p>
         </div>
-      </div>
+      </AdminLayout>
     );
   }
 
@@ -161,43 +151,23 @@ const Admin = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <div className="container mx-auto px-4 sm:px-8 pt-24 pb-8">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Painel Administrativo</h1>
-          <div className="flex gap-3">
-            <Button
-              onClick={() => window.location.href = '/admin/ads'}
-              variant="outline"
-            >
-              Gerenciar Anúncios
-            </Button>
-            <Button
-              onClick={() => window.location.href = '/admin/payments'}
-            >
-              Aprovar Pagamentos
-            </Button>
-          </div>
-        </div>
+    <AdminLayout title="Gerenciar Conteúdos">
+      <div className="grid lg:grid-cols-2 gap-6">
+        <AdminContentForm
+          editingContent={editingContent}
+          setEditingContent={setEditingContent}
+          handleSave={handleSave}
+        />
 
-        <div className="grid lg:grid-cols-2 gap-8">
-          <AdminContentForm
-            editingContent={editingContent}
-            setEditingContent={setEditingContent}
-            handleSave={handleSave}
-          />
-
-          <AdminContentList
-            allContents={allContents}
-            listSearchQuery={listSearchQuery}
-            setListSearchQuery={setListSearchQuery}
-            setEditingContent={setEditingContent}
-            handleDelete={handleDelete}
-          />
-        </div>
+        <AdminContentList
+          allContents={allContents}
+          listSearchQuery={listSearchQuery}
+          setListSearchQuery={setListSearchQuery}
+          setEditingContent={setEditingContent}
+          handleDelete={handleDelete}
+        />
       </div>
-    </div>
+    </AdminLayout>
   );
 };
 
