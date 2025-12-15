@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
-import { Volume2, VolumeX, Play } from "lucide-react";
+import { Volume2, VolumeX, Play, Info, Plus, Check, Star } from "lucide-react";
 import { ContentRow } from "@/components/ContentRow";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
 import { ContentPlayerModal } from "@/components/ContentPlayerModal";
@@ -9,14 +9,17 @@ import { CategoryNavigation } from "@/components/CategoryNavigation";
 import { DownloadModal } from "@/components/DownloadModal";
 import { AdManager } from "@/components/AdManager";
 import { Content } from "@/types/content";
-import { getAllContents } from "@/lib/firebase";
+import { getAllContents, getMyList, addToMyList, removeFromMyList } from "@/lib/firebase";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { MyListItem } from "@/types/user";
 
 const ALL_CATEGORIES = ['Todos', 'Filmes', 'Séries', 'TV ao Vivo', 'Lançamentos', 'Ação', 'Terror'];
 
 const Index = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [allContentData, setAllContentData] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
   const [randomContent, setRandomContent] = useState<Content[]>([]);
@@ -32,6 +35,9 @@ const Index = () => {
   const [isMuted, setIsMuted] = useState(false); /* Default Audio ON */
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  /* My List State */
+  const [myList, setMyList] = useState<MyListItem[]>([]);
+
   /* Helper to extract YouTube ID - Robust Version */
   const getYouTubeId = (url: string | undefined | null) => {
     if (!url || typeof url !== 'string') return null;
@@ -43,6 +49,24 @@ const Index = () => {
   useEffect(() => {
     loadContent();
   }, []);
+
+  /* Load User's List */
+  useEffect(() => {
+    if (user) {
+      loadMyList();
+    }
+  }, [user]);
+
+  const loadMyList = async () => {
+    if (user) {
+      try {
+        const list = await getMyList(user.uid);
+        setMyList(list);
+      } catch (error) {
+        console.error("Error loading my list:", error);
+      }
+    }
+  };
 
   /* Filter and Shuffle Trailers */
   useEffect(() => {
@@ -65,20 +89,34 @@ const Index = () => {
     }
   }, [allContentData, trailerContents]);
 
-  /* Video Slider Interval (90s) */
+  /* Video Slider Interval (90s) - Only run if player modal is CLOSED */
   useEffect(() => {
-    if (trailerContents.length > 0) {
+    if (trailerContents.length > 0 && !playerModal.open) {
       const interval = setInterval(() => {
         setCurrentTrailerIndex((prev) => (prev + 1) % trailerContents.length);
       }, 90000); // 90 seconds
+
       return () => clearInterval(interval);
     }
-  }, [trailerContents]);
+  }, [trailerContents, playerModal.open]);
 
-  /* Reset Mute state when slide changes */
+  /* AGGRESSIVE UNMUTE Logic */
   useEffect(() => {
-    setIsMuted(false); /* Start with audio ON for new slide too */
-  }, [currentTrailerIndex]);
+    /* Always set muted to FALSE when invalidating index or mounting */
+    setIsMuted(false);
+
+    /* Force unmute command to YouTube API after a small delay to ensure player is ready */
+    const timer = setTimeout(() => {
+      if (iframeRef.current && iframeRef.current.contentWindow) {
+        iframeRef.current.contentWindow.postMessage(
+          JSON.stringify({ event: "command", func: "unMute", args: [] }),
+          "*"
+        );
+      }
+    }, 1500); /* 1.5s delay */
+
+    return () => clearTimeout(timer);
+  }, [currentTrailerIndex, playerModal.open]);
 
   const loadContent = async () => {
     try {
@@ -102,6 +140,30 @@ const Index = () => {
         "*"
       );
       setIsMuted(!isMuted);
+    }
+  };
+
+  const handleToggleMyList = async (content: Content) => {
+    if (!user) {
+      toast.error("Faça login para adicionar à sua lista");
+      navigate("/login");
+      return;
+    }
+
+    const existingItem = myList.find(item => item.contentId === content.id);
+
+    try {
+      if (existingItem) {
+        await removeFromMyList(user.uid, existingItem.id);
+        setMyList(prev => prev.filter(item => item.id !== existingItem.id));
+        toast.success("Removido da lista");
+      } else {
+        const newItem = await addToMyList(user.uid, content);
+        setMyList(prev => [...prev, newItem]);
+        toast.success("Adicionado à lista");
+      }
+    } catch (error) {
+      toast.error("Erro ao atualizar lista");
     }
   };
 
@@ -159,6 +221,7 @@ const Index = () => {
     if (content.category === 'series' && content.episodes && content.episodes.length > 0) {
       setSelectedSeries(content);
     } else if (content.video_url) {
+      /* VIDEO SLIDER PAUSE Logic: handled by !playerModal.open check in render */
       setPlayerModal({
         open: true,
         url: content.video_url,
@@ -203,17 +266,24 @@ const Index = () => {
 
   const currentTrailer = trailerContents.length > 0 ? trailerContents[currentTrailerIndex] : null;
 
+  /* Determine Active Content for Info Card */
+  const activeContent = (currentTrailer && currentTrailer.trailer_url)
+    ? currentTrailer
+    : (allContentData.length > 0 ? allContentData[currentImageIndex] : null);
+
+  const isInList = activeContent ? myList.some(item => item.contentId === activeContent.id) : false;
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background text-foreground">
       <Header />
 
       {/* Header Ad */}
       <AdManager placement="header" className="container mx-auto px-4 pt-20" />
 
       {/* Hero Section */}
-      <div className="relative py-16 flex items-center justify-center overflow-hidden min-h-[500px]">
-        {/* VIDEO SLIDER */}
-        {currentTrailer && currentTrailer.trailer_url && getYouTubeId(currentTrailer.trailer_url) ? (
+      <div className="relative py-12 flex items-center justify-center overflow-hidden min-h-[500px] w-full">
+        {/* VIDEO SLIDER - Unmounts if player modal is open to ensure audio cut */}
+        {!playerModal.open && currentTrailer && currentTrailer.trailer_url && getYouTubeId(currentTrailer.trailer_url) ? (
           <div className="absolute inset-0 z-0 pointer-events-none">
             <div className="relative w-full h-full">
               <iframe
@@ -251,12 +321,12 @@ const Index = () => {
           )
         )}
 
-        {/* Audio Toggle Button */}
-        {currentTrailer && currentTrailer.trailer_url && (
-          <div className="absolute right-8 bottom-32 z-30 hidden md:block">
+        {/* Audio Toggle Button - Only show if video is active AND open */}
+        {!playerModal.open && currentTrailer && currentTrailer.trailer_url && (
+          <div className="absolute right-8 bottom-32 z-50 hidden md:block">
             <button
               onClick={toggleAudio}
-              className="p-3 rounded-full bg-black/50 hover:bg-black/70 text-white border border-white/20 transition-all backdrop-blur-sm"
+              className="p-3 rounded-full bg-black/60 hover:bg-black/80 text-white border border-white/20 transition-all backdrop-blur-md shadow-lg"
               aria-label={isMuted ? "Ativar som" : "Mudo"}
             >
               {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
@@ -264,66 +334,93 @@ const Index = () => {
           </div>
         )}
 
-        <div className="relative z-20 text-center px-4 max-w-4xl mx-auto w-full">
+        <div className="relative z-20 text-center px-4 max-w-5xl mx-auto w-full flex flex-col items-center">
           <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-3 drop-shadow-lg">
             Bem-vindo ao Uni<span className="text-primary glow-effect">Tv</span>Film
           </h1>
-          <p className="text-lg text-foreground/90 drop-shadow-md mb-6">
+          <p className="text-lg text-foreground/90 drop-shadow-md mb-8">
             Sua plataforma de streaming com os melhores filmes, séries e canais de TV
           </p>
 
           {/* Category Navigation */}
-          <CategoryNavigation
-            categories={ALL_CATEGORIES}
-            selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
-          />
+          <div className="w-full flex justify-center mb-10">
+            <CategoryNavigation
+              categories={ALL_CATEGORIES}
+              selectedCategory={selectedCategory}
+              onSelectCategory={setSelectedCategory}
+            />
+          </div>
 
-          {/* NEW: Info Card for current video */}
-          {/* Only show if we have a current trailer active OR if we have fallback content (but user asked for it with video slider) */}
-          {/* The user said "por baixo dos botões... quero que coloques um sistema que funcione com o silder de video" */}
-          {/* So it should update match the video. If fallback is active (image slider), it should probably match the current image? */}
-          {/* The request specific "funcione com o silder de video". But if fallback is active... logic dictates it should show info for the image too. */}
-          {/* Let's make it work for 'currentContent' which is either trailer or image slider item. */}
+          {/* INFO CARD - MEDIUM SIZE */}
+          {activeContent && (
+            <div className="w-full max-w-3xl mx-auto z-50 relative animate-in fade-in zoom-in duration-700">
+              <div className="bg-black/70 backdrop-blur-xl border border-white/10 rounded-xl p-4 md:p-5 flex flex-col md:flex-row items-start gap-5 shadow-2xl hover:bg-black/80 transition-all">
+                <div className="relative group shrink-0 mx-auto md:mx-0">
+                  <img
+                    src={activeContent.thumbnail_url}
+                    alt={activeContent.title}
+                    className="w-24 h-36 md:w-28 md:h-42 object-cover rounded-lg shadow-xl group-hover:scale-105 transition-transform duration-300 ring-1 ring-white/10"
+                  />
+                </div>
+                <div className="flex-1 min-w-0 flex flex-col justify-between h-full w-full text-left">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                      <span className="bg-primary/90 text-white px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shadow-sm">
+                        Assista agora
+                      </span>
+                      {/* TMDB Rating */}
+                      <div className="flex items-center gap-1 bg-yellow-500/10 border border-yellow-500/20 px-1.5 py-0.5 rounded text-yellow-500 text-xs font-bold">
+                        <Star className="w-3 h-3 fill-current" />
+                        {activeContent.rating ? activeContent.rating.toFixed(1) : "N/A"}
+                      </div>
+                      <span className="text-[10px] text-gray-300 uppercase border border-white/20 px-1.5 py-0.5 rounded font-medium bg-white/5">
+                        {activeContent.category === 'movie' ? 'Filme' : activeContent.category === 'series' ? 'Série' : 'TV'}
+                      </span>
+                    </div>
 
-          {(() => {
-            const activeContent = (currentTrailer && currentTrailer.trailer_url)
-              ? currentTrailer
-              : (allContentData.length > 0 ? allContentData[currentImageIndex] : null);
-
-            if (activeContent) {
-              return (
-                <div className="mt-8 mx-auto max-w-3xl bg-black/40 backdrop-blur-md border border-white/10 rounded-xl p-4 flex flex-col md:flex-row items-center gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 hover:bg-black/50 transition-colors text-left shadow-2xl">
-                  <div className="relative group shrink-0">
-                    <img
-                      src={activeContent.thumbnail_url}
-                      alt={activeContent.title}
-                      className="w-24 h-36 object-cover rounded shadow-md group-hover:scale-105 transition-transform duration-300"
-                    />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <span className="text-primary text-xs font-bold uppercase tracking-widest mb-1 block">
-                      Assista agora
-                    </span>
-                    <h3 className="text-2xl font-bold text-white mb-2 truncate">
+                    <h3 className="text-xl md:text-2xl font-bold text-white mb-2 truncate leading-tight">
                       {activeContent.title}
                     </h3>
-                    <p className="text-sm text-gray-300 line-clamp-2 mb-4">
+                    <p className="text-sm text-gray-300 line-clamp-2 mb-4 leading-relaxed">
                       {activeContent.description || "Sem descrição disponível."}
                     </p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap gap-2.5 mt-auto">
                     <Button
                       onClick={() => handlePlayContent(activeContent)}
-                      className="bg-primary hover:bg-primary/90 text-white font-semibold transition-all hover:scale-105"
+                      className="bg-primary hover:bg-primary/90 text-white font-semibold h-9 px-5 rounded-md transition-all hover:scale-105 shadow-lg shadow-primary/20 text-sm"
                     >
-                      <Play className="w-4 h-4 mr-2 fill-current" /> Assistir
+                      <Play className="w-4 h-4 mr-1.5 fill-current" /> Assistir
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      onClick={() => handleInfoContent(activeContent)}
+                      className="bg-transparent border-white/20 text-white hover:bg-white/10 hover:border-white/40 h-9 px-4 rounded-md backdrop-blur-sm transition-all text-sm"
+                    >
+                      <Info className="w-4 h-4 mr-1.5" /> Detalhes
+                    </Button>
+
+                    <Button
+                      variant="ghost"
+                      onClick={() => handleToggleMyList(activeContent)}
+                      className="text-white hover:bg-white/10 h-9 w-9 rounded-full border border-white/10"
+                      title={isInList ? "Remover da lista" : "Adicionar à lista"}
+                    >
+                      {isInList ? (
+                        <Check className="w-5 h-5 text-green-400" />
+                      ) : (
+                        <Plus className="w-5 h-5" />
+                      )}
+                      <span className="sr-only">Minha Lista</span>
                     </Button>
                   </div>
                 </div>
-              );
-            }
-            return null;
-          })()}
-
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

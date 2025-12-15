@@ -40,7 +40,7 @@ All colors MUST be HSL.
 
     --gradient-start: 150 35% 12%;
     --gradient-end: 150 40% 6%;
-    
+
     --glow: 150 70% 50%;
     --glow-subtle: 150 60% 40%;
   }
@@ -64,24 +64,24 @@ All colors MUST be HSL.
   .glow-effect {
     box-shadow: 0 0 20px hsl(var(--glow) / 0.3);
   }
-  
+
   .glow-effect-hover:hover {
     box-shadow: 0 0 30px hsl(var(--glow) / 0.5);
   }
-  
+
   .card-hover {
     transition: transform 0.3s ease, box-shadow 0.3s ease;
   }
-  
+
   .card-hover:hover {
     transform: scale(1.05);
     box-shadow: 0 8px 40px hsl(var(--glow) / 0.4);
   }
-  
+
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
-  
+
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
