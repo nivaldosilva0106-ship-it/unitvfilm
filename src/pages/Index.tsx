@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
-import { Volume2, VolumeX } from "lucide-react";
+import { Volume2, VolumeX, Play } from "lucide-react";
 import { ContentRow } from "@/components/ContentRow";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
 import { ContentPlayerModal } from "@/components/ContentPlayerModal";
@@ -11,6 +11,7 @@ import { AdManager } from "@/components/AdManager";
 import { Content } from "@/types/content";
 import { getAllContents } from "@/lib/firebase";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 const ALL_CATEGORIES = ['Todos', 'Filmes', 'Séries', 'TV ao Vivo', 'Lançamentos', 'Ação', 'Terror'];
 
@@ -28,7 +29,7 @@ const Index = () => {
   /* New State for Video Slider */
   const [trailerContents, setTrailerContents] = useState<Content[]>([]);
   const [currentTrailerIndex, setCurrentTrailerIndex] = useState(0);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false); /* Default Audio ON */
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   /* Helper to extract YouTube ID - Robust Version */
@@ -64,19 +65,19 @@ const Index = () => {
     }
   }, [allContentData, trailerContents]);
 
-  /* Video Slider Interval (60s) */
+  /* Video Slider Interval (90s) */
   useEffect(() => {
     if (trailerContents.length > 0) {
       const interval = setInterval(() => {
         setCurrentTrailerIndex((prev) => (prev + 1) % trailerContents.length);
-      }, 60000); // 60 seconds
+      }, 90000); // 90 seconds
       return () => clearInterval(interval);
     }
   }, [trailerContents]);
 
   /* Reset Mute state when slide changes */
   useEffect(() => {
-    setIsMuted(true);
+    setIsMuted(false); /* Start with audio ON for new slide too */
   }, [currentTrailerIndex]);
 
   const loadContent = async () => {
@@ -219,8 +220,8 @@ const Index = () => {
                 ref={iframeRef}
                 key={currentTrailer.id}
                 className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2 opacity-60"
-                /* Optimized SRC: removed playlist/loop/end/start. Added enablejsapi=1 */
-                src={`https://www.youtube.com/embed/${getYouTubeId(currentTrailer.trailer_url)}?autoplay=1&mute=1&controls=0&enablejsapi=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3`}
+                /* Optimized SRC: end=90, mute=0 */
+                src={`https://www.youtube.com/embed/${getYouTubeId(currentTrailer.trailer_url)}?autoplay=1&mute=0&controls=0&enablejsapi=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&end=90`}
                 title="Hero Video"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 style={{ pointerEvents: 'auto' }}
@@ -263,7 +264,7 @@ const Index = () => {
           </div>
         )}
 
-        <div className="relative z-20 text-center px-4 max-w-4xl mx-auto">
+        <div className="relative z-20 text-center px-4 max-w-4xl mx-auto w-full">
           <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-3 drop-shadow-lg">
             Bem-vindo ao Uni<span className="text-primary glow-effect">Tv</span>Film
           </h1>
@@ -277,6 +278,52 @@ const Index = () => {
             selectedCategory={selectedCategory}
             onSelectCategory={setSelectedCategory}
           />
+
+          {/* NEW: Info Card for current video */}
+          {/* Only show if we have a current trailer active OR if we have fallback content (but user asked for it with video slider) */}
+          {/* The user said "por baixo dos botões... quero que coloques um sistema que funcione com o silder de video" */}
+          {/* So it should update match the video. If fallback is active (image slider), it should probably match the current image? */}
+          {/* The request specific "funcione com o silder de video". But if fallback is active... logic dictates it should show info for the image too. */}
+          {/* Let's make it work for 'currentContent' which is either trailer or image slider item. */}
+
+          {(() => {
+            const activeContent = (currentTrailer && currentTrailer.trailer_url)
+              ? currentTrailer
+              : (allContentData.length > 0 ? allContentData[currentImageIndex] : null);
+
+            if (activeContent) {
+              return (
+                <div className="mt-8 mx-auto max-w-3xl bg-black/40 backdrop-blur-md border border-white/10 rounded-xl p-4 flex flex-col md:flex-row items-center gap-6 animate-in fade-in slide-in-from-bottom-4 duration-700 hover:bg-black/50 transition-colors text-left shadow-2xl">
+                  <div className="relative group shrink-0">
+                    <img
+                      src={activeContent.thumbnail_url}
+                      alt={activeContent.title}
+                      className="w-24 h-36 object-cover rounded shadow-md group-hover:scale-105 transition-transform duration-300"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-primary text-xs font-bold uppercase tracking-widest mb-1 block">
+                      Assista agora
+                    </span>
+                    <h3 className="text-2xl font-bold text-white mb-2 truncate">
+                      {activeContent.title}
+                    </h3>
+                    <p className="text-sm text-gray-300 line-clamp-2 mb-4">
+                      {activeContent.description || "Sem descrição disponível."}
+                    </p>
+                    <Button
+                      onClick={() => handlePlayContent(activeContent)}
+                      className="bg-primary hover:bg-primary/90 text-white font-semibold transition-all hover:scale-105"
+                    >
+                      <Play className="w-4 h-4 mr-2 fill-current" /> Assistir
+                    </Button>
+                  </div>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
         </div>
       </div>
 
