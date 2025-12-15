@@ -42,10 +42,10 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     setIsSearching(true);
     try {
       const category = editingContent.category || "movie";
-      const results = category === "movie" 
+      const results = category === "movie"
         ? await searchMovies(tmdbSearchQuery)
         : await searchSeries(tmdbSearchQuery);
-      
+
       setSearchResults(results);
       toast.success(`${results.length} resultados encontrados`);
     } catch (error) {
@@ -57,16 +57,16 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
 
   const fillFromTMDB = async (item: TMDBMovie | TMDBSeries) => {
     const isMovie = 'title' in item;
-    
+
     let trailerUrl = '';
     try {
-      trailerUrl = isMovie 
+      trailerUrl = isMovie
         ? await getMovieTrailer(item.id)
         : await getSeriesTrailer(item.id);
     } catch (error) {
       console.error('Erro ao buscar trailer:', error);
     }
-    
+
     setEditingContent(prev => ({
       ...prev,
       title: isMovie ? item.title : item.name,
@@ -88,7 +88,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     const lastEpisode = currentEpisodes[currentEpisodes.length - 1];
     const nextSeason = lastEpisode?.season || 1;
     const nextEpisode = lastEpisode?.season === nextSeason ? (lastEpisode?.episode || 0) + 1 : 1;
-    
+
     setEditingContent(prev => ({
       ...prev,
       episodes: [...currentEpisodes, { season: nextSeason, episode: nextEpisode, title: "", url: "", download_url: "" }],
@@ -123,14 +123,14 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
   return (
     <Card className="p-6 bg-card border-border">
       <h2 className="text-xl font-semibold text-foreground mb-4">Adicionar/Editar Conteúdo</h2>
-      
+
       <div className="space-y-4">
         <div>
           <Label>Categoria *</Label>
-          <Select 
-            value={editingContent.category} 
+          <Select
+            value={editingContent.category}
             onValueChange={(value) => {
-              setEditingContent(prev => ({...prev, category: value as any}));
+              setEditingContent(prev => ({ ...prev, category: value as any }));
               setSearchResults([]); // Limpa resultados de busca ao mudar a categoria
             }}
           >
@@ -150,7 +150,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
             type="checkbox"
             id="isPremium"
             checked={editingContent.isPremium || false}
-            onChange={(e) => setEditingContent(prev => ({...prev, isPremium: e.target.checked}))}
+            onChange={(e) => setEditingContent(prev => ({ ...prev, isPremium: e.target.checked }))}
             className="w-4 h-4 accent-primary"
           />
           <Label htmlFor="isPremium" className="cursor-pointer font-medium">
@@ -182,9 +182,9 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                     className="p-2 bg-secondary rounded cursor-pointer hover:bg-secondary/80 flex items-center gap-3"
                     onClick={() => fillFromTMDB(item)}
                   >
-                    <img 
-                      src={getImageUrl(item.poster_path)} 
-                      alt="" 
+                    <img
+                      src={getImageUrl(item.poster_path)}
+                      alt=""
                       className="w-12 h-16 object-cover rounded"
                     />
                     <div>
@@ -204,7 +204,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           <Label>Título *</Label>
           <Input
             value={editingContent.title || ''}
-            onChange={(e) => setEditingContent(prev => ({...prev, title: e.target.value}))}
+            onChange={(e) => setEditingContent(prev => ({ ...prev, title: e.target.value }))}
             className="bg-input border-border"
           />
         </div>
@@ -213,7 +213,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           <Label>Descrição</Label>
           <Textarea
             value={editingContent.description || ''}
-            onChange={(e) => setEditingContent(prev => ({...prev, description: e.target.value}))}
+            onChange={(e) => setEditingContent(prev => ({ ...prev, description: e.target.value }))}
             className="bg-input border-border min-h-[100px]"
           />
         </div>
@@ -222,23 +222,83 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           <Label>URL da Imagem *</Label>
           <Input
             value={editingContent.thumbnail_url || ''}
-            onChange={(e) => setEditingContent(prev => ({...prev, thumbnail_url: e.target.value}))}
+            onChange={(e) => setEditingContent(prev => ({ ...prev, thumbnail_url: e.target.value }))}
             className="bg-input border-border"
             placeholder="https://..."
           />
         </div>
 
         {(isMovie || isTV) && (
-          <div>
-            <Label>URL do Vídeo {isTV ? '(TV ao Vivo)' : '(Filme)'}</Label>
-            <Input
-              value={editingContent.video_url || ''}
-              onChange={handleVideoUrlChange}
-              className="bg-input border-border"
-              placeholder="https://... (se colar um iframe, extrairemos o src)"
-            />
-            <p className="text-xs text-muted-foreground mt-1">
-              Cole uma URL do player. Se colar um iframe, extrairemos automaticamente o src.
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <Label>URLs do Vídeo {isTV ? '(TV ao Vivo)' : '(Filme)'}</Label>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  const currentUrls = editingContent.video_urls || [editingContent.video_url || ''];
+                  setEditingContent(prev => ({
+                    ...prev,
+                    video_urls: [...currentUrls, ''],
+                    video_url: currentUrls[0] || '' // Keep first URL in video_url for compatibility
+                  }));
+                }}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Adicionar URL
+              </Button>
+            </div>
+
+            <div className="space-y-2">
+              {((editingContent.video_urls && editingContent.video_urls.length > 0)
+                ? editingContent.video_urls
+                : [editingContent.video_url || '']
+              ).map((url, index) => (
+                <div key={index} className="flex gap-2 items-start">
+                  <div className="flex-1">
+                    <Input
+                      value={url}
+                      onChange={(e) => {
+                        const rawValue = e.target.value;
+                        const normalizedValue = normalizeVideoUrl(rawValue);
+                        const currentUrls = editingContent.video_urls || [editingContent.video_url || ''];
+                        const updatedUrls = [...currentUrls];
+                        updatedUrls[index] = normalizedValue || '';
+                        setEditingContent(prev => ({
+                          ...prev,
+                          video_urls: updatedUrls,
+                          video_url: updatedUrls[0] || '' // Keep first URL in video_url
+                        }));
+                      }}
+                      className="bg-input border-border"
+                      placeholder={`Player ${index + 1} - https://... (se colar um iframe, extrairemos o src)`}
+                    />
+                  </div>
+                  {((editingContent.video_urls?.length || 1) > 1) && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => {
+                        const currentUrls = editingContent.video_urls || [editingContent.video_url || ''];
+                        const updatedUrls = currentUrls.filter((_, i) => i !== index);
+                        setEditingContent(prev => ({
+                          ...prev,
+                          video_urls: updatedUrls.length > 0 ? updatedUrls : undefined,
+                          video_url: updatedUrls[0] || ''
+                        }));
+                      }}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              Cole URLs dos players. Se colar um iframe, extrairemos automaticamente o src. Adicione múltiplas fontes para permitir que usuários escolham entre diferentes players.
             </p>
           </div>
         )}
@@ -322,7 +382,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
             <Label>URL do Trailer</Label>
             <Input
               value={editingContent.trailer_url || ''}
-              onChange={(e) => setEditingContent(prev => ({...prev, trailer_url: e.target.value}))}
+              onChange={(e) => setEditingContent(prev => ({ ...prev, trailer_url: e.target.value }))}
               className="bg-input border-border"
               placeholder="https://youtube.com/... (preenchido automaticamente)"
             />
@@ -334,7 +394,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
             <Label>URL de Download (Filme)</Label>
             <Input
               value={editingContent.download_url || ''}
-              onChange={(e) => setEditingContent(prev => ({...prev, download_url: e.target.value}))}
+              onChange={(e) => setEditingContent(prev => ({ ...prev, download_url: e.target.value }))}
               className="bg-input border-border"
               placeholder="https://..."
             />
@@ -346,7 +406,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
             <Label>Idioma</Label>
             <Input
               value={editingContent.language || ''}
-              onChange={(e) => setEditingContent(prev => ({...prev, language: e.target.value}))}
+              onChange={(e) => setEditingContent(prev => ({ ...prev, language: e.target.value }))}
               className="bg-input border-border"
             />
           </div>
@@ -355,7 +415,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
             <Input
               type="date"
               value={editingContent.release_date || ''}
-              onChange={(e) => setEditingContent(prev => ({...prev, release_date: e.target.value}))}
+              onChange={(e) => setEditingContent(prev => ({ ...prev, release_date: e.target.value }))}
               className="bg-input border-border"
             />
           </div>

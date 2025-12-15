@@ -24,7 +24,7 @@ const ContentDetails = () => {
   const [showTrailerModal, setShowTrailerModal] = useState(false);
   const [inMyList, setInMyList] = useState(false);
   const [myListItemId, setMyListItemId] = useState<string | null>(null);
-  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, title: string, isPremium?: boolean }>({ open: false, url: '', title: '', isPremium: false });
+  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean }>({ open: false, url: '', title: '', isPremium: false });
   const [showDownloadModal, setShowDownloadModal] = useState(false);
 
 
@@ -65,7 +65,7 @@ const ContentDetails = () => {
     }
 
     if (videoUrl && content) {
-      setPlayerModal({ open: true, url: videoUrl, title: content.title, isPremium: content.isPremium });
+      setPlayerModal({ open: true, url: videoUrl, urls: content.video_urls, title: content.title, isPremium: content.isPremium });
       return;
     }
 
@@ -292,6 +292,7 @@ const ContentDetails = () => {
         open={playerModal.open}
         onClose={() => setPlayerModal({ open: false, url: '', title: '', isPremium: false })}
         videoUrl={playerModal.url}
+        videoUrls={playerModal.urls}
         title={playerModal.title}
         isPremium={playerModal.isPremium}
       />

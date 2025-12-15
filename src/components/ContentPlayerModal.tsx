@@ -1,5 +1,5 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X, Crown, ArrowLeft } from "lucide-react";
+import { X, Crown, ArrowLeft, List, Film } from "lucide-react";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { Button } from "./ui/button";
 import { useRef, useEffect, useState, useMemo } from "react";
@@ -12,28 +12,36 @@ interface ContentPlayerModalProps {
   open: boolean;
   onClose: () => void;
   videoUrl: string;
+  videoUrls?: string[]; // Multiple video sources
   title: string;
   isPremium?: boolean;
 }
 
-export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium = false }: ContentPlayerModalProps) => {
+export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, isPremium = false }: ContentPlayerModalProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const { profile, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [showBackButton, setShowBackButton] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showSourceMenu, setShowSourceMenu] = useState(false);
+  const [currentSourceIndex, setCurrentSourceIndex] = useState(0);
+
+  // Get all available sources
+  const availableSources = videoUrls && videoUrls.length > 0 ? videoUrls : [videoUrl];
+  const hasMultipleSources = availableSources.length > 1;
 
   // Ativar proteção de conteúdo quando o modal está aberto
   useContentProtection(open);
 
   // Gerar URL segura com timestamp para evitar cache
   const secureVideoUrl = useMemo(() => {
-    if (!videoUrl) return '';
+    if (!availableSources[currentSourceIndex]) return '';
+    const url = availableSources[currentSourceIndex];
     const timestamp = Date.now();
-    const separator = videoUrl.includes('?') ? '&' : '?';
-    return `${videoUrl}${separator}_t=${timestamp}`;
-  }, [videoUrl]);
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}_t=${timestamp}`;
+  }, [availableSources, currentSourceIndex]);
 
   // Detectar se é mobile
   useEffect(() => {
@@ -166,6 +174,66 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, title, isPremium =
                 <ArrowLeft className="w-6 h-6" />
               </Button>
 
+              {/* Logo UniTvFilm - Next to back button */}
+              <div
+                className={`absolute top-6 left-20 z-50 flex items-center gap-2 px-4 py-2 text-white bg-black/50 backdrop-blur-md rounded-full shadow-lg border border-white/20 transition-all duration-500 ease-in-out ${showBackButton
+                  ? 'opacity-100 translate-x-0 scale-100'
+                  : 'opacity-0 -translate-x-4 scale-90 pointer-events-none'
+                  } md:group-hover:opacity-100 md:group-hover:translate-x-0 md:group-hover:scale-100`}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center glow-effect">
+                    <Film className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="font-bold text-lg">
+                    Uni<span className="text-primary">Tv</span>Film
+                  </span>
+                </div>
+              </div>
+
+              {/* Source Selector Button - Only show if multiple sources */}
+              {hasMultipleSources && (
+                <div className="absolute top-6 right-20 z-50">
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowSourceMenu(prev => !prev);
+                    }}
+                    variant="ghost"
+                    size="icon"
+                    className={`w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20 transition-all duration-500 ease-in-out ${showBackButton
+                      ? 'opacity-100 translate-x-0 scale-100'
+                      : 'opacity-0 translate-x-4 scale-90 pointer-events-none'
+                      } md:group-hover:opacity-100 md:group-hover:translate-x-0 md:group-hover:scale-100 md:group-hover:pointer-events-auto`}
+                    title="Fontes de Vídeo"
+                  >
+                    <List className="w-6 h-6" />
+                  </Button>
+
+                  {/* Source Dropdown Menu */}
+                  {showSourceMenu && (
+                    <div className="absolute top-14 right-0 bg-black/90 backdrop-blur-md rounded-lg shadow-xl border border-white/20 overflow-hidden min-w-[150px]">
+                      {availableSources.map((_, index) => (
+                        <button
+                          key={index}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setCurrentSourceIndex(index);
+                            setShowSourceMenu(false);
+                          }}
+                          className={`w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center justify-between ${currentSourceIndex === index ? 'bg-primary/20' : ''
+                            }`}
+                        >
+                          <span>Player {index + 1}</span>
+                          {currentSourceIndex === index && (
+                            <span className="text-primary">✓</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
 
               <iframe

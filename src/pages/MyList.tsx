@@ -14,7 +14,7 @@ const MyList = () => {
   const { user, loading: authLoading } = useAuth();
   const [myList, setMyList] = useState<MyListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, title: string, isPremium?: boolean }>({ open: false, url: '', title: '', isPremium: false });
+  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean }>({ open: false, url: '', title: '', isPremium: false });
 
 
   useEffect(() => {
@@ -29,7 +29,7 @@ const MyList = () => {
 
   const loadMyList = async () => {
     if (!user) return;
-    
+
     try {
       const items = await getMyList(user.uid);
       setMyList(items);
@@ -42,7 +42,7 @@ const MyList = () => {
 
   const handleRemove = async (itemId: string) => {
     if (!user) return;
-    
+
     try {
       await removeFromMyList(user.uid, itemId);
       setMyList(myList.filter(item => item.id !== itemId));
@@ -54,7 +54,7 @@ const MyList = () => {
 
   const handlePlayContent = (item: MyListItem) => {
     if (item.content.video_url) {
-      setPlayerModal({ open: true, url: item.content.video_url, title: item.content.title, isPremium: item.content.isPremium });
+      setPlayerModal({ open: true, url: item.content.video_url, urls: item.content.video_urls, title: item.content.title, isPremium: item.content.isPremium });
     } else if (item.content.category === 'series' && item.content.episodes && item.content.episodes.length > 0) {
       navigate(`/content/${item.content.id}`);
     } else {
@@ -80,7 +80,7 @@ const MyList = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <div className="container mx-auto px-4 pt-24 pb-16">
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-foreground mb-2 flex items-center gap-3">
@@ -131,12 +131,13 @@ const MyList = () => {
           </div>
         )}
       </div>
-      
+
       {/* Main Player Modal */}
       <ContentPlayerModal
         open={playerModal.open}
         onClose={() => setPlayerModal({ open: false, url: '', title: '', isPremium: false })}
         videoUrl={playerModal.url}
+        videoUrls={playerModal.urls}
         title={playerModal.title}
         isPremium={playerModal.isPremium}
       />

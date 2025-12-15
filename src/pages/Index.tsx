@@ -10,7 +10,7 @@ import { CategoryNavigation } from "@/components/CategoryNavigation";
 import { DownloadModal } from "@/components/DownloadModal";
 import { AdManager } from "@/components/AdManager";
 import { Content } from "@/types/content";
-import { getAllContents, getMyList, addToMyList, removeFromMyList } from "@/lib/firebase";
+import { getAllContents, getMyList, addToMyList, removeFromMyList, getSliderSettings, type SliderSettings } from "@/lib/firebase";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,7 +26,7 @@ const Index = () => {
   const [randomContent, setRandomContent] = useState<Content[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedSeries, setSelectedSeries] = useState<Content | null>(null);
-  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, title: string, isPremium?: boolean }>({ open: false, url: '', title: '', isPremium: false });
+  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean }>({ open: false, url: '', title: '', isPremium: false });
   const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, title: string, thumbnail: string }>({ open: false, url: '', title: '', thumbnail: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
 
@@ -69,15 +69,45 @@ const Index = () => {
     }
   };
 
-  /* Filter and Shuffle Trailers */
+  /* Filter and Shuffle Trailers based on Slider Settings */
   useEffect(() => {
-    if (allContentData.length > 0) {
-      const withTrailers = allContentData.filter(c => c.trailer_url && getYouTubeId(c.trailer_url));
-      if (withTrailers.length > 0) {
-        const shuffled = [...withTrailers].sort(() => 0.5 - Math.random());
-        setTrailerContents(shuffled);
+    const loadTrailers = async () => {
+      if (allContentData.length > 0) {
+        try {
+          const sliderSettings = await getSliderSettings();
+          let filtered: Content[] = [];
+
+          if (sliderSettings.mode === 'manual' && sliderSettings.selectedContentIds.length > 0) {
+            // Manual mode: only show selected content
+            filtered = allContentData.filter(c =>
+              c.trailer_url &&
+              getYouTubeId(c.trailer_url) &&
+              sliderSettings.selectedContentIds.includes(c.id)
+            );
+          } else {
+            // Random mode: show all content with trailers
+            filtered = allContentData.filter(c => c.trailer_url && getYouTubeId(c.trailer_url));
+          }
+
+          if (filtered.length > 0) {
+            const shuffled = [...filtered].sort(() => 0.5 - Math.random());
+            setTrailerContents(shuffled);
+          } else {
+            setTrailerContents([]);
+          }
+        } catch (error) {
+          console.error('Error loading slider settings:', error);
+          // Fallback to all trailers if settings fail to load
+          const withTrailers = allContentData.filter(c => c.trailer_url && getYouTubeId(c.trailer_url));
+          if (withTrailers.length > 0) {
+            const shuffled = [...withTrailers].sort(() => 0.5 - Math.random());
+            setTrailerContents(shuffled);
+          }
+        }
       }
-    }
+    };
+
+    loadTrailers();
   }, [allContentData]);
 
   /* Image Slider Interval (Fallback) */
@@ -181,11 +211,18 @@ const Index = () => {
     const data = allContentData;
 
     if (selectedCategory === 'Todos') {
+      const topRated = data.filter(c =>
+        (c.category === 'movie' || c.category === 'series') &&
+        c.rating &&
+        c.rating >= 7.0
+      ).sort((a, b) => (b.rating || 0) - (a.rating || 0));
+
       return {
         movies: data.filter(c => c.category === 'movie'),
         series: data.filter(c => c.category === 'series'),
         tvChannels: data.filter(c => c.category === 'tv'),
         featured: randomContent,
+        topRated: topRated,
       };
     }
 
@@ -234,6 +271,7 @@ const Index = () => {
       setPlayerModal({
         open: true,
         url: content.video_url,
+        urls: content.video_urls, // Pass multiple sources
         title: content.title,
         isPremium: content.isPremium
       });
@@ -449,8 +487,19 @@ const Index = () => {
               />
             )}
 
+            {/* Top Rated Content - Mais Assistidos */}
+            {categorizedContent.topRated && categorizedContent.topRated.length > 0 && (
+              <MarqueeContentRow
+                title="Mais Assistidos"
+                contents={categorizedContent.topRated}
+                onPlayContent={handlePlayContent}
+                onInfoContent={handleInfoContent}
+                onDownloadContent={handleDownloadContent}
+              />
+            )}
+
             {categorizedContent.movies.length > 0 && (
-              <ContentRow
+              <MarqueeContentRow
                 title="Filmes"
                 contents={categorizedContent.movies}
                 onPlayContent={handlePlayContent}
@@ -463,7 +512,7 @@ const Index = () => {
             <AdManager placement="between-content" className="container mx-auto px-4" />
 
             {categorizedContent.series.length > 0 && (
-              <ContentRow
+              <MarqueeContentRow
                 title="Séries"
                 contents={categorizedContent.series}
                 onPlayContent={handlePlayContent}
@@ -473,7 +522,7 @@ const Index = () => {
             )}
 
             {categorizedContent.tvChannels.length > 0 && (
-              <ContentRow
+              <MarqueeContentRow
                 title="TV ao Vivo"
                 contents={categorizedContent.tvChannels}
                 onPlayContent={handlePlayContent}
@@ -485,7 +534,7 @@ const Index = () => {
         )}
 
         {showSingleRow && (
-          <ContentRow
+          <MarqueeContentRow
             title={categorizedContent.singleRowTitle || 'Conteúdo Filtrado'}
             contents={categorizedContent.singleRow || []}
             onPlayContent={handlePlayContent}
@@ -534,6 +583,7 @@ const Index = () => {
         open={playerModal.open}
         onClose={() => setPlayerModal({ open: false, url: '', title: '', isPremium: false })}
         videoUrl={playerModal.url}
+        videoUrls={playerModal.urls}
         title={playerModal.title}
         isPremium={playerModal.isPremium}
       />

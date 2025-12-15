@@ -13,6 +13,7 @@ export interface Content {
   description: string;
   thumbnail_url: string;
   video_url: string;
+  video_urls?: string[]; // Multiple video sources
   episodes?: Episode[];
   download_url?: string;
   trailer_url?: string;

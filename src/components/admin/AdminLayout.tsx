@@ -3,7 +3,7 @@ import { AdminSidebar } from "./AdminSidebar";
 
 interface AdminLayoutProps {
   children: ReactNode;
-  title: string;
+  title?: string;
 }
 
 export const AdminLayout = ({ children, title }: AdminLayoutProps) => {

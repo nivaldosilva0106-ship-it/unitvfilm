@@ -314,5 +314,26 @@ export const updateSiteSettings = async (updates: Partial<SiteSettings>) => {
   await update(settingsRef, cleaned);
 };
 
+// Slider Settings functions
+export interface SliderSettings {
+  mode: 'manual' | 'random';
+  selectedContentIds: string[];
+}
+
+export const getSliderSettings = async (): Promise<SliderSettings> => {
+  const sliderRef = ref(database, 'sliderSettings');
+  const snapshot = await get(sliderRef);
+  if (snapshot.exists()) {
+    return snapshot.val();
+  }
+  return { mode: 'random', selectedContentIds: [] };
+};
+
+export const updateSliderSettings = async (settings: SliderSettings) => {
+  const sliderRef = ref(database, 'sliderSettings');
+  const cleaned = removeUndefinedDeep(settings);
+  await set(sliderRef, cleaned);
+};
+
 export { database, auth };
 export type { Content };

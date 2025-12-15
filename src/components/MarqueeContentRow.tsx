@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ContentCard } from './ContentCard';
 import { Content } from '@/types/content';
@@ -33,6 +33,23 @@ export const MarqueeContentRow = ({
         }
     };
 
+    // Auto-scroll effect
+    useEffect(() => {
+        if (contents.length <= visibleItems) return; // Don't auto-scroll if all items fit
+
+        const interval = setInterval(() => {
+            setScrollPosition((prev) => {
+                // If at the end, go back to start
+                if (prev >= maxScroll) {
+                    return 0;
+                }
+                return prev + 1;
+            });
+        }, 3000); // Scroll every 3 seconds
+
+        return () => clearInterval(interval);
+    }, [maxScroll, contents.length, visibleItems]);
+
     if (contents.length === 0) return null;
 
     return (
@@ -61,27 +78,30 @@ export const MarqueeContentRow = ({
                         }}
                     >
                         {contents.map((content, index) => (
-                            <div key={content.id} className="flex-shrink-0 relative group/card">
+                            <div key={content.id} className="flex-shrink-0 relative">
+                                <ContentCard
+                                    title={content.title}
+                                    thumbnail={content.thumbnail_url}
+                                    onPlay={() => onPlayContent(content)}
+                                    onInfo={() => onInfoContent(content)}
+                                    onDownload={content.download_url ? () => onDownloadContent(content) : undefined}
+                                    isPremium={content.isPremium}
+                                />
                                 {showNumbers && (
-                                    <div className="absolute -left-4 top-0 bottom-0 flex items-end pb-2 z-10 pointer-events-none">
-                                        <span className="text-[140px] font-black leading-none text-stroke-2 text-transparent select-none" style={{
-                                            WebkitTextStroke: '2px rgba(255,255,255,0.3)',
-                                            textShadow: '0 0 20px rgba(0,0,0,0.8)'
-                                        }}>
+                                    <div className="absolute -left-6 top-0 bottom-0 flex items-end pb-4 z-30 pointer-events-none">
+                                        <span
+                                            className="text-[160px] font-black leading-none select-none"
+                                            style={{
+                                                WebkitTextStroke: '3px rgba(255,255,255,0.6)',
+                                                color: 'transparent',
+                                                paintOrder: 'stroke fill',
+                                                filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.8))'
+                                            }}
+                                        >
                                             {index + 1}
                                         </span>
                                     </div>
                                 )}
-                                <div className={showNumbers ? 'relative z-20' : ''}>
-                                    <ContentCard
-                                        title={content.title}
-                                        thumbnail={content.thumbnail_url}
-                                        onPlay={() => onPlayContent(content)}
-                                        onInfo={() => onInfoContent(content)}
-                                        onDownload={content.download_url ? () => onDownloadContent(content) : undefined}
-                                        isPremium={content.isPremium}
-                                    />
-                                </div>
                             </div>
                         ))}
                     </div>
