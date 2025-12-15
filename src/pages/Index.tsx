@@ -21,7 +21,7 @@ const Index = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedSeries, setSelectedSeries] = useState<Content | null>(null);
   const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, title: string, isPremium?: boolean }>({ open: false, url: '', title: '', isPremium: false });
-  const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, title: string }>({ open: false, url: '', title: '' });
+  const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, title: string, thumbnail: string }>({ open: false, url: '', title: '', thumbnail: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
 
 
@@ -132,7 +132,8 @@ const Index = () => {
       setDownloadModal({
         open: true,
         url: content.download_url,
-        title: content.title
+        title: content.title,
+        thumbnail: content.thumbnail_url
       });
     } else {
       toast.error("Link de download não disponível");
@@ -304,12 +305,13 @@ const Index = () => {
       />
 
       {/* Download Modal */}
-      {/* <DownloadModal
+      <DownloadModal
         open={downloadModal.open}
-        onClose={() => setDownloadModal(prev => ({ ...prev, open: false }))}
+        onClose={() => setDownloadModal({ open: false, url: '', title: '', thumbnail: '' })}
         downloadUrl={downloadModal.url}
         title={downloadModal.title}
-      /> */}
+        thumbnail={downloadModal.thumbnail}
+      />
     </div>
   );
 };
