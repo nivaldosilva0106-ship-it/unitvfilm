@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Admin from "./pages/Admin";
 import AdminAds from "./pages/AdminAds";
 import AdminPayments from "./pages/AdminPayments";
+import { AdminSettings } from "./pages/AdminSettings";
 import Payment from "./pages/Payment";
 import ContentDetails from "./pages/ContentDetails";
 import Login from "./pages/Login";
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/admin" element={<Admin />} />
             <Route path="/admin/ads" element={<AdminAds />} />
             <Route path="/admin/payments" element={<AdminPayments />} />
+            <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/payment" element={<Payment />} />
             <Route path="/content/:id" element={<ContentDetails />} />
             <Route path="/my-list" element={<MyList />} />

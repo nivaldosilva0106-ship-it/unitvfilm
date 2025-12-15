@@ -75,7 +75,7 @@ export const deleteContent = async (id: string) => {
 export const signUp = async (email: string, password: string, subscriptionTier: SubscriptionTier = 'free') => {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
-  
+
   // Create user profile
   const profile: UserProfile = {
     id: user.uid,
@@ -85,7 +85,7 @@ export const signUp = async (email: string, password: string, subscriptionTier: 
     subscriptionExpiresAt: null,
     createdAt: new Date().toISOString(),
   };
-  
+
   await set(ref(database, `profiles/${user.uid}`), profile);
   return userCredential;
 };
@@ -235,20 +235,20 @@ export const updatePayment = async (id: string, updates: Partial<Payment>) => {
 export const approvePayment = async (paymentId: string, adminId: string) => {
   const payments = await getAllPayments();
   const payment = payments.find(p => p.id === paymentId);
-  
+
   if (!payment) throw new Error('Pagamento não encontrado');
-  
+
   // Atualizar pagamento
   await updatePayment(paymentId, {
     status: 'approved',
     approvedAt: new Date().toISOString(),
     approvedBy: adminId,
   });
-  
+
   // Atualizar perfil do usuário
   const expiresAt = new Date();
   expiresAt.setMonth(expiresAt.getMonth() + 1); // 1 mês
-  
+
   await updateUserProfile(payment.userId, {
     isPremium: true,
     subscriptionTier: payment.subscriptionTier,
@@ -266,10 +266,10 @@ export const rejectPayment = async (paymentId: string, reason: string) => {
 export const checkSubscriptionExpired = async (userId: string): Promise<boolean> => {
   const profile = await getUserProfile(userId);
   if (!profile || !profile.subscriptionExpiresAt) return true;
-  
+
   const expiresAt = new Date(profile.subscriptionExpiresAt);
   const now = new Date();
-  
+
   if (now > expiresAt) {
     // Assinatura expirada, atualizar para free
     await updateUserProfile(userId, {
@@ -279,7 +279,7 @@ export const checkSubscriptionExpired = async (userId: string): Promise<boolean>
     });
     return true;
   }
-  
+
   return false;
 };
 
@@ -292,6 +292,26 @@ export const isUserAdmin = async (userId: string): Promise<boolean> => {
     console.error('Error checking admin role:', error);
     return false;
   }
+};
+
+// Site Settings functions
+export interface SiteSettings {
+  loginBackgroundUrl?: string;
+}
+
+export const getSiteSettings = async (): Promise<SiteSettings> => {
+  const settingsRef = ref(database, 'settings');
+  const snapshot = await get(settingsRef);
+  if (snapshot.exists()) {
+    return snapshot.val();
+  }
+  return {};
+};
+
+export const updateSiteSettings = async (updates: Partial<SiteSettings>) => {
+  const settingsRef = ref(database, 'settings');
+  const cleaned = removeUndefinedDeep(updates);
+  await update(settingsRef, cleaned);
 };
 
 export { database, auth };

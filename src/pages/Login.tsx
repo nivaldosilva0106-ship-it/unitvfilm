@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Film } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,17 @@ const Login = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [bgUrl, setBgUrl] = useState('/login-bg.jpg');
+
+  useEffect(() => {
+    import('@/lib/firebase').then(({ getSiteSettings }) => {
+      getSiteSettings().then(settings => {
+        if (settings.loginBackgroundUrl) {
+          setBgUrl(settings.loginBackgroundUrl);
+        }
+      });
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,8 +52,17 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4">
-      <div className="w-full max-w-md">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4 relative overflow-hidden">
+      {/* Background Image */}
+      <div
+        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url("${bgUrl}")` }}
+      />
+
+      {/* Color Overlay - Dark Green 80% */}
+      <div className="absolute inset-0 z-10 bg-[#022c22]/80" />
+
+      <div className="w-full max-w-md relative z-20">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-4">
             <div className="bg-primary p-3 rounded-lg glow-effect">

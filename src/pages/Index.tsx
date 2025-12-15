@@ -1,6 +1,7 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
+import { Volume2, VolumeX } from "lucide-react";
 import { ContentRow } from "@/components/ContentRow";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
 import { ContentPlayerModal } from "@/components/ContentPlayerModal";
@@ -24,27 +25,65 @@ const Index = () => {
   const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, title: string, thumbnail: string }>({ open: false, url: '', title: '', thumbnail: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
 
+  /* New State for Video Slider */
+  const [trailerContents, setTrailerContents] = useState<Content[]>([]);
+  const [currentTrailerIndex, setCurrentTrailerIndex] = useState(0);
+  const [isMuted, setIsMuted] = useState(true);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  /* Helper to extract YouTube ID - Robust Version */
+  const getYouTubeId = (url: string | undefined | null) => {
+    if (!url || typeof url !== 'string') return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+  };
 
   useEffect(() => {
     loadContent();
   }, []);
 
+  /* Filter and Shuffle Trailers */
   useEffect(() => {
     if (allContentData.length > 0) {
+      const withTrailers = allContentData.filter(c => c.trailer_url && getYouTubeId(c.trailer_url));
+      if (withTrailers.length > 0) {
+        const shuffled = [...withTrailers].sort(() => 0.5 - Math.random());
+        setTrailerContents(shuffled);
+      }
+    }
+  }, [allContentData]);
+
+  /* Image Slider Interval (Fallback) */
+  useEffect(() => {
+    if (allContentData.length > 0 && trailerContents.length === 0) {
       const interval = setInterval(() => {
         setCurrentImageIndex((prev) => (prev + 1) % allContentData.length);
       }, 5000);
       return () => clearInterval(interval);
     }
-  }, [allContentData]);
+  }, [allContentData, trailerContents]);
+
+  /* Video Slider Interval (60s) */
+  useEffect(() => {
+    if (trailerContents.length > 0) {
+      const interval = setInterval(() => {
+        setCurrentTrailerIndex((prev) => (prev + 1) % trailerContents.length);
+      }, 60000); // 60 seconds
+      return () => clearInterval(interval);
+    }
+  }, [trailerContents]);
+
+  /* Reset Mute state when slide changes */
+  useEffect(() => {
+    setIsMuted(true);
+  }, [currentTrailerIndex]);
 
   const loadContent = async () => {
     try {
-      // Carrega todo o conteúdo de uma vez para facilitar a filtragem local
       const allData = await getAllContents();
       setAllContentData(allData);
 
-      // Set random content once after data is loaded
       const shuffled = [...allData].sort(() => 0.5 - Math.random());
       setRandomContent(shuffled.slice(0, 10));
     } catch (error) {
@@ -54,12 +93,22 @@ const Index = () => {
     }
   };
 
+  const toggleAudio = () => {
+    if (iframeRef.current && iframeRef.current.contentWindow) {
+      const action = isMuted ? "unMute" : "mute";
+      iframeRef.current.contentWindow.postMessage(
+        JSON.stringify({ event: "command", func: action, args: [] }),
+        "*"
+      );
+      setIsMuted(!isMuted);
+    }
+  };
+
   // Mapeamento e filtragem de conteúdo por categoria
   const categorizedContent = useMemo(() => {
     const data = allContentData;
 
     if (selectedCategory === 'Todos') {
-      // Retorna todas as categorias principais para exibição
       return {
         movies: data.filter(c => c.category === 'movie'),
         series: data.filter(c => c.category === 'series'),
@@ -68,7 +117,6 @@ const Index = () => {
       };
     }
 
-    // Lógica de filtragem para categorias específicas
     let filtered: Content[] = [];
     let title = selectedCategory;
 
@@ -83,14 +131,12 @@ const Index = () => {
         filtered = data.filter(c => c.category === 'tv');
         break;
       case 'Lançamentos':
-        // Filtra por data de lançamento (exemplo simples: últimos 3 meses)
         const threeMonthsAgo = new Date();
         threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
         filtered = data.filter(c => c.release_date && new Date(c.release_date) > threeMonthsAgo);
         break;
       case 'Ação':
       case 'Terror':
-        // Para fins de demonstração, filtramos por palavras-chave na descrição/título
         const keyword = selectedCategory.toLowerCase();
         filtered = data.filter(c =>
           c.title.toLowerCase().includes(keyword) ||
@@ -154,6 +200,8 @@ const Index = () => {
   const showAllRows = selectedCategory === 'Todos';
   const showSingleRow = !showAllRows && categorizedContent.singleRow && categorizedContent.singleRow.length > 0;
 
+  const currentTrailer = trailerContents.length > 0 ? trailerContents[currentTrailerIndex] : null;
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -162,24 +210,56 @@ const Index = () => {
       <AdManager placement="header" className="container mx-auto px-4 pt-20" />
 
       {/* Hero Section */}
-      <div className="relative py-16 flex items-center justify-center overflow-hidden">
-        {/* Background Images Carousel */}
-        {allContentData.length > 0 && (
-          <div className="absolute inset-0 z-0">
-            {allContentData.map((content, index) => (
-              <div
-                key={content.id}
-                className={`absolute inset-0 transition-opacity duration-1000 ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'
-                  }`}
-              >
-                <img
-                  src={content.thumbnail_url}
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            ))}
-            <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/95" />
+      <div className="relative py-16 flex items-center justify-center overflow-hidden min-h-[500px]">
+        {/* VIDEO SLIDER */}
+        {currentTrailer && currentTrailer.trailer_url && getYouTubeId(currentTrailer.trailer_url) ? (
+          <div className="absolute inset-0 z-0 pointer-events-none">
+            <div className="relative w-full h-full">
+              <iframe
+                ref={iframeRef}
+                key={currentTrailer.id}
+                className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2 opacity-60"
+                /* Optimized SRC: removed playlist/loop/end/start. Added enablejsapi=1 */
+                src={`https://www.youtube.com/embed/${getYouTubeId(currentTrailer.trailer_url)}?autoplay=1&mute=1&controls=0&enablejsapi=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3`}
+                title="Hero Video"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                style={{ pointerEvents: 'auto' }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/60 to-background/95 pointer-events-none" />
+            </div>
+          </div>
+        ) : (
+          /* FALLBACK IMAGE SLIDER */
+          allContentData.length > 0 && (
+            <div className="absolute inset-0 z-0">
+              {allContentData.map((content, index) => (
+                <div
+                  key={content.id}
+                  className={`absolute inset-0 transition-opacity duration-1000 ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+                    }`}
+                >
+                  <img
+                    src={content.thumbnail_url}
+                    alt=""
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+              <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/95" />
+            </div>
+          )
+        )}
+
+        {/* Audio Toggle Button */}
+        {currentTrailer && currentTrailer.trailer_url && (
+          <div className="absolute right-8 bottom-32 z-30 hidden md:block">
+            <button
+              onClick={toggleAudio}
+              className="p-3 rounded-full bg-black/50 hover:bg-black/70 text-white border border-white/20 transition-all backdrop-blur-sm"
+              aria-label={isMuted ? "Ativar som" : "Mudo"}
+            >
+              {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
+            </button>
           </div>
         )}
 

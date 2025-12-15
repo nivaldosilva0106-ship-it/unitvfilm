@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Film, Crown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { signUp } from '@/lib/firebase';
+import { signUp, getSiteSettings } from '@/lib/firebase';
 import { toast } from 'sonner';
 import { SUBSCRIPTION_BENEFITS } from '@/types/payment';
 import type { SubscriptionTier } from '@/types/user';
@@ -18,6 +18,15 @@ const Signup = () => {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [selectedTier, setSelectedTier] = useState<SubscriptionTier>('basic');
   const [loading, setLoading] = useState(false);
+  const [bgUrl, setBgUrl] = useState('/login-bg.jpg');
+
+  useEffect(() => {
+    getSiteSettings().then(settings => {
+      if (settings.loginBackgroundUrl) {
+        setBgUrl(settings.loginBackgroundUrl);
+      }
+    });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,7 +49,7 @@ const Signup = () => {
       navigate('/payment', { state: { tier: selectedTier } });
     } catch (error: any) {
       console.error('Erro no cadastro:', error);
-      
+
       if (error.code === 'auth/email-already-in-use') {
         toast.error('Este email já está em uso');
       } else if (error.code === 'auth/invalid-email') {
@@ -56,8 +65,17 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-5xl">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12 relative overflow-hidden">
+      {/* Background Image */}
+      <div
+        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
+        style={{ backgroundImage: `url("${bgUrl}")` }}
+      />
+
+      {/* Color Overlay - Dark Green 80% */}
+      <div className="absolute inset-0 z-10 bg-[#022c22]/80" />
+
+      <div className="w-full max-w-5xl relative z-20">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-4">
             <div className="bg-primary p-3 rounded-lg glow-effect">
@@ -76,11 +94,10 @@ const Signup = () => {
             return (
               <Card
                 key={tier}
-                className={`cursor-pointer transition-all ${
-                  selectedTier === tier
-                    ? 'border-primary shadow-lg scale-105'
-                    : 'border-border hover:border-primary/50'
-                }`}
+                className={`cursor-pointer transition-all ${selectedTier === tier
+                  ? 'border-primary shadow-lg scale-105'
+                  : 'border-border hover:border-primary/50'
+                  }`}
                 onClick={() => setSelectedTier(tier)}
               >
                 <CardHeader>
@@ -120,60 +137,60 @@ const Signup = () => {
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="seu@email.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="bg-background/50 border-border"
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="bg-background/50 border-border"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">Senha</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="bg-background/50 border-border"
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Senha</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="bg-background/50 border-border"
+                />
+              </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                className="bg-background/50 border-border"
-              />
-            </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  className="bg-background/50 border-border"
+                />
+              </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={loading}
-            >
-              {loading ? 'Criando conta...' : 'Continuar para Pagamento'}
-            </Button>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={loading}
+              >
+                {loading ? 'Criando conta...' : 'Continuar para Pagamento'}
+              </Button>
 
-            <div className="mt-4 text-center text-sm">
-              <span className="text-muted-foreground">Já tem uma conta? </span>
-              <Link to="/login" className="text-primary hover:underline">
-                Entre aqui
-              </Link>
-            </div>
-          </form>
+              <div className="mt-4 text-center text-sm">
+                <span className="text-muted-foreground">Já tem uma conta? </span>
+                <Link to="/login" className="text-primary hover:underline">
+                  Entre aqui
+                </Link>
+              </div>
+            </form>
           </CardContent>
         </Card>
       </div>

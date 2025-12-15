@@ -301,6 +301,7 @@ const ContentDetails = () => {
         onClose={() => setShowDownloadModal(false)}
         downloadUrl={content.download_url || ''}
         title={content.title}
+        thumbnail={content.thumbnail_url}
       />
     </div>
   );
