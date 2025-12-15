@@ -12,6 +12,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { Content } from "@/types/content";
 
+import { DownloadModal } from "@/components/DownloadModal";
+
 const ContentDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -23,6 +25,7 @@ const ContentDetails = () => {
   const [inMyList, setInMyList] = useState(false);
   const [myListItemId, setMyListItemId] = useState<string | null>(null);
   const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, title: string, isPremium?: boolean }>({ open: false, url: '', title: '', isPremium: false });
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
 
 
   useEffect(() => {
@@ -79,7 +82,7 @@ const ContentDetails = () => {
 
   const handleDownload = () => {
     if (content?.download_url) {
-      window.open(content.download_url, '_blank');
+      setShowDownloadModal(true);
     } else {
       toast.error("Link de download não disponível");
     }
@@ -291,6 +294,13 @@ const ContentDetails = () => {
         videoUrl={playerModal.url}
         title={playerModal.title}
         isPremium={playerModal.isPremium}
+      />
+
+      <DownloadModal
+        open={showDownloadModal}
+        onClose={() => setShowDownloadModal(false)}
+        downloadUrl={content.download_url || ''}
+        title={content.title}
       />
     </div>
   );

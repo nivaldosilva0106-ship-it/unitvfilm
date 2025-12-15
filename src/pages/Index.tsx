@@ -5,10 +5,7 @@ import { ContentRow } from "@/components/ContentRow";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
 import { ContentPlayerModal } from "@/components/ContentPlayerModal";
 import { CategoryNavigation } from "@/components/CategoryNavigation";
-import { AdManager } from "@/components/AdManager";
-import { getAllContents } from "@/lib/firebase";
-import { toast } from "sonner";
-import type { Content } from "@/types/content";
+import { DownloadModal } from "@/components/DownloadModal";
 
 const ALL_CATEGORIES = ['Todos', 'Filmes', 'Séries', 'TV ao Vivo', 'Lançamentos', 'Ação', 'Terror'];
 
@@ -20,6 +17,7 @@ const Index = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedSeries, setSelectedSeries] = useState<Content | null>(null);
   const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, title: string, isPremium?: boolean }>({ open: false, url: '', title: '', isPremium: false });
+  const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, title: string }>({ open: false, url: '', title: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
 
 
@@ -41,7 +39,7 @@ const Index = () => {
       // Carrega todo o conteúdo de uma vez para facilitar a filtragem local
       const allData = await getAllContents();
       setAllContentData(allData);
-      
+
       // Set random content once after data is loaded
       const shuffled = [...allData].sort(() => 0.5 - Math.random());
       setRandomContent(shuffled.slice(0, 10));
@@ -55,7 +53,7 @@ const Index = () => {
   // Mapeamento e filtragem de conteúdo por categoria
   const categorizedContent = useMemo(() => {
     const data = allContentData;
-    
+
     if (selectedCategory === 'Todos') {
       // Retorna todas as categorias principais para exibição
       return {
@@ -90,8 +88,8 @@ const Index = () => {
       case 'Terror':
         // Para fins de demonstração, filtramos por palavras-chave na descrição/título
         const keyword = selectedCategory.toLowerCase();
-        filtered = data.filter(c => 
-          c.title.toLowerCase().includes(keyword) || 
+        filtered = data.filter(c =>
+          c.title.toLowerCase().includes(keyword) ||
           c.description?.toLowerCase().includes(keyword)
         );
         break;
@@ -110,11 +108,11 @@ const Index = () => {
     if (content.category === 'series' && content.episodes && content.episodes.length > 0) {
       setSelectedSeries(content);
     } else if (content.video_url) {
-      setPlayerModal({ 
-        open: true, 
-        url: content.video_url, 
+      setPlayerModal({
+        open: true,
+        url: content.video_url,
         title: content.title,
-        isPremium: content.isPremium 
+        isPremium: content.isPremium
       });
     } else {
       toast.error("Link de vídeo não disponível");
@@ -124,10 +122,14 @@ const Index = () => {
   const handleInfoContent = (content: Content) => {
     navigate(`/content/${content.id}`);
   };
-  
+
   const handleDownloadContent = (content: Content) => {
     if (content.download_url) {
-      window.open(content.download_url, '_blank');
+      setDownloadModal({
+        open: true,
+        url: content.download_url,
+        title: content.title
+      });
     } else {
       toast.error("Link de download não disponível");
     }
@@ -150,10 +152,10 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       {/* Header Ad */}
       <AdManager placement="header" className="container mx-auto px-4 pt-20" />
-      
+
       {/* Hero Section */}
       <div className="relative py-16 flex items-center justify-center overflow-hidden">
         {/* Background Images Carousel */}
@@ -162,9 +164,8 @@ const Index = () => {
             {allContentData.map((content, index) => (
               <div
                 key={content.id}
-                className={`absolute inset-0 transition-opacity duration-1000 ${
-                  index === currentImageIndex ? 'opacity-100' : 'opacity-0'
-                }`}
+                className={`absolute inset-0 transition-opacity duration-1000 ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+                  }`}
               >
                 <img
                   src={content.thumbnail_url}
@@ -184,7 +185,7 @@ const Index = () => {
           <p className="text-lg text-foreground/90 drop-shadow-md mb-6">
             Sua plataforma de streaming com os melhores filmes, séries e canais de TV
           </p>
-          
+
           {/* Category Navigation */}
           <CategoryNavigation
             categories={ALL_CATEGORIES}
@@ -200,8 +201,8 @@ const Index = () => {
           <>
             {/* Featured Random Content - Always First */}
             {categorizedContent.featured.length > 0 && (
-              <ContentRow 
-                title="Em Destaque" 
+              <ContentRow
+                title="Em Destaque"
                 contents={categorizedContent.featured}
                 onPlayContent={handlePlayContent}
                 onInfoContent={handleInfoContent}
@@ -210,31 +211,31 @@ const Index = () => {
             )}
 
             {categorizedContent.movies.length > 0 && (
-              <ContentRow 
-                title="Filmes" 
+              <ContentRow
+                title="Filmes"
                 contents={categorizedContent.movies}
                 onPlayContent={handlePlayContent}
                 onInfoContent={handleInfoContent}
                 onDownloadContent={handleDownloadContent}
               />
             )}
-            
+
             {/* Between Content Ad */}
             <AdManager placement="between-content" className="container mx-auto px-4" />
-            
+
             {categorizedContent.series.length > 0 && (
-              <ContentRow 
-                title="Séries" 
+              <ContentRow
+                title="Séries"
                 contents={categorizedContent.series}
                 onPlayContent={handlePlayContent}
                 onInfoContent={handleInfoContent}
                 onDownloadContent={handleDownloadContent}
               />
             )}
-            
+
             {categorizedContent.tvChannels.length > 0 && (
-              <ContentRow 
-                title="TV ao Vivo" 
+              <ContentRow
+                title="TV ao Vivo"
                 contents={categorizedContent.tvChannels}
                 onPlayContent={handlePlayContent}
                 onInfoContent={handleInfoContent}
@@ -243,10 +244,10 @@ const Index = () => {
             )}
           </>
         )}
-        
+
         {showSingleRow && (
-          <ContentRow 
-            title={categorizedContent.singleRowTitle || 'Conteúdo Filtrado'} 
+          <ContentRow
+            title={categorizedContent.singleRowTitle || 'Conteúdo Filtrado'}
             contents={categorizedContent.singleRow || []}
             onPlayContent={handlePlayContent}
             onInfoContent={handleInfoContent}
@@ -264,7 +265,7 @@ const Index = () => {
 
         {allContentData.length === 0 && (
           <div className="text-center py-16 px-4">
-          <p className="text-xl text-muted-foreground">
+            <p className="text-xl text-muted-foreground">
               Nenhum conteúdo disponível ainda. Acesse o painel admin para adicionar!
             </p>
           </div>
@@ -288,7 +289,7 @@ const Index = () => {
           onPlayEpisode={(url) => setPlayerModal({ open: true, url, title: selectedSeries.title, isPremium: selectedSeries.isPremium })}
         />
       )}
-      
+
       {/* Main Player Modal */}
       <ContentPlayerModal
         open={playerModal.open}
@@ -297,6 +298,14 @@ const Index = () => {
         title={playerModal.title}
         isPremium={playerModal.isPremium}
       />
+
+      {/* Download Modal */}
+      {/* <DownloadModal
+        open={downloadModal.open}
+        onClose={() => setDownloadModal(prev => ({ ...prev, open: false }))}
+        downloadUrl={downloadModal.url}
+        title={downloadModal.title}
+      /> */}
     </div>
   );
 };

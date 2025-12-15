@@ -14,7 +14,7 @@ const Admin = () => {
   const { isAdmin, loading } = useAuth();
   const [allContents, setAllContents] = useState<Content[]>([]);
   const [listSearchQuery, setListSearchQuery] = useState("");
-  
+
   const [editingContent, setEditingContent] = useState<Partial<Content>>({
     title: "",
     category: "movie",
@@ -63,7 +63,7 @@ const Admin = () => {
       toast.error("Preencha os campos obrigatórios (Título, Categoria, URL da Imagem)");
       return;
     }
-    
+
     const isTV = editingContent.category === 'tv';
     const isSeries = editingContent.category === 'series';
     const isMovie = editingContent.category === 'movie';
@@ -81,7 +81,7 @@ const Admin = () => {
       ...editingContent,
       video_url: normalizedVideo || undefined,
     };
-    
+
     // Limpeza de campos irrelevantes
     if (isMovie) {
       delete contentToSave.episodes;
@@ -113,7 +113,7 @@ const Admin = () => {
         await addContent(contentToSave as Omit<Content, 'id'>);
         toast.success("Conteúdo adicionado!");
       }
-      
+
       // Resetar formulário
       setEditingContent({
         title: "",
@@ -187,7 +187,7 @@ const Admin = () => {
             setEditingContent={setEditingContent}
             handleSave={handleSave}
           />
-          
+
           <AdminContentList
             allContents={allContents}
             listSearchQuery={listSearchQuery}

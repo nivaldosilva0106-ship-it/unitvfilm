@@ -71,7 +71,7 @@ const AdminAds = () => {
         } as Omit<Ad, 'id'>);
         toast.success("Anúncio adicionado!");
       }
-      
+
       setEditingAd({
         name: "",
         code: "",
@@ -89,7 +89,7 @@ const AdminAds = () => {
 
   const handleDelete = async (id: string) => {
     if (!confirm("Deseja realmente remover este anúncio?")) return;
-    
+
     try {
       await deleteAd(id);
       toast.success("Anúncio removido!");
@@ -130,7 +130,7 @@ const AdminAds = () => {
           <AlertDescription>
             <strong>Sistema de Monetização Integrado</strong>
             <p className="text-sm mt-1">
-              Configure anúncios de múltiplas redes (AdSense, AdMob, outros) em posições estratégicas do site. 
+              Configure anúncios de múltiplas redes (AdSense, AdMob, outros) em posições estratégicas do site.
               Consulte o guia completo em <code>docs/AD_SYSTEM_GUIDE.md</code> para melhores práticas e instruções detalhadas.
             </p>
           </AlertDescription>
@@ -221,7 +221,7 @@ const AdminAds = () => {
                 <Label htmlFor="ad-code" className="text-base font-semibold">
                   Código do Anúncio (HTML/Script) *
                 </Label>
-                
+
                 {editingAd.network && (
                   <Alert className="bg-primary/5 border-primary/20">
                     <Info className="h-4 w-4" />
@@ -302,9 +302,8 @@ const AdminAds = () => {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <h3 className="font-semibold text-foreground">{ad.name}</h3>
-                          <span className={`text-xs px-2 py-0.5 rounded ${
-                            ad.active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                          }`}>
+                          <span className={`text-xs px-2 py-0.5 rounded ${ad.active ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                            }`}>
                             {ad.active ? 'Ativo' : 'Inativo'}
                           </span>
                           <span className="text-xs px-2 py-0.5 rounded bg-primary/20 text-primary">
@@ -314,11 +313,11 @@ const AdminAds = () => {
                             {AD_TYPE_LABELS[ad.adType]}
                           </span>
                         </div>
-                        
+
                         {ad.description && (
                           <p className="text-xs text-muted-foreground mb-1 italic">{ad.description}</p>
                         )}
-                        
+
                         <p className="text-sm text-muted-foreground mb-2">
                           <strong>Posição:</strong> {AD_PLACEMENT_LABELS[ad.placement]}
                         </p>
@@ -329,7 +328,7 @@ const AdminAds = () => {
                             <span>👆 {ad.clicks || 0} cliques</span>
                           </div>
                         )}
-                        
+
                         <details className="text-xs">
                           <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
                             Ver código

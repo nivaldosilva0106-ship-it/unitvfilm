@@ -23,7 +23,7 @@ const Login = () => {
       navigate('/');
     } catch (error: any) {
       console.error('Erro no login:', error);
-      
+
       if (error.code === 'auth/user-not-found') {
         toast.error('Usuário não encontrado');
       } else if (error.code === 'auth/wrong-password') {

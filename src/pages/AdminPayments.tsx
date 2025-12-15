@@ -35,7 +35,7 @@ const AdminPayments = () => {
   const loadPayments = async () => {
     try {
       const data = await getPendingPayments();
-      setPayments(data.sort((a, b) => 
+      setPayments(data.sort((a, b) =>
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       ));
     } catch (error) {
@@ -48,7 +48,7 @@ const AdminPayments = () => {
 
   const handleApprove = async (payment: Payment) => {
     if (!user) return;
-    
+
     setActionLoading(true);
     try {
       await approvePayment(payment.id, user.uid);
@@ -102,7 +102,7 @@ const AdminPayments = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      
+
       <div className="container mx-auto px-4 py-12">
         <div className="flex items-center justify-between mb-8">
           <h1 className="text-4xl font-bold text-foreground">Gerenciar Pagamentos</h1>
