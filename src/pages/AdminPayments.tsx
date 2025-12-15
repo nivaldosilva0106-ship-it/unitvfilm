@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Header } from '@/components/Header';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +12,7 @@ import { CheckCircle2, XCircle, Clock, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import type { Payment } from '@/types/payment';
 import { SUBSCRIPTION_BENEFITS } from '@/types/payment';
+import { AdminLayout } from '@/components/admin/AdminLayout';
 
 const AdminPayments = () => {
   const navigate = useNavigate();
@@ -86,12 +86,11 @@ const AdminPayments = () => {
 
   if (authLoading || loading) {
     return (
-      <div className="min-h-screen bg-background">
-        <Header />
-        <div className="container mx-auto px-4 py-12">
-          <p className="text-center text-muted-foreground">Carregando...</p>
+      <AdminLayout title="Gerenciar Pagamentos">
+        <div className="flex items-center justify-center py-12">
+          <p className="text-muted-foreground">Carregando...</p>
         </div>
-      </div>
+      </AdminLayout>
     );
   }
 
@@ -100,96 +99,91 @@ const AdminPayments = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-
-      <div className="container mx-auto px-4 py-12">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="text-4xl font-bold text-foreground">Gerenciar Pagamentos</h1>
-          <Badge variant="outline" className="text-lg px-4 py-2">
-            {payments.length} Pendentes
-          </Badge>
-        </div>
-
-        {payments.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <Clock className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-              <p className="text-muted-foreground">Nenhum pagamento pendente</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-6">
-            {payments.map((payment) => {
-              const tierInfo = SUBSCRIPTION_BENEFITS[payment.subscriptionTier];
-              return (
-                <Card key={payment.id} className="border-border">
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <CardTitle className="flex items-center gap-2">
-                          {payment.userEmail}
-                          <Badge className="bg-primary text-primary-foreground">
-                            {tierInfo.name}
-                          </Badge>
-                        </CardTitle>
-                        <CardDescription>
-                          Enviado em {new Date(payment.createdAt).toLocaleString('pt-BR')}
-                        </CardDescription>
-                      </div>
-                      <Badge variant="outline" className="text-lg">
-                        {payment.amount.toLocaleString('pt-AO')} Kzs
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div className="flex items-center gap-4">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(payment.proofUrl, '_blank')}
-                      >
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        Ver Comprovante
-                      </Button>
-                    </div>
-
-                    <div className="flex gap-3">
-                      <Button
-                        onClick={() => handleApprove(payment)}
-                        disabled={actionLoading}
-                        className="flex-1"
-                      >
-                        <CheckCircle2 className="w-4 h-4 mr-2" />
-                        Aprovar
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={() => {
-                          setSelectedPayment(payment);
-                          setShowRejectDialog(true);
-                        }}
-                        disabled={actionLoading}
-                        className="flex-1"
-                      >
-                        <XCircle className="w-4 h-4 mr-2" />
-                        Rejeitar
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
+    <AdminLayout title="Gerenciar Pagamentos">
+      <div className="flex items-center justify-between mb-6">
+        <Badge variant="outline" className="text-base px-3 py-1.5">
+          {payments.length} Pendentes
+        </Badge>
       </div>
+
+      {payments.length === 0 ? (
+        <Card>
+          <CardContent className="py-12 text-center">
+            <Clock className="w-10 h-10 mx-auto mb-4 text-muted-foreground" />
+            <p className="text-muted-foreground">Nenhum pagamento pendente</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4">
+          {payments.map((payment) => {
+            const tierInfo = SUBSCRIPTION_BENEFITS[payment.subscriptionTier];
+            return (
+              <Card key={payment.id} className="border-border">
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2 text-base">
+                        {payment.userEmail}
+                        <Badge className="bg-primary text-primary-foreground text-xs">
+                          {tierInfo.name}
+                        </Badge>
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        {new Date(payment.createdAt).toLocaleString('pt-BR')}
+                      </CardDescription>
+                    </div>
+                    <Badge variant="outline">
+                      {payment.amount.toLocaleString('pt-AO')} Kzs
+                    </Badge>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-3 pt-0">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(payment.proofUrl, '_blank')}
+                  >
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Ver Comprovante
+                  </Button>
+
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => handleApprove(payment)}
+                      disabled={actionLoading}
+                      size="sm"
+                      className="flex-1"
+                    >
+                      <CheckCircle2 className="w-4 h-4 mr-2" />
+                      Aprovar
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => {
+                        setSelectedPayment(payment);
+                        setShowRejectDialog(true);
+                      }}
+                      disabled={actionLoading}
+                      className="flex-1"
+                    >
+                      <XCircle className="w-4 h-4 mr-2" />
+                      Rejeitar
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
 
       <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Rejeitar Pagamento</DialogTitle>
             <DialogDescription>
-              Informe o motivo da rejeição para o usuário
+              Informe o motivo da rejeição
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
@@ -212,12 +206,12 @@ const AdminPayments = () => {
               onClick={handleReject}
               disabled={actionLoading || !rejectReason.trim()}
             >
-              Rejeitar Pagamento
+              Rejeitar
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </AdminLayout>
   );
 };
 
