@@ -21,12 +21,12 @@ interface ContentPlayerModalProps {
   episodeTitle?: string;
 }
 
-export const ContentPlayerModal = ({ 
-  open, 
-  onClose, 
-  videoUrl, 
-  videoUrls, 
-  title, 
+export const ContentPlayerModal = ({
+  open,
+  onClose,
+  videoUrl,
+  videoUrls,
+  title,
   isPremium = false,
   image,
   description,
@@ -75,16 +75,34 @@ export const ContentPlayerModal = ({
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
-  // Reset watching card when modal opens
+  // Show watching card automatically when modal opens and reset on close
   useEffect(() => {
     if (open) {
-      setShowWatchingCard(false);
-    }
-    return () => {
+      // Clear any existing timer
       if (watchingCardTimerRef.current) {
         clearTimeout(watchingCardTimerRef.current);
       }
-    };
+
+      // Show the card automatically after a short delay (to let the video load)
+      const showTimer = setTimeout(() => {
+        setShowWatchingCard(true);
+
+        // Hide after 10 seconds
+        watchingCardTimerRef.current = setTimeout(() => {
+          setShowWatchingCard(false);
+        }, 10000);
+      }, 1000); // Show after 1 second of video starting
+
+      return () => {
+        clearTimeout(showTimer);
+        if (watchingCardTimerRef.current) {
+          clearTimeout(watchingCardTimerRef.current);
+        }
+      };
+    } else {
+      // Reset when modal closes
+      setShowWatchingCard(false);
+    }
   }, [open]);
 
   const handlePlayerClick = () => {
@@ -92,10 +110,10 @@ export const ContentPlayerModal = ({
     if (watchingCardTimerRef.current) {
       clearTimeout(watchingCardTimerRef.current);
     }
-    
+
     // Show the card
     setShowWatchingCard(true);
-    
+
     // Hide after 10 seconds
     watchingCardTimerRef.current = setTimeout(() => {
       setShowWatchingCard(false);
@@ -327,12 +345,11 @@ export const ContentPlayerModal = ({
               )}
 
               {/* "Você está assistindo" Card */}
-              <div 
-                className={`absolute bottom-24 left-6 z-50 max-w-sm bg-black/80 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-500 ease-out ${
-                  showWatchingCard 
-                    ? 'opacity-100 translate-x-0' 
+              <div
+                className={`absolute bottom-24 left-6 z-50 max-w-sm bg-black/80 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-500 ease-out ${showWatchingCard
+                    ? 'opacity-100 translate-x-0'
                     : 'opacity-0 -translate-x-full pointer-events-none'
-                }`}
+                  }`}
               >
                 <div className="p-4">
                   <p className="text-xs text-primary font-semibold uppercase tracking-wider mb-2">
@@ -340,8 +357,8 @@ export const ContentPlayerModal = ({
                   </p>
                   <div className="flex gap-3">
                     {image && (
-                      <img 
-                        src={image} 
+                      <img
+                        src={image}
                         alt={title}
                         className="w-20 h-28 object-cover rounded-lg flex-shrink-0"
                       />
