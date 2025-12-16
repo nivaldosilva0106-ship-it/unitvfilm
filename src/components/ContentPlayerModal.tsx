@@ -1,5 +1,5 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X, Crown, ArrowLeft, List, Film } from "lucide-react";
+import { X, Crown, ArrowLeft, List, Film, Maximize, Minimize } from "lucide-react";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { Button } from "./ui/button";
 import { useRef, useEffect, useState, useMemo } from "react";
@@ -26,6 +26,7 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
   const [isMobile, setIsMobile] = useState(false);
   const [showSourceMenu, setShowSourceMenu] = useState(false);
   const [currentSourceIndex, setCurrentSourceIndex] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Get all available sources
   const availableSources = videoUrls && videoUrls.length > 0 ? videoUrls : [videoUrl];
@@ -57,12 +58,29 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
     onEscape: onClose,
   });
 
+  // Listen to fullscreen changes
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
   // Para mobile: toggle ao clicar, esconde após 3s
   useEffect(() => {
     if (!isMobile || !showBackButton) return;
     const timer = setTimeout(() => setShowBackButton(false), 3000);
     return () => clearTimeout(timer);
   }, [showBackButton, isMobile]);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      playerContainerRef.current?.requestFullscreen();
+    } else {
+      document.exitFullscreen();
+    }
+  };
 
   // Foca o iframe quando o modal abre para permitir controle direto do player
   useEffect(() => {
