@@ -257,7 +257,23 @@ export const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Profile Dropdown */}
+            {/* Credits Display for Limited Plans */}
+            {user && plan && (plan.limits.moviesPerDay !== -1 || plan.limits.episodesPerDay !== -1) && (
+              <div className="hidden md:flex flex-col items-end text-xs mr-2">
+                {plan.limits.moviesPerDay !== -1 && (
+                  <span className={`${(profile?.credits?.moviesWatched || 0) >= plan.limits.moviesPerDay ? 'text-red-500' : 'text-green-500'}`}>
+                    Filmes: {plan.limits.moviesPerDay - (profile?.credits?.moviesWatched || 0)}/{plan.limits.moviesPerDay}
+                  </span>
+                )}
+                {plan.limits.episodesPerDay !== -1 && (
+                  <span className={`${(profile?.credits?.episodesWatched || 0) >= plan.limits.episodesPerDay ? 'text-red-500' : 'text-green-500'}`}>
+                    Episódios: {plan.limits.episodesPerDay - (profile?.credits?.episodesWatched || 0)}/{plan.limits.episodesPerDay}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* User Menu */}
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>

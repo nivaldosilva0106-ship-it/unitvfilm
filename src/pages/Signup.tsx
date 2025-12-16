@@ -1,61 +1,114 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Film, Crown } from 'lucide-react';
+import { Film, Check, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { signUp, getSiteSettings } from '@/lib/firebase';
+import { signUp, getPlans } from '@/lib/firebase';
 import { toast } from 'sonner';
-import { SUBSCRIPTION_BENEFITS } from '@/types/payment';
-import type { SubscriptionTier } from '@/types/user';
+import type { Plan } from '@/types/user';
 
 const Signup = () => {
   const navigate = useNavigate();
+  const [step, setStep] = useState<'form' | 'plans'>('plans');
+  const [selectedPlan, setSelectedPlan] = useState<Plan | null>(null);
+  const [plans, setPlans] = useState<Plan[]>([]);
+
+  // Form State
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [selectedTier, setSelectedTier] = useState<SubscriptionTier>('basic');
+  const [name, setName] = useState(''); // Prompt implied user has name/phone
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
-  const [bgUrl, setBgUrl] = useState('/login-bg.jpg');
 
   useEffect(() => {
-    getSiteSettings().then(settings => {
-      if (settings.loginBackgroundUrl) {
-        setBgUrl(settings.loginBackgroundUrl);
-      }
-    });
+    loadPlans();
   }, []);
+
+  const loadPlans = async () => {
+    try {
+      // Add default Free Plan if not in DB?
+      // We'll fetch DB plans. If empty, show static Free?
+      // Assuming DB has plans. If not, we should probably seed them or handle empty.
+      // For now, I'll fetch and if empty, render a default Free.
+      const dbPlans = await getPlans();
+      if (dbPlans.length === 0) {
+        // Fallback
+        const freePlan: Plan = {
+          id: 'free',
+          name: 'Plano Free',
+          description: 'Acesso limitado a conteúdos gratuitos',
+          price: 0,
+          limits: { moviesPerDay: 2, episodesPerDay: 1, maxProfiles: 2, canDownload: false },
+          isActive: true,
+          requiresVerification: false
+        };
+        setPlans([freePlan]);
+      } else {
+        setPlans(dbPlans.filter(p => p.isActive));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handlePlanSelect = (plan: Plan) => {
+    setSelectedPlan(plan);
+    setStep('form');
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    if (password !== confirmPassword) {
-      toast.error('As senhas não coincidem');
-      return;
-    }
-
-    if (password.length < 6) {
-      toast.error('A senha deve ter pelo menos 6 caracteres');
-      return;
-    }
+    if (!selectedPlan) return;
 
     setLoading(true);
 
     try {
-      await signUp(email, password, 'free');
-      toast.success('Conta criada! Complete o pagamento para acessar o conteúdo.');
-      navigate('/payment', { state: { tier: selectedTier } });
+      // Create Account
+      // Note: signUp function in firebase.ts currently takes (email, pass, tier).
+      // We should update profile with Name/Phone/PlanId.
+      // But signUp returns userCredential. We can update profile after?
+      // Or update signUp function?
+      // I'll update profile after signUp here if possible, but firebase.ts signUp creates profile.
+      // I'll rely on signUp for now, and maybe update profile later or just assume minimal data.
+      // Wait, firebase.ts signUp creates static profile.
+      // I should update it to store name/planId.
+      // I'll update `signUp` in firebase.ts LATER or just use `update(ref(..., profiles/uid))` here?
+      // I'll use `update` here.
+
+      const { user } = await signUp(email, password, selectedPlan.price > 0 ? 'basic' : 'free');
+
+      // Update additional profile info
+      const { ref, update, getDatabase } = await import('firebase/database');
+      const db = getDatabase();
+      await update(ref(db, `profiles/${user.uid}`), {
+        planId: selectedPlan.id,
+        phone: phone || '', // Add phone to profile
+        displayName: name || '', // Add name
+        credits: { date: new Date().toISOString().split('T')[0], moviesWatched: 0, episodesWatched: 0 }
+      });
+
+      if (selectedPlan.requiresVerification) {
+        // Paid Plan Flow
+        const message = `Quero assinar o plano ${selectedPlan.name}.\nNome: ${name}\nEmail: ${email}\nTelefone: ${phone}\nPreço: ${selectedPlan.price} KZ`;
+        const whatsappNumber = selectedPlan.whatsappNumber || "244944016791";
+        const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
+
+        window.open(url, '_blank');
+        toast.success("Conta criada! Envie a mensagem no WhatsApp e insira o código.");
+        navigate('/verify-code');
+      } else {
+        // Free Plan Flow
+        toast.success('Conta criada com sucesso!');
+        navigate('/');
+      }
+
     } catch (error: any) {
       console.error('Erro no cadastro:', error);
-
       if (error.code === 'auth/email-already-in-use') {
-        toast.error('Este email já está em uso');
-      } else if (error.code === 'auth/invalid-email') {
-        toast.error('Email inválido');
+        toast.error('Email já está em uso');
       } else if (error.code === 'auth/weak-password') {
-        toast.error('Senha muito fraca. Use pelo menos 6 caracteres');
+        toast.error('Senha muito fraca');
       } else {
         toast.error('Erro ao criar conta. Tente novamente.');
       }
@@ -65,134 +118,86 @@ const Signup = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12 relative overflow-hidden">
-      {/* Background Image */}
-      <div
-        className="absolute inset-0 z-0 bg-cover bg-center bg-no-repeat"
-        style={{ backgroundImage: `url("${bgUrl}")` }}
-      />
+    <div className="min-h-screen bg-[#141414] flex items-center justify-center px-4 py-8">
+      {/* Background similar to Login */}
+      <div className="absolute inset-0 z-0 bg-[url('/login-bg.jpg')] bg-cover bg-center opacity-20" />
 
-      {/* Color Overlay - Dark Green 80% */}
-      <div className="absolute inset-0 z-10 bg-[#022c22]/80" />
-
-      <div className="w-full max-w-5xl relative z-20">
+      <div className="w-full max-w-4xl relative z-10">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-4">
-            <div className="bg-primary p-3 rounded-lg glow-effect">
-              <Film className="w-8 h-8 text-primary-foreground" />
+          <Link to="/" className="inline-flex items-center gap-2 mb-4">
+            <div className="bg-primary p-2 rounded-lg">
+              <Film className="w-6 h-6 text-white" />
             </div>
-          </div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">
-            Uni<span className="text-primary">Tv</span>Film
+            <span className="text-2xl font-bold text-white">Uni<span className="text-primary">Tv</span>Film</span>
+          </Link>
+          <h1 className="text-3xl font-bold text-white">
+            {step === 'plans' ? 'Escolha seu Plano' : 'Para finalizar, crie sua conta'}
           </h1>
-          <p className="text-muted-foreground">Crie sua conta e escolha seu plano</p>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          {(['basic', 'premium', 'vip'] as const).map((tier) => {
-            const info = SUBSCRIPTION_BENEFITS[tier];
-            return (
-              <Card
-                key={tier}
-                className={`cursor-pointer transition-all ${selectedTier === tier
-                  ? 'border-primary shadow-lg scale-105'
-                  : 'border-border hover:border-primary/50'
-                  }`}
-                onClick={() => setSelectedTier(tier)}
-              >
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>{info.name}</span>
-                    {tier === 'premium' && (
-                      <Crown className="w-5 h-5 text-primary" />
-                    )}
-                  </CardTitle>
-                  <CardDescription className="text-2xl font-bold text-primary">
-                    {info.price.toLocaleString('pt-AO')} Kzs
-                    <span className="text-sm text-muted-foreground">/mês</span>
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <p>✓ Qualidade {info.videoQuality}</p>
-                  <p>
-                    ✓{' '}
-                    {info.downloads === -1
-                      ? 'Downloads ilimitados'
-                      : `${info.downloads} downloads`}
-                  </p>
-                  {info.earlyAccess && <p>✓ Acesso antecipado</p>}
-                  {info.adsRemoval && <p>✓ Sem anúncios</p>}
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
+        {step === 'plans' ? (
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {plans.map(plan => (
+              <div key={plan.id} className={`bg-zinc-900 border ${plan.price > 0 ? 'border-primary' : 'border-zinc-800'} rounded-xl p-6 hover:scale-105 transition-transform cursor-pointer flex flex-col`} onClick={() => handlePlanSelect(plan)}>
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
+                  <p className="text-3xl font-bold text-primary mb-4">{plan.price > 0 ? `${plan.price} AOA` : 'Grátis'}<span className="text-sm text-gray-400 font-normal">/mês</span></p>
+                  <ul className="space-y-3 mb-6">
+                    <li className="flex items-center gap-2 text-gray-300">
+                      <Check className="w-4 h-4 text-green-500" />
+                      {plan.limits.moviesPerDay === -1 ? 'Filmes Ilimitados' : `${plan.limits.moviesPerDay} Filmes por dia`}
+                    </li>
+                    <li className="flex items-center gap-2 text-gray-300">
+                      <Check className="w-4 h-4 text-green-500" />
+                      {plan.limits.episodesPerDay === -1 ? 'Séries Ilimitadas' : `${plan.limits.episodesPerDay} Episódios por dia`}
+                    </li>
+                    <li className="flex items-center gap-2 text-gray-300">
+                      <Check className="w-4 h-4 text-green-500" />
+                      {plan.limits.maxProfiles} Perfis
+                    </li>
+                    <li className="flex items-center gap-2 text-gray-300">
+                      <Check className={`w-4 h-4 ${plan.limits.canDownload ? 'text-green-500' : 'text-gray-600'}`} />
+                      {plan.limits.canDownload ? 'Downloads Liberados' : 'Sem Downloads'}
+                    </li>
+                  </ul>
+                </div>
+                <Button className={`w-full ${plan.price > 0 ? 'bg-primary hover:bg-primary/90' : 'bg-gray-700 hover:bg-gray-600'}`}>
+                  {plan.price > 0 ? 'Assinar Agora' : 'Começar Grátis'}
+                </Button>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="max-w-md mx-auto bg-zinc-900 border border-zinc-800 rounded-xl p-8">
+            <div className="mb-6 flex items-center justify-between">
+              <h3 className="font-semibold text-lg text-white">Plano Selecionado: <span className="text-primary">{selectedPlan?.name}</span></h3>
+              <Button variant="ghost" size="sm" onClick={() => setStep('plans')} className="text-xs">Alterar</Button>
+            </div>
 
-        <Card className="bg-card border border-border">
-          <CardHeader>
-            <CardTitle>Dados da Conta</CardTitle>
-            <CardDescription>
-              Após criar sua conta, você será direcionado para o pagamento
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="bg-background/50 border-border"
-                />
+                <Label htmlFor="name">Nome Completo</Label>
+                <Input id="name" value={name} onChange={e => setName(e.target.value)} required className="bg-black/50" />
               </div>
-
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone (WhatsApp)</Label>
+                <Input id="phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="9XX XXX XXX" required className="bg-black/50" />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} required className="bg-black/50" />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Senha</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="bg-background/50 border-border"
-                />
+                <Input id="password" type="password" value={password} onChange={e => setPassword(e.target.value)} required className="bg-black/50" />
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">Confirmar Senha</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  placeholder="••••••••"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  className="bg-background/50 border-border"
-                />
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={loading}
-              >
-                {loading ? 'Criando conta...' : 'Continuar para Pagamento'}
+              <Button type="submit" className="w-full h-12 text-lg" disabled={loading}>
+                {loading ? <Loader2 className="animate-spin" /> : (selectedPlan?.price && selectedPlan.price > 0 ? 'Ir para Pagamento (WhatsApp)' : 'Criar Conta')}
               </Button>
-
-              <div className="mt-4 text-center text-sm">
-                <span className="text-muted-foreground">Já tem uma conta? </span>
-                <Link to="/login" className="text-primary hover:underline">
-                  Entre aqui
-                </Link>
-              </div>
             </form>
-          </CardContent>
-        </Card>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -1,8 +1,9 @@
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, set, get, remove, update, push } from 'firebase/database';
-import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously as firebaseSignInAnonymously, User } from 'firebase/auth';
+
 import type { Content } from '@/types/content';
-import type { UserProfile, MyListItem, SubscriptionTier } from '@/types/user';
+import type { UserProfile, MyListItem, SubscriptionTier, Plan, VerificationCode } from '@/types/user';
 import type { Ad } from '@/types/ad';
 import type { Payment } from '@/types/payment';
 
@@ -421,3 +422,88 @@ export const adminUpdateUser = async (userId: string, updates: Partial<UserProfi
 
 export { database, auth };
 export type { Content };
+
+export const signInAnonymously = async () => {
+  return firebaseSignInAnonymously(auth);
+};
+
+// Plan Management
+export const getPlans = async (): Promise<Plan[]> => {
+  const plansRef = ref(database, 'plans');
+  const snapshot = await get(plansRef);
+  if (snapshot.exists()) {
+    return Object.values(snapshot.val());
+  }
+  return [];
+};
+
+export const createPlan = async (plan: Omit<Plan, 'id'>) => {
+  const plansRef = ref(database, 'plans');
+  const newRef = push(plansRef);
+  const planWithId = { ...plan, id: newRef.key as string };
+  await set(newRef, planWithId);
+  return planWithId;
+};
+
+export const updatePlan = async (id: string, updates: Partial<Plan>) => {
+  await update(ref(database, `plans/${id}`), updates);
+};
+
+// Verification Codes
+export const createVerificationCode = async (codeData: Omit<VerificationCode, 'id'>) => {
+  const codesRef = ref(database, 'verification_codes');
+  const newRef = push(codesRef);
+  const codeWithId = { ...codeData, id: newRef.key as string };
+  await set(newRef, codeWithId);
+  return codeWithId;
+};
+
+export const verifyCode = async (code: string): Promise<VerificationCode | null> => {
+  const codesRef = ref(database, 'verification_codes');
+  const snapshot = await get(codesRef);
+  if (snapshot.exists()) {
+    const codes = Object.values(snapshot.val()) as VerificationCode[];
+    const found = codes.find(c => c.code === code && !c.isUsed && new Date(c.expiresAt) > new Date());
+    return found || null;
+  }
+  return null;
+};
+
+export const redeemCode = async (userId: string, codeId: string) => {
+  await update(ref(database, `verification_codes/${codeId}`), {
+    isUsed: true,
+    usedBy: userId
+  });
+};
+
+// Usage Tracking
+export const incrementDailyUsage = async (userId: string, type: 'movie' | 'episode') => {
+  const profileRef = ref(database, `profiles/${userId}`);
+  const snapshot = await get(profileRef);
+  if (!snapshot.exists()) return;
+
+  const profile = snapshot.val() as UserProfile;
+  const today = new Date().toISOString().split('T')[0];
+
+  let stats = profile.credits;
+  if (!stats || stats.date !== today) {
+    stats = { date: today, moviesWatched: 0, episodesWatched: 0 };
+  }
+
+  if (type === 'movie') stats.moviesWatched++;
+  if (type === 'episode') stats.episodesWatched++;
+
+  await update(profileRef, { credits: stats });
+};
+
+export const assignPlanToUser = async (userId: string, planId: string) => {
+  const expires = new Date();
+  expires.setDate(expires.getDate() + 30);
+
+  await update(ref(database, `profiles/${userId}`), {
+    planId: planId,
+    subscriptionTier: 'premium',
+    isPremium: true,
+    subscriptionExpiresAt: expires.toISOString()
+  });
+};

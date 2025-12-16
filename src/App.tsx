@@ -10,6 +10,7 @@ import AdminAds from "./pages/AdminAds";
 import AdminPayments from "./pages/AdminPayments";
 import { AdminSettings } from "./pages/AdminSettings";
 import AdminSlider from "./pages/AdminSlider";
+import AdminPlans from "./pages/AdminPlans";
 import Payment from "./pages/Payment";
 import ContentDetails from "./pages/ContentDetails";
 import Login from "./pages/Login";
@@ -21,7 +22,7 @@ import FocusNavigator from "@/components/FocusNavigator";
 import GlobalContentProtection from "@/components/GlobalContentProtection";
 import ProfileSelection from "@/pages/profiles/ProfileSelection";
 import Categories from "./pages/Categories";
-
+import VerifyCode from "./pages/VerifyCode";
 
 import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminAvatars } from "@/components/admin/AdminAvatars";
@@ -47,12 +48,14 @@ const App = () => (
             <Route path="/admin/payments" element={<AdminPayments />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="/admin/slider" element={<AdminSlider />} />
+            <Route path="/admin/plans" element={<AdminPlans />} />
             <Route path="/payment" element={<Payment />} />
             <Route path="/content/:id" element={<ContentDetails />} />
             <Route path="/my-list" element={<MyList />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/profiles" element={<ProfileSelection />} />
             <Route path="/categories" element={<Categories />} />
+            <Route path="/verify-code" element={<VerifyCode />} />
 
             <Route path="/admin/users" element={
               <AdminLayout title="Gerenciar Usuários">
@@ -65,7 +68,6 @@ const App = () => (
                 <AdminAvatars />
               </AdminLayout>
             } />
-            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

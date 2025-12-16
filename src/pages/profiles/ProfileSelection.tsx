@@ -12,7 +12,7 @@ import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
 
 export default function ProfileSelection() {
-    const { user, selectProfile } = useAuth();
+    const { user, selectProfile, plan } = useAuth();
     const navigate = useNavigate();
     const [profiles, setProfiles] = useState<Profile[]>([]);
     const [loading, setLoading] = useState(true);
@@ -95,7 +95,12 @@ export default function ProfileSelection() {
         }
     };
 
+
     const openAddModal = () => {
+        if (plan && profiles.length >= plan.limits.maxProfiles) {
+            toast.error(`Seu plano permite apenas ${plan.limits.maxProfiles} perfis. Atualize para criar mais.`);
+            return;
+        }
         setEditingProfile(null);
         setName("");
         setAvatarUrl(systemAvatars[0]?.url || "");
