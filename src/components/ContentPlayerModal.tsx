@@ -20,6 +20,7 @@ interface ContentPlayerModalProps {
 export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, isPremium = false }: ContentPlayerModalProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
+  const dialogContentRef = useRef<HTMLDivElement>(null);
   const { profile, isAdmin } = useAuth();
   const navigate = useNavigate();
   const [showBackButton, setShowBackButton] = useState(false);
@@ -74,21 +75,44 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
     return () => clearTimeout(timer);
   }, [showBackButton, isMobile]);
 
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      playerContainerRef.current?.requestFullscreen();
-    } else {
-      document.exitFullscreen();
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        // Try to fullscreen the dialog content for better compatibility
+        await (dialogContentRef.current || playerContainerRef.current)?.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (err) {
+      console.error('Fullscreen error:', err);
     }
   };
 
-  // Foca o iframe quando o modal abre para permitir controle direto do player
+  // Foca o iframe quando o modal abre e mantém o foco para evitar pause do embed
   useEffect(() => {
-    if (open && iframeRef.current && !isPremium) {
-      setTimeout(() => {
-        iframeRef.current?.focus();
-      }, 100);
-    }
+    if (!open || isPremium) return;
+
+    // Foco inicial
+    const focusIframe = () => {
+      if (iframeRef.current) {
+        iframeRef.current.focus();
+      }
+    };
+
+    // Foco inicial após render
+    setTimeout(focusIframe, 100);
+
+    // Mantém o foco periodicamente para evitar que o embed pause
+    const focusInterval = setInterval(focusIframe, 2000);
+
+    // Re-foca quando o mouse volta para o container
+    const handleMouseEnter = () => focusIframe();
+    playerContainerRef.current?.addEventListener('mouseenter', handleMouseEnter);
+
+    return () => {
+      clearInterval(focusInterval);
+      playerContainerRef.current?.removeEventListener('mouseenter', handleMouseEnter);
+    };
   }, [open, isPremium]);
 
   if (!videoUrl) return null;
@@ -103,6 +127,7 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent
+        ref={dialogContentRef}
         className="max-w-full w-screen h-screen p-0 bg-black border-none [&>button]:hidden protected-content"
         onContextMenu={(e) => {
           e.preventDefault();
@@ -169,7 +194,7 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
             {/* Iframe Container - Fullscreen com proteção */}
             <div
               ref={playerContainerRef}
-              className="relative w-full h-full group protected-content"
+              className="relative w-full h-full group"
               onMouseEnter={() => !isMobile && setShowBackButton(true)}
               onMouseLeave={() => !isMobile && setShowBackButton(false)}
               onClick={() => isMobile && setShowBackButton(prev => !prev)}
@@ -252,6 +277,25 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
                   )}
                 </div>
               )}
+
+              {/* Fullscreen Toggle Button - Bottom Right */}
+              <div className="absolute bottom-6 right-6 z-50">
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFullscreen();
+                  }}
+                  variant="ghost"
+                  size="icon"
+                  className={`w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20 transition-all duration-500 ease-in-out ${showBackButton
+                    ? 'opacity-100 translate-x-0 scale-100'
+                    : 'opacity-0 translate-x-4 scale-90 pointer-events-none'
+                    } md:group-hover:opacity-100 md:group-hover:translate-x-0 md:group-hover:scale-100 md:group-hover:pointer-events-auto`}
+                  title={isFullscreen ? "Sair da Tela Cheia" : "Tela Cheia"}
+                >
+                  {isFullscreen ? <Minimize className="w-6 h-6" /> : <Maximize className="w-6 h-6" />}
+                </Button>
+              </div>
 
 
               <iframe
