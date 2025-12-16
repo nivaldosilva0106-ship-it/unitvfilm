@@ -88,32 +88,7 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
     }
   };
 
-  // Foca o iframe quando o modal abre e mantém o foco para evitar pause do embed
-  useEffect(() => {
-    if (!open || isPremium) return;
 
-    // Foco inicial
-    const focusIframe = () => {
-      if (iframeRef.current) {
-        iframeRef.current.focus();
-      }
-    };
-
-    // Foco inicial após render
-    setTimeout(focusIframe, 100);
-
-    // Mantém o foco periodicamente para evitar que o embed pause
-    const focusInterval = setInterval(focusIframe, 2000);
-
-    // Re-foca quando o mouse volta para o container
-    const handleMouseEnter = () => focusIframe();
-    playerContainerRef.current?.addEventListener('mouseenter', handleMouseEnter);
-
-    return () => {
-      clearInterval(focusInterval);
-      playerContainerRef.current?.removeEventListener('mouseenter', handleMouseEnter);
-    };
-  }, [open, isPremium]);
 
   if (!videoUrl) return null;
 
