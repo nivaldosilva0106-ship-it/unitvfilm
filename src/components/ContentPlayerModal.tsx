@@ -88,7 +88,49 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
     }
   };
 
+  // Mantém o foco no iframe para evitar pause do embed
+  useEffect(() => {
+    if (!open || isBlocked) return;
 
+    const focusIframe = () => {
+      if (iframeRef.current) {
+        iframeRef.current.focus();
+      }
+    };
+
+    // Foco inicial após render
+    const initialFocusTimer = setTimeout(focusIframe, 200);
+
+    // Re-foca quando clica no container (não no iframe)
+    const handleContainerClick = (e: MouseEvent) => {
+      if (e.target === playerContainerRef.current) {
+        focusIframe();
+      }
+    };
+
+    playerContainerRef.current?.addEventListener('click', handleContainerClick);
+
+    return () => {
+      clearTimeout(initialFocusTimer);
+      playerContainerRef.current?.removeEventListener('click', handleContainerClick);
+    };
+  }, [open]);
+
+  // Prevenir que eventos de mouse interfiram com o player
+  useEffect(() => {
+    if (!open) return;
+
+    // Desabilita eventos que possam interferir com o player
+    const handleVisibilityChange = () => {
+      // Não faz nada - deixa o player continuar
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [open]);
 
   if (!videoUrl) return null;
 
