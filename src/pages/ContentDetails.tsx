@@ -24,7 +24,7 @@ const ContentDetails = () => {
   const [showTrailerModal, setShowTrailerModal] = useState(false);
   const [inMyList, setInMyList] = useState(false);
   const [myListItemId, setMyListItemId] = useState<string | null>(null);
-  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean }>({ open: false, url: '', title: '', isPremium: false });
+  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string }>({ open: false, url: '', title: '', isPremium: false });
   const [showDownloadModal, setShowDownloadModal] = useState(false);
 
 
@@ -65,7 +65,7 @@ const ContentDetails = () => {
     }
 
     if (videoUrl && content) {
-      setPlayerModal({ open: true, url: videoUrl, urls: content.video_urls, title: content.title, isPremium: content.isPremium });
+      setPlayerModal({ open: true, url: videoUrl, urls: content.video_urls, title: content.title, isPremium: content.isPremium, image: content.thumbnail_url, description: content.description, rating: content.rating });
       return;
     }
 
@@ -274,7 +274,7 @@ const ContentDetails = () => {
           episodes={content.episodes}
           title={content.title}
           trailerUrl={content.trailer_url}
-          onPlayEpisode={(url) => setPlayerModal({ open: true, url, title: content.title, isPremium: content.isPremium })}
+          onPlayEpisode={(url, episodeTitle) => setPlayerModal({ open: true, url, title: content.title, isPremium: content.isPremium, image: content.thumbnail_url, description: content.description, rating: content.rating, episodeTitle })}
         />
       )}
 
@@ -295,6 +295,10 @@ const ContentDetails = () => {
         videoUrls={playerModal.urls}
         title={playerModal.title}
         isPremium={playerModal.isPremium}
+        image={playerModal.image}
+        description={playerModal.description}
+        rating={playerModal.rating}
+        episodeTitle={playerModal.episodeTitle}
       />
 
       <DownloadModal

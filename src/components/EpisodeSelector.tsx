@@ -12,7 +12,7 @@ interface EpisodeSelectorProps {
   episodes: Episode[];
   title: string;
   trailerUrl?: string;
-  onPlayEpisode: (url: string) => void; // Nova prop para reproduzir no modal
+  onPlayEpisode: (url: string, episodeTitle?: string) => void;
 }
 
 export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, onPlayEpisode }: EpisodeSelectorProps) => {
@@ -27,9 +27,9 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
     .filter(ep => ep.season === selectedSeason)
     .sort((a, b) => a.episode - b.episode);
 
-  const handlePlay = (url: string) => {
-    onPlayEpisode(url);
-    onClose(); // Fecha o seletor de episódios após iniciar a reprodução
+  const handlePlay = (url: string, episodeTitle?: string) => {
+    onPlayEpisode(url, episodeTitle);
+    onClose();
   };
 
   const { playNavigationSound } = useKeyboardNavigation({
@@ -68,7 +68,8 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
     },
     onEnter: () => {
       if (seasonEpisodes[focusedIndex]) {
-        handlePlay(seasonEpisodes[focusedIndex].url);
+        const ep = seasonEpisodes[focusedIndex];
+        handlePlay(ep.url, `T${ep.season}E${ep.episode} - ${ep.title}`);
       }
     },
   });
@@ -159,10 +160,10 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
                   setFocusedIndex(index);
                   playNavigationSound('focus');
                 }}
-                onClick={() => handlePlay(episode.url)}
+                onClick={() => handlePlay(episode.url, `T${episode.season}E${episode.episode} - ${episode.title}`)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
-                    handlePlay(episode.url);
+                    handlePlay(episode.url, `T${episode.season}E${episode.episode} - ${episode.title}`);
                   }
                 }}
                 className={`p-4 bg-secondary rounded-lg transition-all cursor-pointer ${
@@ -180,7 +181,7 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
                       onClick={(e) => {
                         e.stopPropagation();
                         playNavigationSound('select');
-                        handlePlay(episode.url);
+                        handlePlay(episode.url, `T${episode.season}E${episode.episode} - ${episode.title}`);
                       }}
                       size="sm"
                       className="bg-primary hover:bg-primary/90 h-8 px-3"
