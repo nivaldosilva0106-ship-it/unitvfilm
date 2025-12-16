@@ -26,7 +26,7 @@ const Index = () => {
   const [randomContent, setRandomContent] = useState<Content[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedSeries, setSelectedSeries] = useState<Content | null>(null);
-  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean }>({ open: false, url: '', title: '', isPremium: false });
+  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string }>({ open: false, url: '', title: '', isPremium: false });
   const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, title: string, thumbnail: string }>({ open: false, url: '', title: '', thumbnail: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
 
@@ -271,9 +271,12 @@ const Index = () => {
       setPlayerModal({
         open: true,
         url: content.video_url,
-        urls: content.video_urls, // Pass multiple sources
+        urls: content.video_urls,
         title: content.title,
-        isPremium: content.isPremium
+        isPremium: content.isPremium,
+        image: content.thumbnail_url,
+        description: content.description,
+        rating: content.rating
       });
     } else {
       toast.error("Link de vídeo não disponível");
@@ -574,7 +577,7 @@ const Index = () => {
           episodes={selectedSeries.episodes || []}
           title={selectedSeries.title}
           trailerUrl={selectedSeries.trailer_url}
-          onPlayEpisode={(url) => setPlayerModal({ open: true, url, title: selectedSeries.title, isPremium: selectedSeries.isPremium })}
+          onPlayEpisode={(url, episodeTitle) => setPlayerModal({ open: true, url, title: selectedSeries.title, isPremium: selectedSeries.isPremium, image: selectedSeries.thumbnail_url, description: selectedSeries.description, rating: selectedSeries.rating, episodeTitle })}
         />
       )}
 
@@ -586,6 +589,10 @@ const Index = () => {
         videoUrls={playerModal.urls}
         title={playerModal.title}
         isPremium={playerModal.isPremium}
+        image={playerModal.image}
+        description={playerModal.description}
+        rating={playerModal.rating}
+        episodeTitle={playerModal.episodeTitle}
       />
 
       {/* Download Modal */}

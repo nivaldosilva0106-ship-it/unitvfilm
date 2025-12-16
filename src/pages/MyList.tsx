@@ -14,7 +14,7 @@ const MyList = () => {
   const { user, loading: authLoading } = useAuth();
   const [myList, setMyList] = useState<MyListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean }>({ open: false, url: '', title: '', isPremium: false });
+  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number }>({ open: false, url: '', title: '', isPremium: false });
 
 
   useEffect(() => {
@@ -54,7 +54,7 @@ const MyList = () => {
 
   const handlePlayContent = (item: MyListItem) => {
     if (item.content.video_url) {
-      setPlayerModal({ open: true, url: item.content.video_url, urls: item.content.video_urls, title: item.content.title, isPremium: item.content.isPremium });
+      setPlayerModal({ open: true, url: item.content.video_url, urls: item.content.video_urls, title: item.content.title, isPremium: item.content.isPremium, image: item.content.thumbnail_url, description: item.content.description, rating: item.content.rating });
     } else if (item.content.category === 'series' && item.content.episodes && item.content.episodes.length > 0) {
       navigate(`/content/${item.content.id}`);
     } else {
@@ -140,6 +140,9 @@ const MyList = () => {
         videoUrls={playerModal.urls}
         title={playerModal.title}
         isPremium={playerModal.isPremium}
+        image={playerModal.image}
+        description={playerModal.description}
+        rating={playerModal.rating}
       />
     </div>
   );

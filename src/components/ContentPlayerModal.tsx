@@ -1,5 +1,5 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X, Crown, ArrowLeft, List, Film, Maximize, Minimize } from "lucide-react";
+import { X, Crown, ArrowLeft, List, Film, Maximize, Minimize, Star } from "lucide-react";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { Button } from "./ui/button";
 import { useRef, useEffect, useState, useMemo } from "react";
@@ -15,9 +15,24 @@ interface ContentPlayerModalProps {
   videoUrls?: string[]; // Multiple video sources
   title: string;
   isPremium?: boolean;
+  image?: string;
+  description?: string;
+  rating?: number;
+  episodeTitle?: string;
 }
 
-export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, isPremium = false }: ContentPlayerModalProps) => {
+export const ContentPlayerModal = ({ 
+  open, 
+  onClose, 
+  videoUrl, 
+  videoUrls, 
+  title, 
+  isPremium = false,
+  image,
+  description,
+  rating,
+  episodeTitle
+}: ContentPlayerModalProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const dialogContentRef = useRef<HTMLDivElement>(null);
@@ -26,6 +41,8 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
   const [showSourceMenu, setShowSourceMenu] = useState(false);
   const [currentSourceIndex, setCurrentSourceIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showWatchingCard, setShowWatchingCard] = useState(false);
+  const watchingCardTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get all available sources
   const availableSources = videoUrls && videoUrls.length > 0 ? videoUrls : [videoUrl];
@@ -58,6 +75,33 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
+  // Reset watching card when modal opens
+  useEffect(() => {
+    if (open) {
+      setShowWatchingCard(false);
+    }
+    return () => {
+      if (watchingCardTimerRef.current) {
+        clearTimeout(watchingCardTimerRef.current);
+      }
+    };
+  }, [open]);
+
+  const handlePlayerClick = () => {
+    // Clear existing timer
+    if (watchingCardTimerRef.current) {
+      clearTimeout(watchingCardTimerRef.current);
+    }
+    
+    // Show the card
+    setShowWatchingCard(true);
+    
+    // Hide after 10 seconds
+    watchingCardTimerRef.current = setTimeout(() => {
+      setShowWatchingCard(false);
+    }, 10000);
+  };
+
   const toggleFullscreen = async () => {
     try {
       if (!document.fullscreenElement) {
@@ -70,6 +114,13 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
       console.error('Fullscreen error:', err);
     }
   };
+
+  // Admin tem acesso total, ou verifica se tem assinatura ativa
+  const hasActiveSubscription = profile?.isPremium &&
+    profile.subscriptionExpiresAt &&
+    new Date(profile.subscriptionExpiresAt) > new Date();
+
+  const isBlocked = isPremium && !isAdmin && !hasActiveSubscription;
 
   // Mantém o foco no iframe para evitar pause do embed
   useEffect(() => {
@@ -97,7 +148,7 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
       clearTimeout(initialFocusTimer);
       playerContainerRef.current?.removeEventListener('click', handleContainerClick);
     };
-  }, [open]);
+  }, [open, isBlocked]);
 
   // Prevenir que eventos de mouse interfiram com o player
   useEffect(() => {
@@ -117,12 +168,8 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
 
   if (!videoUrl) return null;
 
-  // Admin tem acesso total, ou verifica se tem assinatura ativa
-  const hasActiveSubscription = profile?.isPremium &&
-    profile.subscriptionExpiresAt &&
-    new Date(profile.subscriptionExpiresAt) > new Date();
-
-  const isBlocked = isPremium && !isAdmin && !hasActiveSubscription;
+  // Display title with episode if available
+  const displayTitle = episodeTitle ? `${title} - ${episodeTitle}` : title;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
@@ -196,6 +243,7 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
               ref={playerContainerRef}
               className="relative w-full h-full"
               onContextMenu={(e) => e.preventDefault()}
+              onClick={handlePlayerClick}
             >
               {/* Botão Voltar - sempre visível */}
               <Button
@@ -222,6 +270,20 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
                   </span>
                 </div>
               </div>
+
+              {/* Fullscreen Toggle Button - Same line as source selector */}
+              <Button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFullscreen();
+                }}
+                variant="ghost"
+                size="icon"
+                className="absolute top-6 right-[136px] z-50 w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20"
+                title={isFullscreen ? "Sair da Tela Cheia" : "Tela Cheia"}
+              >
+                {isFullscreen ? <Minimize className="w-6 h-6" /> : <Maximize className="w-6 h-6" />}
+              </Button>
 
               {/* Source Selector Button - Only show if multiple sources */}
               {hasMultipleSources && (
@@ -264,22 +326,45 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
                 </div>
               )}
 
-              {/* Fullscreen Toggle Button - Bottom Right */}
-              <div className="absolute bottom-6 right-6 z-50">
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFullscreen();
-                  }}
-                  variant="ghost"
-                  size="icon"
-                  className="w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20"
-                  title={isFullscreen ? "Sair da Tela Cheia" : "Tela Cheia"}
-                >
-                  {isFullscreen ? <Minimize className="w-6 h-6" /> : <Maximize className="w-6 h-6" />}
-                </Button>
+              {/* "Você está assistindo" Card */}
+              <div 
+                className={`absolute bottom-24 left-6 z-50 max-w-sm bg-black/80 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-500 ease-out ${
+                  showWatchingCard 
+                    ? 'opacity-100 translate-x-0' 
+                    : 'opacity-0 -translate-x-full pointer-events-none'
+                }`}
+              >
+                <div className="p-4">
+                  <p className="text-xs text-primary font-semibold uppercase tracking-wider mb-2">
+                    Você está assistindo
+                  </p>
+                  <div className="flex gap-3">
+                    {image && (
+                      <img 
+                        src={image} 
+                        alt={title}
+                        className="w-20 h-28 object-cover rounded-lg flex-shrink-0"
+                      />
+                    )}
+                    <div className="flex flex-col gap-1 min-w-0">
+                      <h3 className="text-white font-bold text-sm line-clamp-2">
+                        {displayTitle}
+                      </h3>
+                      {rating && (
+                        <div className="flex items-center gap-1">
+                          <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                          <span className="text-yellow-500 text-xs font-medium">{rating.toFixed(1)}</span>
+                        </div>
+                      )}
+                      {description && (
+                        <p className="text-muted-foreground text-xs line-clamp-3 mt-1">
+                          {description}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
-
 
               <iframe
                 ref={iframeRef}
