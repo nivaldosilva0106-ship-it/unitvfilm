@@ -593,6 +593,22 @@ const Index = () => {
         description={playerModal.description}
         rating={playerModal.rating}
         episodeTitle={playerModal.episodeTitle}
+        suggestions={randomContent}
+        onPlayContent={(content) => {
+          if (content.video_url) {
+            setPlayerModal({
+              open: true,
+              url: content.video_url,
+              urls: content.video_urls,
+              title: content.title,
+              isPremium: content.isPremium,
+              image: content.thumbnail_url,
+              description: content.description,
+              rating: content.rating
+            });
+          }
+        }}
+        onAddToMyList={handleToggleMyList}
       />
 
       {/* Download Modal */}

@@ -4,10 +4,11 @@ import { Header } from '@/components/Header';
 import { ContentCard } from '@/components/ContentCard';
 import { ContentPlayerModal } from '@/components/ContentPlayerModal';
 import { useAuth } from '@/contexts/AuthContext';
-import { getMyList, removeFromMyList } from '@/lib/firebase';
+import { getMyList, removeFromMyList, getAllContents, addToMyList } from '@/lib/firebase';
 import { toast } from 'sonner';
 import { Heart, Trash2 } from 'lucide-react';
 import type { MyListItem } from '@/types/user';
+import type { Content } from '@/types/content';
 
 const MyList = () => {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ const MyList = () => {
   const [myList, setMyList] = useState<MyListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number }>({ open: false, url: '', title: '', isPremium: false });
+  const [suggestions, setSuggestions] = useState<Content[]>([]);
 
 
   useEffect(() => {
@@ -33,10 +35,32 @@ const MyList = () => {
     try {
       const items = await getMyList(user.uid);
       setMyList(items);
+
+      // Load suggestions (all content)
+      const allContent = await getAllContents();
+      // Filter out items already in my list to make suggestions more relevant
+      // Or just shuffle all
+      const inListIds = items.map(i => i.contentId);
+      const potentialSuggestions = allContent.filter(c => !inListIds.includes(c.id));
+      setSuggestions(potentialSuggestions.sort(() => 0.5 - Math.random()).slice(0, 10));
     } catch (error) {
       toast.error('Erro ao carregar sua lista');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAddSuggestionToList = async (c: Content) => {
+    if (!user) return;
+    try {
+      const newItem = await addToMyList(user.uid, c); // Add to DB
+      // Update local list state
+      setMyList(prev => [...prev, newItem]);
+      toast.success('Adicionado à sua lista');
+      // Remove from suggestions? Optional.
+      setSuggestions(prev => prev.filter(s => s.id !== c.id));
+    } catch (error) {
+      toast.info('Já está na sua lista');
     }
   };
 
@@ -143,6 +167,22 @@ const MyList = () => {
         image={playerModal.image}
         description={playerModal.description}
         rating={playerModal.rating}
+        suggestions={suggestions}
+        onPlayContent={(c) => {
+          if (c.video_url) {
+            setPlayerModal({
+              open: true,
+              url: c.video_url,
+              urls: c.video_urls,
+              title: c.title,
+              isPremium: c.isPremium,
+              image: c.thumbnail_url,
+              description: c.description,
+              rating: c.rating
+            });
+          }
+        }}
+        onAddToMyList={handleAddSuggestionToList}
       />
     </div>
   );

@@ -1,5 +1,6 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X, Crown, ArrowLeft, List, Film, Maximize, Minimize, Star } from "lucide-react";
+import { X, Crown, ArrowLeft, List, Film, Maximize, Minimize, Star, Play, Plus, ChevronUp } from "lucide-react";
+import { Content } from "@/types/content";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { Button } from "./ui/button";
 import { useRef, useEffect, useState, useMemo } from "react";
@@ -19,6 +20,9 @@ interface ContentPlayerModalProps {
   description?: string;
   rating?: number;
   episodeTitle?: string;
+  suggestions?: Content[];
+  onPlayContent?: (content: Content) => void;
+  onAddToMyList?: (content: Content) => void;
 }
 
 export const ContentPlayerModal = ({
@@ -31,7 +35,10 @@ export const ContentPlayerModal = ({
   image,
   description,
   rating,
-  episodeTitle
+  episodeTitle,
+  suggestions = [],
+  onPlayContent,
+  onAddToMyList
 }: ContentPlayerModalProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
@@ -42,7 +49,13 @@ export const ContentPlayerModal = ({
   const [currentSourceIndex, setCurrentSourceIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showWatchingCard, setShowWatchingCard] = useState(false);
+  const [cardProgress, setCardProgress] = useState(100);
+  const [showSuggestionCard, setShowSuggestionCard] = useState(false);
+  const [suggestedContent, setSuggestedContent] = useState<Content | null>(null);
+
   const watchingCardTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const suggestionTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get all available sources
   const availableSources = videoUrls && videoUrls.length > 0 ? videoUrls : [videoUrl];
@@ -78,47 +91,87 @@ export const ContentPlayerModal = ({
   // Show watching card automatically when modal opens and reset on close
   useEffect(() => {
     if (open) {
-      // Clear any existing timer
+      // Clear any existing timers
       if (watchingCardTimerRef.current) {
         clearTimeout(watchingCardTimerRef.current);
       }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
+      if (suggestionTimerRef.current) {
+        clearTimeout(suggestionTimerRef.current);
+      }
 
-      // Show the card automatically after a short delay (to let the video load)
-      const showTimer = setTimeout(() => {
+      // Show the 'Watching' card automatically
+      const showWatchingTimer = setTimeout(() => {
         setShowWatchingCard(true);
+        setCardProgress(100);
 
-        // Hide after 10 seconds
+        // Animate progress bar from 100% to 0% over 5 seconds
+        const duration = 5000;
+        const intervalTime = 50;
+        const decrementAmount = (100 / duration) * intervalTime;
+
+        progressIntervalRef.current = setInterval(() => {
+          setCardProgress(prev => {
+            const newProgress = prev - decrementAmount;
+            if (newProgress <= 0) {
+              if (progressIntervalRef.current) {
+                clearInterval(progressIntervalRef.current);
+              }
+              return 0;
+            }
+            return newProgress;
+          });
+        }, intervalTime);
+
+        // Hide after 5 seconds
         watchingCardTimerRef.current = setTimeout(() => {
           setShowWatchingCard(false);
-        }, 10000);
-      }, 1000); // Show after 1 second of video starting
+          setCardProgress(100);
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+          }
+        }, duration);
+      }, 2000);
+
+      // Handle Suggestion Card Logic
+      if (suggestions && suggestions.length > 0) {
+        // Filter out current content (by title or image as proxy for ID if needed)
+        const candidates = suggestions.filter(s => s.title !== title && s.video_url !== videoUrl);
+
+        if (candidates.length > 0) {
+          // Select random suggestion
+          const randomSuggestion = candidates[Math.floor(Math.random() * candidates.length)];
+          setSuggestedContent(randomSuggestion);
+
+          // Show suggestion after 15 seconds
+          suggestionTimerRef.current = setTimeout(() => {
+            setShowSuggestionCard(true);
+
+            // Auto hide after 15 seconds (optional, to avoid permanent obstruction)
+            setTimeout(() => setShowSuggestionCard(false), 15000);
+          }, 15000);
+        }
+      }
 
       return () => {
-        clearTimeout(showTimer);
-        if (watchingCardTimerRef.current) {
-          clearTimeout(watchingCardTimerRef.current);
-        }
+        clearTimeout(showWatchingTimer);
+        if (watchingCardTimerRef.current) clearTimeout(watchingCardTimerRef.current);
+        if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+        if (suggestionTimerRef.current) clearTimeout(suggestionTimerRef.current);
       };
     } else {
-      // Reset when modal closes
+      // Reset all states when modal closes
       setShowWatchingCard(false);
+      setCardProgress(100);
+      setShowSuggestionCard(false);
+      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+      if (suggestionTimerRef.current) clearTimeout(suggestionTimerRef.current);
     }
-  }, [open]);
+  }, [open, title, videoUrl, suggestions]);
 
-  const handlePlayerClick = () => {
-    // Clear existing timer
-    if (watchingCardTimerRef.current) {
-      clearTimeout(watchingCardTimerRef.current);
-    }
 
-    // Show the card
-    setShowWatchingCard(true);
-
-    // Hide after 10 seconds
-    watchingCardTimerRef.current = setTimeout(() => {
-      setShowWatchingCard(false);
-    }, 10000);
-  };
 
   const toggleFullscreen = async () => {
     try {
@@ -140,7 +193,49 @@ export const ContentPlayerModal = ({
 
   const isBlocked = isPremium && !isAdmin && !hasActiveSubscription;
 
+  // Mantém o foco no iframe para evitar pause do embed
+  useEffect(() => {
+    if (!open || isBlocked) return;
 
+    const focusIframe = () => {
+      if (iframeRef.current) {
+        iframeRef.current.focus();
+      }
+    };
+
+    // Foco inicial após render
+    const initialFocusTimer = setTimeout(focusIframe, 200);
+
+    // Re-foca quando clica no container (não no iframe)
+    const handleContainerClick = (e: MouseEvent) => {
+      if (e.target === playerContainerRef.current) {
+        focusIframe();
+      }
+    };
+
+    playerContainerRef.current?.addEventListener('click', handleContainerClick);
+
+    return () => {
+      clearTimeout(initialFocusTimer);
+      playerContainerRef.current?.removeEventListener('click', handleContainerClick);
+    };
+  }, [open, isBlocked]);
+
+  // Prevenir que eventos de mouse interfiram com o player
+  useEffect(() => {
+    if (!open) return;
+
+    // Desabilita eventos que possam interferir com o player
+    const handleVisibilityChange = () => {
+      // Não faz nada - deixa o player continuar
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [open]);
 
   if (!videoUrl) return null;
 
@@ -219,7 +314,6 @@ export const ContentPlayerModal = ({
               ref={playerContainerRef}
               className="relative w-full h-full"
               onContextMenu={(e) => e.preventDefault()}
-              onClick={handlePlayerClick}
             >
               {/* Botão Voltar - sempre visível */}
               <Button
@@ -339,7 +433,85 @@ export const ContentPlayerModal = ({
                     </div>
                   </div>
                 </div>
+
+                {/* Animated Progress Bar */}
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-white/10">
+                  <div
+                    className="h-full bg-primary transition-all duration-75 ease-linear"
+                    style={{ width: `${cardProgress}%` }}
+                  />
+                </div>
               </div>
+
+
+
+              {/* Interactive Suggestion Pill - Bottom Right (Left of Fullscreen) */}
+              {suggestions && suggestions.length > 0 && (
+                <div className="absolute bottom-6 right-24 z-50">
+                  <div className="group relative flex items-end justify-end">
+                    {/* Suggestion List Dropdown (Up) */}
+                    <div className="absolute bottom-full right-0 mb-3 w-64 bg-black/90 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+                      <div className="p-3">
+                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-2 px-1 tracking-wider">Mais sugestões</p>
+                        <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20">
+                          {suggestions.slice(1, 6).map((item, idx) => (
+                            <div
+                              key={idx}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                navigate(`/content/${item.id}`);
+                              }}
+                              className="flex gap-2 p-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors group/item"
+                            >
+                              <img src={item.thumbnail_url} className="w-10 h-14 object-cover rounded-md bg-gray-800 shadow-sm" />
+                              <div className="flex flex-col justify-center min-w-0">
+                                <span className="text-xs text-white font-medium line-clamp-2 group-hover/item:text-primary transition-colors">{item.title}</span>
+                                {item.rating && (
+                                  <div className="flex items-center gap-1 mt-1">
+                                    <Star className="w-2 h-2 text-yellow-500 fill-yellow-500" />
+                                    <span className="text-[10px] text-gray-400 font-medium">{item.rating.toFixed(1)}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* The Main Pill Trigger */}
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/content/${suggestions[0].id}`);
+                      }}
+                      className="flex items-center gap-3 bg-black/40 hover:bg-black/80 backdrop-blur-md border border-white/10 rounded-full pl-1 pr-4 py-1.5 cursor-pointer transition-all duration-300 group-hover:border-white/30 group-hover:scale-105"
+                    >
+                      <div className="relative flex-shrink-0">
+                        <img
+                          src={suggestions[0].thumbnail_url}
+                          alt={suggestions[0].title}
+                          className="w-9 h-9 rounded-full object-cover border border-white/20 shadow-md"
+                        />
+                        {suggestions[0].isPremium && (
+                          <div className="absolute -top-1 -right-1 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full p-0.5 shadow-sm">
+                            <Crown className="w-2 h-2 text-black fill-black" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col">
+                        <span className="text-[9px] text-primary uppercase font-bold tracking-wider leading-none mb-0.5">Você já assistiu?</span>
+                        <h4 className="text-xs text-white font-bold max-w-[140px] truncate leading-tight">
+                          {suggestions[0].title}
+                        </h4>
+                      </div>
+
+                      <ChevronUp className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors flex-shrink-0 ml-1" />
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <iframe
                 ref={iframeRef}

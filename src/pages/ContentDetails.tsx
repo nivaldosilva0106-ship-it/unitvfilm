@@ -26,6 +26,7 @@ const ContentDetails = () => {
   const [myListItemId, setMyListItemId] = useState<string | null>(null);
   const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string }>({ open: false, url: '', title: '', isPremium: false });
   const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [relatedContents, setRelatedContents] = useState<Content[]>([]);
 
 
   useEffect(() => {
@@ -44,6 +45,13 @@ const ContentDetails = () => {
       const found = contents.find((c) => c.id === id);
       if (found) {
         setContent(found);
+
+        // Filter related content (same category, shuffle, take 10)
+        const related = contents
+          .filter(c => c.id !== found.id && c.category === found.category)
+          .sort(() => 0.5 - Math.random())
+          .slice(0, 10);
+        setRelatedContents(related);
       } else {
         toast.error("Conteúdo não encontrado");
         navigate("/");
@@ -129,6 +137,23 @@ const ContentDetails = () => {
       }
     } catch (error) {
       toast.error("Erro ao atualizar lista");
+    }
+  };
+
+  const handleAddSuggestionToList = async (c: Content) => {
+    if (!user) {
+      toast.error("Faça login para adicionar à lista");
+      return;
+    }
+
+    try {
+      // Check if already in list (optimistic check against current list state might be incomplete if list not fully loaded in this component, but safe enough)
+      // Since this is a "Watch Later" feature, we assume "Add".
+      await addToMyList(user.uid, c);
+      toast.success("Adicionado à sua lista");
+    } catch (error) {
+      // Ignore if already exists or handle error
+      toast.info("Já está na sua lista ou ocorreu um erro");
     }
   };
 
@@ -299,6 +324,22 @@ const ContentDetails = () => {
         description={playerModal.description}
         rating={playerModal.rating}
         episodeTitle={playerModal.episodeTitle}
+        suggestions={relatedContents}
+        onPlayContent={(c) => {
+          if (c.video_url) {
+            setPlayerModal({
+              open: true,
+              url: c.video_url,
+              urls: c.video_urls,
+              title: c.title,
+              isPremium: c.isPremium,
+              image: c.thumbnail_url,
+              description: c.description,
+              rating: c.rating
+            });
+          }
+        }}
+        onAddToMyList={handleAddSuggestionToList}
       />
 
       <DownloadModal
