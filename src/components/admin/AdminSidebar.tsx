@@ -1,10 +1,12 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { LayoutDashboard, Film, Megaphone, CreditCard, ChevronLeft, ChevronRight, Settings, Video } from "lucide-react";
+import { LayoutDashboard, Film, Megaphone, CreditCard, ChevronLeft, ChevronRight, Settings, Video, Users, Image } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
 const navItems = [
   { title: "Conteúdos", path: "/admin", icon: Film },
+  { title: "Usuários", path: "/admin/users", icon: Users },
+  { title: "Avatares", path: "/admin/avatars", icon: Image },
   { title: "Slider Vídeos", path: "/admin/slider", icon: Video },
   { title: "Anúncios", path: "/admin/ads", icon: Megaphone },
   { title: "Pagamentos", path: "/admin/payments", icon: CreditCard },

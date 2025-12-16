@@ -19,6 +19,10 @@ import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import FocusNavigator from "@/components/FocusNavigator";
 import GlobalContentProtection from "@/components/GlobalContentProtection";
+import ProfileSelection from "@/pages/profiles/ProfileSelection";
+import { AdminUsers } from "@/components/admin/AdminUsers";
+import { AdminAvatars } from "@/components/admin/AdminAvatars";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 
 const queryClient = new QueryClient();
 
@@ -44,6 +48,19 @@ const App = () => (
             <Route path="/content/:id" element={<ContentDetails />} />
             <Route path="/my-list" element={<MyList />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/profiles" element={<ProfileSelection />} />
+
+            <Route path="/admin/users" element={
+              <AdminLayout title="Gerenciar Usuários">
+                <AdminUsers />
+              </AdminLayout>
+            } />
+
+            <Route path="/admin/avatars" element={
+              <AdminLayout title="Gerenciar Avatares">
+                <AdminAvatars />
+              </AdminLayout>
+            } />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

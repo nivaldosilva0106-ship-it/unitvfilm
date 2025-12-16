@@ -335,5 +335,89 @@ export const updateSliderSettings = async (settings: SliderSettings) => {
   await set(sliderRef, cleaned);
 };
 
+
+// ==========================================
+// Netflix-style Profile Management (Sub-profiles)
+// ==========================================
+import type { Profile, Avatar } from '@/types/user';
+
+export const getAccountProfiles = async (userId: string): Promise<Profile[]> => {
+  const profilesRef = ref(database, `accountProfiles/${userId}`);
+  const snapshot = await get(profilesRef);
+  if (snapshot.exists()) {
+    return Object.values(snapshot.val());
+  }
+  return [];
+};
+
+export const createAccountProfile = async (userId: string, data: Omit<Profile, 'id' | 'userId' | 'createdAt'>) => {
+  const profilesRef = ref(database, `accountProfiles/${userId}`);
+  const newProfileRef = push(profilesRef);
+  const profile: Profile = {
+    ...data,
+    id: newProfileRef.key!,
+    userId,
+    createdAt: new Date().toISOString(),
+  };
+  await set(newProfileRef, profile);
+  return profile;
+};
+
+export const updateAccountProfile = async (userId: string, profileId: string, updates: Partial<Profile>) => {
+  const profileRef = ref(database, `accountProfiles/${userId}/${profileId}`);
+  const cleaned = removeUndefinedDeep(updates);
+  await update(profileRef, cleaned);
+};
+
+export const deleteAccountProfile = async (userId: string, profileId: string) => {
+  const profileRef = ref(database, `accountProfiles/${userId}/${profileId}`);
+  await remove(profileRef);
+};
+
+// ==========================================
+// Avatar Management (Admin)
+// ==========================================
+export const getAvatars = async (): Promise<Avatar[]> => {
+  const avatarsRef = ref(database, 'avatars');
+  const snapshot = await get(avatarsRef);
+  if (snapshot.exists()) {
+    return Object.values(snapshot.val());
+  }
+  return [];
+};
+
+export const addAvatar = async (url: string) => {
+  const avatarsRef = ref(database, 'avatars');
+  const newAvatarRef = push(avatarsRef);
+  const avatar: Avatar = {
+    id: newAvatarRef.key!,
+    url,
+    createdAt: new Date().toISOString(),
+  };
+  await set(newAvatarRef, avatar);
+  return avatar;
+};
+
+export const deleteAvatar = async (avatarId: string) => {
+  const avatarRef = ref(database, `avatars/${avatarId}`);
+  await remove(avatarRef);
+};
+
+// ==========================================
+// Admin User Management Helpers
+// ==========================================
+export const getAllUsers = async (): Promise<UserProfile[]> => {
+  const usersRef = ref(database, 'profiles'); // 'profiles' stores User Account data
+  const snapshot = await get(usersRef);
+  if (snapshot.exists()) {
+    return Object.values(snapshot.val());
+  }
+  return [];
+};
+
+export const adminUpdateUser = async (userId: string, updates: Partial<UserProfile>) => {
+  return updateUserProfile(userId, updates);
+};
+
 export { database, auth };
 export type { Content };

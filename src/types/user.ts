@@ -17,3 +17,19 @@ export interface MyListItem {
   content: Content;
   addedAt: string;
 }
+
+export interface Profile {
+  id: string;
+  userId: string;
+  name: string;
+  avatarUrl: string;
+  isKids: boolean;
+  pin?: string;
+  createdAt: string;
+}
+
+export interface Avatar {
+  id: string;
+  url: string;
+  createdAt: string;
+}

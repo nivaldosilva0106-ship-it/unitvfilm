@@ -20,7 +20,13 @@ const ALL_CATEGORIES = ['Todos', 'Filmes', 'Séries', 'TV ao Vivo', 'Lançamento
 
 const Index = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, currentProfile, loading: authLoading } = useAuth();
+
+  useEffect(() => {
+    if (!authLoading && user && !currentProfile) {
+      navigate('/profiles');
+    }
+  }, [user, currentProfile, authLoading, navigate]);
   const [allContentData, setAllContentData] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
   const [randomContent, setRandomContent] = useState<Content[]>([]);
