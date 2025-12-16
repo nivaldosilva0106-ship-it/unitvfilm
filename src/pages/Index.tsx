@@ -352,7 +352,7 @@ const Index = () => {
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 style={{ pointerEvents: 'auto' }}
               />
-              <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/60 to-background/95 pointer-events-none" />
+
             </div>
           </div>
         ) : (

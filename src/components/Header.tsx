@@ -1,4 +1,4 @@
-import { Film, Search, User, LogOut, List, Settings, Home, Download } from "lucide-react";
+import { Film, Search, User, LogOut, List, Settings, Home, Download, ChevronDown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -36,7 +36,7 @@ export const Header = () => {
   // PWA install
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [isInstalled, setIsInstalled] = useState(false);
-  
+
   // Controla a visibilidade do botão de instalação (se suportado ou se for iOS)
   const [installButtonVisible, setInstallButtonVisible] = useState(false);
 
@@ -44,7 +44,7 @@ export const Header = () => {
     const ua = window.navigator.userAgent.toLowerCase();
     return /iphone|ipad|ipod/.test(ua);
   };
-  
+
   const isStandalone = () => {
     return window.matchMedia("(display-mode: standalone)").matches || (navigator as any).standalone;
   };
@@ -157,7 +157,7 @@ export const Header = () => {
       <div className="container mx-auto px-4 sm:px-8 py-4">
         <div className="flex items-center justify-between gap-4">
           {/* Logo */}
-          <div 
+          <div
             className="flex items-center gap-2 cursor-pointer group flex-shrink-0"
             onClick={() => navigate("/")}
           >
@@ -169,12 +169,25 @@ export const Header = () => {
             </h1>
           </div>
 
-          <div className="flex items-center gap-2 flex-shrink-0">
+          {/* Desktop Navigation */}
+          <nav className="hidden md:flex items-center gap-6 ml-8">
+            <button onClick={() => navigate("/")} className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white transition-colors">
+              Início
+            </button>
+            <button onClick={() => navigate("/my-list")} className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white transition-colors">
+              Minha Lista
+            </button>
+            <button onClick={() => toast.info("Categorias em breve")} className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white transition-colors">
+              Categorias
+            </button>
+          </nav>
+
+          <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
             {/* PWA Install Icon */}
             {installButtonVisible && (
-              <Button 
-                variant="outline" 
-                size="icon" 
+              <Button
+                variant="outline"
+                size="icon"
                 onClick={handleInstallPWA}
                 className="border-primary/50 hover:border-primary hover:bg-primary/10"
                 title="Instalar aplicativo"
@@ -186,28 +199,28 @@ export const Header = () => {
             {/* Search Icon with Dropdown */}
             <DropdownMenu open={searchOpen} onOpenChange={setSearchOpen}>
               <DropdownMenuTrigger asChild>
-                <Button 
-                  variant="outline" 
-                  size="icon" 
-                  className="border-primary/50 hover:border-primary hover:bg-primary/10"
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-gray-300 hover:text-white hover:bg-white/10"
                 >
                   <Search className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80">
+              <DropdownMenuContent align="end" className="w-80 bg-[#141414] border-white/10 text-white">
                 <div className="p-2">
                   <Input
                     placeholder="Pesquisar conteúdo..."
                     value={searchQuery}
                     onChange={(e) => handleSearch(e.target.value)}
-                    className="mb-2"
+                    className="mb-2 bg-[#333] border-none text-white focus-visible:ring-1 focus-visible:ring-white/20"
                     autoFocus
                   />
                   {isSearching && (
-                    <p className="text-sm text-muted-foreground text-center py-2">Buscando...</p>
+                    <p className="text-sm text-gray-400 text-center py-2">Buscando...</p>
                   )}
                   {searchResults.length > 0 && (
-                    <div className="max-h-[300px] overflow-y-auto space-y-1">
+                    <div className="max-h-[300px] overflow-y-auto space-y-1 custom-scrollbar">
                       {searchResults.slice(0, 5).map((content, index) => (
                         <button
                           key={content.id}
@@ -218,24 +231,25 @@ export const Header = () => {
                             setSearchQuery("");
                             setSearchResults([]);
                           }}
-                          className={`w-full text-left p-2 rounded-md transition-colors ${
-                            focusedResultIndex === index 
-                              ? 'bg-primary text-primary-foreground' 
-                              : 'hover:bg-accent'
-                          }`}
+                          className={`w-full text-left p-2 rounded-md transition-colors flex gap-3 ${focusedResultIndex === index
+                            ? 'bg-white/10 text-white'
+                            : 'hover:bg-white/5 text-gray-300'
+                            }`}
                         >
-                          <p className="font-medium text-sm">{content.title}</p>
-                          <p className={`text-xs ${
-                            focusedResultIndex === index 
-                              ? 'text-primary-foreground/80' 
-                              : 'text-muted-foreground'
-                          } capitalize`}>{content.category}</p>
+                          <img src={content.thumbnail_url} className="w-8 h-12 object-cover rounded bg-zinc-800" />
+                          <div>
+                            <p className="font-medium text-sm line-clamp-1">{content.title}</p>
+                            <p className={`text-xs ${focusedResultIndex === index
+                              ? 'text-gray-300'
+                              : 'text-gray-500'
+                              } capitalize`}>{content.category}</p>
+                          </div>
                         </button>
                       ))}
                     </div>
                   )}
                   {searchQuery.length >= 2 && searchResults.length === 0 && !isSearching && (
-                    <p className="text-sm text-muted-foreground text-center py-2">
+                    <p className="text-sm text-gray-500 text-center py-2">
                       Nenhum resultado encontrado
                     </p>
                   )}
@@ -247,48 +261,55 @@ export const Header = () => {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    className="border-primary/50 hover:border-primary hover:bg-primary/10"
-                  >
-                    <User className="h-5 w-5" />
-                  </Button>
+                  <div className="flex items-center gap-2 cursor-pointer group ml-2">
+                    <div className="w-8 h-8 rounded overflow-hidden border border-transparent group-hover:border-white transition-all">
+                      <img
+                        src={useAuth().currentProfile?.avatarUrl || "https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png"}
+                        alt="Profile"
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    <ChevronDown className="w-4 h-4 text-white group-hover:rotate-180 transition-transform duration-200" />
+                  </div>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>Minha Conta</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => navigate("/")}>
-                    <Home className="mr-2 h-4 w-4" />
-                    Início
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/profile")}>
+                <DropdownMenuContent align="end" className="w-56 bg-black/95 border-white/10 text-white backdrop-blur-xl">
+                  <DropdownMenuLabel className="text-gray-400 text-xs uppercase tracking-wider">Conta</DropdownMenuLabel>
+                  <div className="px-2 py-1 flex items-center gap-2 mb-2">
+                    <img
+                      src={useAuth().currentProfile?.avatarUrl || "https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png"}
+                      className="w-6 h-6 rounded object-cover"
+                    />
+                    <span className="text-sm font-bold truncate">{useAuth().currentProfile?.name || "Usuário"}</span>
+                  </div>
+                  <DropdownMenuSeparator className="bg-white/10" />
+                  <DropdownMenuItem onClick={() => navigate("/profiles")} className="focus:bg-white/10 cursor-pointer">
                     <User className="mr-2 h-4 w-4" />
-                    Perfil
+                    Gerenciar Perfis
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/my-list")}>
+                  <DropdownMenuItem onClick={() => navigate("/profile")} className="focus:bg-white/10 cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Conta
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/my-list")} className="focus:bg-white/10 cursor-pointer">
                     <List className="mr-2 h-4 w-4" />
                     Minha Lista
                   </DropdownMenuItem>
                   {isAdmin && (
-                    <DropdownMenuItem onClick={() => navigate("/admin")}>
+                    <DropdownMenuItem onClick={() => navigate("/admin")} className="focus:bg-white/10 cursor-pointer text-yellow-500 hover:text-yellow-400">
                       <Settings className="mr-2 h-4 w-4" />
-                      Admin
+                      Painel Admin
                     </DropdownMenuItem>
                   )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sair
+                  <DropdownMenuSeparator className="bg-white/10" />
+                  <DropdownMenuItem onClick={handleLogout} className="text-white hover:underline cursor-pointer focus:bg-transparent justify-center text-xs py-3">
+                    Sair da UniTvFilm
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
               <Button
                 onClick={() => navigate("/login")}
-                variant="outline"
-                size="sm"
-                className="border-primary/50 hover:border-primary hover:bg-primary/10"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground ml-2"
               >
                 Entrar
               </Button>
