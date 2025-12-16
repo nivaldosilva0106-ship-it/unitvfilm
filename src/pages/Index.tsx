@@ -26,7 +26,7 @@ const Index = () => {
   const [randomContent, setRandomContent] = useState<Content[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedSeries, setSelectedSeries] = useState<Content | null>(null);
-  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string }>({ open: false, url: '', title: '', isPremium: false });
+  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string, internalUrl?: string }>({ open: false, url: '', title: '', isPremium: false });
   const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, title: string, thumbnail: string }>({ open: false, url: '', title: '', thumbnail: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
 
@@ -593,16 +593,18 @@ const Index = () => {
         description={playerModal.description}
         rating={playerModal.rating}
         episodeTitle={playerModal.episodeTitle}
+        internalPlayerUrl={playerModal.internalUrl}
         suggestions={randomContent}
         onPlayContent={(content) => {
-          if (content.video_url) {
+          if (content.video_url || content.internal_player_url) {
             setPlayerModal({
               open: true,
-              url: content.video_url,
+              url: content.video_url || '',
               urls: content.video_urls,
               title: content.title,
               isPremium: content.isPremium,
               image: content.thumbnail_url,
+              internalUrl: content.internal_player_url,
               description: content.description,
               rating: content.rating
             });

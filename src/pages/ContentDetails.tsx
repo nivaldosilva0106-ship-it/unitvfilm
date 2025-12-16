@@ -24,7 +24,7 @@ const ContentDetails = () => {
   const [showTrailerModal, setShowTrailerModal] = useState(false);
   const [inMyList, setInMyList] = useState(false);
   const [myListItemId, setMyListItemId] = useState<string | null>(null);
-  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string }>({ open: false, url: '', title: '', isPremium: false });
+  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string, internalUrl?: string }>({ open: false, url: '', title: '', isPremium: false });
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [relatedContents, setRelatedContents] = useState<Content[]>([]);
 
@@ -72,8 +72,8 @@ const ContentDetails = () => {
       return;
     }
 
-    if (videoUrl && content) {
-      setPlayerModal({ open: true, url: videoUrl, urls: content.video_urls, title: content.title, isPremium: content.isPremium, image: content.thumbnail_url, description: content.description, rating: content.rating });
+    if ((videoUrl || content?.internal_player_url) && content) {
+      setPlayerModal({ open: true, url: videoUrl || '', urls: content.video_urls, title: content.title, isPremium: content.isPremium, image: content.thumbnail_url, description: content.description, rating: content.rating, internalUrl: content.internal_player_url });
       return;
     }
 
@@ -324,16 +324,18 @@ const ContentDetails = () => {
         description={playerModal.description}
         rating={playerModal.rating}
         episodeTitle={playerModal.episodeTitle}
+        internalPlayerUrl={playerModal.internalUrl}
         suggestions={relatedContents}
         onPlayContent={(c) => {
-          if (c.video_url) {
+          if (c.video_url || c.internal_player_url) {
             setPlayerModal({
               open: true,
-              url: c.video_url,
+              url: c.video_url || '',
               urls: c.video_urls,
               title: c.title,
               isPremium: c.isPremium,
               image: c.thumbnail_url,
+              internalUrl: c.internal_player_url,
               description: c.description,
               rating: c.rating
             });

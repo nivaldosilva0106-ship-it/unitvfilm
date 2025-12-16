@@ -15,7 +15,7 @@ const MyList = () => {
   const { user, loading: authLoading } = useAuth();
   const [myList, setMyList] = useState<MyListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number }>({ open: false, url: '', title: '', isPremium: false });
+  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, internalUrl?: string }>({ open: false, url: '', title: '', isPremium: false });
   const [suggestions, setSuggestions] = useState<Content[]>([]);
 
 
@@ -167,18 +167,20 @@ const MyList = () => {
         image={playerModal.image}
         description={playerModal.description}
         rating={playerModal.rating}
+        internalPlayerUrl={playerModal.internalUrl}
         suggestions={suggestions}
         onPlayContent={(c) => {
-          if (c.video_url) {
+          if (c.video_url || c.internal_player_url) {
             setPlayerModal({
               open: true,
-              url: c.video_url,
+              url: c.video_url || '',
               urls: c.video_urls,
               title: c.title,
               isPremium: c.isPremium,
               image: c.thumbnail_url,
               description: c.description,
-              rating: c.rating
+              rating: c.rating,
+              internalUrl: c.internal_player_url
             });
           }
         }}

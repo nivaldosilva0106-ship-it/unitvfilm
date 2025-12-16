@@ -4,6 +4,7 @@ import { Content } from "@/types/content";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { Button } from "./ui/button";
 import { useRef, useEffect, useState, useMemo } from "react";
+import ReactPlayer from 'react-player';
 import { useAuth } from "@/contexts/AuthContext";
 import { AdManager } from "./AdManager";
 import { useNavigate } from "react-router-dom";
@@ -21,6 +22,7 @@ interface ContentPlayerModalProps {
   rating?: number;
   episodeTitle?: string;
   suggestions?: Content[];
+  internalPlayerUrl?: string;
   onPlayContent?: (content: Content) => void;
   onAddToMyList?: (content: Content) => void;
 }
@@ -37,6 +39,7 @@ export const ContentPlayerModal = ({
   rating,
   episodeTitle,
   suggestions = [],
+  internalPlayerUrl,
   onPlayContent,
   onAddToMyList
 }: ContentPlayerModalProps) => {
@@ -58,20 +61,32 @@ export const ContentPlayerModal = ({
   const suggestionTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Get all available sources
-  const availableSources = videoUrls && videoUrls.length > 0 ? videoUrls : [videoUrl];
-  const hasMultipleSources = availableSources.length > 1;
+  const allSources = useMemo(() => {
+    const sources = [];
+    if (internalPlayerUrl) {
+      sources.push({ name: 'Player Interno', url: internalPlayerUrl, type: 'internal' });
+    }
+    const embeds = (videoUrls && videoUrls.length > 0 ? videoUrls : [videoUrl]);
+    embeds.forEach((url, index) => {
+      if (url) sources.push({ name: `Player ${index + 1}`, url, type: 'embed' });
+    });
+    return sources;
+  }, [internalPlayerUrl, videoUrls, videoUrl]);
+
+  const hasMultipleSources = allSources.length > 1;
+  const currentSource = allSources[currentSourceIndex] || allSources[0];
 
   // Ativar proteção de conteúdo quando o modal está aberto
   useContentProtection(open);
 
-  // Gerar URL segura com timestamp para evitar cache
+  // Gerar URL segura com timestamp para evitar cache (apenas para iframes/embeds)
   const secureVideoUrl = useMemo(() => {
-    if (!availableSources[currentSourceIndex]) return '';
-    const url = availableSources[currentSourceIndex];
+    if (!currentSource || currentSource.type !== 'embed') return '';
+    const url = currentSource.url;
     const timestamp = Date.now();
     const separator = url.includes('?') ? '&' : '?';
     return `${url}${separator}_t=${timestamp}`;
-  }, [availableSources, currentSourceIndex]);
+  }, [currentSource]);
 
   // Garante que o ESC feche o modal
   useKeyboardNavigation({
@@ -237,7 +252,7 @@ export const ContentPlayerModal = ({
     };
   }, [open]);
 
-  if (!videoUrl) return null;
+  if (!currentSource) return null;
 
   // Display title with episode if available
   const displayTitle = episodeTitle ? `${title} - ${episodeTitle}` : title;
@@ -374,7 +389,7 @@ export const ContentPlayerModal = ({
                   {/* Source Dropdown Menu */}
                   {showSourceMenu && (
                     <div className="absolute top-14 right-0 bg-black/90 backdrop-blur-md rounded-lg shadow-xl border border-white/20 overflow-hidden min-w-[150px]">
-                      {availableSources.map((_, index) => (
+                      {allSources.map((source, index) => (
                         <button
                           key={index}
                           onClick={(e) => {
@@ -385,7 +400,7 @@ export const ContentPlayerModal = ({
                           className={`w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center justify-between ${currentSourceIndex === index ? 'bg-primary/20' : ''
                             }`}
                         >
-                          <span>Player {index + 1}</span>
+                          <span>{source.name}</span>
                           {currentSourceIndex === index && (
                             <span className="text-primary">✓</span>
                           )}
@@ -459,7 +474,11 @@ export const ContentPlayerModal = ({
                               key={idx}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                navigate(`/content/${item.id}`);
+                                if (onPlayContent) {
+                                  onPlayContent(item);
+                                } else {
+                                  navigate(`/content/${item.id}`);
+                                }
                               }}
                               className="flex gap-2 p-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors group/item"
                             >
@@ -483,7 +502,11 @@ export const ContentPlayerModal = ({
                     <div
                       onClick={(e) => {
                         e.stopPropagation();
-                        navigate(`/content/${suggestions[0].id}`);
+                        if (onPlayContent) {
+                          onPlayContent(suggestions[0]);
+                        } else {
+                          navigate(`/content/${suggestions[0].id}`);
+                        }
                       }}
                       className="flex items-center gap-3 bg-black/40 hover:bg-black/80 backdrop-blur-md border border-white/10 rounded-full pl-1 pr-4 py-1.5 cursor-pointer transition-all duration-300 group-hover:border-white/30 group-hover:scale-105"
                     >
@@ -513,17 +536,31 @@ export const ContentPlayerModal = ({
                 </div>
               )}
 
-              <iframe
-                ref={iframeRef}
-                src={secureVideoUrl}
-                title={`Player - ${title}`}
-                className="absolute inset-0 w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                allowFullScreen
-                tabIndex={0}
-                referrerPolicy="no-referrer"
-                sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
-              />
+              {currentSource?.type === 'internal' ? (
+                <div className="absolute inset-0 w-full h-full bg-black">
+                  <ReactPlayer
+                    url={currentSource.url}
+                    width="100%"
+                    height="100%"
+                    controls={true}
+                    playing={true}
+                    style={{ position: 'absolute', top: 0, left: 0 }}
+
+                  />
+                </div>
+              ) : (
+                <iframe
+                  ref={iframeRef}
+                  src={secureVideoUrl}
+                  title={`Player - ${title}`}
+                  className="absolute inset-0 w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                  allowFullScreen
+                  tabIndex={0}
+                  referrerPolicy="no-referrer"
+                  sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
+                />
+              )}
             </div>
           </>
         )}

@@ -300,6 +300,19 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
             <p className="text-xs text-muted-foreground">
               Cole URLs dos players. Se colar um iframe, extrairemos automaticamente o src. Adicione múltiplas fontes para permitir que usuários escolham entre diferentes players.
             </p>
+
+            <div className="pt-2 border-t border-border mt-4">
+              <Label>URL do Player Interno (m3u8, mp4, ts)</Label>
+              <Input
+                value={editingContent.internal_player_url || ''}
+                onChange={(e) => setEditingContent(prev => ({ ...prev, internal_player_url: e.target.value }))}
+                className="bg-input border-border mt-1"
+                placeholder="https://... (URL direta para arquivo m3u8, mp4, etc)"
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                URL direta do arquivo de vídeo para usar o player nativo do próprio site (suporta HLS/m3u8).
+              </p>
+            </div>
           </div>
         )}
 
