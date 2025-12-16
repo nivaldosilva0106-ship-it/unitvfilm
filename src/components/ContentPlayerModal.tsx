@@ -140,49 +140,7 @@ export const ContentPlayerModal = ({
 
   const isBlocked = isPremium && !isAdmin && !hasActiveSubscription;
 
-  // Mantém o foco no iframe para evitar pause do embed
-  useEffect(() => {
-    if (!open || isBlocked) return;
 
-    const focusIframe = () => {
-      if (iframeRef.current) {
-        iframeRef.current.focus();
-      }
-    };
-
-    // Foco inicial após render
-    const initialFocusTimer = setTimeout(focusIframe, 200);
-
-    // Re-foca quando clica no container (não no iframe)
-    const handleContainerClick = (e: MouseEvent) => {
-      if (e.target === playerContainerRef.current) {
-        focusIframe();
-      }
-    };
-
-    playerContainerRef.current?.addEventListener('click', handleContainerClick);
-
-    return () => {
-      clearTimeout(initialFocusTimer);
-      playerContainerRef.current?.removeEventListener('click', handleContainerClick);
-    };
-  }, [open, isBlocked]);
-
-  // Prevenir que eventos de mouse interfiram com o player
-  useEffect(() => {
-    if (!open) return;
-
-    // Desabilita eventos que possam interferir com o player
-    const handleVisibilityChange = () => {
-      // Não faz nada - deixa o player continuar
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [open]);
 
   if (!videoUrl) return null;
 
@@ -347,8 +305,8 @@ export const ContentPlayerModal = ({
               {/* "Você está assistindo" Card */}
               <div
                 className={`absolute bottom-24 left-6 z-50 max-w-sm bg-black/80 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-500 ease-out ${showWatchingCard
-                    ? 'opacity-100 translate-x-0'
-                    : 'opacity-0 -translate-x-full pointer-events-none'
+                  ? 'opacity-100 translate-x-0'
+                  : 'opacity-0 -translate-x-full pointer-events-none'
                   }`}
               >
                 <div className="p-4">
