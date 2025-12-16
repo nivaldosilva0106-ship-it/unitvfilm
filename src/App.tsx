@@ -20,6 +20,9 @@ import NotFound from "./pages/NotFound";
 import FocusNavigator from "@/components/FocusNavigator";
 import GlobalContentProtection from "@/components/GlobalContentProtection";
 import ProfileSelection from "@/pages/profiles/ProfileSelection";
+import Categories from "./pages/Categories";
+
+
 import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminAvatars } from "@/components/admin/AdminAvatars";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -49,6 +52,7 @@ const App = () => (
             <Route path="/my-list" element={<MyList />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/profiles" element={<ProfileSelection />} />
+            <Route path="/categories" element={<Categories />} />
 
             <Route path="/admin/users" element={
               <AdminLayout title="Gerenciar Usuários">

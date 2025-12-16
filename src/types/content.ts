@@ -13,7 +13,9 @@ export interface Content {
   description: string;
   thumbnail_url: string;
   video_url: string;
-  internal_player_url?: string; // Player Próprio URL (m3u8, mp4, etc)
+  internal_player_url?: string;
+  is_new?: boolean;
+  new_since?: string; // ISO timestamp // Player Próprio URL (m3u8, mp4, etc)
   video_urls?: string[]; // Multiple video sources
   episodes?: Episode[];
   download_url?: string;

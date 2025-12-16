@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
-import { Search, Save, Plus, X } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Search, Save, Plus, X, Lock, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { searchMovies, searchSeries, getImageUrl, getMovieTrailer, getSeriesTrailer } from "@/lib/tmdb";
 import type { Content, Episode } from "@/types/content";
@@ -145,17 +146,63 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           </Select>
         </div>
 
-        <div className="flex items-center space-x-2 p-4 bg-secondary/30 rounded-lg border border-primary/20">
-          <input
-            type="checkbox"
-            id="isPremium"
-            checked={editingContent.isPremium || false}
-            onChange={(e) => setEditingContent(prev => ({ ...prev, isPremium: e.target.checked }))}
-            className="w-4 h-4 accent-primary"
-          />
-          <Label htmlFor="isPremium" className="cursor-pointer font-medium">
-            🔒 Conteúdo Premium (requer assinatura)
-          </Label>
+        <div className="flex flex-col gap-4 p-4 bg-secondary/30 rounded-lg border border-border">
+          {/* Premium Toggle */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className={`p-2 rounded-full ${editingContent.isPremium ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                <Lock className={`w-5 h-5 ${editingContent.isPremium ? 'fill-current' : ''}`} />
+              </div>
+              <div className="flex flex-col">
+                <Label htmlFor="isPremium" className="cursor-pointer font-medium text-base">Conteúdo Premium</Label>
+                <span className="text-xs text-muted-foreground">Requer assinatura ativa para assistir</span>
+              </div>
+            </div>
+            <Switch
+              id="isPremium"
+              checked={editingContent.isPremium || false}
+              onCheckedChange={(checked) => setEditingContent(prev => ({ ...prev, isPremium: checked }))}
+              className="data-[state=checked]:bg-primary"
+            />
+          </div>
+
+          {/* New Content Toggle */}
+          <div className="flex items-center justify-between border-t border-border/50 pt-4">
+            <div className="flex items-center gap-2">
+              <div className={`p-2 rounded-full ${editingContent.is_new &&
+                editingContent.new_since &&
+                (new Date().getTime() - new Date(editingContent.new_since).getTime() < 86400000)
+                ? 'bg-red-500/20 text-red-500'
+                : 'bg-muted text-muted-foreground'
+                }`}>
+                <Sparkles className={`w-5 h-5 ${editingContent.is_new &&
+                  editingContent.new_since &&
+                  (new Date().getTime() - new Date(editingContent.new_since).getTime() < 86400000)
+                  ? 'fill-current'
+                  : ''
+                  }`} />
+              </div>
+              <div className="flex flex-col">
+                <Label className="cursor-pointer font-medium text-base">Conteúdo Novo</Label>
+                <span className="text-xs text-muted-foreground">Destacar como novidade por 24 horas</span>
+              </div>
+            </div>
+            <Switch
+              checked={
+                !!(editingContent.is_new &&
+                  editingContent.new_since &&
+                  (new Date().getTime() - new Date(editingContent.new_since).getTime() < 86400000))
+              }
+              onCheckedChange={(checked) => {
+                setEditingContent(prev => ({
+                  ...prev,
+                  is_new: checked,
+                  new_since: checked ? new Date().toISOString() : undefined
+                }));
+              }}
+              className="data-[state=checked]:bg-red-600"
+            />
+          </div>
         </div>
 
         {!isTV && (

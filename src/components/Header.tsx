@@ -177,7 +177,7 @@ export const Header = () => {
             <button onClick={() => navigate("/my-list")} className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white transition-colors">
               Minha Lista
             </button>
-            <button onClick={() => toast.info("Categorias em breve")} className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white transition-colors">
+            <button onClick={() => navigate("/categories")} className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white transition-colors">
               Categorias
             </button>
           </nav>

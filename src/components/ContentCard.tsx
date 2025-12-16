@@ -10,12 +10,17 @@ interface ContentCardProps {
   onInfo?: () => void;
   onDownload?: () => void;
   isPremium?: boolean;
+  isNew?: boolean;
+  newSince?: string;
+  category?: 'movie' | 'series' | 'tv';
 }
 
-export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload, isPremium }: ContentCardProps) => {
+export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload, isPremium, isNew, newSince, category }: ContentCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
   // Use only the sound helper, without installing key listeners
   const { playNavigationSound } = useKeyboardNavigation({ enabled: false });
+
+  const isActuallyNew = isNew && newSince && (new Date().getTime() - new Date(newSince).getTime() < 86400000);
 
   const handleButtonClick = (cb?: () => void) => (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -44,7 +49,8 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload, isPr
           className="w-full h-[200px] sm:h-[240px] object-cover"
           loading="lazy"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent transition-opacity duration-300 flex items-end p-3 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100">
+
+        <div className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent transition-opacity duration-300 flex items-end p-3 ${isActuallyNew ? 'pb-9' : ''} opacity-0 group-hover:opacity-100 group-focus-within:opacity-100`}>
           <div className="w-full space-y-2">
             <h3 className="text-foreground font-semibold text-sm mb-2 line-clamp-2">{title}</h3>
             <div className="flex justify-center gap-2">
@@ -82,6 +88,14 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload, isPr
             </div>
           </div>
         </div>
+
+        {isActuallyNew && (
+          <div className="absolute bottom-0 left-0 right-0 bg-[#E50914] py-1 z-20 flex justify-center items-center shadow-lg">
+            <span className="text-[10px] font-extrabold text-white uppercase tracking-widest drop-shadow-md leading-none">
+              {category === 'series' ? 'Nova Temporada' : 'Novidade'}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

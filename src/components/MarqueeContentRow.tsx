@@ -86,6 +86,9 @@ export const MarqueeContentRow = ({
                                     onInfo={() => onInfoContent(content)}
                                     onDownload={content.download_url ? () => onDownloadContent(content) : undefined}
                                     isPremium={content.isPremium}
+                                    isNew={content.is_new}
+                                    newSince={content.new_since}
+                                    category={content.category}
                                 />
                                 {showNumbers && (
                                     <div className="absolute -left-6 top-0 bottom-0 flex items-end pb-4 z-30 pointer-events-none">
