@@ -23,8 +23,6 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
   const dialogContentRef = useRef<HTMLDivElement>(null);
   const { profile, isAdmin } = useAuth();
   const navigate = useNavigate();
-  const [showBackButton, setShowBackButton] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
   const [showSourceMenu, setShowSourceMenu] = useState(false);
   const [currentSourceIndex, setCurrentSourceIndex] = useState(0);
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -45,14 +43,6 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
     return `${url}${separator}_t=${timestamp}`;
   }, [availableSources, currentSourceIndex]);
 
-  // Detectar se é mobile
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 768);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
-
   // Garante que o ESC feche o modal
   useKeyboardNavigation({
     enabled: open,
@@ -67,13 +57,6 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
     document.addEventListener("fullscreenchange", handleFullscreenChange);
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
-
-  // Para mobile: toggle ao clicar, esconde após 3s
-  useEffect(() => {
-    if (!isMobile || !showBackButton) return;
-    const timer = setTimeout(() => setShowBackButton(false), 3000);
-    return () => clearTimeout(timer);
-  }, [showBackButton, isMobile]);
 
   const toggleFullscreen = async () => {
     try {
@@ -211,13 +194,10 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
             {/* Iframe Container - Fullscreen com proteção */}
             <div
               ref={playerContainerRef}
-              className="relative w-full h-full group"
-              onMouseEnter={() => !isMobile && setShowBackButton(true)}
-              onMouseLeave={() => !isMobile && setShowBackButton(false)}
-              onClick={() => isMobile && setShowBackButton(prev => !prev)}
+              className="relative w-full h-full"
               onContextMenu={(e) => e.preventDefault()}
             >
-              {/* Botão Voltar - animação suave de fade */}
+              {/* Botão Voltar - sempre visível */}
               <Button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -225,22 +205,14 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
                 }}
                 variant="ghost"
                 size="icon"
-                className={`absolute top-6 left-6 z-50 w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20 transition-all duration-500 ease-in-out ${showBackButton
-                  ? 'opacity-100 translate-x-0 scale-100'
-                  : 'opacity-0 -translate-x-4 scale-90 pointer-events-none'
-                  } md:group-hover:opacity-100 md:group-hover:translate-x-0 md:group-hover:scale-100 md:group-hover:pointer-events-auto`}
+                className="absolute top-6 left-6 z-50 w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20"
                 title="Voltar"
               >
                 <ArrowLeft className="w-6 h-6" />
               </Button>
 
-              {/* Logo UniTvFilm - Next to back button */}
-              <div
-                className={`absolute top-6 left-20 z-50 flex items-center gap-2 px-4 py-2 text-white bg-black/50 backdrop-blur-md rounded-full shadow-lg border border-white/20 transition-all duration-500 ease-in-out ${showBackButton
-                  ? 'opacity-100 translate-x-0 scale-100'
-                  : 'opacity-0 -translate-x-4 scale-90 pointer-events-none'
-                  } md:group-hover:opacity-100 md:group-hover:translate-x-0 md:group-hover:scale-100`}
-              >
+              {/* Logo UniTvFilm - sempre visível */}
+              <div className="absolute top-6 left-20 z-50 flex items-center gap-2 px-4 py-2 text-white bg-black/50 backdrop-blur-md rounded-full shadow-lg border border-white/20">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center glow-effect">
                     <Film className="w-5 h-5 text-white" />
@@ -261,10 +233,7 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
                     }}
                     variant="ghost"
                     size="icon"
-                    className={`w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20 transition-all duration-500 ease-in-out ${showBackButton
-                      ? 'opacity-100 translate-x-0 scale-100'
-                      : 'opacity-0 translate-x-4 scale-90 pointer-events-none'
-                      } md:group-hover:opacity-100 md:group-hover:translate-x-0 md:group-hover:scale-100 md:group-hover:pointer-events-auto`}
+                    className="w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20"
                     title="Fontes de Vídeo"
                   >
                     <List className="w-6 h-6" />
@@ -304,10 +273,7 @@ export const ContentPlayerModal = ({ open, onClose, videoUrl, videoUrls, title, 
                   }}
                   variant="ghost"
                   size="icon"
-                  className={`w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20 transition-all duration-500 ease-in-out ${showBackButton
-                    ? 'opacity-100 translate-x-0 scale-100'
-                    : 'opacity-0 translate-x-4 scale-90 pointer-events-none'
-                    } md:group-hover:opacity-100 md:group-hover:translate-x-0 md:group-hover:scale-100 md:group-hover:pointer-events-auto`}
+                  className="w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20"
                   title={isFullscreen ? "Sair da Tela Cheia" : "Tela Cheia"}
                 >
                   {isFullscreen ? <Minimize className="w-6 h-6" /> : <Maximize className="w-6 h-6" />}
