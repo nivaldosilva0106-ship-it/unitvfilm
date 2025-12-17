@@ -49,11 +49,12 @@ export default function AdminPlans() {
                 description: editingPlan.description || "",
                 price: Number(editingPlan.price) || 0,
                 limits: {
-                    moviesPerDay: Number(editingPlan.limits.moviesPerDay),
-                    episodesPerDay: Number(editingPlan.limits.episodesPerDay),
-                    maxProfiles: Number(editingPlan.limits.maxProfiles) || 2,
-                    canDownload: editingPlan.limits.canDownload || false,
+                    moviesPerDay: editingPlan.requiresVerification ? -1 : Number(editingPlan.limits?.moviesPerDay ?? 2),
+                    episodesPerDay: editingPlan.requiresVerification ? -1 : Number(editingPlan.limits?.episodesPerDay ?? 1),
+                    maxProfiles: Number(editingPlan.limits?.maxProfiles) || 2,
+                    canDownload: editingPlan.limits?.canDownload || false,
                 },
+                durationDays: editingPlan.durationDays || 30, // Default 30
                 isActive: editingPlan.isActive ?? true,
                 requiresVerification: editingPlan.requiresVerification ?? false,
                 whatsappNumber: editingPlan.whatsappNumber || ""
@@ -188,22 +189,51 @@ export default function AdminPlans() {
                                         <Input value={editingPlan.description || ''} onChange={e => setEditingPlan({ ...editingPlan, description: e.target.value })} />
                                     </div>
 
+                                    <div className="space-y-2">
+                                        <Label>Duração do Plano (Dias)</Label>
+                                        <Select
+                                            value={String(editingPlan.durationDays || 30)}
+                                            onValueChange={(v) => setEditingPlan({ ...editingPlan, durationDays: Number(v) })}
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Selecione..." />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="7">1 Semana (7 dias)</SelectItem>
+                                                <SelectItem value="30">1 Mês (30 dias)</SelectItem>
+                                                <SelectItem value="90">3 Meses (90 dias)</SelectItem>
+                                                <SelectItem value="365">1 Ano (365 dias)</SelectItem>
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
                                     <div className="space-y-4 border-t border-border pt-4">
                                         <h4 className="font-semibold">Regras e Limites</h4>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div className="space-y-2">
-                                                <Label>Filmes por Dia (-1 = ilimitado)</Label>
-                                                <Input type="number" value={editingPlan.limits?.moviesPerDay ?? 2} onChange={e => setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits!, moviesPerDay: Number(e.target.value) } })} />
+                                        {/* Only show limits for Free plans (not requiring verification) */}
+                                        {!editingPlan.requiresVerification ? (
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="space-y-2">
+                                                    <Label>Filmes por Dia</Label>
+                                                    <Input type="number" value={editingPlan.limits?.moviesPerDay ?? 2} onChange={e => setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits!, moviesPerDay: Number(e.target.value) } })} />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>Episódios por Dia</Label>
+                                                    <Input type="number" value={editingPlan.limits?.episodesPerDay ?? 1} onChange={e => setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits!, episodesPerDay: Number(e.target.value) } })} />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <Label>Máximo de Perfis</Label>
+                                                    <Input type="number" value={editingPlan.limits?.maxProfiles ?? 2} onChange={e => setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits!, maxProfiles: Number(e.target.value) } })} />
+                                                </div>
                                             </div>
-                                            <div className="space-y-2">
-                                                <Label>Episódios por Dia (-1 = ilimitado)</Label>
-                                                <Input type="number" value={editingPlan.limits?.episodesPerDay ?? 1} onChange={e => setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits!, episodesPerDay: Number(e.target.value) } })} />
+                                        ) : (
+                                            <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg text-green-500 text-sm">
+                                                Planos pagos possuem acesso ilimitado a filmes e séries.
+                                                <div className="mt-2 text-white">
+                                                    <Label className="text-white mb-1 block">Máximo de Perfis</Label>
+                                                    <Input className="bg-black/20 border-white/10" type="number" value={editingPlan.limits?.maxProfiles ?? 2} onChange={e => setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits!, maxProfiles: Number(e.target.value) } })} />
+                                                </div>
                                             </div>
-                                            <div className="space-y-2">
-                                                <Label>Máximo de Perfis</Label>
-                                                <Input type="number" value={editingPlan.limits?.maxProfiles ?? 2} onChange={e => setEditingPlan({ ...editingPlan, limits: { ...editingPlan.limits!, maxProfiles: Number(e.target.value) } })} />
-                                            </div>
-                                        </div>
+                                        )}
 
                                         <div className="flex flex-col gap-4">
                                             <div className="flex items-center justify-between bg-zinc-900 p-3 rounded">

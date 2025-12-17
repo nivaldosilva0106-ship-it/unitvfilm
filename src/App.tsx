@@ -27,6 +27,7 @@ import VerifyCode from "./pages/VerifyCode";
 import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminAvatars } from "@/components/admin/AdminAvatars";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AuthGuard } from "@/components/AuthGuard";
 
 const queryClient = new QueryClient();
 
@@ -37,39 +38,43 @@ const App = () => (
         <Toaster />
         <Sonner />
         <FocusNavigator />
+
+
         <BrowserRouter>
           <GlobalContentProtection />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/admin" element={<Admin />} />
-            <Route path="/admin/ads" element={<AdminAds />} />
-            <Route path="/admin/payments" element={<AdminPayments />} />
-            <Route path="/admin/settings" element={<AdminSettings />} />
-            <Route path="/admin/slider" element={<AdminSlider />} />
-            <Route path="/admin/plans" element={<AdminPlans />} />
-            <Route path="/payment" element={<Payment />} />
-            <Route path="/content/:id" element={<ContentDetails />} />
-            <Route path="/my-list" element={<MyList />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/profiles" element={<ProfileSelection />} />
-            <Route path="/categories" element={<Categories />} />
-            <Route path="/verify-code" element={<VerifyCode />} />
+          <AuthGuard>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/admin" element={<Admin />} />
+              <Route path="/admin/ads" element={<AdminAds />} />
+              <Route path="/admin/payments" element={<AdminPayments />} />
+              <Route path="/admin/settings" element={<AdminSettings />} />
+              <Route path="/admin/slider" element={<AdminSlider />} />
+              <Route path="/admin/plans" element={<AdminPlans />} />
+              <Route path="/payment" element={<Payment />} />
+              <Route path="/content/:id" element={<ContentDetails />} />
+              <Route path="/my-list" element={<MyList />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/profiles" element={<ProfileSelection />} />
+              <Route path="/categories" element={<Categories />} />
+              <Route path="/verify-code" element={<VerifyCode />} />
 
-            <Route path="/admin/users" element={
-              <AdminLayout title="Gerenciar Usuários">
-                <AdminUsers />
-              </AdminLayout>
-            } />
+              <Route path="/admin/users" element={
+                <AdminLayout title="Gerenciar Usuários">
+                  <AdminUsers />
+                </AdminLayout>
+              } />
 
-            <Route path="/admin/avatars" element={
-              <AdminLayout title="Gerenciar Avatares">
-                <AdminAvatars />
-              </AdminLayout>
-            } />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+              <Route path="/admin/avatars" element={
+                <AdminLayout title="Gerenciar Avatares">
+                  <AdminAvatars />
+                </AdminLayout>
+              } />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </AuthGuard>
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>

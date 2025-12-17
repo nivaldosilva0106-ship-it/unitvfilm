@@ -1,4 +1,4 @@
-import { Film, Search, User, LogOut, List, Settings, Home, Download, ChevronDown } from "lucide-react";
+import { Film, Search, User, LogOut, List, Settings, Home, Download, ChevronDown, Clapperboard, Tv } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -259,16 +259,37 @@ export const Header = () => {
 
             {/* Credits Display for Limited Plans */}
             {user && plan && (plan.limits.moviesPerDay !== -1 || plan.limits.episodesPerDay !== -1) && (
-              <div className="hidden md:flex flex-col items-end text-xs mr-2">
+              <div className="hidden md:flex items-center gap-3 mr-4">
+                {/* Movies Pill */}
                 {plan.limits.moviesPerDay !== -1 && (
-                  <span className={`${(profile?.credits?.moviesWatched || 0) >= plan.limits.moviesPerDay ? 'text-red-500' : 'text-green-500'}`}>
-                    Filmes: {plan.limits.moviesPerDay - (profile?.credits?.moviesWatched || 0)}/{plan.limits.moviesPerDay}
-                  </span>
+                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-md transition-all ${(profile?.credits?.moviesWatched || 0) >= plan.limits.moviesPerDay
+                      ? 'bg-red-500/10 border-red-500/50 text-red-500'
+                      : 'bg-white/5 border-white/10 text-gray-300'
+                    }`}>
+                    <Clapperboard className="w-3.5 h-3.5" />
+                    <div className="flex flex-col leading-none">
+                      <span className="text-[10px] uppercase font-bold text-gray-400">Filmes</span>
+                      <span className="text-xs font-bold text-white">
+                        {plan.limits.moviesPerDay - (profile?.credits?.moviesWatched || 0)} <span className="text-gray-500 text-[10px] font-normal">/ {plan.limits.moviesPerDay}</span>
+                      </span>
+                    </div>
+                  </div>
                 )}
+
+                {/* Episodes Pill */}
                 {plan.limits.episodesPerDay !== -1 && (
-                  <span className={`${(profile?.credits?.episodesWatched || 0) >= plan.limits.episodesPerDay ? 'text-red-500' : 'text-green-500'}`}>
-                    Episódios: {plan.limits.episodesPerDay - (profile?.credits?.episodesWatched || 0)}/{plan.limits.episodesPerDay}
-                  </span>
+                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-md transition-all ${(profile?.credits?.episodesWatched || 0) >= plan.limits.episodesPerDay
+                      ? 'bg-red-500/10 border-red-500/50 text-red-500'
+                      : 'bg-white/5 border-white/10 text-gray-300'
+                    }`}>
+                    <Tv className="w-3.5 h-3.5" />
+                    <div className="flex flex-col leading-none">
+                      <span className="text-[10px] uppercase font-bold text-gray-400">Séries</span>
+                      <span className="text-xs font-bold text-white">
+                        {plan.limits.episodesPerDay - (profile?.credits?.episodesWatched || 0)} <span className="text-gray-500 text-[10px] font-normal">/ {plan.limits.episodesPerDay}</span>
+                      </span>
+                    </div>
+                  </div>
                 )}
               </div>
             )}

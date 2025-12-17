@@ -76,7 +76,11 @@ const Signup = () => {
       // I'll update `signUp` in firebase.ts LATER or just use `update(ref(..., profiles/uid))` here?
       // I'll use `update` here.
 
-      const { user } = await signUp(email, password, selectedPlan.price > 0 ? 'basic' : 'free');
+      const needsVerification = selectedPlan.requiresVerification;
+      const status = needsVerification ? 'pending_payment' : 'active';
+      const subscriptionTier = selectedPlan.price > 0 ? 'premium' : 'free';
+
+      const { user } = await signUp(email, password, subscriptionTier, selectedPlan.id, status);
 
       // Update additional profile info
       const { ref, update, getDatabase } = await import('firebase/database');

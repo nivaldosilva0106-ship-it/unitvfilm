@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, set, get, remove, update, push } from 'firebase/database';
+import { getDatabase, ref, set, get, remove, update, push, onValue, off } from 'firebase/database';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously as firebaseSignInAnonymously, User } from 'firebase/auth';
 
 import type { Content } from '@/types/content';
@@ -73,7 +73,7 @@ export const deleteContent = async (id: string) => {
 };
 
 // Authentication functions
-export const signUp = async (email: string, password: string, subscriptionTier: SubscriptionTier = 'free') => {
+export const signUp = async (email: string, password: string, subscriptionTier: SubscriptionTier = 'free', planId = 'free', status: 'active' | 'pending_payment' = 'active') => {
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
 
@@ -83,6 +83,8 @@ export const signUp = async (email: string, password: string, subscriptionTier: 
     email: user.email || '',
     isPremium: subscriptionTier !== 'free',
     subscriptionTier,
+    planId,
+    status,
     subscriptionExpiresAt: null,
     createdAt: new Date().toISOString(),
   };
@@ -111,6 +113,17 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
     return snapshot.val();
   }
   return null;
+};
+
+export const subscribeToUserProfile = (userId: string, callback: (profile: UserProfile | null) => void) => {
+  const profileRef = ref(database, `profiles/${userId}`);
+  return onValue(profileRef, (snapshot) => {
+    if (snapshot.exists()) {
+      callback(snapshot.val());
+    } else {
+      callback(null);
+    }
+  });
 };
 
 export const updateUserProfile = async (userId: string, updates: Partial<UserProfile>) => {
@@ -517,13 +530,41 @@ export const incrementDailyUsage = async (userId: string, type: 'movie' | 'episo
 };
 
 export const assignPlanToUser = async (userId: string, planId: string) => {
+  let duration = 30; // Default
+
+  if (planId !== 'free') {
+    const planSnapshot = await get(ref(database, `plans/${planId}`));
+    if (planSnapshot.exists()) {
+      const pData = planSnapshot.val();
+      if (pData.durationDays) duration = pData.durationDays;
+    }
+  }
+
   const expires = new Date();
-  expires.setDate(expires.getDate() + 30);
+  expires.setDate(expires.getDate() + duration);
 
   await update(ref(database, `profiles/${userId}`), {
     planId: planId,
-    subscriptionTier: 'premium',
-    isPremium: true,
-    subscriptionExpiresAt: expires.toISOString()
+    subscriptionTier: planId === 'free' ? 'free' : 'premium',
+    isPremium: planId !== 'free',
+    subscriptionExpiresAt: planId === 'free' ? null : expires.toISOString(),
+    status: 'active'
   });
+};
+
+export const checkPlanExpiration = async (userId: string) => {
+  const profileRef = ref(database, `profiles/${userId}`);
+  const snapshot = await get(profileRef);
+  if (snapshot.exists()) {
+    const profile = snapshot.val() as UserProfile;
+    if (profile.subscriptionExpiresAt) {
+      const expires = new Date(profile.subscriptionExpiresAt);
+      if (expires < new Date()) {
+        // Expired! Downgrade to free
+        await assignPlanToUser(userId, 'free');
+        return true;
+      }
+    }
+  }
+  return false;
 };

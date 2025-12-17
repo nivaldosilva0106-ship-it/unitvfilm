@@ -15,6 +15,7 @@ export interface UserProfile {
     episodesWatched: number;
   };
   planId?: string;
+  status?: 'active' | 'pending_payment';
 }
 
 export interface Plan {
@@ -29,6 +30,7 @@ export interface Plan {
     maxProfiles: number;
     deviceLimit?: number;
   };
+  durationDays?: number; // 7, 30, 90, 365
   isActive: boolean;
   requiresVerification: boolean;
   whatsappNumber?: string; // For redirect

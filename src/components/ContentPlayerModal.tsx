@@ -50,7 +50,7 @@ export const ContentPlayerModal = ({
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const dialogContentRef = useRef<HTMLDivElement>(null);
-  const { profile, isAdmin, checkAccess } = useAuth();
+  const { profile, isAdmin, checkAccess, plan } = useAuth();
   const navigate = useNavigate();
 
   const [showSourceMenu, setShowSourceMenu] = useState(false);
@@ -87,7 +87,8 @@ export const ContentPlayerModal = ({
         setAccessState({ granted: false, reason: access.reason });
       }
     }
-  }, [open, title, episodeTitle, isPremium, category, profile, isAdmin]); // Dep changes re-trigger
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, title, episodeTitle, isPremium, category]); // Removed profile/isAdmin to prevent re-check after increment
 
   const watchingCardTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -295,6 +296,9 @@ export const ContentPlayerModal = ({
                 onClick={(e) => {
                   e.stopPropagation();
                   onClose();
+                  if (plan?.id === 'free') {
+                    window.location.reload();
+                  }
                 }}
                 variant="ghost"
                 size="icon"
@@ -385,10 +389,79 @@ export const ContentPlayerModal = ({
                 </div>
               </div>
 
-              {/* Suggestions Logic */}
+              {/* Interactive Suggestion Pill - Bottom Right */}
               {suggestions && suggestions.length > 0 && (
                 <div className="absolute bottom-6 right-24 z-50">
-                  {/* Suggestion content omitted for brevity/simplicity, logic is similar to before */}
+                  <div className="group relative flex items-end justify-end">
+                    {/* Suggestion List Dropdown (Up) */}
+                    <div className="absolute bottom-full right-0 mb-3 w-64 bg-black/90 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+                      <div className="p-3">
+                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-2 px-1 tracking-wider">Mais sugestões</p>
+                        <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20">
+                          {suggestions.slice(1, 6).map((item, idx) => (
+                            <div
+                              key={idx}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (onPlayContent) {
+                                  onPlayContent(item);
+                                } else {
+                                  navigate(`/content/${item.id}`);
+                                }
+                              }}
+                              className="flex gap-2 p-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors group/item"
+                            >
+                              <img src={item.thumbnail_url} className="w-10 h-14 object-cover rounded-md bg-gray-800 shadow-sm" />
+                              <div className="flex flex-col justify-center min-w-0">
+                                <span className="text-xs text-white font-medium line-clamp-2 group-hover/item:text-primary transition-colors">{item.title}</span>
+                                {item.rating && (
+                                  <div className="flex items-center gap-1 mt-1">
+                                    <Star className="w-2 h-2 text-yellow-500 fill-yellow-500" />
+                                    <span className="text-[10px] text-gray-400 font-medium">{item.rating.toFixed(1)}</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* The Main Pill Trigger */}
+                    <div
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onPlayContent) {
+                          onPlayContent(suggestions[0]);
+                        } else {
+                          navigate(`/content/${suggestions[0].id}`);
+                        }
+                      }}
+                      className="flex items-center gap-3 bg-black/40 hover:bg-black/80 backdrop-blur-md border border-white/10 rounded-full pl-1 pr-4 py-1.5 cursor-pointer transition-all duration-300 group-hover:border-white/30 group-hover:scale-105"
+                    >
+                      <div className="relative flex-shrink-0">
+                        <img
+                          src={suggestions[0].thumbnail_url}
+                          alt={suggestions[0].title}
+                          className="w-9 h-9 rounded-full object-cover border border-white/20 shadow-md"
+                        />
+                        {suggestions[0].isPremium && (
+                          <div className="absolute -top-1 -right-1 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full p-0.5 shadow-sm">
+                            <Crown className="w-2 h-2 text-black fill-black" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="flex flex-col">
+                        <span className="text-[9px] text-primary uppercase font-bold tracking-wider leading-none mb-0.5">Você já assistiu?</span>
+                        <h4 className="text-xs text-white font-bold max-w-[140px] truncate leading-tight">
+                          {suggestions[0].title}
+                        </h4>
+                      </div>
+
+                      <ChevronUp className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors flex-shrink-0 ml-1" />
+                    </div>
+                  </div>
                 </div>
               )}
 
