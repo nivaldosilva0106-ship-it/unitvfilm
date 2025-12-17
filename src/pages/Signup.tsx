@@ -145,7 +145,20 @@ const Signup = () => {
               <div key={plan.id} className={`bg-zinc-900 border ${plan.price > 0 ? 'border-primary' : 'border-zinc-800'} rounded-xl p-6 hover:scale-105 transition-transform cursor-pointer flex flex-col`} onClick={() => handlePlanSelect(plan)}>
                 <div className="flex-1">
                   <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
-                  <p className="text-3xl font-bold text-primary mb-4">{plan.price > 0 ? `${plan.price} AOA` : 'Grátis'}<span className="text-sm text-gray-400 font-normal">/mês</span></p>
+                  <div className="flex items-baseline gap-1 mb-4">
+                    <p className="text-3xl font-bold text-primary">
+                      {plan.price > 0 ? `${plan.price} KZ` : 'Grátis'}
+                    </p>
+                    {plan.price > 0 && (
+                      <span className="text-sm text-gray-400 font-normal">
+                        / {plan.durationDays === 7 ? '1 Semana' :
+                          plan.durationDays === 30 ? '1 Mês' :
+                            plan.durationDays === 90 ? '3 Meses' :
+                              plan.durationDays === 365 ? '1 Ano' :
+                                `${plan.durationDays} dias`}
+                      </span>
+                    )}
+                  </div>
                   <ul className="space-y-3 mb-6">
                     <li className="flex items-center gap-2 text-gray-300">
                       <Check className="w-4 h-4 text-green-500" />

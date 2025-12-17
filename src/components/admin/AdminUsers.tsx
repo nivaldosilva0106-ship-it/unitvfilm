@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
-import { getAllUsers, getAccountProfiles } from '@/lib/firebase';
+import { getAllUsers, getAccountProfiles, deleteUserProfile } from '@/lib/firebase';
 import { UserProfile, Profile } from '@/types/user';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Users, Search, ChevronDown, ChevronUp, Shield, Lock, Baby, User as UserIcon } from 'lucide-react';
+import { Users, Search, ChevronDown, ChevronUp, Shield, Lock, Baby, User as UserIcon, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 export const AdminUsers = () => {
@@ -49,6 +49,18 @@ export const AdminUsers = () => {
                 toast.error("Erro ao carregar perfis do usuário");
             } finally {
                 setLoadingProfiles(false);
+            }
+        }
+    };
+
+    const handleDeleteUser = async (userId: string, userEmail: string) => {
+        if (window.confirm(`Tem certeza que deseja EXCLUIR o usuário ${userEmail}? Esta ação removerá todos os dados e perfis associados.`)) {
+            try {
+                await deleteUserProfile(userId);
+                toast.success("Usuário removido com sucesso");
+                loadUsers(); // Reload list
+            } catch (e) {
+                toast.error("Erro ao remover usuário");
             }
         }
     };
@@ -157,6 +169,14 @@ export const AdminUsers = () => {
                                                     className="h-8 w-8 p-0"
                                                 >
                                                     {expandedUserId === user.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => handleDeleteUser(user.id, user.email)}
+                                                    className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-500/10 ml-2"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
                                                 </Button>
                                             </td>
                                         </tr>

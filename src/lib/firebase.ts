@@ -8,7 +8,7 @@ import type { Ad } from '@/types/ad';
 import type { Payment } from '@/types/payment';
 
 // Firebase configuration for UniTvFilm
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: "AIzaSyAWr4do1UXOBd5Hd08OxNv-yztUOlH6wQM",
   databaseURL: "https://unitvfilm-678d5-default-rtdb.firebaseio.com/",
   projectId: "unitvfilm-678d5",
@@ -146,9 +146,16 @@ export const addToMyList = async (userId: string, content: Content) => {
   return item;
 };
 
+// ...
 export const removeFromMyList = async (userId: string, itemId: string) => {
   const itemRef = ref(database, `myList/${userId}/${itemId}`);
   await remove(itemRef);
+};
+
+export const deleteUserProfile = async (userId: string) => {
+  await remove(ref(database, `profiles/${userId}`));
+  await remove(ref(database, `accountProfiles/${userId}`));
+  await remove(ref(database, `myList/${userId}`));
 };
 
 export const getMyList = async (userId: string): Promise<MyListItem[]> => {

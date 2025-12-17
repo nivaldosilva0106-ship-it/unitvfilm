@@ -23,6 +23,7 @@ import GlobalContentProtection from "@/components/GlobalContentProtection";
 import ProfileSelection from "@/pages/profiles/ProfileSelection";
 import Categories from "./pages/Categories";
 import VerifyCode from "./pages/VerifyCode";
+import AdminSystem from "./pages/AdminSystem";
 
 import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminAvatars } from "@/components/admin/AdminAvatars";
@@ -53,6 +54,7 @@ const App = () => (
               <Route path="/admin/settings" element={<AdminSettings />} />
               <Route path="/admin/slider" element={<AdminSlider />} />
               <Route path="/admin/plans" element={<AdminPlans />} />
+              <Route path="/admin/system" element={<AdminSystem />} />
               <Route path="/payment" element={<Payment />} />
               <Route path="/content/:id" element={<ContentDetails />} />
               <Route path="/my-list" element={<MyList />} />
