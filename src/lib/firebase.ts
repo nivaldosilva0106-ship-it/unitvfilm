@@ -345,7 +345,11 @@ export const getSliderSettings = async (): Promise<SliderSettings> => {
   const sliderRef = ref(database, 'sliderSettings');
   const snapshot = await get(sliderRef);
   if (snapshot.exists()) {
-    return snapshot.val();
+    const data = snapshot.val();
+    return {
+      mode: data.mode || 'random',
+      selectedContentIds: data.selectedContentIds || []
+    };
   }
   return { mode: 'random', selectedContentIds: [] };
 };
