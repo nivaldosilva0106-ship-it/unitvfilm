@@ -63,6 +63,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.error("Error restoring profile", e);
           }
         }
+
+        // Auto-select dummy profile for Guest users
+        if (firebaseUser.isAnonymous) {
+          const guestProfile: Profile = {
+            id: 'guest',
+            name: 'Convidado',
+            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=guest',
+            isKids: false,
+            createdAt: new Date().toISOString()
+          };
+          setCurrentProfile(guestProfile);
+        }
       } else {
         setProfile(null);
         setPlan(null);

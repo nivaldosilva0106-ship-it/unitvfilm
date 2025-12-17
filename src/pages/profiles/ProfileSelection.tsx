@@ -56,11 +56,20 @@ export default function ProfileSelection() {
     const canCreateProfile = profiles.length < maxProfiles;
 
     useEffect(() => {
-        if (user) {
-            loadProfiles();
-            loadAvatars();
+        // Redirect Guest users to Home
+        if (user?.isAnonymous) {
+            navigate('/');
+            return;
         }
-    }, [user]);
+
+        if (!user) {
+            navigate('/login');
+            return;
+        }
+
+        loadProfiles();
+        loadAvatars();
+    }, [user, navigate]);
 
     const loadProfiles = async () => {
         if (!user) return;
@@ -96,14 +105,14 @@ export default function ProfileSelection() {
                 setPinAttempts(0);
                 setIsLocked(false);
                 setRemainingLockTime(0);
-                
+
                 // Check if profile is locked
                 if (profile.lockoutUntil && new Date(profile.lockoutUntil) > new Date()) {
                     const remaining = Math.ceil((new Date(profile.lockoutUntil).getTime() - Date.now()) / 60000);
                     setIsLocked(true);
                     setRemainingLockTime(remaining);
                 }
-                
+
                 setShowPinModal(true);
             } else {
                 doSelectProfile(profile);
@@ -118,7 +127,7 @@ export default function ProfileSelection() {
 
     const handlePinSubmit = async () => {
         if (!pinTargetProfile || !userId) return;
-        
+
         if (isLocked) {
             toast.error(`Perfil bloqueado. Aguarde ${remainingLockTime} minutos ou contacte o admin.`);
             return;
@@ -127,7 +136,7 @@ export default function ProfileSelection() {
         setFormLoading(true);
         try {
             const result = await validatePin(userId, pinTargetProfile.id, currentPinInput);
-            
+
             if (result.success) {
                 setShowPinModal(false);
                 doSelectProfile(pinTargetProfile);
@@ -166,19 +175,19 @@ export default function ProfileSelection() {
         setNewPin("");
         setConfirmPin("");
         setCurrentPinInput("");
-        
+
         // If profile has PIN, need to validate before editing
         if (profile.pin) {
             setPinTargetProfile(profile);
             setPinAttempts(0);
             setIsLocked(false);
-            
+
             if (profile.lockoutUntil && new Date(profile.lockoutUntil) > new Date()) {
                 const remaining = Math.ceil((new Date(profile.lockoutUntil).getTime() - Date.now()) / 60000);
                 setIsLocked(true);
                 setRemainingLockTime(remaining);
             }
-            
+
             setShowEditPinModal(true);
         } else {
             setShowAddModal(true);
@@ -187,7 +196,7 @@ export default function ProfileSelection() {
 
     const handleEditPinValidation = async () => {
         if (!editingProfile || !userId) return;
-        
+
         if (isLocked) {
             toast.error(`Perfil bloqueado. Aguarde ${remainingLockTime} minutos.`);
             return;
@@ -196,7 +205,7 @@ export default function ProfileSelection() {
         setFormLoading(true);
         try {
             const result = await validatePin(userId, editingProfile.id, currentPinInput);
-            
+
             if (result.success) {
                 setShowEditPinModal(false);
                 setShowAddModal(true);
@@ -313,7 +322,7 @@ export default function ProfileSelection() {
         setFormLoading(true);
         try {
             const result = await verifyRecoveryCode(recoveryCode.trim().toUpperCase(), userId);
-            
+
             if (result.success) {
                 setRecoveryStep('newpin');
                 toast.success("Código válido! Defina seu novo PIN.");
@@ -329,7 +338,7 @@ export default function ProfileSelection() {
 
     const handleRecoveryPinSave = async () => {
         if (!userId) return;
-        
+
         const targetProfile = pinTargetProfile || editingProfile;
         if (!targetProfile) {
             toast.error("Perfil não encontrado");
@@ -352,7 +361,7 @@ export default function ProfileSelection() {
                 pinAttempts: 0,
                 lockoutUntil: null
             });
-            
+
             toast.success("PIN redefinido com sucesso!");
             setShowForgotPinModal(false);
             loadProfiles();
@@ -473,7 +482,7 @@ export default function ProfileSelection() {
                                         {editingProfile?.pin ? "Alterar PIN (deixe vazio para manter)" : "Definir PIN (Opcional)"}
                                     </Label>
                                 </div>
-                                
+
                                 <div className="grid grid-cols-2 gap-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="newPin" className="text-sm text-zinc-500">Novo PIN</Label>
@@ -533,7 +542,7 @@ export default function ProfileSelection() {
                     <DialogHeader>
                         <DialogTitle className="text-center pb-4">Digite o PIN de {pinTargetProfile?.name}</DialogTitle>
                     </DialogHeader>
-                    
+
                     {isLocked ? (
                         <div className="py-6 text-center space-y-4">
                             <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto" />
@@ -541,7 +550,7 @@ export default function ProfileSelection() {
                             <p className="text-zinc-400 text-sm">
                                 Excedeu o número de tentativas. Aguarde {remainingLockTime} minutos ou contacte o administrador.
                             </p>
-                            <Button 
+                            <Button
                                 onClick={handleForgotPin}
                                 className="w-full bg-green-600 hover:bg-green-700 text-white"
                             >
@@ -575,8 +584,8 @@ export default function ProfileSelection() {
                                 <Button onClick={handlePinSubmit} disabled={formLoading} className="w-full bg-primary hover:bg-primary/90">
                                     Entrar
                                 </Button>
-                                <Button 
-                                    variant="ghost" 
+                                <Button
+                                    variant="ghost"
                                     onClick={handleForgotPin}
                                     className="w-full text-zinc-400 hover:text-white"
                                 >
@@ -595,7 +604,7 @@ export default function ProfileSelection() {
                     <DialogHeader>
                         <DialogTitle className="text-center pb-4">Digite o PIN para editar {editingProfile?.name}</DialogTitle>
                     </DialogHeader>
-                    
+
                     {isLocked ? (
                         <div className="py-6 text-center space-y-4">
                             <AlertTriangle className="w-16 h-16 text-yellow-500 mx-auto" />
@@ -603,7 +612,7 @@ export default function ProfileSelection() {
                             <p className="text-zinc-400 text-sm">
                                 Excedeu o número de tentativas. Aguarde {remainingLockTime} minutos ou contacte o administrador.
                             </p>
-                            <Button 
+                            <Button
                                 onClick={handleForgotPin}
                                 className="w-full bg-green-600 hover:bg-green-700 text-white"
                             >
@@ -637,8 +646,8 @@ export default function ProfileSelection() {
                                 <Button onClick={handleEditPinValidation} disabled={formLoading} className="w-full bg-primary hover:bg-primary/90">
                                     Validar e Editar
                                 </Button>
-                                <Button 
-                                    variant="ghost" 
+                                <Button
+                                    variant="ghost"
                                     onClick={handleForgotPin}
                                     className="w-full text-zinc-400 hover:text-white"
                                 >
@@ -660,16 +669,16 @@ export default function ProfileSelection() {
                             Recuperar PIN
                         </DialogTitle>
                     </DialogHeader>
-                    
+
                     {recoveryStep === 'code' ? (
                         <div className="py-6 space-y-6">
                             <div className="text-center space-y-2">
                                 <p className="text-zinc-400 text-sm">
-                                    Uma janela do WhatsApp foi aberta para contactar o administrador. 
+                                    Uma janela do WhatsApp foi aberta para contactar o administrador.
                                     Aguarde o código de recuperação e insira abaixo.
                                 </p>
                             </div>
-                            
+
                             <div className="space-y-2">
                                 <Label>Código de Recuperação</Label>
                                 <Input
@@ -683,15 +692,15 @@ export default function ProfileSelection() {
                             </div>
 
                             <div className="flex flex-col gap-2">
-                                <Button 
-                                    onClick={handleRecoveryCodeSubmit} 
+                                <Button
+                                    onClick={handleRecoveryCodeSubmit}
                                     disabled={formLoading || !recoveryCode.trim()}
                                     className="w-full bg-primary hover:bg-primary/90"
                                 >
                                     Validar Código
                                 </Button>
-                                <Button 
-                                    variant="ghost" 
+                                <Button
+                                    variant="ghost"
                                     onClick={() => {
                                         const message = encodeURIComponent(
                                             `🔐 Solicitação de Recuperação de PIN\n\n` +
@@ -717,7 +726,7 @@ export default function ProfileSelection() {
                                 <p className="text-green-500 font-medium">Código válido!</p>
                                 <p className="text-zinc-400 text-sm">Defina um novo PIN para o perfil.</p>
                             </div>
-                            
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
                                     <Label>Novo PIN</Label>
@@ -751,8 +760,8 @@ export default function ProfileSelection() {
                                 </div>
                             </div>
 
-                            <Button 
-                                onClick={handleRecoveryPinSave} 
+                            <Button
+                                onClick={handleRecoveryPinSave}
                                 disabled={formLoading || recoveryNewPin.length !== 4}
                                 className="w-full bg-primary hover:bg-primary/90"
                             >

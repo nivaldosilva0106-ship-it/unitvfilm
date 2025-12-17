@@ -8,6 +8,7 @@ interface MarqueeContentRowProps {
     contents: Content[];
     onPlayContent: (content: Content) => void;
     onInfoContent: (content: Content) => void;
+    onDetailsContent?: (content: Content) => void;
     onDownloadContent: (content: Content) => void;
     showNumbers?: boolean;
 }
@@ -17,6 +18,7 @@ export const MarqueeContentRow = ({
     contents,
     onPlayContent,
     onInfoContent,
+    onDetailsContent,
     onDownloadContent,
     showNumbers = false,
 }: MarqueeContentRowProps) => {
@@ -84,6 +86,7 @@ export const MarqueeContentRow = ({
                                     thumbnail={content.thumbnail_url}
                                     onPlay={() => onPlayContent(content)}
                                     onInfo={() => onInfoContent(content)}
+                                    onDetails={() => onDetailsContent?.(content)}
                                     onDownload={content.download_url ? () => onDownloadContent(content) : undefined}
                                     isPremium={content.isPremium}
                                     isNew={content.is_new}

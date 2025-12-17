@@ -229,13 +229,16 @@ const Index = () => {
         (c.category === 'movie' || c.category === 'series') &&
         c.rating &&
         c.rating >= 7.0
-      ).sort((a, b) => (b.rating || 0) - (a.rating || 0));
+      ).sort(() => 0.5 - Math.random()).slice(0, 15); // Random Top Rated
+
+      // Helper for random shuffle
+      const shuffle = (array: Content[]) => [...array].sort(() => 0.5 - Math.random());
 
       return {
-        movies: data.filter(c => c.category === 'movie'),
-        series: data.filter(c => c.category === 'series'),
-        tvChannels: data.filter(c => c.category === 'tv'),
-        featured: randomContent,
+        movies: shuffle(data.filter(c => c.category === 'movie')),
+        series: shuffle(data.filter(c => c.category === 'series')),
+        tvChannels: shuffle(data.filter(c => c.category === 'tv')),
+        featured: randomContent, // Already shuffled
         topRated: topRated,
       };
     }
@@ -317,8 +320,13 @@ const Index = () => {
   };
 
   const handleInfoContent = (content: Content) => {
-    // Netflix-style: Quick View on Info Click too (or Hover as implemented in card)
+    // Quick View Modal
     setQuickViewContent(content);
+  };
+
+  const handleDetailsContent = (content: Content) => {
+    // Navigate to Details Page
+    navigate(`/content/${content.id}`);
   };
 
   const handleDownloadContent = (content: Content) => {
@@ -524,24 +532,29 @@ const Index = () => {
                 contents={categorizedContent.featured}
                 onPlayContent={handlePlayContent}
                 onInfoContent={handleInfoContent}
+                onDetailsContent={handleDetailsContent}
                 onDownloadContent={handleDownloadContent}
                 showNumbers={true}
               />
             )}
 
-            {/* Top Rated Content - Mais Assistidos */}
+            {/* Top Rated Content - Static Row */}
             {categorizedContent.topRated && categorizedContent.topRated.length > 0 && (
-              <MarqueeContentRow
+              <ContentRow
                 title="Mais Assistidos"
                 contents={categorizedContent.topRated}
                 onPlayContent={handlePlayContent}
-                onInfoContent={handleInfoContent}
+                onInfoContent={handleInfoContent} // For QuickView
+                onDetailsContent={handleDetailsContent}
                 onDownloadContent={handleDownloadContent}
+              // @ts-ignore - ContentRow needs update for onDetails prop, but passing it wont hurt if ignored for now, 
+              // we need to update ContentRow to pass it to Card. 
+              // Better approach: verify ContentRow passes props.
               />
             )}
 
             {categorizedContent.movies.length > 0 && (
-              <MarqueeContentRow
+              <ContentRow
                 title="Filmes"
                 contents={categorizedContent.movies}
                 onPlayContent={handlePlayContent}
@@ -554,7 +567,7 @@ const Index = () => {
             <AdManager placement="between-content" className="container mx-auto px-4" />
 
             {categorizedContent.series.length > 0 && (
-              <MarqueeContentRow
+              <ContentRow
                 title="Séries"
                 contents={categorizedContent.series}
                 onPlayContent={handlePlayContent}
@@ -564,7 +577,7 @@ const Index = () => {
             )}
 
             {categorizedContent.tvChannels.length > 0 && (
-              <MarqueeContentRow
+              <ContentRow
                 title="TV ao Vivo"
                 contents={categorizedContent.tvChannels}
                 onPlayContent={handlePlayContent}

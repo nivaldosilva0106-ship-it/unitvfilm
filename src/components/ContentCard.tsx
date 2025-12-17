@@ -7,7 +7,9 @@ interface ContentCardProps {
   title: string;
   thumbnail: string;
   onPlay?: () => void;
+  onPlay?: () => void;
   onInfo?: () => void;
+  onDetails?: () => void; // New Handler for Poster Click
   onDownload?: () => void;
   isPremium?: boolean;
   isNew?: boolean;
@@ -16,7 +18,7 @@ interface ContentCardProps {
   classification?: string; // e.g. '10', '12', '16', '18', 'L'
 }
 
-export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload, isPremium, isNew, newSince, category, classification }: ContentCardProps) => {
+export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDetails, onDownload, isPremium, isNew, newSince, category, classification }: ContentCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
   // Use only the sound helper, without installing key listeners
   const { playNavigationSound } = useKeyboardNavigation({ enabled: false });
@@ -35,7 +37,7 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload, isPr
     <div
       ref={cardRef}
       className="relative group min-w-[140px] sm:min-w-[160px] cursor-pointer card-hover rounded-lg transition-all"
-      onClick={() => onInfo?.()}
+      onClick={() => onDetails?.()} // Poster Click -> Details
     >
       {isPremium && (
         <div className="absolute top-2 right-2 z-10 bg-primary/90 backdrop-blur-sm px-2 py-1 rounded-full flex items-center gap-1">
