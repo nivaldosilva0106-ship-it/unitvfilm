@@ -4,7 +4,8 @@ import { Content } from "@/types/content";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { Button } from "./ui/button";
 import { useRef, useEffect, useState, useMemo } from "react";
-import ReactPlayer from 'react-player';
+import ReactPlayerComponent from 'react-player';
+const ReactPlayer = ReactPlayerComponent as any;
 import { useAuth } from "@/contexts/AuthContext";
 import { AdManager } from "./AdManager";
 import { useNavigate } from "react-router-dom";
@@ -397,8 +398,8 @@ export const ContentPlayerModal = ({
                     url={currentSource.url}
                     width="100%"
                     height="100%"
-                    controls={true}
-                    playing={true}
+                    controls
+                    playing
                     style={{ position: 'absolute', top: 0, left: 0 }}
                   />
                 </div>

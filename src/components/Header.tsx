@@ -26,7 +26,7 @@ declare global {
 
 export const Header = () => {
   const navigate = useNavigate();
-  const { user, isAdmin, logout } = useAuth();
+  const { user, profile, plan, isAdmin, logout } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Content[]>([]);
