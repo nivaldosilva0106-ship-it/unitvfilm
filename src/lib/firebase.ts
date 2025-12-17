@@ -115,6 +115,11 @@ export const logOut = async () => {
   return signOut(auth);
 };
 
+export const resetPassword = async (email: string) => {
+  const { sendPasswordResetEmail } = await import('firebase/auth');
+  return sendPasswordResetEmail(auth, email);
+};
+
 export const onAuthChange = (callback: (user: User | null) => void) => {
   return onAuthStateChanged(auth, callback);
 };
@@ -592,6 +597,55 @@ export const checkPlanExpiration = async (userId: string) => {
     }
   }
   return false;
+};
+
+export const verifyRecoveryCode = async (code: string, userId: string) => {
+  const codesRef = ref(database, 'verification_codes');
+  const snapshot = await get(codesRef);
+
+  if (snapshot.exists()) {
+    const codes = snapshot.val();
+    const foundCodeId = Object.keys(codes).find(key => {
+      const c = codes[key];
+      // Check code string, type, expiry, and ownership
+      return c.code === code &&
+        c.type === 'pin_reset' &&
+        !c.isUsed &&
+        new Date(c.expiresAt) > new Date() &&
+        (c.usedBy === userId || !c.usedBy); // Optional binding
+    });
+
+    if (foundCodeId) {
+      // Mark as used
+      await update(ref(database, `verification_codes/${foundCodeId}`), {
+        isUsed: true,
+        usedAt: new Date().toISOString(),
+        usedBy: userId
+      });
+
+      return { success: true };
+    }
+  }
+  return { success: false };
+};
+
+export const createRecoveryCode = async (userId: string) => {
+  // Admin function usually, but helper here for Admin Plans page
+  const code = Math.random().toString(36).substring(2, 8).toUpperCase();
+  const newCodeRef = push(ref(database, 'verification_codes'));
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+
+  await set(newCodeRef, {
+    id: newCodeRef.key,
+    code,
+    type: 'pin_reset',
+    createdAt: new Date().toISOString(),
+    expiresAt: expiresAt.toISOString(),
+    isUsed: false,
+    usedBy: userId
+  });
+  return code;
 };
 
 // ==========================================

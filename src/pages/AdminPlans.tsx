@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Copy, RefreshCw } from "lucide-react";
-import { getPlans, createPlan, updatePlan, createVerificationCode } from "@/lib/firebase";
+import { getPlans, createPlan, updatePlan, createVerificationCode, createRecoveryCode } from "@/lib/firebase";
 import type { Plan } from "@/types/user";
 
 export default function AdminPlans() {
@@ -21,6 +21,8 @@ export default function AdminPlans() {
     // Code Generator State
     const [selectedPlanId, setSelectedPlanId] = useState("");
     const [generatedCode, setGeneratedCode] = useState("");
+    const [codeType, setCodeType] = useState<'plan_activation' | 'pin_reset'>('plan_activation');
+    const [targetUserId, setTargetUserId] = useState(""); // For PIN reset
 
     useEffect(() => {
         loadPlans();
@@ -87,25 +89,35 @@ export default function AdminPlans() {
     };
 
     const handleGenerateCode = async () => {
-        if (!selectedPlanId) {
+        if (codeType === 'plan_activation' && !selectedPlanId) {
             toast.error("Selecione um plano");
             return;
         }
-
-        const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-        const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30); // 30 days validity default? Or 24h?
-        // "Código temporário... validade X horas/dias". Let's do 7 days.
-        expiresAt.setDate(new Date().getDate() + 7);
+        if (codeType === 'pin_reset' && !targetUserId.trim()) {
+            toast.error("Digite o ID do usuário para reset de PIN");
+            return;
+        }
 
         try {
-            await createVerificationCode({
-                code,
-                planId: selectedPlanId,
-                createdAt: new Date().toISOString(),
-                expiresAt: expiresAt.toISOString(),
-                isUsed: false
-            });
+            let code = "";
+            if (codeType === 'pin_reset') {
+                code = await createRecoveryCode(targetUserId.trim());
+            } else {
+                const result = await createVerificationCode({
+                    code: Math.random().toString(36).substring(2, 8).toUpperCase(),
+                    planId: selectedPlanId,
+                    type: 'plan_activation',
+                    createdAt: new Date().toISOString(),
+                    expiresAt: (() => {
+                        const d = new Date();
+                        d.setDate(d.getDate() + 7);
+                        return d.toISOString();
+                    })(),
+                    isUsed: false
+                });
+                code = result.code;
+            }
+
             setGeneratedCode(code);
             toast.success("Código gerado!");
         } catch (e) {
@@ -128,25 +140,54 @@ export default function AdminPlans() {
                     <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                         <RefreshCw className="w-5 h-5 text-primary" /> Gerador de Código
                     </h2>
-                    <div className="flex flex-col md:flex-row gap-4 items-end">
-                        <div className="space-y-2 flex-1">
-                            <Label>Selecione o Plano</Label>
-                            <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
-                                <SelectTrigger>
-                                    <SelectValue placeholder="Escolha um plano..." />
+
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                        <div className="space-y-2">
+                            <Label>Tipo de Código</Label>
+                            <Select value={codeType} onValueChange={(v: any) => setCodeType(v)}>
+                                <SelectTrigger className="bg-black/50 border-zinc-700">
+                                    <SelectValue placeholder="Selecione..." />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {plans.filter(p => p.requiresVerification).map(plan => (
-                                        <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>
-                                    ))}
+                                    <SelectItem value="plan_activation">Ativação de Plano</SelectItem>
+                                    <SelectItem value="pin_reset">Reset de PIN</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
-                        <Button onClick={handleGenerateCode} className="mb-[2px]">Gerar Código</Button>
+
+                        {codeType === 'plan_activation' ? (
+                            <div className="space-y-2 md:col-span-2">
+                                <Label>Selecione o Plano</Label>
+                                <Select value={selectedPlanId} onValueChange={setSelectedPlanId}>
+                                    <SelectTrigger className="bg-black/50 border-zinc-700">
+                                        <SelectValue placeholder="Escolha um plano..." />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {plans.filter(p => p.requiresVerification).map(plan => (
+                                            <SelectItem key={plan.id} value={plan.id}>{plan.name}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        ) : (
+                            <div className="space-y-2 md:col-span-2">
+                                <Label>ID do Usuário (UID)</Label>
+                                <Input
+                                    placeholder="Cole o ID do usuário..."
+                                    value={targetUserId}
+                                    onChange={e => setTargetUserId(e.target.value)}
+                                    className="bg-black/50 border-zinc-700"
+                                />
+                            </div>
+                        )}
+
+                        <Button onClick={handleGenerateCode} className="bg-primary hover:bg-primary/90 text-white">
+                            Gerar Código
+                        </Button>
                     </div>
 
                     {generatedCode && (
-                        <div className="mt-4 p-4 bg-black/40 rounded-lg flex items-center justify-between border border-primary/20">
+                        <div className="mt-6 p-4 bg-black/40 rounded-lg flex items-center justify-between border border-primary/20">
                             <div className="space-y-1">
                                 <Label className="text-xs text-muted-foreground">Código de Verificação</Label>
                                 <p className="text-2xl font-mono text-primary font-bold tracking-wider">{generatedCode}</p>

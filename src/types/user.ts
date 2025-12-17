@@ -42,7 +42,8 @@ export interface Plan {
 export interface VerificationCode {
   id: string; // Key
   code: string;
-  planId: string;
+  type?: 'plan_activation' | 'pin_reset';
+  planId?: string; // Optional now, as 'pin_reset' doesn't need it
   createdAt: string;
   expiresAt: string;
   isUsed: boolean;
@@ -64,6 +65,8 @@ export interface Profile {
   avatarUrl?: string; // Legacy support or alias? Let's stick to what code uses: avatar
   isKids: boolean;
   pin?: string;
+  pinAttempts?: number;
+  lockoutUntil?: string; // ISO timestamp
   createdAt: string;
 }
 

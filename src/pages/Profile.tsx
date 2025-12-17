@@ -3,24 +3,21 @@ import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  User, Mail, Crown, LogOut, Settings, Plus, Lock,
-  Edit2, Trash2, Shield, Globe, Bell, Smartphone, Camera, Check
+  Camera, Check, MessageCircle, Lock, AlertTriangle
 } from "lucide-react";
 import { toast } from "sonner";
-import { SUBSCRIPTION_BENEFITS } from "@/types/payment";
-import { getAccountProfiles, getAvatars, createAccountProfile, updateAccountProfile, deleteAccountProfile } from "@/lib/firebase";
+import { getAccountProfiles, getAvatars, createAccountProfile, updateAccountProfile, deleteAccountProfile, verifyRecoveryCode } from "@/lib/firebase";
 import { Profile as UserProfileType, Avatar } from "@/types/user";
 import { cn } from "@/lib/utils";
 
 const Profile = () => {
   const navigate = useNavigate();
-  const { user, profile: accountProfile, currentProfile, logout, selectProfile } = useAuth();
+  const { user, profile: accountProfile, currentProfile, logout, selectProfile, plan } = useAuth();
 
   // State
   const [profiles, setProfiles] = useState<UserProfileType[]>([]);
@@ -31,15 +28,25 @@ const Profile = () => {
   const [editingProfile, setEditingProfile] = useState<UserProfileType | null>(null);
   const [isAddingNew, setIsAddingNew] = useState(false);
 
+  // Recovery Modal
+  const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [recoveryCode, setRecoveryCode] = useState("");
+  const [recoveryStep, setRecoveryStep] = useState<'code' | 'new_pin'>('code');
+
   // Form State
   const [formName, setFormName] = useState("");
   const [formAvatar, setFormAvatar] = useState("");
   const [formIsKids, setFormIsKids] = useState(false);
-  const [formPin, setFormPin] = useState("");
+  const [formPin, setFormPin] = useState(""); // New PIN or Empty
+  const [currentPin, setCurrentPin] = useState(""); // Confirmation PIN
   const [formLoading, setFormLoading] = useState(false);
 
   // System Avatars
   const [systemAvatars, setSystemAvatars] = useState<Avatar[]>([]);
+
+  // Check Limits
+  const maxProfiles = plan?.limits?.maxProfiles || 2;
+  const canCreateProfile = profiles.length < maxProfiles;
 
   useEffect(() => {
     if (user) {
@@ -66,23 +73,14 @@ const Profile = () => {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      toast.success("Logout realizado com sucesso!");
-      navigate("/login");
-    } catch (error) {
-      toast.error("Erro ao fazer logout");
-    }
-  };
-
   const openEditModal = (p: UserProfileType | null) => {
     if (p) {
       setEditingProfile(p);
       setFormName(p.name);
-      setFormAvatar(p.avatarUrl);
+      setFormAvatar(p.avatar || p.avatarUrl || "");
       setFormIsKids(p.isKids);
-      setFormPin(p.pin || "");
+      setFormPin(""); // Don't show PIN
+      setCurrentPin("");
       setIsAddingNew(false);
     } else {
       // Adding new
@@ -91,6 +89,7 @@ const Profile = () => {
       setFormAvatar(systemAvatars[0]?.url || "");
       setFormIsKids(false);
       setFormPin("");
+      setCurrentPin("");
       setIsAddingNew(true);
     }
     setShowEditModal(true);
@@ -100,32 +99,40 @@ const Profile = () => {
     if (!user) return;
     if (!formName.trim()) { toast.error("Nome é obrigatório"); return; }
 
+    // Security Check: Verify Current PIN if editing and PIN is set
+    if (!isAddingNew && editingProfile?.pin) {
+      if (currentPin !== editingProfile.pin) {
+        toast.error("PIN atual incorreto");
+        return;
+      }
+    }
+
     setFormLoading(true);
     try {
-      const data = {
+      const data: any = {
         name: formName,
-        avatarUrl: formAvatar,
+        avatar: formAvatar,
         isKids: formIsKids,
-        pin: formPin.trim() || undefined
       };
 
+      // Update PIN only if user typed something
+      if (formPin.trim()) {
+        data.pin = formPin.trim();
+      }
+
       if (isAddingNew) {
+        // If adding new, PIN is optional but if typed, use it. 
+        // No current PIN check needed.
         await createAccountProfile(user.uid, data);
         toast.success("Perfil criado!");
       } else if (editingProfile) {
         await updateAccountProfile(user.uid, editingProfile.id, data);
         toast.success("Perfil atualizado!");
 
-        // If editing current profile, update context logic? 
-        // Context might need refresh or page reload. 
-        // For now, simpler to just reload profiles list.
         if (currentProfile?.id === editingProfile.id) {
-          // Update local currentProfile if needed or let user switch
-          // We will just reload data. The header might stay stale until refresh?
-          // Ideally AuthContext should expose a way to refresh.
-          // Or we can manually re-select.
           const updated = { ...editingProfile, ...data };
-          selectProfile(updated);
+          // Basic update, deeper update needs context refresh conceptually
+          // But visually this updates avatar/name
         }
       }
       setShowEditModal(false);
@@ -139,6 +146,13 @@ const Profile = () => {
 
   const handleDeleteProfile = async () => {
     if (!editingProfile || !user) return;
+
+    // Require PIN to delete too
+    if (editingProfile.pin && currentPin !== editingProfile.pin) {
+      toast.error("PIN atual incorreto para confirmar exclusão");
+      return;
+    }
+
     if (confirm(`Excluir perfil ${editingProfile.name}?`)) {
       setFormLoading(true);
       try {
@@ -147,8 +161,6 @@ const Profile = () => {
         setShowEditModal(false);
         loadData();
         if (currentProfile?.id === editingProfile.id) {
-          // Force switch or logout?
-          // Navigate to selection
           navigate("/profiles");
         }
       } catch (e) {
@@ -156,6 +168,58 @@ const Profile = () => {
       } finally {
         setFormLoading(false);
       }
+    }
+  };
+
+  const handleForgotPin = () => {
+    const message = `Olá, solicito a recuperação do PIN para o usuário ${user?.email} (${plan?.name || 'Plano'}).`;
+    const url = `https://wa.me/244944016791?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+
+    // Close Edit, Open Recovery
+    setShowEditModal(false);
+    setRecoveryStep('code');
+    setRecoveryCode("");
+    setFormPin("");
+    setShowRecoveryModal(true);
+  };
+
+  const handleVerifyRecoveryCode = async () => {
+    if (!user) return;
+    if (!recoveryCode) return;
+
+    setFormLoading(true);
+    try {
+      const result = await verifyRecoveryCode(recoveryCode, user.uid);
+      if (result.success) {
+        setRecoveryStep('new_pin');
+        toast.success("Código validado. Defina o novo PIN.");
+      } else {
+        toast.error("Código inválido ou expirado.");
+      }
+    } catch (e) {
+      toast.error("Erro na verificação");
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  const handleResetPin = async () => {
+    if (!user || !editingProfile) return;
+    if (!formPin) { toast.error("Digite o novo PIN"); return; }
+
+    setFormLoading(true);
+    try {
+      // Reset PIN for the profile that was being edited when "Forgot PIN" was clicked
+      // We saved 'editingProfile' state.
+      await updateAccountProfile(user.uid, editingProfile.id, { pin: formPin });
+      toast.success("PIN redefinido com sucesso!");
+      setShowRecoveryModal(false);
+      loadData();
+    } catch (e) {
+      toast.error("Erro ao redefinir PIN");
+    } finally {
+      setFormLoading(false);
     }
   };
 
@@ -171,16 +235,18 @@ const Profile = () => {
         <div className="mb-12 flex flex-col md:flex-row items-center md:items-start gap-8 border-b border-zinc-800 pb-10">
           <div className="relative group">
             <img
-              src={currentProfile?.avatarUrl || "https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png"}
+              src={currentProfile?.avatar || currentProfile?.avatarUrl || "https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png"}
               alt="Avatar"
               className="w-32 h-32 md:w-40 md:h-40 rounded shadow-2xl object-cover ring-4 ring-transparent group-hover:ring-primary/50 transition-all"
             />
-            <button
-              onClick={() => openEditModal(currentProfile)}
-              className="absolute bottom-2 right-2 bg-black/80 p-2 rounded-full border border-white/20 hover:bg-primary hover:text-white transition-colors"
-            >
-              <Camera className="w-5 h-5" />
-            </button>
+            {currentProfile && (
+              <button
+                onClick={() => openEditModal(currentProfile)}
+                className="absolute bottom-2 right-2 bg-black/80 p-2 rounded-full border border-white/20 hover:bg-primary hover:text-white transition-colors"
+              >
+                <Camera className="w-5 h-5" />
+              </button>
+            )}
           </div>
 
           <div className="flex-1 text-center md:text-left space-y-4">
@@ -196,201 +262,246 @@ const Profile = () => {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-              <Button onClick={() => openEditModal(currentProfile)} variant="outline" className="border-white/20 hover:bg-white/10 text-white gap-2">
-                <Edit2 className="w-4 h-4" /> Editar Perfil
-              </Button>
-              <Button onClick={() => navigate("/profiles")} variant="outline" className="border-white/20 hover:bg-white/10 text-white gap-2">
-                <User className="w-4 h-4" /> Trocar de Perfil
-              </Button>
-            </div>
+            {currentProfile && (
+              <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+                <Button onClick={() => openEditModal(currentProfile)} variant="outline" className="border-white/20 hover:bg-white/10 text-white gap-2">
+                  <Check className="w-4 h-4" /> Editar Perfil
+                </Button>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="grid md:grid-cols-[300px_1fr] gap-12">
+        {/* Lista de Perfis */}
+        <div>
+          <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+            <MessageCircle className="w-6 h-6 text-primary" /> Meus Perfis
+          </h2>
 
-          {/* Coluna Esquerda: Info da Conta */}
-          <div className="space-y-8">
-            <div className="bg-[#1f1f1f] rounded-xl p-6 border border-zinc-800 space-y-6">
-              <h2 className="text-lg font-semibold flex items-center gap-2 text-gray-200">
-                <Settings className="w-5 h-5 text-primary" /> Dados da Conta
-              </h2>
-
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="bg-zinc-800 p-2 rounded-lg"><Mail className="w-4 h-4 text-gray-400" /></div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-500 uppercase">Email</p>
-                    <p className="text-sm font-medium truncate">{user.email}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="bg-zinc-800 p-2 rounded-lg"><Crown className="w-4 h-4 text-gray-400" /></div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-500 uppercase">Plano</p>
-                    <p className="text-sm font-medium">{accountProfile.isPremium ? "Premium 4K" : "Básico com Anúncios"}</p>
-                    {accountProfile.subscriptionExpiresAt && (
-                      <p className="text-[10px] text-gray-500">Expira em: {new Date(accountProfile.subscriptionExpiresAt).toLocaleDateString()}</p>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            {profiles.map(p => (
+              <div key={p.id} className="group relative">
+                <div
+                  onClick={() => selectProfile(p)}
+                  className={cn(
+                    "cursor-pointer transition-all duration-300 transform hover:scale-105",
+                    currentProfile?.id === p.id ? "ring-2 ring-primary rounded-lg p-1" : ""
+                  )}
+                >
+                  <div className="relative aspect-square mb-3 overflow-hidden rounded-lg bg-zinc-800">
+                    <img
+                      src={p.avatar || p.avatarUrl}
+                      alt={p.name}
+                      className="w-full h-full object-cover group-hover:opacity-80 transition-opacity"
+                    />
+                    {p.isKids && (
+                      <div className="absolute top-2 right-2 bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold shadow-sm">
+                        KIDS
+                      </div>
                     )}
+                    {p.pin && (
+                      <div className="absolute top-2 left-2 bg-black/60 p-1 rounded-full">
+                        <Lock className="w-3 h-3 text-white" />
+                      </div>
+                    )}
+
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="rounded-full h-10 w-10 p-0"
+                        onClick={(e) => { e.stopPropagation(); openEditModal(p); }}
+                      >
+                        <Camera className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
+                  <h3 className="text-center font-medium truncate">{p.name}</h3>
                 </div>
               </div>
+            ))}
 
-              <Button
-                onClick={() => navigate("/payment")}
-                className="w-full bg-primary/10 text-primary hover:bg-primary hover:text-primary-foreground border-none"
+            {/* Adicionar Novo - Hidden if Limit Reached */}
+            {canCreateProfile && (
+              <div
+                onClick={() => openEditModal(null)}
+                className="cursor-pointer group flex flex-col items-center justify-center aspect-square rounded-lg border-2 border-dashed border-zinc-700 hover:border-zinc-500 hover:bg-zinc-900 transition-all"
               >
-                Gerenciar Plano
-              </Button>
-            </div>
-
-            <Button
-              onClick={handleLogout}
-              variant="destructive"
-              className="w-full justify-start pl-6 gap-3 bg-red-950/30 text-red-500 hover:bg-red-900/50 hover:text-red-400 border border-red-900/30"
-            >
-              <LogOut className="w-4 h-4" /> Sair da Conta
-            </Button>
-          </div>
-
-          {/* Coluna Direita: Dashboard */}
-          <div className="space-y-10">
-
-            {/* Perfis */}
-            <section className="space-y-4">
-              <h3 className="text-xl font-bold flex items-center gap-2">Perfis desta conta</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
-                {profiles.map(p => (
-                  <div key={p.id} className="relative group bg-[#1f1f1f] rounded-lg overflow-hidden border border-transparent hover:border-zinc-600 transition-all p-3 text-center cursor-default">
-                    <img src={p.avatarUrl} className="w-20 h-20 mx-auto rounded mb-3 object-cover group-hover:scale-105 transition-transform" />
-                    <div className="font-medium text-sm truncate px-1">{p.name}</div>
-                    {p.isKids && <div className="text-[10px] text-blue-400 mt-1">Kids</div>}
-
-                    {/* Overlay Actions */}
-                    <div className="absolute inset-0 bg-black/80 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center gap-2 transition-opacity p-2">
-                      <Button size="sm" variant="secondary" className="h-8 w-full text-xs" onClick={() => openEditModal(p)}>Editar</Button>
-                      {p.pin && <div className="flex items-center gap-1 text-[10px] text-yellow-500"><Lock className="w-3 h-3" /> PIN Ativo</div>}
-                    </div>
-                  </div>
-                ))}
-
-                {profiles.length < 5 && (
-                  <button onClick={() => openEditModal(null)} className="flex flex-col items-center justify-center bg-[#1f1f1f] border border-dashed border-zinc-700 rounded-lg hover:bg-zinc-800 transition-colors p-3 min-h-[140px]">
-                    <div className="w-12 h-12 rounded-full bg-zinc-700 flex items-center justify-center mb-2">
-                      <Plus className="w-6 h-6 text-gray-400" />
-                    </div>
-                    <span className="text-sm text-gray-400 font-medium">Adicionar</span>
-                  </button>
-                )}
+                <div className="w-16 h-16 rounded-full bg-zinc-800 flex items-center justify-center mb-2 group-hover:bg-zinc-700 transition-colors">
+                  <span className="text-4xl text-zinc-400 font-light">+</span>
+                </div>
+                <span className="text-zinc-500 font-medium group-hover:text-zinc-300">Adicionar Perfil</span>
               </div>
-            </section>
+            )}
 
-            {/* Grid de Configurações */}
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Segurança */}
-              <section className="bg-[#1f1f1f] p-6 rounded-xl border border-zinc-800 space-y-4">
-                <h3 className="flex items-center gap-2 font-semibold text-gray-200">
-                  <Shield className="w-5 h-5 text-primary" /> Segurança
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
-                    <div className="text-sm">
-                      <p className="font-medium">Senha</p>
-                      <p className="text-xs text-gray-500">Alterar senha da conta</p>
-                    </div>
-                    <Button size="sm" variant="outline" className="h-8 text-xs border-zinc-700 hover:bg-zinc-800">Alterar</Button>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
-                    <div className="text-sm">
-                      <p className="font-medium">2FA</p>
-                      <p className="text-xs text-gray-500">Autenticação em 2 etapas</p>
-                    </div>
-                    <Button size="sm" variant="outline" className="h-8 text-xs border-zinc-700 hover:bg-zinc-800">Ativar</Button>
-                  </div>
-                </div>
-              </section>
-
-              {/* Preferências */}
-              <section className="bg-[#1f1f1f] p-6 rounded-xl border border-zinc-800 space-y-4">
-                <h3 className="flex items-center gap-2 font-semibold text-gray-200">
-                  <Globe className="w-5 h-5 text-primary" /> Preferências
-                </h3>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
-                    <div className="text-sm">
-                      <p className="font-medium">Idioma</p>
-                      <p className="text-xs text-gray-500">Português (BR)</p>
-                    </div>
-                    <Button size="sm" variant="ghost" className="h-8 text-xs hover:bg-zinc-800">Editar</Button>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-black/20 rounded-lg">
-                    <div className="text-sm">
-                      <p className="font-medium">Conteúdo Adulto</p>
-                      <p className="text-xs text-gray-500">Bloqueado para perfis Kids</p>
-                    </div>
-                    <div className="h-4 w-4 bg-green-500 rounded-full"></div>
-                  </div>
-                </div>
-              </section>
-            </div>
-
+            {!canCreateProfile && (
+              <div className="flex flex-col items-center justify-center aspect-square rounded-lg border border-zinc-800 bg-zinc-900/50 p-4 text-center">
+                <AlertTriangle className="w-8 h-8 text-yellow-600 mb-2" />
+                <p className="text-sm text-gray-500">Limite de perfis atingido ({maxProfiles})</p>
+              </div>
+            )}
           </div>
         </div>
 
       </div>
 
-      {/* Edit Profile Modal */}
+      {/* Modal Edição */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="bg-[#141414] border-zinc-800 text-white max-w-2xl">
+        <DialogContent className="bg-[#1a1a1a] border-[#333] text-white sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle>{isAddingNew ? "Adicionar Perfil" : "Editar Perfil"}</DialogTitle>
+            <DialogTitle>{isAddingNew ? "Novo Perfil" : "Editar Perfil"}</DialogTitle>
           </DialogHeader>
-          <div className="grid md:grid-cols-[auto_1fr] gap-8 py-6">
+
+          <div className="space-y-6 py-4">
+            {/* Avatar Selection */}
             <div className="space-y-4">
-              <img src={formAvatar || "https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png"} className="w-32 h-32 rounded shadow-lg object-cover mx-auto" />
-              <div className="h-32 overflow-y-auto grid grid-cols-3 gap-2 p-1 custom-scrollbar">
+              <div className="flex justify-center">
+                <img
+                  src={formAvatar || "https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png"}
+                  className="w-24 h-24 rounded shadow-lg object-cover"
+                  alt="Avatar Preview"
+                />
+              </div>
+              <div className="grid grid-cols-5 gap-2 max-h-[100px] overflow-y-auto p-2 bg-black/20 rounded-lg">
                 {systemAvatars.map(av => (
-                  <img
+                  <button
                     key={av.id}
-                    src={av.url}
                     onClick={() => setFormAvatar(av.url)}
-                    className={cn("w-full aspect-square rounded cursor-pointer border-2 hover:border-white transition-all", formAvatar === av.url ? "border-primary" : "border-transparent")}
-                  />
+                    className={cn(
+                      "rounded-md overflow-hidden transition-all hover:scale-110",
+                      formAvatar === av.url ? "ring-2 ring-primary" : "opacity-70 hover:opacity-100"
+                    )}
+                  >
+                    <img src={av.url} className="w-full h-full object-cover aspect-square" />
+                  </button>
                 ))}
               </div>
             </div>
-            <div className="space-y-6">
+
+            <div className="space-y-4">
               <div className="space-y-2">
-                <Label>Nome do Perfil</Label>
-                <Input value={formName} onChange={e => setFormName(e.target.value)} className="bg-zinc-900 border-zinc-800" placeholder="Nome" />
-              </div>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" checked={formIsKids} onChange={e => setFormIsKids(e.target.checked)} className="w-5 h-5 bg-zinc-800 border-none rounded accent-primary" id="kids-edit" />
-                <Label htmlFor="kids-edit">Perfil Infantil</Label>
-              </div>
-              <div className="space-y-2 pt-4 border-t border-zinc-800">
-                <Label>PIN de Bloqueio (4 dígitos)</Label>
+                <Label>Nome</Label>
                 <Input
-                  value={formPin}
-                  onChange={e => {
-                    if (e.target.value.length <= 4 && /^\d*$/.test(e.target.value)) setFormPin(e.target.value);
-                  }}
-                  className="bg-zinc-900 border-zinc-800 w-32 tracking-widest text-center"
-                  placeholder="----"
+                  value={formName}
+                  onChange={e => setFormName(e.target.value)}
+                  className="bg-[#0a0a0a] border-[#333]"
                 />
+              </div>
+
+              {/* Security Section */}
+              <div className="bg-red-500/5 border border-red-500/10 p-4 rounded-lg space-y-4">
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <Lock className="w-3 h-3" /> PIN de Segurança (4 dígitos)
+                  </Label>
+                  <Input
+                    type="password"
+                    maxLength={4}
+                    placeholder={isAddingNew ? "Definir PIN (Opcional)" : "Novo PIN (Deixe vazio para manter)"}
+                    value={formPin}
+                    onChange={e => setFormPin(e.target.value.replace(/\D/g, ''))}
+                    className="bg-[#0a0a0a] border-[#333]"
+                  />
+                </div>
+
+                {!isAddingNew && editingProfile?.pin && (
+                  <div className="space-y-2">
+                    <Label className="text-red-400">Confirme seu PIN atual para salvar</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="password"
+                        maxLength={4}
+                        placeholder="PIN Atual"
+                        value={currentPin}
+                        onChange={e => setCurrentPin(e.target.value.replace(/\D/g, ''))}
+                        className="bg-[#0a0a0a] border-red-500/30 focus:border-red-500"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                        onClick={handleForgotPin}
+                      >
+                        Esqueci PIN
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="kidstoggle"
+                  checked={formIsKids}
+                  onChange={e => setFormIsKids(e.target.checked)}
+                  className="rounded border-gray-600 bg-transparent"
+                />
+                <Label htmlFor="kidstoggle">Perfil Kids (Conteúdo Infantil apenas)</Label>
               </div>
             </div>
           </div>
-          <DialogFooter className="gap-2">
+
+          <DialogFooter className="gap-2 sm:gap-0">
             {!isAddingNew && (
-              <Button variant="ghost" onClick={handleDeleteProfile} className="text-red-500 hover:bg-red-950 hover:text-red-400 mr-auto">Excluir Perfil</Button>
+              <Button variant="destructive" onClick={handleDeleteProfile} disabled={formLoading} className="mr-auto">
+                Excluir
+              </Button>
             )}
-            <Button variant="outline" onClick={() => setShowEditModal(false)} className="border-zinc-700 hover:bg-zinc-800 text-gray-300">Cancelar</Button>
-            <Button onClick={handleSaveProfile} disabled={formLoading} className="bg-white text-black hover:bg-gray-200">Salvar</Button>
+            <Button variant="outline" onClick={() => setShowEditModal(false)}>Cancelar</Button>
+            <Button onClick={handleSaveProfile} disabled={formLoading}>
+              {formLoading ? "Salvando..." : "Salvar"}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Modal Recuperação de PIN */}
+      <Dialog open={showRecoveryModal} onOpenChange={setShowRecoveryModal}>
+        <DialogContent className="bg-[#1a1a1a] border-[#333] text-white">
+          <DialogHeader>
+            <DialogTitle>Recuperação de PIN</DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4 space-y-4">
+            {recoveryStep === 'code' ? (
+              <>
+                <p className="text-gray-400 text-sm">
+                  Insira o código de validação que você recebeu do suporte via WhatsApp.
+                </p>
+                <Input
+                  placeholder="CÓDIGO (ex: AB12CD)"
+                  value={recoveryCode}
+                  onChange={e => setRecoveryCode(e.target.value.toUpperCase())}
+                  className="text-center font-mono tracking-widest bg-[#0a0a0a] border-[#333]"
+                />
+                <Button onClick={handleVerifyRecoveryCode} disabled={formLoading} className="w-full bg-primary hover:bg-primary/90">
+                  {formLoading ? "Validando..." : "Validar Código"}
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-green-400 text-sm">
+                  Código verificado! Defina seu novo PIN.
+                </p>
+                <Input
+                  type="password"
+                  maxLength={4}
+                  placeholder="Novo PIN (4 dígitos)"
+                  value={formPin}
+                  onChange={e => setFormPin(e.target.value.replace(/\D/g, ''))}
+                  className="bg-[#0a0a0a] border-[#333]"
+                />
+                <Button onClick={handleResetPin} disabled={formLoading} className="w-full bg-primary hover:bg-primary/90">
+                  {formLoading ? "Salvando..." : "Redefinir PIN"}
+                </Button>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
     </div>
   );
 };

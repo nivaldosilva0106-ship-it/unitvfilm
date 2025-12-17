@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Film, User, LogIn, Loader2 } from 'lucide-react';
+import { Film, User, LogIn, Loader2, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { signIn, signInAnonymously } from '@/lib/firebase';
+import { signIn, signInAnonymously, resetPassword } from '@/lib/firebase';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from 'sonner';
 
 const Login = () => {
@@ -14,6 +15,11 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [bgUrl, setBgUrl] = useState('/login-bg.jpg');
+
+  // Recovery State
+  const [showRecovery, setShowRecovery] = useState(false);
+  const [recoveryEmail, setRecoveryEmail] = useState("");
+  const [recoveryLoading, setRecoveryLoading] = useState(false);
 
   useEffect(() => {
     import('@/lib/firebase').then(({ getSiteSettings }) => {
@@ -155,6 +161,19 @@ const Login = () => {
                 />
               </div>
 
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRecoveryEmail(email);
+                    setShowRecovery(true);
+                  }}
+                  className="text-xs text-primary hover:text-primary/80"
+                >
+                  Esqueci a senha
+                </button>
+              </div>
+
               <Button
                 type="submit"
                 className="w-full"
@@ -178,6 +197,57 @@ const Login = () => {
           </div>
         )}
       </div>
+
+      <Dialog open={showRecovery} onOpenChange={setShowRecovery}>
+        <DialogContent className="bg-[#1a1a1a] border-[#333] text-white">
+          <DialogHeader>
+            <DialogTitle>Recuperar Senha</DialogTitle>
+            <DialogDescription className="text-gray-400">
+              Digite o email da sua conta e enviaremos um link para você redefinir a senha.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="recovery-email">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 w-4 h-4" />
+                <Input
+                  id="recovery-email"
+                  type="email"
+                  placeholder="seu@email.com"
+                  className="pl-10 bg-[#0a0a0a] border-[#333] text-white"
+                  value={recoveryEmail}
+                  onChange={(e) => setRecoveryEmail(e.target.value)}
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowRecovery(false)} className="text-gray-400 hover:text-white">
+              Cancelar
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!recoveryEmail) return;
+                setRecoveryLoading(true);
+                try {
+                  await resetPassword(recoveryEmail);
+                  toast.success("Se este email estiver cadastrado, você receberá um link para redefinir sua senha.");
+                  setTimeout(() => setShowRecovery(false), 2000);
+                } catch (e) {
+                  toast.error("Verifique se o email está correto.");
+                } finally {
+                  setRecoveryLoading(false);
+                }
+              }}
+              disabled={recoveryLoading}
+              className="bg-primary hover:bg-primary/90 text-white"
+            >
+              {recoveryLoading ? "Enviando..." : "Enviar link de recuperação"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
