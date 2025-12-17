@@ -596,6 +596,7 @@ const Index = () => {
                 contents={categorizedContent.movies}
                 onPlayContent={handlePlayContent}
                 onInfoContent={handleInfoContent}
+                onDetailsContent={handleDetailsContent}
                 onDownloadContent={handleDownloadContent}
               />
             )}
@@ -609,6 +610,7 @@ const Index = () => {
                 contents={categorizedContent.series}
                 onPlayContent={handlePlayContent}
                 onInfoContent={handleInfoContent}
+                onDetailsContent={handleDetailsContent}
                 onDownloadContent={handleDownloadContent}
               />
             )}
@@ -619,6 +621,7 @@ const Index = () => {
                 contents={categorizedContent.tvChannels}
                 onPlayContent={handlePlayContent}
                 onInfoContent={handleInfoContent}
+                onDetailsContent={handleDetailsContent}
                 onDownloadContent={handleDownloadContent}
               />
             )}
