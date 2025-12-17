@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Search, Save, Plus, X, Lock, Sparkles } from "lucide-react";
+import { Search, Save, Plus, X, Lock, Sparkles, Clapperboard } from "lucide-react";
 import { toast } from "sonner";
 import { searchMovies, searchSeries, getImageUrl, getMovieTrailer, getSeriesTrailer, getMovieDetails, getSeriesDetails } from "@/lib/tmdb";
 import { PlusCircle, Trash, Download as DownloadIcon } from "lucide-react";
@@ -75,6 +75,12 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     } catch (e) { console.error(e); }
 
     const cast = details?.credits?.cast?.slice(0, 5).map((c: any) => c.name).join(', ') || '';
+    const castMembers = details?.credits?.cast?.slice(0, 10).map((c: any) => ({
+      name: c.name,
+      character: c.character,
+      profile_path: c.profile_path ? getImageUrl(c.profile_path) : null
+    })) || [];
+
     const duration = details?.runtime ? `${Math.floor(details.runtime / 60)}h ${details.runtime % 60}m` : '';
     const genres = details?.genres?.map((g: any) => g.name) || [];
     const backdrop = details?.backdrop_path ? getImageUrl(details.backdrop_path) : getImageUrl(item.backdrop_path);
@@ -92,6 +98,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       tmdb_id: item.id,
       // New Fields
       cast,
+      cast_members: castMembers,
       duration,
       year,
       genre: genres,
@@ -219,6 +226,25 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                 }));
               }}
               className="data-[state=checked]:bg-red-600"
+            />
+          </div>
+
+          {/* Cinema Mode Toggle */}
+          <div className="flex items-center justify-between border-t border-border/50 pt-4">
+            <div className="flex items-center gap-2">
+              <div className={`p-2 rounded-full ${editingContent.is_cinema_mode ? 'bg-amber-500/20 text-amber-500' : 'bg-muted text-muted-foreground'}`}>
+                <Clapperboard className={`w-5 h-5 ${editingContent.is_cinema_mode ? 'fill-current' : ''}`} />
+              </div>
+              <div className="flex flex-col">
+                <Label htmlFor="cinemaMode" className="cursor-pointer font-medium text-base">Gravação de Cinema / Com Anúncios</Label>
+                <span className="text-xs text-muted-foreground">Exibe aviso antes de iniciar e modal explicativo</span>
+              </div>
+            </div>
+            <Switch
+              id="cinemaMode"
+              checked={editingContent.is_cinema_mode || false}
+              onCheckedChange={(checked) => setEditingContent(prev => ({ ...prev, is_cinema_mode: checked }))}
+              className="data-[state=checked]:bg-amber-600"
             />
           </div>
         </div>

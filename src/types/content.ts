@@ -40,4 +40,6 @@ export interface Content {
     url: string;
     type?: 'direct' | 'torrent';
   }[];
+  is_cinema_mode?: boolean;
+  cast_members?: { name: string; character: string; profile_path: string | null }[];
 }

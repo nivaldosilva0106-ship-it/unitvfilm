@@ -46,7 +46,7 @@ export const addContent = async (content: Omit<Content, 'id'>) => {
 
   // Trigger Global Notification
   try {
-    const typeLabel = content.type === 'movie' ? 'Novo Filme' : content.type === 'series' ? 'Nova Série' : 'Novo Canal';
+    const typeLabel = content.category === 'movie' ? 'Novo Filme' : content.category === 'series' ? 'Nova Série' : 'Novo Canal';
     await createGlobalNotification({
       type: 'new_content',
       title: `${typeLabel} Adicionado`,
@@ -592,6 +592,57 @@ export const checkPlanExpiration = async (userId: string) => {
     }
   }
   return false;
+};
+
+// ==========================================
+// Comment System Helpers
+// ==========================================
+import type { Comment } from '@/types/comment';
+
+export const addComment = async (contentId: string, text: string, user: UserProfile, accountProfile?: Profile | null) => {
+  if (!user) throw new Error("User profile (main) is missing");
+
+  // Harden against partial UserProfile from incomplete legacy data
+  const safeId = user.id || '';
+  const safeEmail = user.email || '';
+  const defaultName = safeEmail.split('@')[0] || 'Usuário';
+
+  const commentsRef = ref(database, `comments/${contentId}`);
+  const newCommentRef = push(commentsRef);
+
+  // Determine display name and avatar
+  const userName = accountProfile?.name || user.name || defaultName;
+  const userAvatar = accountProfile?.avatar || accountProfile?.avatarUrl || user.photoURL || '';
+
+  const comment: Comment = {
+    id: newCommentRef.key!,
+    contentId,
+    userId: safeId,
+    userName: userName,
+    userAvatar: userAvatar,
+    text: text.slice(0, 500),
+    timestamp: Date.now()
+  };
+
+  const cleanComment = removeUndefinedDeep(comment);
+  await set(newCommentRef, cleanComment);
+  return cleanComment;
+};
+
+export const getComments = async (contentId: string): Promise<Comment[]> => {
+  const commentsRef = ref(database, `comments/${contentId}`);
+  const snapshot = await get(commentsRef);
+  if (snapshot.exists()) {
+    const data = snapshot.val();
+    // Sort by newest first
+    return Object.values(data).sort((a: any, b: any) => b.timestamp - a.timestamp) as Comment[];
+  }
+  return [];
+};
+
+export const deleteComment = async (contentId: string, commentId: string) => {
+  const commentRef = ref(database, `comments/${contentId}/${commentId}`);
+  await remove(commentRef);
 };
 
 // ==========================================

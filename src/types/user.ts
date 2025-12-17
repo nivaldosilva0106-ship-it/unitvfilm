@@ -16,6 +16,9 @@ export interface UserProfile {
   };
   planId?: string;
   status?: 'active' | 'pending_payment';
+  name?: string;
+  photoURL?: string;
+  lastExpiryNotification?: string;
 }
 
 export interface Plan {
@@ -57,7 +60,8 @@ export interface Profile {
   id: string;
   userId: string;
   name: string;
-  avatarUrl: string;
+  avatar: string;
+  avatarUrl?: string; // Legacy support or alias? Let's stick to what code uses: avatar
   isKids: boolean;
   pin?: string;
   createdAt: string;

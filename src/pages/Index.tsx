@@ -8,6 +8,7 @@ import { EpisodeSelector } from "@/components/EpisodeSelector";
 import { ContentPlayerModal } from "@/components/ContentPlayerModal";
 import { CategoryNavigation } from "@/components/CategoryNavigation";
 import { DownloadModal } from "@/components/DownloadModal";
+import { CinemaWarningModal } from "@/components/CinemaWarningModal";
 import { AdManager } from "@/components/AdManager";
 import { Content } from "@/types/content";
 import { getAllContents, getMyList, addToMyList, removeFromMyList, getSliderSettings, type SliderSettings } from "@/lib/firebase";
@@ -35,6 +36,8 @@ const Index = () => {
   const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string, internalUrl?: string }>({ open: false, url: '', title: '', isPremium: false });
   const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, title: string, thumbnail: string }>({ open: false, url: '', title: '', thumbnail: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
+  const [showCinemaModal, setShowCinemaModal] = useState(false);
+  const [pendingPlayerState, setPendingPlayerState] = useState<any>(null);
 
   /* New State for Video Slider */
   const [trailerContents, setTrailerContents] = useState<Content[]>([]);
@@ -274,7 +277,7 @@ const Index = () => {
       setSelectedSeries(content);
     } else if (content.video_url) {
       /* VIDEO SLIDER PAUSE Logic: handled by !playerModal.open check in render */
-      setPlayerModal({
+      const playerState = {
         open: true,
         url: content.video_url,
         urls: content.video_urls,
@@ -283,7 +286,14 @@ const Index = () => {
         image: content.thumbnail_url,
         description: content.description,
         rating: content.rating
-      });
+      };
+
+      if (content.is_cinema_mode) {
+        setPendingPlayerState(playerState);
+        setShowCinemaModal(true);
+      } else {
+        setPlayerModal(playerState);
+      }
     } else {
       toast.error("Link de vídeo não disponível");
     }
@@ -583,7 +593,15 @@ const Index = () => {
           episodes={selectedSeries.episodes || []}
           title={selectedSeries.title}
           trailerUrl={selectedSeries.trailer_url}
-          onPlayEpisode={(url, episodeTitle) => setPlayerModal({ open: true, url, title: selectedSeries.title, isPremium: selectedSeries.isPremium, image: selectedSeries.thumbnail_url, description: selectedSeries.description, rating: selectedSeries.rating, episodeTitle })}
+          onPlayEpisode={(url, episodeTitle) => {
+            const playerState = { open: true, url, title: selectedSeries.title, isPremium: selectedSeries.isPremium, image: selectedSeries.thumbnail_url, description: selectedSeries.description, rating: selectedSeries.rating, episodeTitle };
+            if (selectedSeries.is_cinema_mode) {
+              setPendingPlayerState(playerState);
+              setShowCinemaModal(true);
+            } else {
+              setPlayerModal(playerState);
+            }
+          }}
         />
       )}
 
@@ -603,7 +621,7 @@ const Index = () => {
         suggestions={randomContent}
         onPlayContent={(content) => {
           if (content.video_url || content.internal_player_url) {
-            setPlayerModal({
+            const playerState = {
               open: true,
               url: content.video_url || '',
               urls: content.video_urls,
@@ -613,7 +631,14 @@ const Index = () => {
               internalUrl: content.internal_player_url,
               description: content.description,
               rating: content.rating
-            });
+            };
+
+            if (content.is_cinema_mode) {
+              setPendingPlayerState(playerState);
+              setShowCinemaModal(true);
+            } else {
+              setPlayerModal(playerState);
+            }
           }
         }}
         onAddToMyList={handleToggleMyList}
@@ -626,6 +651,17 @@ const Index = () => {
         downloadUrl={downloadModal.url}
         title={downloadModal.title}
         thumbnail={downloadModal.thumbnail}
+      />
+
+      <CinemaWarningModal
+        open={showCinemaModal}
+        onClose={() => setShowCinemaModal(false)}
+        onConfirm={() => {
+          if (pendingPlayerState) {
+            setPlayerModal(pendingPlayerState);
+            setPendingPlayerState(null);
+          }
+        }}
       />
     </div>
   );

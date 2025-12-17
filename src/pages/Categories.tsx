@@ -221,31 +221,89 @@ export default function Categories() {
 
                 {/* Content Rows by Genre */}
                 <div className="space-y-4">
-                    {GENRES.map(genre => {
-                        // Filter contents for this genre
-                        // Using keyword search logic similar to Home
-                        const genreContents = filteredContent.filter(c =>
-                            c.description?.toLowerCase().includes(genre.toLowerCase()) ||
-                            c.title.toLowerCase().includes(genre.toLowerCase())
-                        );
+                    {(() => {
+                        // 1. Determine all available genres from content + predefined list
+                        const dynamicGenres = new Set<string>(GENRES);
+                        filteredContent.forEach(c => {
+                            if (c.genre && Array.isArray(c.genre)) {
+                                c.genre.forEach(g => dynamicGenres.add(g));
+                            }
+                        });
+                        const sortedGenres = Array.from(dynamicGenres).sort(); // Or keep GENRES order and append others?
 
-                        if (genreContents.length === 0) return null;
+                        // Let's prioritize GENRES order, then others
+                        const finalGenres = [...GENRES];
+                        sortedGenres.forEach(g => {
+                            if (!finalGenres.includes(g)) finalGenres.push(g);
+                        });
 
-                        return (
-                            <MarqueeContentRow
-                                key={genre}
-                                title={genre}
-                                contents={genreContents}
-                                onPlayContent={handlePlayContent}
-                                onInfoContent={handleInfoContent}
-                                onDownloadContent={handleDownloadContent}
-                            />
-                        );
-                    })}
+                        // Track which content has been shown to specific rows if we want to show an "Others" category
+                        // But usually duplicates are fine. Let's just iterate genres.
 
-                    {/* If no genres matched but filters are active, show "Outros" or just raw list? */}
-                    {/* Maybe show "Todos os Resultados" if filters are specific and Genres missed some? */}
-                    {/* For now, Genres cover most. We can add a "Sem Categoria" row if needed, but let's stick to genres. */}
+                        return finalGenres.map(genre => {
+                            const genreContents = filteredContent.filter(c => {
+                                // Check structured genre tag first
+                                if (c.genre && Array.isArray(c.genre) && c.genre.some(g => g.toLowerCase() === genre.toLowerCase())) {
+                                    return true;
+                                }
+                                // Fallback to text search
+                                return c.description?.toLowerCase().includes(genre.toLowerCase()) ||
+                                    c.title.toLowerCase().includes(genre.toLowerCase());
+                            });
+
+                            if (genreContents.length === 0) return null;
+
+                            return (
+                                <MarqueeContentRow
+                                    key={genre}
+                                    title={genre}
+                                    contents={genreContents}
+                                    onPlayContent={handlePlayContent}
+                                    onInfoContent={handleInfoContent}
+                                    onDownloadContent={handleDownloadContent}
+                                />
+                            );
+                        });
+                    })()}
+
+                    {/* Show "Sem Categoria" for items that didn't match any of the above? 
+                        This is complex because items might appear in multiple rows. 
+                        If the user wants "All", they can see "Todos".
+                        If an item has absolutely NO genre and NO description match, it currently disappears.
+                        Let's add a "Outros" row for unmatched items.
+                     */}
+                    {(() => {
+                        const matchedIds = new Set<string>();
+                        const allGenres = [...GENRES]; // Re-calculate to be safe or lift up
+                        // ... actually, the optimization above makes it hard to track unmatched without re-looping.
+                        // Let's just do a simple check: Items with NO genre tags and NO description match to ANY genre.
+
+                        const uncategorized = filteredContent.filter(c => {
+                            const hasGenreTag = c.genre && c.genre.length > 0;
+                            if (hasGenreTag) return false; // It likely matched one of its tags
+
+                            // If no tags, did it match any keyword?
+                            const matchesKeyword = GENRES.some(g =>
+                                c.description?.toLowerCase().includes(g.toLowerCase()) ||
+                                c.title.toLowerCase().includes(g.toLowerCase())
+                            );
+                            return !matchesKeyword;
+                        });
+
+                        if (uncategorized.length > 0) {
+                            return (
+                                <MarqueeContentRow
+                                    key="outros"
+                                    title="Outros"
+                                    contents={uncategorized}
+                                    onPlayContent={handlePlayContent}
+                                    onInfoContent={handleInfoContent}
+                                    onDownloadContent={handleDownloadContent}
+                                />
+                            );
+                        }
+                        return null;
+                    })()}
                 </div>
 
                 {filteredContent.length === 0 && (
