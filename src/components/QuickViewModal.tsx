@@ -19,37 +19,29 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
     const [showTrailer, setShowTrailer] = useState(false);
     const [videoOpacity, setVideoOpacity] = useState(1); // For fade-out effect
 
-    // Trailer auto-play after 3 seconds
+    // Trailer auto-play after 3 seconds with smooth transition
     useEffect(() => {
         if (open && content?.trailer_url) {
             setShowTrailer(false);
-            setVideoOpacity(1); // Reset opacity
+            setVideoOpacity(0); // Start invisible
+
             const timer = setTimeout(() => {
                 setShowTrailer(true);
+                // Fade in video smoothly
+                setTimeout(() => setVideoOpacity(1), 100);
             }, 3000);
 
             return () => clearTimeout(timer);
         } else {
             setShowTrailer(false);
-            setVideoOpacity(1);
+            setVideoOpacity(0);
         }
     }, [open, content]);
 
-    // Handle video time update for 60s limit with fade-out
-    const handleTimeUpdate = () => {
-        if (videoRef.current) {
-            const currentTime = videoRef.current.currentTime;
-            // Start fading at 57s, complete fade by 60s
-            if (currentTime >= 57) {
-                const fadeProgress = (currentTime - 57) / 3; // 0 to 1 over 3 seconds
-                setVideoOpacity(Math.max(0, 1 - fadeProgress));
-            }
-            // Stop at 60s
-            if (currentTime >= 60) {
-                videoRef.current.pause();
-                setShowTrailer(false);
-            }
-        }
+    // Handle video end - show backdrop image
+    const handleVideoEnd = () => {
+        setShowTrailer(false);
+        setVideoOpacity(0);
     };
 
     const handlePlay = () => {
@@ -90,24 +82,25 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
                     <X className="w-5 h-5" />
                 </button>
 
-                {/* Hero Section with Video/Image */}
                 <div className="relative h-[400px] w-full bg-black">
-                    {showTrailer && content.trailer_url ? (
+                    {/* Always show backdrop image as base */}
+                    <img
+                        src={content.backdrop_url || content.thumbnail_url}
+                        alt={content.title}
+                        className="w-full h-full object-cover"
+                    />
+
+                    {/* Video overlay with fade transition */}
+                    {showTrailer && content.trailer_url && (
                         <video
                             ref={videoRef}
                             src={content.trailer_url}
-                            className="w-full h-full object-cover transition-opacity duration-1000"
+                            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000"
                             style={{ opacity: videoOpacity }}
                             autoPlay
                             muted={muted}
-                            onTimeUpdate={handleTimeUpdate}
+                            onEnded={handleVideoEnd}
                             poster={content.backdrop_url || content.thumbnail_url}
-                        />
-                    ) : (
-                        <img
-                            src={content.backdrop_url || content.thumbnail_url}
-                            alt={content.title}
-                            className="w-full h-full object-cover opacity-80"
                         />
                     )}
 

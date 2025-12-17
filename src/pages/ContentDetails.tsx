@@ -186,251 +186,250 @@ const ContentDetails = () => {
   const isTV = content.category === 'tv';
 
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
+    <div className="min-h-screen bg-background relative">
+      {/* Backdrop Image with Dark Green Overlay */}
+      {content.backdrop_url && (
+        <>
+          <div
+            className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${content.backdrop_url})` }}
+          />
+          <div className="fixed inset-0 z-0 bg-green-950/70" />
+        </>
+      )}
 
-      <div className="container mx-auto px-4 sm:px-8 pt-24 pb-16">
-        {/* Content Top Ad */}
-        <AdManager placement="content-top" />
+      <div className="relative z-10">
+        <Header />
 
-        <Button
-          variant="ghost"
-          onClick={() => navigate("/")}
-          className="mb-6"
-          tabIndex={0}
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Voltar
-        </Button>
+        <div className="container mx-auto px-4 sm:px-8 pt-24 pb-16">
+          {/* Content Top Ad */}
+          <AdManager placement="content-top" />
 
-        <div className="grid lg:grid-cols-4 gap-8">
-          <div className="lg:col-span-1 flex flex-col items-center lg:items-start gap-4">
-            <img
-              src={content.thumbnail_url || "/placeholder.svg"}
-              alt={content.title}
-              className="w-2/3 sm:w-1/2 lg:w-full max-w-xs rounded-lg shadow-2xl"
-            />
-            {/* Sidebar Ad */}
-            <AdManager placement="sidebar" className="w-full max-w-xs" />
-          </div>
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/")}
+            className="mb-6"
+            tabIndex={0}
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar
+          </Button>
 
-          <div className="lg:col-span-3 space-y-6">
-            <div>
-              <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">
-                {content.title}
-              </h1>
-              <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                {content.release_date && !isTV && (
-                  <div className="flex items-center gap-1">
-                    <Calendar className="w-4 h-4" />
-                    {new Date(content.release_date).getFullYear()}
-                  </div>
-                )}
-                {content.language && (
-                  <div className="flex items-center gap-1">
-                    <Globe className="w-4 h-4" />
-                    {content.language.toUpperCase()}
-                  </div>
-                )}
-                {content.rating && !isTV && (
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 fill-primary text-primary" />
-                    {content.rating.toFixed(1)}
-                  </div>
-                )}
-                <span className="px-3 py-1 bg-primary/20 text-primary rounded-full capitalize">
-                  {content.category === 'movie' ? 'Filme' : content.category === 'series' ? 'Série' : 'TV ao Vivo'}
-                </span>
-              </div>
+          <div className="grid lg:grid-cols-4 gap-8">
+            <div className="lg:col-span-1 flex flex-col items-center lg:items-start gap-4">
+              <img
+                src={content.thumbnail_url || "/placeholder.svg"}
+                alt={content.title}
+                className="w-2/3 sm:w-1/2 lg:w-full max-w-xs rounded-lg shadow-2xl"
+              />
+              {/* Sidebar Ad */}
+              <AdManager placement="sidebar" className="w-full max-w-xs" />
             </div>
 
-            {/* Moved Metadata from here to below description */}
-
-            {/* Backdrop Logic (Optional: Apply as page background?) */}
-            {content.backdrop_url && (
-              <div className="fixed inset-0 -z-10">
-                <div className="absolute inset-0 bg-background/90" />
-                <img src={content.backdrop_url} className="w-full h-full object-cover opacity-20" />
-              </div>
-            )}
-
-            <div className="flex flex-wrap gap-3">
-              <Button
-                onClick={() => handlePlay()}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground glow-effect-hover"
-                tabIndex={0}
-              >
-                <Play className="w-5 h-5 mr-2" />
-                {isTV ? 'Assistir Canal' : content.category === 'series' ? 'Ver Episódios' : 'Assistir Agora'}
-              </Button>
-
-              <Button
-                onClick={handleToggleMyList}
-                variant={inMyList ? "default" : "outline"}
-                className={inMyList ? "bg-primary/20 hover:bg-primary/30" : ""}
-                tabIndex={0}
-              >
-                <Heart className={`w-5 h-5 mr-2 ${inMyList ? 'fill-primary text-primary' : ''}`} />
-                {inMyList ? 'Na Minha Lista' : 'Adicionar à Lista'}
-              </Button>
-
-              {content.trailer_url && !isTV && (
-                <Button
-                  onClick={handleTrailer}
-                  variant="secondary"
-                  tabIndex={0}
-                >
-                  <Film className="w-5 h-5 mr-2" />
-                  Trailer
-                </Button>
-              )}
-
-              {(content.category === 'movie') && ((content.download_url) || (content.downloads && content.downloads.length > 0)) && (
-                <Button
-                  onClick={handleDownload}
-                  variant="outline"
-                  tabIndex={0}
-                >
-                  <Download className="w-5 h-5 mr-2" />
-                  Baixar
-                </Button>
-              )}
-            </div>
-
-            {content.description && (
+            <div className="lg:col-span-3 space-y-6">
               <div>
-                <h2 className="text-2xl font-semibold text-foreground mb-3">Sinopse</h2>
-                <p className="text-foreground/80 leading-relaxed">
-                  {content.description}
-                </p>
-              </div>
-            )}
-
-            {/* Extended Metadata - Now Below Description */}
-            <div className="flex flex-col gap-4 mt-6 border-t border-white/10 pt-6">
-              {/* Quick Info */}
-              <div className="flex flex-wrap gap-4 text-sm text-gray-300">
-                {content.duration && (
-                  <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
-                    <Clock className="w-3.5 h-3.5 text-amber-500" />
-                    <span>{content.duration}</span>
-                  </div>
-                )}
-                {content.genre && content.genre.length > 0 && (
-                  <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
-                    <Film className="w-3.5 h-3.5 text-blue-500" />
-                    <span>{content.genre.join(', ')}</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Cast Grid */}
-              {content.cast_members && content.cast_members.length > 0 ? (
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    <Users className="w-5 h-5 text-gray-400" /> Elenco Principal
-                  </h3>
-                  <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                    {content.cast_members.map((actor, idx) => (
-                      <div key={idx} className="flex flex-col items-center gap-2 min-w-[100px] max-w-[100px]">
-                        <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-white/10 shadow-lg">
-                          <img
-                            src={actor.profile_path || '/placeholder-user.jpg'}
-                            alt={actor.name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => { e.currentTarget.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(actor.name) + '&background=random'; }}
-                          />
-                        </div>
-                        <div className="text-center">
-                          <p className="text-xs font-semibold text-white line-clamp-1" title={actor.name}>{actor.name}</p>
-                          <p className="text-[10px] text-gray-400 line-clamp-1" title={actor.character}>{actor.character}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">
+                  {content.title}
+                </h1>
+                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                  {content.release_date && !isTV && (
+                    <div className="flex items-center gap-1">
+                      <Calendar className="w-4 h-4" />
+                      {new Date(content.release_date).getFullYear()}
+                    </div>
+                  )}
+                  {content.language && (
+                    <div className="flex items-center gap-1">
+                      <Globe className="w-4 h-4" />
+                      {content.language.toUpperCase()}
+                    </div>
+                  )}
+                  {content.rating && !isTV && (
+                    <div className="flex items-center gap-1">
+                      <Star className="w-4 h-4 fill-primary text-primary" />
+                      {content.rating.toFixed(1)}
+                    </div>
+                  )}
+                  <span className="px-3 py-1 bg-primary/20 text-primary rounded-full capitalize">
+                    {content.category === 'movie' ? 'Filme' : content.category === 'series' ? 'Série' : 'TV ao Vivo'}
+                  </span>
                 </div>
-              ) : (
-                content.cast && (
-                  <div className="flex items-start gap-2 text-sm text-gray-400 bg-white/5 p-4 rounded-lg">
-                    <Users className="w-4 h-4 text-gray-500 mt-1" />
-                    <div>
-                      <span className="text-white font-medium">Elenco:</span>
-                      <p className="line-clamp-2">{content.cast}</p>
+              </div>
+
+              {/* Moved Metadata from here to below description */}
+
+              {/* Backdrop Logic (Optional: Apply as page background?) */}
+              {content.backdrop_url && (
+                <div className="fixed inset-0 -z-10">
+                  <div className="absolute inset-0 bg-background/90" />
+                  <img src={content.backdrop_url} className="w-full h-full object-cover opacity-20" />
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  onClick={() => handlePlay()}
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground glow-effect-hover"
+                  tabIndex={0}
+                >
+                  <Play className="w-5 h-5 mr-2" />
+                  {isTV ? 'Assistir Canal' : content.category === 'series' ? 'Ver Episódios' : 'Assistir Agora'}
+                </Button>
+
+                <Button
+                  onClick={handleToggleMyList}
+                  variant={inMyList ? "default" : "outline"}
+                  className={inMyList ? "bg-primary/20 hover:bg-primary/30" : ""}
+                  tabIndex={0}
+                >
+                  <Heart className={`w-5 h-5 mr-2 ${inMyList ? 'fill-primary text-primary' : ''}`} />
+                  {inMyList ? 'Na Minha Lista' : 'Adicionar à Lista'}
+                </Button>
+
+                {content.trailer_url && !isTV && (
+                  <Button
+                    onClick={handleTrailer}
+                    variant="secondary"
+                    tabIndex={0}
+                  >
+                    <Film className="w-5 h-5 mr-2" />
+                    Trailer
+                  </Button>
+                )}
+
+                {(content.category === 'movie') && ((content.download_url) || (content.downloads && content.downloads.length > 0)) && (
+                  <Button
+                    onClick={handleDownload}
+                    variant="outline"
+                    tabIndex={0}
+                  >
+                    <Download className="w-5 h-5 mr-2" />
+                    Baixar
+                  </Button>
+                )}
+              </div>
+
+              {content.description && (
+                <div>
+                  <h2 className="text-2xl font-semibold text-foreground mb-3">Sinopse</h2>
+                  <p className="text-foreground/80 leading-relaxed">
+                    {content.description}
+                  </p>
+                </div>
+              )}
+
+              {/* Extended Metadata - Now Below Description */}
+              <div className="flex flex-col gap-4 mt-6 border-t border-white/10 pt-6">
+                {/* Quick Info */}
+                <div className="flex flex-wrap gap-4 text-sm text-gray-300">
+                  {content.duration && (
+                    <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
+                      <Clock className="w-3.5 h-3.5 text-amber-500" />
+                      <span>{content.duration}</span>
+                    </div>
+                  )}
+                  {content.genre && content.genre.length > 0 && (
+                    <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
+                      <Film className="w-3.5 h-3.5 text-blue-500" />
+                      <span>{content.genre.join(', ')}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Cast Grid */}
+                {content.cast_members && content.cast_members.length > 0 ? (
+                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold flex items-center gap-2">
+                      <Users className="w-4 h-4 text-gray-400" /> Elenco Principal
+                    </h3>
+                    <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                      {content.cast_members.map((actor, idx) => (
+                        <div key={idx} className="flex flex-col items-center gap-1.5 min-w-[70px] max-w-[70px]">
+                          <div className="w-14 h-14 rounded-full overflow-hidden border-2 border-white/10 shadow-lg">
+                            <img
+                              src={actor.profile_path || '/placeholder-user.jpg'}
+                              alt={actor.name}
+                              className="w-full h-full object-cover"
+                              onError={(e) => { e.currentTarget.src = 'https://ui-avatars.com/api/?name=' + encodeURIComponent(actor.name) + '&background=random'; }}
+                            />
+                          </div>
+                          <div className="text-center">
+                            <p className="text-[10px] font-semibold text-white line-clamp-1" title={actor.name}>{actor.name}</p>
+                            <p className="text-[9px] text-gray-400 line-clamp-1" title={actor.character}>{actor.character}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                )
-              )}
-            </div>
+                ) : (
+                  content.cast && (
+                    <div className="flex items-start gap-2 text-sm text-gray-400 bg-white/5 p-4 rounded-lg">
+                      <Users className="w-4 h-4 text-gray-500 mt-1" />
+                      <div>
+                        <span className="text-white font-medium">Elenco:</span>
+                        <p className="line-clamp-2">{content.cast}</p>
+                      </div>
+                    </div>
+                  )
+                )}
+              </div>
 
-            <CommentsSection contentId={content.id} />
+              <CommentsSection contentId={content.id} />
+            </div>
           </div>
+
+          {/* Content Bottom Ad */}
+          <AdManager placement="content-bottom" className="mt-8" />
         </div>
 
-        {/* Content Bottom Ad */}
-        <AdManager placement="content-bottom" className="mt-8" />
-      </div>
+        {/* Mobile Bottom Ad */}
+        <AdManager placement="mobile-bottom" className="md:hidden fixed bottom-0 left-0 right-0 z-40" />
 
-      {/* Mobile Bottom Ad */}
-      <AdManager placement="mobile-bottom" className="md:hidden fixed bottom-0 left-0 right-0 z-40" />
+        {
+          content.category === 'series' && showEpisodes && content.episodes && (
+            <EpisodeSelector
+              open={showEpisodes}
+              onClose={() => setShowEpisodes(false)}
+              episodes={content.episodes}
+              title={content.title}
+              trailerUrl={content.trailer_url}
+              onPlayEpisode={(url, episodeTitle) => requestPlay({ open: true, url, title: content.title, isPremium: content.isPremium, image: content.thumbnail_url, description: content.description, rating: content.rating, episodeTitle })}
+            />
+          )
+        }
 
-      {
-        content.category === 'series' && showEpisodes && content.episodes && (
-          <EpisodeSelector
-            open={showEpisodes}
-            onClose={() => setShowEpisodes(false)}
-            episodes={content.episodes}
-            title={content.title}
-            trailerUrl={content.trailer_url}
-            onPlayEpisode={(url, episodeTitle) => requestPlay({ open: true, url, title: content.title, isPremium: content.isPremium, image: content.thumbnail_url, description: content.description, rating: content.rating, episodeTitle })}
-          />
-        )
-      }
+        {
+          showTrailerModal && content.trailer_url && (
+            <TrailerModal
+              open={showTrailerModal}
+              onClose={() => setShowTrailerModal(false)}
+              trailerUrl={content.trailer_url}
+              title={content.title}
+            />
+          )
+        }
 
-      {
-        showTrailerModal && content.trailer_url && (
-          <TrailerModal
-            open={showTrailerModal}
-            onClose={() => setShowTrailerModal(false)}
-            trailerUrl={content.trailer_url}
-            title={content.title}
-          />
-        )
-      }
-
-      {/* Main Player Modal */}
-      <ContentPlayerModal
-        open={playerModal.open}
-        onClose={() => setPlayerModal({ open: false, url: '', title: '', isPremium: false })}
-        videoUrl={playerModal.url}
-        videoUrls={playerModal.urls}
-        title={playerModal.title}
-        isPremium={playerModal.isPremium}
-        image={playerModal.image}
-        description={playerModal.description}
-        rating={playerModal.rating}
-        episodeTitle={playerModal.episodeTitle}
-        internalPlayerUrl={playerModal.internalUrl}
-        suggestions={relatedContents}
-        onPlayContent={(c) => {
-          if (c.video_url || c.internal_player_url) {
-            // Check cinema mode for suggestions too? The user said "in other pages where play is available".
-            // If suggestion is part of content list, it might have 'is_cinema_mode'. 
-            // Ideally 'requestPlay' logic should be used here too if we want to support it for suggestions.
-            // But 'c' is from 'relatedContents', which is 'Content'.
-            const playCall = () => setPlayerModal({
-              open: true,
-              url: c.video_url || '',
-              urls: c.video_urls,
-              title: c.title,
-              isPremium: c.isPremium,
-              image: c.thumbnail_url,
-              internalUrl: c.internal_player_url,
-              description: c.description,
-              rating: c.rating
-            });
-
-            if (c.is_cinema_mode) {
-              setPendingPlayerState({
+        {/* Main Player Modal */}
+        <ContentPlayerModal
+          open={playerModal.open}
+          onClose={() => setPlayerModal({ open: false, url: '', title: '', isPremium: false })}
+          videoUrl={playerModal.url}
+          videoUrls={playerModal.urls}
+          title={playerModal.title}
+          isPremium={playerModal.isPremium}
+          image={playerModal.image}
+          description={playerModal.description}
+          rating={playerModal.rating}
+          episodeTitle={playerModal.episodeTitle}
+          internalPlayerUrl={playerModal.internalUrl}
+          suggestions={relatedContents}
+          onPlayContent={(c) => {
+            if (c.video_url || c.internal_player_url) {
+              // Check cinema mode for suggestions too? The user said "in other pages where play is available".
+              // If suggestion is part of content list, it might have 'is_cinema_mode'. 
+              // Ideally 'requestPlay' logic should be used here too if we want to support it for suggestions.
+              // But 'c' is from 'relatedContents', which is 'Content'.
+              const playCall = () => setPlayerModal({
                 open: true,
                 url: c.video_url || '',
                 urls: c.video_urls,
@@ -440,38 +439,53 @@ const ContentDetails = () => {
                 internalUrl: c.internal_player_url,
                 description: c.description,
                 rating: c.rating
-              }); // We need to update this to work generically.
-              // Actually current 'requestPlay' uses 'content' scope.
-              // We should probably just setCinemaModal(true) and change pending state.
-              setShowCinemaModal(true);
-            } else {
-              playCall();
+              });
+
+              if (c.is_cinema_mode) {
+                setPendingPlayerState({
+                  open: true,
+                  url: c.video_url || '',
+                  urls: c.video_urls,
+                  title: c.title,
+                  isPremium: c.isPremium,
+                  image: c.thumbnail_url,
+                  internalUrl: c.internal_player_url,
+                  description: c.description,
+                  rating: c.rating
+                }); // We need to update this to work generically.
+                // Actually current 'requestPlay' uses 'content' scope.
+                // We should probably just setCinemaModal(true) and change pending state.
+                setShowCinemaModal(true);
+              } else {
+                playCall();
+              }
             }
-          }
-        }}
-        onAddToMyList={handleAddSuggestionToList}
-      />
+          }}
+          onAddToMyList={handleAddSuggestionToList}
+        />
 
-      <DownloadModal
-        open={showDownloadModal}
-        onClose={() => setShowDownloadModal(false)}
-        downloadUrl={content.download_url || ''}
-        downloads={content.downloads}
-        downloadMode={content.download_mode}
-        title={content.title}
-        thumbnail={content.thumbnail_url}
-      />
+        <DownloadModal
+          open={showDownloadModal}
+          onClose={() => setShowDownloadModal(false)}
+          downloadUrl={content.download_url || ''}
+          downloads={content.downloads}
+          downloadMode={content.download_mode}
+          title={content.title}
+          thumbnail={content.thumbnail_url}
+        />
 
-      <CinemaWarningModal
-        open={showCinemaModal}
-        onClose={() => setShowCinemaModal(false)}
-        onConfirm={() => {
-          if (pendingPlayerState) {
-            setPlayerModal(pendingPlayerState);
-            setPendingPlayerState(null);
-          }
-        }}
-      />
+        <CinemaWarningModal
+          open={showCinemaModal}
+          onClose={() => setShowCinemaModal(false)}
+          onConfirm={() => {
+            if (pendingPlayerState) {
+              setPlayerModal(pendingPlayerState);
+              setPendingPlayerState(null);
+            }
+          }}
+        />
+      </div>
+    </div>
     </div >
   );
 };
