@@ -92,8 +92,9 @@ const Index = () => {
     return () => clearTimeout(textTimer);
   }, []);
 
-  // Show video after 15 seconds delay
+  // Show video after 15 seconds delay - reset when trailer changes
   useEffect(() => {
+    setShowVideo(false);
     const videoTimer = setTimeout(() => {
       setShowVideo(true);
     }, 15000);
@@ -156,7 +157,6 @@ const Index = () => {
   useEffect(() => {
     if (trailerContents.length > 0 && !playerModal.open) {
       const interval = setInterval(() => {
-        setShowVideo(false); // Reset video display for next trailer
         setCurrentTrailerIndex((prev) => (prev + 1) % trailerContents.length);
       }, 90000); // 90 seconds
 
