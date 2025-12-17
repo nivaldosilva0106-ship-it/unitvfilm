@@ -2,7 +2,8 @@ import { Film, Search, User, LogOut, List, Settings, Home, Download, ChevronDown
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { getAllContents } from "@/lib/firebase";
+import { getAllContents, checkPlanExpiryNotification } from "@/lib/firebase";
+import { NotificationBell } from "./notifications/NotificationBell";
 import { Button } from "./ui/button";
 import {
   DropdownMenu,
@@ -77,7 +78,17 @@ export const Header = () => {
     return () => {
       window.removeEventListener("beforeinstallprompt", onBeforeInstall);
     };
-  }, [deferredPrompt]); // Dependência adicionada para reavaliar a visibilidade
+    return () => {
+      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
+    };
+  }, [deferredPrompt]);
+
+  // Check Expiry on Mount
+  useEffect(() => {
+    if (user?.uid) {
+      checkPlanExpiryNotification(user.uid);
+    }
+  }, [user]);
 
   const handleInstallPWA = async () => {
     if (deferredPrompt) {
@@ -257,14 +268,19 @@ export const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
 
+            {/* Notification Bell */}
+            <div className="mr-2 hidden md:block">
+              <NotificationBell />
+            </div>
+
             {/* Credits Display for Limited Plans */}
             {user && plan && (plan.limits.moviesPerDay !== -1 || plan.limits.episodesPerDay !== -1) && (
               <div className="hidden md:flex items-center gap-3 mr-4">
                 {/* Movies Pill */}
                 {plan.limits.moviesPerDay !== -1 && (
                   <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-md transition-all ${(profile?.credits?.moviesWatched || 0) >= plan.limits.moviesPerDay
-                      ? 'bg-red-500/10 border-red-500/50 text-red-500'
-                      : 'bg-white/5 border-white/10 text-gray-300'
+                    ? 'bg-red-500/10 border-red-500/50 text-red-500'
+                    : 'bg-white/5 border-white/10 text-gray-300'
                     }`}>
                     <Clapperboard className="w-3.5 h-3.5" />
                     <div className="flex flex-col leading-none">
@@ -279,8 +295,8 @@ export const Header = () => {
                 {/* Episodes Pill */}
                 {plan.limits.episodesPerDay !== -1 && (
                   <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-md transition-all ${(profile?.credits?.episodesWatched || 0) >= plan.limits.episodesPerDay
-                      ? 'bg-red-500/10 border-red-500/50 text-red-500'
-                      : 'bg-white/5 border-white/10 text-gray-300'
+                    ? 'bg-red-500/10 border-red-500/50 text-red-500'
+                    : 'bg-white/5 border-white/10 text-gray-300'
                     }`}>
                     <Tv className="w-3.5 h-3.5" />
                     <div className="flex flex-col leading-none">

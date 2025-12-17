@@ -9,6 +9,7 @@ const navItems = [
   { title: "Planos", path: "/admin/plans", icon: Package },
   { title: "Avatares", path: "/admin/avatars", icon: Image },
   { title: "Slider Vídeos", path: "/admin/slider", icon: Video },
+  { title: "Notificações", path: "/admin/notifications", icon: Megaphone },
   { title: "Anúncios", path: "/admin/ads", icon: Megaphone },
   { title: "Pagamentos", path: "/admin/payments", icon: CreditCard },
   { title: "Sistema", path: "/admin/system", icon: Database },

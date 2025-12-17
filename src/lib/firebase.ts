@@ -43,6 +43,20 @@ export const addContent = async (content: Omit<Content, 'id'>) => {
   const base = removeUndefinedDeep(content);
   const contentWithId = removeUndefinedDeep({ ...base, id: newContentRef.key }) as Content;
   await set(newContentRef, contentWithId);
+
+  // Trigger Global Notification
+  try {
+    const typeLabel = content.type === 'movie' ? 'Novo Filme' : content.type === 'series' ? 'Nova Série' : 'Novo Canal';
+    await createGlobalNotification({
+      type: 'new_content',
+      title: `${typeLabel} Adicionado`,
+      message: `${content.title} já está disponível!`,
+      contentId: contentWithId.id
+    });
+  } catch (e) {
+    console.error("Error sending notification", e);
+  }
+
   return contentWithId;
 };
 
@@ -574,4 +588,104 @@ export const checkPlanExpiration = async (userId: string) => {
     }
   }
   return false;
+};
+
+// ==========================================
+// Notification System
+// ==========================================
+
+export interface NotificationItem {
+  id: string;
+  type: 'new_content' | 'plan_expiry' | 'admin_message' | 'system';
+  title: string;
+  message: string;
+  contentId?: string;
+  isRead?: boolean; // For private
+  createdAt: string;
+  userId?: string; // For private
+}
+
+export interface GlobalNotification {
+  id: string;
+  type: 'new_content' | 'system';
+  title: string;
+  message: string;
+  contentId?: string;
+  createdAt: string;
+}
+
+// 1. Create Private Notification
+export const createNotification = async (userId: string, data: Omit<NotificationItem, 'id' | 'createdAt' | 'isRead'>) => {
+  const refNotif = ref(database, `notifications/${userId}`);
+  const newRef = push(refNotif);
+  const notification: NotificationItem = {
+    ...data,
+    id: newRef.key!,
+    createdAt: new Date().toISOString(),
+    isRead: false,
+    userId
+  };
+  await set(newRef, notification);
+  return notification;
+};
+
+// 2. Create Global Notification
+export const createGlobalNotification = async (data: Omit<GlobalNotification, 'id' | 'createdAt'>) => {
+  const refNotif = ref(database, 'globalNotifications');
+  const newRef = push(refNotif);
+  const notification: GlobalNotification = {
+    ...data,
+    id: newRef.key!,
+    createdAt: new Date().toISOString()
+  };
+  await set(newRef, notification);
+  // Auto-clean old globals? Maybe later.
+  return notification;
+};
+
+// 3. Mark As Read
+export const markNotificationRead = async (userId: string, notificationId: string, isGlobal = false) => {
+  if (isGlobal) {
+    await set(ref(database, `profiles/${userId}/readGlobalNotifications/${notificationId}`), true);
+  } else {
+    await update(ref(database, `notifications/${userId}/${notificationId}`), { isRead: true });
+  }
+};
+
+// 4. Mark All Private Notifications as Read
+export const markAllPrivateNotificationsRead = async (userId: string) => {
+  const refNotif = ref(database, `notifications/${userId}`);
+  const snapshot = await get(refNotif);
+  if (snapshot.exists()) {
+    const updates: any = {};
+    Object.keys(snapshot.val()).forEach(key => {
+      updates[`${key}/isRead`] = true;
+    });
+    await update(refNotif, updates);
+  }
+}
+
+// 5. Check Plan Expiry (to be called on App init)
+export const checkPlanExpiryNotification = async (userId: string) => {
+  const profile = await getUserProfile(userId);
+  if (!profile || !profile.subscriptionExpiresAt || profile.subscriptionTier === 'free') return;
+
+  const expires = new Date(profile.subscriptionExpiresAt);
+  const now = new Date();
+  const diffTime = expires.getTime() - now.getTime();
+  const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+  if (daysLeft <= 7 && daysLeft > 0) {
+    const todayStr = new Date().toISOString().split('T')[0];
+    if (profile.lastExpiryNotification === todayStr) return;
+
+    if ([7, 3, 1].includes(daysLeft)) {
+      await createNotification(userId, {
+        type: 'plan_expiry',
+        title: 'Plano Expirando',
+        message: `Seu plano expira em ${daysLeft} dias. Renove para manter o acesso.`,
+      });
+      await update(ref(database, `profiles/${userId}`), { lastExpiryNotification: todayStr });
+    }
+  }
 };

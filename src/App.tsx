@@ -24,6 +24,7 @@ import ProfileSelection from "@/pages/profiles/ProfileSelection";
 import Categories from "./pages/Categories";
 import VerifyCode from "./pages/VerifyCode";
 import AdminSystem from "./pages/AdminSystem";
+import AdminNotifications from "./pages/AdminNotifications";
 
 import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminAvatars } from "@/components/admin/AdminAvatars";
@@ -55,6 +56,7 @@ const App = () => (
               <Route path="/admin/slider" element={<AdminSlider />} />
               <Route path="/admin/plans" element={<AdminPlans />} />
               <Route path="/admin/system" element={<AdminSystem />} />
+              <Route path="/admin/notifications" element={<AdminNotifications />} />
               <Route path="/payment" element={<Payment />} />
               <Route path="/content/:id" element={<ContentDetails />} />
               <Route path="/my-list" element={<MyList />} />
