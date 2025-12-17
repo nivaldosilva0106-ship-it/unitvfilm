@@ -17,11 +17,13 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
     const videoRef = useRef<HTMLVideoElement>(null);
     const [muted, setMuted] = useState(true);
     const [showTrailer, setShowTrailer] = useState(false);
+    const [videoOpacity, setVideoOpacity] = useState(1); // For fade-out effect
 
     // Trailer auto-play after 3 seconds
     useEffect(() => {
         if (open && content?.trailer_url) {
             setShowTrailer(false);
+            setVideoOpacity(1); // Reset opacity
             const timer = setTimeout(() => {
                 setShowTrailer(true);
             }, 3000);
@@ -29,8 +31,26 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
             return () => clearTimeout(timer);
         } else {
             setShowTrailer(false);
+            setVideoOpacity(1);
         }
     }, [open, content]);
+
+    // Handle video time update for 60s limit with fade-out
+    const handleTimeUpdate = () => {
+        if (videoRef.current) {
+            const currentTime = videoRef.current.currentTime;
+            // Start fading at 57s, complete fade by 60s
+            if (currentTime >= 57) {
+                const fadeProgress = (currentTime - 57) / 3; // 0 to 1 over 3 seconds
+                setVideoOpacity(Math.max(0, 1 - fadeProgress));
+            }
+            // Stop at 60s
+            if (currentTime >= 60) {
+                videoRef.current.pause();
+                setShowTrailer(false);
+            }
+        }
+    };
 
     const handlePlay = () => {
         if (onPlay && content) {
@@ -76,10 +96,11 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
                         <video
                             ref={videoRef}
                             src={content.trailer_url}
-                            className="w-full h-full object-cover"
+                            className="w-full h-full object-cover transition-opacity duration-1000"
+                            style={{ opacity: videoOpacity }}
                             autoPlay
-                            loop
                             muted={muted}
+                            onTimeUpdate={handleTimeUpdate}
                             poster={content.backdrop_url || content.thumbnail_url}
                         />
                     ) : (

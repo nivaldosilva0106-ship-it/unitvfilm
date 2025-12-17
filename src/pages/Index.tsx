@@ -401,7 +401,7 @@ const Index = () => {
       {/* Hero Section */}
       <div className="relative py-12 flex items-center justify-center overflow-hidden min-h-[500px] w-full">
         {/* Hero Background: Image first (15s), then Video */}
-        {!playerModal.open && currentTrailer && currentTrailer.trailer_url && showVideo && getYouTubeId(currentTrailer.trailer_url) ? (
+        {!playerModal.open && !quickViewContent && currentTrailer && currentTrailer.trailer_url && showVideo && getYouTubeId(currentTrailer.trailer_url) ? (
           <div className="absolute inset-0 z-0 pointer-events-none">
             <div className="relative w-full h-full">
               <iframe
@@ -421,7 +421,7 @@ const Index = () => {
             {currentTrailer ? (
               <>
                 <img
-                  src={currentTrailer.thumbnail_url}
+                  src={currentTrailer.backdrop_url || currentTrailer.thumbnail_url}
                   alt=""
                   className="w-full h-full object-cover"
                 />
@@ -438,7 +438,7 @@ const Index = () => {
                         }`}
                     >
                       <img
-                        src={content.thumbnail_url}
+                        src={content.backdrop_url || content.thumbnail_url}
                         alt=""
                         className="w-full h-full object-cover"
                       />
@@ -464,14 +464,17 @@ const Index = () => {
           </div>
         )}
 
-        <div className={`relative z-20 text-center px-4 max-w-5xl mx-auto w-full flex flex-col items-center transition-opacity duration-1000 ${heroTextVisible ? 'opacity-100' : 'opacity-0'
-          }`}>
-          <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-3 drop-shadow-lg pt-8">
-            Bem-vindo ao Uni<span className="text-primary glow-effect">Tv</span>Film
-          </h1>
-          <p className="text-lg text-foreground/90 drop-shadow-md mb-8">
-            Sua plataforma de streaming com os melhores filmes, séries e canais de TV
-          </p>
+        <div className="relative z-20 text-center px-4 max-w-5xl mx-auto w-full flex flex-col items-center">
+          {/* Title and Subtitle with Fade */}
+          <div className={`transition-opacity duration-1000 ${heroTextVisible ? 'opacity-100' : 'opacity-0'
+            }`}>
+            <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-3 drop-shadow-lg pt-8">
+              Bem-vindo ao Uni<span className="text-primary glow-effect">Tv</span>Film
+            </h1>
+            <p className="text-lg text-foreground/90 drop-shadow-md mb-8">
+              Sua plataforma de streaming com os melhores filmes, séries e canais de TV
+            </p>
+          </div>
 
           {/* Category Navigation */}
           <div className="w-full flex justify-center mb-10">
