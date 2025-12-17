@@ -77,3 +77,33 @@ export const getSeriesTrailer = async (seriesId: number) => {
     return '';
   }
 };
+
+export const getMovieDetails = async (id: number) => {
+  try {
+    const response = await tmdbApi.get(`/movie/${id}`, {
+      params: {
+        language: 'pt-BR',
+        append_to_response: 'credits,images'
+      }
+    });
+    return response.data;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+}
+
+export const getSeriesDetails = async (id: number) => {
+  try {
+    const response = await tmdbApi.get(`/tv/${id}`, {
+      params: {
+        language: 'pt-BR',
+        append_to_response: 'credits,images'
+      }
+    });
+    return response.data;
+  } catch (e) {
+    console.error(e);
+    return null;
+  }
+};

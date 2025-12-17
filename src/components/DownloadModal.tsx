@@ -5,80 +5,88 @@ import { Download, AlertTriangle, Info } from "lucide-react";
 interface DownloadModalProps {
     open: boolean;
     onClose: () => void;
-    downloadUrl: string;
+    downloadUrl: string; // Legacy support
+    downloads?: { label: string; url: string; type?: 'direct' | 'torrent' }[];
+    downloadMode?: 'direct' | 'torrent' | 'mixed';
     title: string;
     thumbnail?: string;
 }
 
-export const DownloadModal = ({ open, onClose, downloadUrl, title, thumbnail }: DownloadModalProps) => {
-    const handleDownload = () => {
-        window.open(downloadUrl, '_blank');
-        onClose();
+export const DownloadModal = ({ open, onClose, downloadUrl, downloads, downloadMode = 'direct', title, thumbnail }: DownloadModalProps) => {
+    const handleDownload = (url: string) => {
+        window.open(url, '_blank');
+        // onClose(); // Keep open for multiple downloads? Or close. Better keep open if mixed.
     };
+
+    // Determine effective links. If no new 'downloads', use legacy 'downloadUrl' as single link.
+    const effectiveLinks = (downloads && downloads.length > 0)
+        ? downloads
+        : (downloadUrl ? [{ label: 'Download Principal', url: downloadUrl, type: downloadMode === 'torrent' ? 'torrent' : 'direct' }] : []);
+
+    // Determine if we should show Torrent Warning
+    const showTorrentWarning = downloadMode === 'torrent' || (downloadMode === 'mixed' && effectiveLinks.some(l => l.type === 'torrent'));
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[400px] bg-[#1a1a1a] border-[#333] text-white p-0 gap-0 overflow-hidden shadow-2xl">
-                {/* Close button is automatically added by DialogContent */}
-
+            <DialogContent className="sm:max-w-[500px] bg-[#1a1a1a] border-[#333] text-white p-0 gap-0 overflow-hidden shadow-2xl">
                 <div className="flex flex-col items-center p-6 pb-2">
-                    {/* Header with icon */}
                     <div className="flex items-center justify-center w-12 h-12 mb-4 rounded-full bg-[#22c55e]/10">
                         <Download className="w-6 h-6 text-[#22c55e]" />
                     </div>
 
-                    {/* Thumbnail */}
                     {thumbnail && (
                         <div className="mb-4 relative group">
                             <div className="absolute inset-0 bg-black/20 rounded-lg" />
-                            <img
-                                src={thumbnail}
-                                alt={title}
-                                className="w-32 h-48 object-cover rounded-lg shadow-xl"
-                            />
+                            <img src={thumbnail} alt={title} className="w-32 h-48 object-cover rounded-lg shadow-xl" />
                         </div>
                     )}
 
-                    {/* Title */}
-                    <h2 className="text-lg font-bold text-center mb-1">
-                        Baixar Filme: {title}
-                    </h2>
+                    <h2 className="text-lg font-bold text-center mb-1">Baixar: {title}</h2>
                 </div>
 
                 <div className="px-6 space-y-4 pb-6">
-                    {/* Warning */}
-                    <div className="p-3 rounded-lg bg-[#3a3020] border border-yellow-600/30 flex gap-3 items-start">
-                        <AlertTriangle className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
-                        <div className="space-y-1">
-                            <p className="text-sm text-yellow-500 font-medium">
-                                Atenção: Este é um arquivo <span className="font-bold">Torrent</span>.
+                    {/* Torrent Warning - Only show if mode is torrent or mixed with torrent links */}
+                    {showTorrentWarning && (
+                        <div className="p-3 rounded-lg bg-[#3a3020] border border-yellow-600/30">
+                            <div className="flex gap-3 items-start mb-2">
+                                <AlertTriangle className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
+                                <div className="space-y-1">
+                                    <p className="text-sm text-yellow-500 font-medium">
+                                        {downloadMode === 'mixed' ? 'Alguns arquivos requerem cliente Torrent.' : 'Atenção: Arquivo Torrent.'}
+                                    </p>
+                                </div>
+                            </div>
+                            <p className="text-xs text-gray-400 px-1">
+                                Para baixar links do tipo Torrent, você precisa de um cliente como uTorrent ou BitTorrent.
                             </p>
                         </div>
-                    </div>
+                    )}
 
-                    {/* Instructions */}
-                    <div className="space-y-3">
-                        <p className="text-sm text-gray-400 text-center px-2">
-                            Para baixar o conteúdo, você precisa ter um cliente Torrent instalado no seu dispositivo (como uTorrent, BitTorrent, qBittorrent).
-                        </p>
-
-                        <div className="bg-[#262626] rounded-lg p-4 flex gap-3">
-                            <Info className="w-5 h-5 text-[#22c55e] shrink-0 mt-0.5" />
-                            <div className="space-y-1 text-sm text-gray-300">
-                                <p>1. Certifique-se de ter o uTorrent instalado.</p>
-                                <p>2. Clique em "Baixar Agora" para abrir o link magnet/arquivo.</p>
-                            </div>
+                    {!showTorrentWarning && downloadMode === 'direct' && (
+                        <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 flex gap-3 items-center">
+                            <Info className="w-5 h-5 text-green-500 shrink-0" />
+                            <p className="text-sm text-green-200">Download direto disponível. Clique para baixar.</p>
                         </div>
-                    </div>
+                    )}
 
-                    {/* Download Button */}
-                    <Button
-                        onClick={handleDownload}
-                        className="w-full bg-[#22c55e] hover:bg-[#16a34a] text-white font-bold h-12 rounded-lg text-base mt-2"
-                    >
-                        <Download className="w-5 h-5 mr-2" />
-                        Baixar Agora
-                    </Button>
+                    <div className="grid gap-3">
+                        {effectiveLinks.map((link, idx) => (
+                            <Button
+                                key={idx}
+                                onClick={() => handleDownload(link.url)}
+                                className="w-full bg-[#262626] hover:bg-[#333] text-white border border-white/10 h-auto py-3 px-4 flex items-center justify-between group"
+                            >
+                                <div className="flex flex-col items-start">
+                                    <span className="font-medium group-hover:text-[#22c55e] transition-colors">{link.label || 'Download'}</span>
+                                    <span className="text-[10px] text-gray-500 uppercase">{link.type || (downloadMode === 'torrent' ? 'Torrent' : 'Direto')}</span>
+                                </div>
+                                <Download className="w-4 h-4 text-gray-400 group-hover:text-white" />
+                            </Button>
+                        ))}
+                        {effectiveLinks.length === 0 && (
+                            <p className="text-center text-gray-500 py-4">Nenhum link disponível.</p>
+                        )}
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>

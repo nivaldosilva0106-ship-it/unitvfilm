@@ -6,7 +6,7 @@ import { EpisodeSelector } from "@/components/EpisodeSelector";
 import { TrailerModal } from "@/components/TrailerModal";
 import { ContentPlayerModal } from "@/components/ContentPlayerModal";
 import { AdManager } from "@/components/AdManager";
-import { Play, Download, ArrowLeft, Calendar, Globe, Star, Film, Heart } from "lucide-react";
+import { Play, Download, ArrowLeft, Calendar, Globe, Star, Film, Heart, Clock, Users } from "lucide-react";
 import { getAllContents, addToMyList, removeFromMyList, getMyList } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -231,6 +231,39 @@ const ContentDetails = () => {
               </div>
             </div>
 
+            {/* Extended Metadata */}
+            <div className="flex flex-col gap-2 text-sm text-gray-400 mt-4 bg-white/5 p-4 rounded-lg border border-white/5">
+              {content.duration && (
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-gray-500" />
+                  <span className="text-white font-medium">Duração:</span> {content.duration}
+                </div>
+              )}
+              {content.genre && content.genre.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <Film className="w-4 h-4 text-gray-500" />
+                  <span className="text-white font-medium">Gêneros:</span> {content.genre.join(', ')}
+                </div>
+              )}
+              {content.cast && (
+                <div className="flex items-start gap-2">
+                  <Users className="w-4 h-4 text-gray-500 mt-1" />
+                  <div>
+                    <span className="text-white font-medium">Elenco:</span>
+                    <p className="line-clamp-2">{content.cast}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Backdrop Logic (Optional: Apply as page background?) */}
+            {content.backdrop_url && (
+              <div className="fixed inset-0 -z-10">
+                <div className="absolute inset-0 bg-background/90" />
+                <img src={content.backdrop_url} className="w-full h-full object-cover opacity-20" />
+              </div>
+            )}
+
             <div className="flex flex-wrap gap-3">
               <Button
                 onClick={() => handlePlay()}
@@ -262,7 +295,7 @@ const ContentDetails = () => {
                 </Button>
               )}
 
-              {content.download_url && content.category === 'movie' && (
+              {(content.category === 'movie') && ((content.download_url) || (content.downloads && content.downloads.length > 0)) && (
                 <Button
                   onClick={handleDownload}
                   variant="outline"
@@ -292,25 +325,29 @@ const ContentDetails = () => {
       {/* Mobile Bottom Ad */}
       <AdManager placement="mobile-bottom" className="md:hidden fixed bottom-0 left-0 right-0 z-40" />
 
-      {content.category === 'series' && showEpisodes && content.episodes && (
-        <EpisodeSelector
-          open={showEpisodes}
-          onClose={() => setShowEpisodes(false)}
-          episodes={content.episodes}
-          title={content.title}
-          trailerUrl={content.trailer_url}
-          onPlayEpisode={(url, episodeTitle) => setPlayerModal({ open: true, url, title: content.title, isPremium: content.isPremium, image: content.thumbnail_url, description: content.description, rating: content.rating, episodeTitle })}
-        />
-      )}
+      {
+        content.category === 'series' && showEpisodes && content.episodes && (
+          <EpisodeSelector
+            open={showEpisodes}
+            onClose={() => setShowEpisodes(false)}
+            episodes={content.episodes}
+            title={content.title}
+            trailerUrl={content.trailer_url}
+            onPlayEpisode={(url, episodeTitle) => setPlayerModal({ open: true, url, title: content.title, isPremium: content.isPremium, image: content.thumbnail_url, description: content.description, rating: content.rating, episodeTitle })}
+          />
+        )
+      }
 
-      {showTrailerModal && content.trailer_url && (
-        <TrailerModal
-          open={showTrailerModal}
-          onClose={() => setShowTrailerModal(false)}
-          trailerUrl={content.trailer_url}
-          title={content.title}
-        />
-      )}
+      {
+        showTrailerModal && content.trailer_url && (
+          <TrailerModal
+            open={showTrailerModal}
+            onClose={() => setShowTrailerModal(false)}
+            trailerUrl={content.trailer_url}
+            title={content.title}
+          />
+        )
+      }
 
       {/* Main Player Modal */}
       <ContentPlayerModal
@@ -348,10 +385,12 @@ const ContentDetails = () => {
         open={showDownloadModal}
         onClose={() => setShowDownloadModal(false)}
         downloadUrl={content.download_url || ''}
+        downloads={content.downloads}
+        downloadMode={content.download_mode}
         title={content.title}
         thumbnail={content.thumbnail_url}
       />
-    </div>
+    </div >
   );
 };
 

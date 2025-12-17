@@ -8,7 +8,9 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Search, Save, Plus, X, Lock, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { searchMovies, searchSeries, getImageUrl, getMovieTrailer, getSeriesTrailer } from "@/lib/tmdb";
+import { searchMovies, searchSeries, getImageUrl, getMovieTrailer, getSeriesTrailer, getMovieDetails, getSeriesDetails } from "@/lib/tmdb";
+import { PlusCircle, Trash, Download as DownloadIcon } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { Content, Episode } from "@/types/content";
 import type { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 
@@ -60,13 +62,23 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     const isMovie = 'title' in item;
 
     let trailerUrl = '';
+    let details: any = {};
+
     try {
-      trailerUrl = isMovie
-        ? await getMovieTrailer(item.id)
-        : await getSeriesTrailer(item.id);
-    } catch (error) {
-      console.error('Erro ao buscar trailer:', error);
-    }
+      if (isMovie) {
+        trailerUrl = await getMovieTrailer(item.id);
+        details = await getMovieDetails(item.id);
+      } else {
+        trailerUrl = await getSeriesTrailer(item.id);
+        details = await getSeriesDetails(item.id);
+      }
+    } catch (e) { console.error(e); }
+
+    const cast = details?.credits?.cast?.slice(0, 5).map((c: any) => c.name).join(', ') || '';
+    const duration = details?.runtime ? `${Math.floor(details.runtime / 60)}h ${details.runtime % 60}m` : '';
+    const genres = details?.genres?.map((g: any) => g.name) || [];
+    const backdrop = details?.backdrop_path ? getImageUrl(details.backdrop_path) : getImageUrl(item.backdrop_path);
+    const year = isMovie ? (item.release_date ? new Date(item.release_date).getFullYear() : undefined) : (item.first_air_date ? new Date(item.first_air_date).getFullYear() : undefined);
 
     setEditingContent(prev => ({
       ...prev,
@@ -78,6 +90,12 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       release_date: isMovie ? item.release_date : item.first_air_date,
       rating: item.vote_average,
       tmdb_id: item.id,
+      // New Fields
+      cast,
+      duration,
+      year,
+      genre: genres,
+      backdrop_url: backdrop
     }));
     setSearchResults([]);
     toast.success("Dados preenchidos com sucesso!" + (trailerUrl ? " (Trailer encontrado)" : ""));
@@ -265,14 +283,69 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           />
         </div>
 
+        {/* New Metadata Fields */}
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label>Elenco</Label>
+            <Input
+              value={editingContent.cast || ''}
+              onChange={e => setEditingContent(prev => ({ ...prev, cast: e.target.value }))}
+              className="bg-input border-border"
+              placeholder="Ator 1, Ator 2..."
+            />
+          </div>
+          <div>
+            <Label>Gêneros</Label>
+            <Input
+              value={editingContent.genre?.join(', ') || ''}
+              onChange={e => setEditingContent(prev => ({ ...prev, genre: e.target.value.split(',').map(s => s.trim()) }))}
+              className="bg-input border-border"
+              placeholder="Ação, Drama..."
+            />
+          </div>
+          <div>
+            <Label>Duração</Label>
+            <Input
+              value={editingContent.duration || ''}
+              onChange={e => setEditingContent(prev => ({ ...prev, duration: e.target.value }))}
+              className="bg-input border-border"
+              placeholder="2h 15m"
+            />
+          </div>
+          <div>
+            <Label>Ano</Label>
+            <Input
+              type="number"
+              value={editingContent.year || ''}
+              onChange={e => setEditingContent(prev => ({ ...prev, year: parseInt(e.target.value) }))}
+              className="bg-input border-border"
+            />
+          </div>
+          <div className="col-span-2">
+            <Label>URL Imagem de Fundo (Backdrop)</Label>
+            <Input
+              value={editingContent.backdrop_url || ''}
+              onChange={e => setEditingContent(prev => ({ ...prev, backdrop_url: e.target.value }))}
+              className="bg-input border-border"
+              placeholder="https://..."
+            />
+            {editingContent.backdrop_url && (
+              <img src={editingContent.backdrop_url} className="mt-2 w-full h-32 object-cover rounded-md border border-white/10" />
+            )}
+          </div>
+        </div>
+
         <div>
-          <Label>URL da Imagem *</Label>
+          <Label>URL da Imagem de Capa *</Label>
           <Input
             value={editingContent.thumbnail_url || ''}
             onChange={(e) => setEditingContent(prev => ({ ...prev, thumbnail_url: e.target.value }))}
             className="bg-input border-border"
             placeholder="https://..."
           />
+          {editingContent.thumbnail_url && (
+            <img src={editingContent.thumbnail_url} className="mt-2 w-24 h-36 object-cover rounded-md border border-white/10" />
+          )}
         </div>
 
         {(isMovie || isTV) && (
@@ -450,14 +523,106 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
         )}
 
         {isMovie && (
-          <div>
-            <Label>URL de Download (Filme)</Label>
-            <Input
-              value={editingContent.download_url || ''}
-              onChange={(e) => setEditingContent(prev => ({ ...prev, download_url: e.target.value }))}
-              className="bg-input border-border"
-              placeholder="https://..."
-            />
+          <div className="space-y-4 p-4 border border-white/10 rounded-lg bg-black/20">
+            <h3 className="font-semibold flex items-center gap-2">
+              <DownloadIcon className="w-4 h-4" /> Configuração de Downloads
+            </h3>
+
+            <div className="space-y-3">
+              <Label>Modo de Download</Label>
+              <RadioGroup
+                value={editingContent.download_mode || 'direct'}
+                onValueChange={(v) => setEditingContent(prev => ({ ...prev, download_mode: v as any }))}
+                className="flex gap-4"
+              >
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="direct" id="d-direct" />
+                  <Label htmlFor="d-direct">Direto (MP4/MKV)</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="torrent" id="d-torrent" />
+                  <Label htmlFor="d-torrent">Torrent</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <RadioGroupItem value="mixed" id="d-mixed" />
+                  <Label htmlFor="d-mixed">Misto</Label>
+                </div>
+              </RadioGroup>
+
+              {editingContent.download_mode === 'mixed' && (
+                <p className="text-xs text-yellow-500">
+                  No modo Misto, você pode definir o tipo (Direto/Torrent) para cada link individualmente.
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label>Links de Download</Label>
+              {(editingContent.downloads || []).map((link, idx) => (
+                <div key={idx} className="flex gap-2 items-start">
+                  <Input
+                    value={link.label}
+                    onChange={e => {
+                      const newLinks = [...(editingContent.downloads || [])];
+                      newLinks[idx].label = e.target.value;
+                      setEditingContent(prev => ({ ...prev, downloads: newLinks }));
+                    }}
+                    placeholder="Título (ex: 4K Dual Audio)"
+                    className="w-1/3 bg-input border-border"
+                  />
+                  <Input
+                    value={link.url}
+                    onChange={e => {
+                      const newLinks = [...(editingContent.downloads || [])];
+                      newLinks[idx].url = e.target.value;
+                      setEditingContent(prev => ({ ...prev, downloads: newLinks }));
+                    }}
+                    placeholder="URL"
+                    className="flex-1 bg-input border-border"
+                  />
+                  {editingContent.download_mode === 'mixed' && (
+                    <Select
+                      value={link.type || 'direct'}
+                      onValueChange={v => {
+                        const newLinks = [...(editingContent.downloads || [])];
+                        newLinks[idx].type = v as any;
+                        setEditingContent(prev => ({ ...prev, downloads: newLinks }));
+                      }}
+                    >
+                      <SelectTrigger className="w-[100px] bg-input border-border">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="direct">Direto</SelectItem>
+                        <SelectItem value="torrent">Torrent</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => {
+                      const newLinks = (editingContent.downloads || []).filter((_, i) => i !== idx);
+                      setEditingContent(prev => ({ ...prev, downloads: newLinks }));
+                    }}
+                  >
+                    <Trash className="w-4 h-4" />
+                  </Button>
+                </div>
+              ))}
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const newLinkType: 'direct' | 'torrent' = editingContent.download_mode === 'torrent' ? 'torrent' : 'direct';
+                  const newLinks = [...(editingContent.downloads || []), { label: '', url: '', type: newLinkType }];
+                  setEditingContent(prev => ({ ...prev, downloads: newLinks }));
+                }}
+              >
+                <PlusCircle className="w-4 h-4 mr-2" /> Adicionar Link
+              </Button>
+            </div>
           </div>
         )}
 
@@ -486,6 +651,6 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           Salvar Conteúdo
         </Button>
       </div>
-    </Card>
+    </Card >
   );
 };

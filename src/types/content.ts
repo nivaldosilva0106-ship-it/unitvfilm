@@ -25,4 +25,19 @@ export interface Content {
   tmdb_id?: number;
   rating?: number;
   isPremium?: boolean;
+
+  // New Metadata
+  cast?: string;
+  duration?: string;
+  year?: number;
+  genre?: string[];
+  backdrop_url?: string;
+
+  // New Downloads
+  download_mode?: 'direct' | 'torrent' | 'mixed';
+  downloads?: {
+    label: string;
+    url: string;
+    type?: 'direct' | 'torrent';
+  }[];
 }
