@@ -16,7 +16,30 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
     const navigate = useNavigate();
     const videoRef = useRef<HTMLVideoElement>(null);
     const [muted, setMuted] = useState(true);
-    const [showTrailer, setShowTrailer] = useState(false); // Controls image->trailer transition
+    const [showTrailer, setShowTrailer] = useState(false);
+
+    // Trailer auto-play after 3 seconds
+    useEffect(() => {
+        if (open && content?.trailer_url) {
+            setShowTrailer(false);
+            const timer = setTimeout(() => {
+                setShowTrailer(true);
+            }, 3000);
+
+            return () => clearTimeout(timer);
+        } else {
+            setShowTrailer(false);
+        }
+    }, [open, content]);
+
+    const handlePlay = () => {
+        if (onPlay && content) {
+            onPlay(content);
+        } else if (content) {
+            navigate(`/content/${content.id}`);
+        }
+        onClose();
+    };
 
     if (!content || !open) return null;
 
@@ -31,29 +54,6 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
             case '18': return 'bg-black';
             default: return 'bg-zinc-500';
         }
-    };
-
-    // Trailer auto-play after 3 seconds
-    useEffect(() => {
-        if (open && content?.trailer_url) {
-            setShowTrailer(false); // Start with image
-            const timer = setTimeout(() => {
-                setShowTrailer(true); // Show trailer after 3s
-            }, 3000);
-
-            return () => clearTimeout(timer);
-        } else {
-            setShowTrailer(false);
-        }
-    }, [open, content]);
-
-    const handlePlay = () => {
-        if (onPlay && content) {
-            onPlay(content); // Use parent's play handler to open player
-        } else {
-            navigate(`/content/${content?.id}`);
-        }
-        onClose();
     };
 
     return (
