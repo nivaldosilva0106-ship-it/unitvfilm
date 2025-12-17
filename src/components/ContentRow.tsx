@@ -11,10 +11,11 @@ interface ContentRowProps {
   onPlayContent?: (content: Content) => void;
   onInfoContent?: (content: Content) => void;
   onDetailsContent?: (content: Content) => void;
+  onTrailerContent?: (content: Content) => void;
   onDownloadContent?: (content: Content) => void;
 }
 
-export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDetailsContent, onDownloadContent }: ContentRowProps) => {
+export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDetailsContent, onTrailerContent, onDownloadContent }: ContentRowProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
@@ -93,6 +94,7 @@ export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDe
                 onPlay={() => onPlayContent?.(content)}
                 onInfo={() => onInfoContent?.(content)}
                 onDetails={() => onDetailsContent?.(content)}
+                onTrailer={content.trailer_url ? () => onTrailerContent?.(content) : undefined}
                 onDownload={content.download_url ? () => onDownloadContent?.(content) : undefined}
                 isPremium={content.isPremium}
                 classification={content.classification}

@@ -9,6 +9,7 @@ interface MarqueeContentRowProps {
     onPlayContent: (content: Content) => void;
     onInfoContent: (content: Content) => void;
     onDetailsContent?: (content: Content) => void;
+    onTrailerContent?: (content: Content) => void;
     onDownloadContent: (content: Content) => void;
     showNumbers?: boolean;
 }
@@ -19,6 +20,7 @@ export const MarqueeContentRow = ({
     onPlayContent,
     onInfoContent,
     onDetailsContent,
+    onTrailerContent,
     onDownloadContent,
     showNumbers = false,
 }: MarqueeContentRowProps) => {

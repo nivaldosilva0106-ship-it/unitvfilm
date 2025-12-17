@@ -48,8 +48,39 @@ export const searchSeries = async (query: string) => {
 };
 
 export const getImageUrl = (path: string) => {
-  if (!path) return '';
+  if (!path) return '/placeholder.svg';
   return `${IMAGE_BASE_URL}${path}`;
+};
+
+// Fetch content rating/classification from TMDB
+export const getContentRating = async (tmdbId: number, type: 'movie' | 'tv'): Promise<string | null> => {
+  try {
+    const endpoint = type === 'movie'
+      ? `/movie/${tmdbId}/release_dates`
+      : `/tv/${tmdbId}/content_ratings`;
+
+    const response = await tmdbApi.get(endpoint);
+
+    if (type === 'movie') {
+      // Find Brazilian rating (BR)
+      const brRelease = response.data.results.find((r: any) => r.iso_3166_1 === 'BR');
+      if (brRelease && brRelease.release_dates && brRelease.release_dates.length > 0) {
+        const certification = brRelease.release_dates[0].certification;
+        return certification || null;
+      }
+    } else {
+      // TV Series
+      const brRating = response.data.results.find((r: any) => r.iso_3166_1 === 'BR');
+      if (brRating && brRating.rating) {
+        return brRating.rating;
+      }
+    }
+
+    return null;
+  } catch (error) {
+    console.error('Error fetching content rating from TMDB:', error);
+    return null;
+  }
 };
 
 export const getMovieTrailer = async (movieId: number) => {

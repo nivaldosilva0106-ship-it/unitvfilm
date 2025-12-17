@@ -9,6 +9,7 @@ interface ContentCardProps {
   onPlay?: () => void;
   onInfo?: () => void;
   onDetails?: () => void; // New Handler for Poster Click
+  onTrailer?: () => void; // New Handler for Trailer button
   onDownload?: () => void;
   isPremium?: boolean;
   isNew?: boolean;
@@ -17,7 +18,7 @@ interface ContentCardProps {
   classification?: string; // e.g. '10', '12', '16', '18', 'L'
 }
 
-export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDetails, onDownload, isPremium, isNew, newSince, category, classification }: ContentCardProps) => {
+export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDetails, onTrailer, onDownload, isPremium, isNew, newSince, category, classification }: ContentCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { playNavigationSound } = useKeyboardNavigation({ enabled: false });
@@ -103,6 +104,19 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDetails, onDow
               >
                 <Info className="w-4 h-4" />
               </Button>
+              {onTrailer && (
+                <Button
+                  onClick={handleButtonClick(onTrailer)}
+                  onFocus={handleButtonFocus}
+                  size="icon"
+                  variant="secondary"
+                  className="h-8 w-8 rounded-full"
+                  tabIndex={0}
+                  title="Ver Trailer"
+                >
+                  <Play className="w-4 h-4" />
+                </Button>
+              )}
               {onDownload && (
                 <Button
                   onClick={handleButtonClick(onDownload)}
