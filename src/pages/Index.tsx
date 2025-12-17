@@ -9,6 +9,7 @@ import { ContentPlayerModal } from "@/components/ContentPlayerModal";
 import { CategoryNavigation } from "@/components/CategoryNavigation";
 import { DownloadModal } from "@/components/DownloadModal";
 import { CinemaWarningModal } from "@/components/CinemaWarningModal";
+import { QuickViewModal } from "@/components/QuickViewModal";
 import { AdManager } from "@/components/AdManager";
 import { Content } from "@/types/content";
 import { getAllContents, getMyList, addToMyList, removeFromMyList, getSliderSettings, type SliderSettings } from "@/lib/firebase";
@@ -36,6 +37,8 @@ const Index = () => {
   const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string, internalUrl?: string }>({ open: false, url: '', title: '', isPremium: false });
   const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, title: string, thumbnail: string }>({ open: false, url: '', title: '', thumbnail: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
+  /* New State for Quick View */
+  const [quickViewContent, setQuickViewContent] = useState<Content | null>(null);
   const [showCinemaModal, setShowCinemaModal] = useState(false);
   const [pendingPlayerState, setPendingPlayerState] = useState<any>(null);
 
@@ -169,6 +172,8 @@ const Index = () => {
   const loadContent = async () => {
     try {
       const allData = await getAllContents();
+      // TEMP: Inject classification for testing
+      if (allData.length > 0) allData[0].classification = '16';
       setAllContentData(allData);
 
       const shuffled = [...allData].sort(() => 0.5 - Math.random());
@@ -273,6 +278,18 @@ const Index = () => {
 
 
   const handlePlayContent = (content: Content) => {
+    // Guest Limit Check
+    if (user?.isAnonymous) {
+      const watched = parseInt(sessionStorage.getItem('guest_watched_count') || '0');
+      if (watched >= 1) {
+        toast.error("Visitante só pode assistir 1 conteúdo. Crie uma conta para continuar.");
+        navigate('/signup');
+        return;
+      }
+      // Increment on play intent (simple enforcement)
+      sessionStorage.setItem('guest_watched_count', (watched + 1).toString());
+    }
+
     if (content.category === 'series' && content.episodes && content.episodes.length > 0) {
       setSelectedSeries(content);
     } else if (content.video_url) {
@@ -300,10 +317,16 @@ const Index = () => {
   };
 
   const handleInfoContent = (content: Content) => {
-    navigate(`/content/${content.id}`);
+    // Netflix-style: Quick View on Info Click too (or Hover as implemented in card)
+    setQuickViewContent(content);
   };
 
   const handleDownloadContent = (content: Content) => {
+    if (!user) {
+      toast.error("Faça login para baixar conteúdo");
+      navigate("/login");
+      return;
+    }
     if (content.download_url) {
       setDownloadModal({
         open: true,
@@ -647,10 +670,17 @@ const Index = () => {
       {/* Download Modal */}
       <DownloadModal
         open={downloadModal.open}
-        onClose={() => setDownloadModal({ open: false, url: '', title: '', thumbnail: '' })}
+        onClose={() => setDownloadModal(prev => ({ ...prev, open: false }))}
         downloadUrl={downloadModal.url}
         title={downloadModal.title}
         thumbnail={downloadModal.thumbnail}
+      />
+
+      {/* Quick View Modal */}
+      <QuickViewModal
+        open={!!quickViewContent}
+        content={quickViewContent}
+        onClose={() => setQuickViewContent(null)}
       />
 
       <CinemaWarningModal

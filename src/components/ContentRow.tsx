@@ -3,14 +3,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useRef, useState, useEffect } from "react";
 import { Button } from "./ui/button";
 
-interface Content {
-  id: string;
-  title: string;
-  thumbnail_url: string;
-  video_url?: string;
-  download_url?: string;
-  isPremium?: boolean;
-}
+import { Content } from "@/types/content";
 
 interface ContentRowProps {
   title: string;
@@ -42,7 +35,7 @@ export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDo
       // Inicializa o estado das setas após a renderização
       checkScrollArrows();
     }
-    
+
     // Adiciona um listener para redimensionamento para recalcular as setas
     window.addEventListener('resize', checkScrollArrows);
 
@@ -66,7 +59,7 @@ export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDo
         left: newScrollPosition,
         behavior: "smooth",
       });
-      
+
       // O checkScrollArrows será chamado pelo evento 'scroll'
     }
   };
@@ -86,7 +79,7 @@ export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDo
             <ChevronLeft className="w-8 h-8" />
           </Button>
         )}
-        
+
         <div
           ref={scrollRef}
           className="flex gap-3 overflow-x-auto scrollbar-hide px-4 sm:px-8 py-2"
@@ -100,6 +93,7 @@ export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDo
                 onInfo={() => onInfoContent?.(content)}
                 onDownload={content.download_url ? () => onDownloadContent?.(content) : undefined}
                 isPremium={content.isPremium}
+                classification={content.classification}
               />
             </div>
           ))}

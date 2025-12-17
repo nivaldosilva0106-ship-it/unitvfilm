@@ -13,9 +13,10 @@ interface ContentCardProps {
   isNew?: boolean;
   newSince?: string;
   category?: 'movie' | 'series' | 'tv';
+  classification?: string; // e.g. '10', '12', '16', '18', 'L'
 }
 
-export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload, isPremium, isNew, newSince, category }: ContentCardProps) => {
+export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload, isPremium, isNew, newSince, category, classification }: ContentCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
   // Use only the sound helper, without installing key listeners
   const { playNavigationSound } = useKeyboardNavigation({ enabled: false });
@@ -42,6 +43,21 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload, isPr
           <span className="text-xs font-semibold text-primary-foreground">Premium</span>
         </div>
       )}
+
+      {/* Classification Badge */}
+      {classification && (
+        <div className={`absolute top-2 left-2 z-10 px-1.5 py-0.5 rounded text-[10px] font-bold text-white shadow-sm
+                ${classification === 'L' ? 'bg-green-500' :
+            classification === '10' ? 'bg-blue-400' :
+              classification === '12' ? 'bg-yellow-400' :
+                classification === '14' ? 'bg-orange-400' :
+                  classification === '16' ? 'bg-red-500' :
+                    classification === '18' ? 'bg-black' : 'bg-zinc-500'
+          }`}>
+          {classification}
+        </div>
+      )}
+
       <div className="relative overflow-hidden rounded-lg">
         <img
           src={thumbnail || "/placeholder.svg"}
@@ -65,6 +81,7 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDownload, isPr
               </Button>
               <Button
                 onClick={handleButtonClick(onInfo)}
+                onMouseEnter={() => onInfo?.()} // Quick View on Hover
                 onFocus={handleButtonFocus}
                 size="icon"
                 variant="secondary"

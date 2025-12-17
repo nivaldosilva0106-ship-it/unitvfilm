@@ -89,6 +89,7 @@ export const MarqueeContentRow = ({
                                     isNew={content.is_new}
                                     newSince={content.new_since}
                                     category={content.category}
+                                    classification={content.classification}
                                 />
                                 {showNumbers && (
                                     <div className="absolute -left-6 top-0 bottom-0 flex items-end pb-4 z-30 pointer-events-none">

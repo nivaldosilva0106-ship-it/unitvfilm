@@ -30,6 +30,7 @@ import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminAvatars } from "@/components/admin/AdminAvatars";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AuthGuard } from "@/components/AuthGuard";
+import { GuestSessionManager } from "@/components/GuestSessionManager";
 
 const queryClient = new QueryClient();
 

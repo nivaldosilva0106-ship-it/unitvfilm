@@ -27,6 +27,7 @@ export interface Content {
   isPremium?: boolean;
 
   // New Metadata
+  classification?: 'L' | '10' | '12' | '14' | '16' | '18';
   cast?: string;
   duration?: string;
   year?: number;
