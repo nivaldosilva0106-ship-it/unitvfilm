@@ -47,6 +47,7 @@ const Index = () => {
   const [currentTrailerIndex, setCurrentTrailerIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const [heroTextVisible, setHeroTextVisible] = useState(true);
+  const [showVideo, setShowVideo] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   /* My List State */
@@ -90,6 +91,15 @@ const Index = () => {
 
     return () => clearTimeout(textTimer);
   }, []);
+
+  // Show video after 15 seconds delay
+  useEffect(() => {
+    const videoTimer = setTimeout(() => {
+      setShowVideo(true);
+    }, 15000);
+
+    return () => clearTimeout(videoTimer);
+  }, [currentTrailerIndex]);
 
   /* Filter and Shuffle Trailers based on Slider Settings */
   useEffect(() => {
@@ -146,6 +156,7 @@ const Index = () => {
   useEffect(() => {
     if (trailerContents.length > 0 && !playerModal.open) {
       const interval = setInterval(() => {
+        setShowVideo(false); // Reset video display for next trailer
         setCurrentTrailerIndex((prev) => (prev + 1) % trailerContents.length);
       }, 90000); // 90 seconds
 
