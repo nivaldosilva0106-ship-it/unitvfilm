@@ -133,10 +133,16 @@ export default function ProfileSelection() {
             };
 
             if (editingProfile) {
-                await updateAccountProfile(userId, editingProfile.id, profileData);
+                await updateAccountProfile(userId, editingProfile.id, {
+                    ...profileData,
+                    avatar: avatarUrl
+                });
                 toast.success("Perfil atualizado");
             } else {
-                await createAccountProfile(userId, profileData);
+                await createAccountProfile(userId, {
+                    ...profileData,
+                    avatar: avatarUrl
+                });
                 toast.success("Perfil criado");
             }
             setShowAddModal(false);

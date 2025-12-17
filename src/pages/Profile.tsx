@@ -11,7 +11,7 @@ import {
   Camera, Check, MessageCircle, Lock, AlertTriangle
 } from "lucide-react";
 import { toast } from "sonner";
-import { getAccountProfiles, getAvatars, createAccountProfile, updateAccountProfile, deleteAccountProfile, verifyRecoveryCode } from "@/lib/firebase";
+import { getAccountProfiles, getAvatars, createAccountProfile, updateAccountProfile, deleteAccountProfile, verifyRecoveryCode, validatePin } from "@/lib/firebase";
 import { Profile as UserProfileType, Avatar } from "@/types/user";
 import { cn } from "@/lib/utils";
 
@@ -101,8 +101,18 @@ const Profile = () => {
 
     // Security Check: Verify Current PIN if editing and PIN is set
     if (!isAddingNew && editingProfile?.pin) {
-      if (currentPin !== editingProfile.pin) {
-        toast.error("PIN atual incorreto");
+      if (!currentPin) {
+        toast.error("Confirme seu PIN atual");
+        return;
+      }
+
+      const pinResult = await validatePin(user.uid, editingProfile.id, currentPin);
+      if (!pinResult.success) {
+        if (pinResult.locked) {
+          toast.error(`Bloqueado por segurança. Tente em ${pinResult.remainingTime} min.`);
+        } else {
+          toast.error("PIN incorreto");
+        }
         return;
       }
     }
@@ -148,9 +158,20 @@ const Profile = () => {
     if (!editingProfile || !user) return;
 
     // Require PIN to delete too
-    if (editingProfile.pin && currentPin !== editingProfile.pin) {
-      toast.error("PIN atual incorreto para confirmar exclusão");
-      return;
+    if (editingProfile.pin) {
+      if (!currentPin) {
+        toast.error("Digite o PIN para confirmar exclusão");
+        return;
+      }
+      const pinResult = await validatePin(user.uid, editingProfile.id, currentPin);
+      if (!pinResult.success) {
+        if (pinResult.locked) {
+          toast.error(`Bloqueado por segurança. Tente em ${pinResult.remainingTime} min.`);
+        } else {
+          toast.error("PIN incorreto");
+        }
+        return;
+      }
     }
 
     if (confirm(`Excluir perfil ${editingProfile.name}?`)) {
@@ -401,6 +422,7 @@ const Profile = () => {
                     value={formPin}
                     onChange={e => setFormPin(e.target.value.replace(/\D/g, ''))}
                     className="bg-[#0a0a0a] border-[#333]"
+                    autoComplete="new-password"
                   />
                 </div>
 
@@ -415,6 +437,7 @@ const Profile = () => {
                         value={currentPin}
                         onChange={e => setCurrentPin(e.target.value.replace(/\D/g, ''))}
                         className="bg-[#0a0a0a] border-red-500/30 focus:border-red-500"
+                        autoComplete="new-password"
                       />
                       <Button
                         type="button"

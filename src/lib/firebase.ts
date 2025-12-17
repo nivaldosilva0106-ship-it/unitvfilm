@@ -285,15 +285,8 @@ export const approvePayment = async (paymentId: string, adminId: string) => {
     approvedBy: adminId,
   });
 
-  // Atualizar perfil do usuário
-  const expiresAt = new Date();
-  expiresAt.setMonth(expiresAt.getMonth() + 1); // 1 mês
-
-  await updateUserProfile(payment.userId, {
-    isPremium: true,
-    subscriptionTier: payment.subscriptionTier,
-    subscriptionExpiresAt: expiresAt.toISOString(),
-  });
+  // Atribuir plano ao usuário (que já lida com datas, limites e expiração)
+  await assignPlanToUser(payment.userId, payment.subscriptionTier);
 };
 
 export const rejectPayment = async (paymentId: string, reason: string) => {
@@ -561,12 +554,14 @@ export const incrementDailyUsage = async (userId: string, type: 'movie' | 'episo
 
 export const assignPlanToUser = async (userId: string, planId: string) => {
   let duration = 30; // Default
+  let limits = { maxProfiles: 2 }; // Default
 
   if (planId !== 'free') {
     const planSnapshot = await get(ref(database, `plans/${planId}`));
     if (planSnapshot.exists()) {
       const pData = planSnapshot.val();
       if (pData.durationDays) duration = pData.durationDays;
+      if (pData.limits) limits = pData.limits;
     }
   }
 
@@ -578,8 +573,49 @@ export const assignPlanToUser = async (userId: string, planId: string) => {
     subscriptionTier: planId === 'free' ? 'free' : 'premium',
     isPremium: planId !== 'free',
     subscriptionExpiresAt: planId === 'free' ? null : expires.toISOString(),
-    status: 'active'
+    status: 'active',
+    // We optionally save limits here if AuthContext needs them, 
+    // but planId *should* be enough if AuthContext fetches the plan.
+    // However, saving metadata is safe.
+    currentLimits: limits
   });
+};
+
+export const validatePin = async (userId: string, profileId: string, inputPin: string): Promise<{ success: boolean; locked?: boolean; remainingTime?: number }> => {
+  const profileRef = ref(database, `accountProfiles/${userId}/${profileId}`);
+  const snapshot = await get(profileRef);
+
+  if (!snapshot.exists()) return { success: false };
+  const p = snapshot.val() as Profile; // Actually it's Profile type from user.ts
+
+  // Check Lockout
+  if (p.lockoutUntil && new Date(p.lockoutUntil) > new Date()) {
+    const remaining = Math.ceil((new Date(p.lockoutUntil).getTime() - new Date().getTime()) / 60000);
+    return { success: false, locked: true, remainingTime: remaining };
+  }
+
+  if (p.pin === inputPin) {
+    // Reset attempts on success
+    if (p.pinAttempts && p.pinAttempts > 0) {
+      await update(profileRef, { pinAttempts: 0, lockoutUntil: null });
+    }
+    return { success: true };
+  } else {
+    // Increment attempts
+    const attempts = (p.pinAttempts || 0) + 1;
+    const updates: any = { pinAttempts: attempts };
+
+    if (attempts >= 3) {
+      const lockout = new Date();
+      lockout.setHours(lockout.getHours() + 1);
+      updates.lockoutUntil = lockout.toISOString();
+      await update(profileRef, updates);
+      return { success: false, locked: true, remainingTime: 60 };
+    } else {
+      await update(profileRef, updates);
+      return { success: false };
+    }
+  }
 };
 
 export const checkPlanExpiration = async (userId: string) => {
