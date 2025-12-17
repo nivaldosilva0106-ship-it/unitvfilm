@@ -43,9 +43,11 @@ const Index = () => {
   const [pendingPlayerState, setPendingPlayerState] = useState<any>(null);
 
   /* New State for Video Slider */
-  const [trailerContents, setTrailerContents] = useState<Content[]>([]);
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [currentTrailerIndex, setCurrentTrailerIndex] = useState(0);
-  const [isMuted, setIsMuted] = useState(false); /* Default Audio ON */
+  const [isMuted, setIsMuted] = useState(true);
+  const [heroTextVisible, setHeroTextVisible] = useState(true);
+  const [showVideo, setShowVideo] = useState(false); // Controls Image->Video transition
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   /* My List State */
@@ -80,6 +82,49 @@ const Index = () => {
       }
     }
   };
+
+  // Hero Text Fade-Out Timer (5 seconds)
+  useEffect(() => {
+    const textTimer = setTimeout(() => {
+      setHeroTextVisible(false);
+    }, 5000);
+
+    return () => clearTimeout(textTimer);
+  }, []);
+
+  // Hero Slider: Image (15s) -> Video Transition
+  useEffect(() => {
+    if (trailerContents.length === 0) return;
+
+    // Start with image
+    setShowVideo(false);
+
+    // After 15 seconds, switch to video
+    const videoTimer = setTimeout(() => {
+      setShowVideo(true);
+    }, 15000);
+
+    // Cycle through trailers every 90 seconds (15s image + 75s video)
+    const cycleTimer = setInterval(() => {
+      setCurrentTrailerIndex(prev => (prev + 1) % trailerContents.length);
+      setShowVideo(false); // Reset to image for next item
+    }, 90000);
+
+    return () => {
+      clearTimeout(videoTimer);
+      clearInterval(cycleTimer);
+    };
+  }, [trailerContents.length, currentTrailerIndex]);
+
+  // Image Slider (Fallback when no trailers)
+  useEffect(() => {
+    if (allContentData.length > 0 && trailerContents.length === 0) {
+      const interval = setInterval(() => {
+        setCurrentImageIndex((prev) => (prev + 1) % allContentData.length);
+      }, 5000);
+      return () => clearInterval(interval);
+    }
+  }, [allContentData, trailerContents]);
 
   /* Filter and Shuffle Trailers based on Slider Settings */
   useEffect(() => {
@@ -379,43 +424,55 @@ const Index = () => {
 
       {/* Hero Section */}
       <div className="relative py-12 flex items-center justify-center overflow-hidden min-h-[500px] w-full">
-        {/* VIDEO SLIDER - Unmounts if player modal is open to ensure audio cut */}
-        {!playerModal.open && currentTrailer && currentTrailer.trailer_url && getYouTubeId(currentTrailer.trailer_url) ? (
+        {/* Hero Background: Image first (15s), then Video */}
+        {!playerModal.open && currentTrailer && currentTrailer.trailer_url && showVideo && getYouTubeId(currentTrailer.trailer_url) ? (
           <div className="absolute inset-0 z-0 pointer-events-none">
             <div className="relative w-full h-full">
               <iframe
                 ref={iframeRef}
                 key={currentTrailer.id}
                 className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2 opacity-60"
-                /* Optimized SRC: end=90, mute=0 */
                 src={`https://www.youtube.com/embed/${getYouTubeId(currentTrailer.trailer_url)}?autoplay=1&mute=0&controls=0&enablejsapi=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&end=90`}
                 title="Hero Video"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 style={{ pointerEvents: 'auto' }}
               />
-
             </div>
           </div>
         ) : (
-          /* FALLBACK IMAGE SLIDER */
-          allContentData.length > 0 && (
-            <div className="absolute inset-0 z-0">
-              {allContentData.map((content, index) => (
-                <div
-                  key={content.id}
-                  className={`absolute inset-0 transition-opacity duration-1000 ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'
-                    }`}
-                >
-                  <img
-                    src={content.thumbnail_url}
-                    alt=""
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-              ))}
-              <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/95" />
-            </div>
-          )
+          /* Show Image (either during 15s delay or as fallback) */
+          <div className="absolute inset-0 z-0">
+            {currentTrailer ? (
+              <>
+                <img
+                  src={currentTrailer.thumbnail_url}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/95" />
+              </>
+            ) : (
+              /* Fallback to all content images if no trailers */
+              allContentData.length > 0 && (
+                <>
+                  {allContentData.map((content, index) => (
+                    <div
+                      key={content.id}
+                      className={`absolute inset-0 transition-opacity duration-1000 ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+                        }`}
+                    >
+                      <img
+                        src={content.thumbnail_url}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  ))}
+                  <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/95" />
+                </>
+              )
+            )}
+          </div>
         )}
 
         {/* Audio Toggle Button - Only show if video is active AND open */}
@@ -431,7 +488,8 @@ const Index = () => {
           </div>
         )}
 
-        <div className="relative z-20 text-center px-4 max-w-5xl mx-auto w-full flex flex-col items-center">
+        <div className={`relative z-20 text-center px-4 max-w-5xl mx-auto w-full flex flex-col items-center transition-opacity duration-1000 ${heroTextVisible ? 'opacity-100' : 'opacity-0'
+          }`}>
           <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-3 drop-shadow-lg pt-8">
             Bem-vindo ao Uni<span className="text-primary glow-effect">Tv</span>Film
           </h1>

@@ -7,7 +7,6 @@ interface ContentCardProps {
   title: string;
   thumbnail: string;
   onPlay?: () => void;
-  onPlay?: () => void;
   onInfo?: () => void;
   onDetails?: () => void; // New Handler for Poster Click
   onDownload?: () => void;
@@ -20,7 +19,7 @@ interface ContentCardProps {
 
 export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDetails, onDownload, isPremium, isNew, newSince, category, classification }: ContentCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
-  // Use only the sound helper, without installing key listeners
+  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { playNavigationSound } = useKeyboardNavigation({ enabled: false });
 
   const isActuallyNew = isNew && newSince && (new Date().getTime() - new Date(newSince).getTime() < 86400000);
@@ -83,7 +82,19 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDetails, onDow
               </Button>
               <Button
                 onClick={handleButtonClick(onInfo)}
-                onMouseEnter={() => onInfo?.()} // Quick View on Hover
+                onMouseEnter={() => {
+                  // Start 4-second timer for Quick View
+                  hoverTimeoutRef.current = setTimeout(() => {
+                    onInfo?.();
+                  }, 4000);
+                }}
+                onMouseLeave={() => {
+                  // Cancel timer if mouse leaves before 4 seconds
+                  if (hoverTimeoutRef.current) {
+                    clearTimeout(hoverTimeoutRef.current);
+                    hoverTimeoutRef.current = null;
+                  }
+                }}
                 onFocus={handleButtonFocus}
                 size="icon"
                 variant="secondary"
