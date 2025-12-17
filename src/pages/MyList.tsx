@@ -5,6 +5,7 @@ import { ContentCard } from '@/components/ContentCard';
 import { ContentPlayerModal } from '@/components/ContentPlayerModal';
 import { useAuth } from '@/contexts/AuthContext';
 import { getMyList, removeFromMyList, getAllContents, addToMyList } from '@/lib/firebase';
+import { QuickViewModal } from '@/components/QuickViewModal';
 import { toast } from 'sonner';
 import { Heart, Trash2 } from 'lucide-react';
 import type { MyListItem } from '@/types/user';
@@ -17,6 +18,7 @@ const MyList = () => {
   const [loading, setLoading] = useState(true);
   const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, internalUrl?: string }>({ open: false, url: '', title: '', isPremium: false });
   const [suggestions, setSuggestions] = useState<Content[]>([]);
+  const [quickViewContent, setQuickViewContent] = useState<Content | null>(null);
 
 
   useEffect(() => {
@@ -87,6 +89,10 @@ const MyList = () => {
   };
 
   const handleInfoContent = (item: MyListItem) => {
+    setQuickViewContent(item.content);
+  };
+
+  const handleDetailsContent = (item: MyListItem) => {
     navigate(`/content/${item.content.id}`);
   };
 
@@ -125,7 +131,9 @@ const MyList = () => {
                   thumbnail={item.content.thumbnail_url}
                   onPlay={() => handlePlayContent(item)}
                   onInfo={() => handleInfoContent(item)}
+                  onDetails={() => handleDetailsContent(item)}
                   isPremium={item.content.isPremium}
+                  classification={item.content.classification}
                 />
                 <button
                   onClick={() => handleRemove(item.id)}
@@ -185,6 +193,30 @@ const MyList = () => {
           }
         }}
         onAddToMyList={handleAddSuggestionToList}
+      />
+
+      {/* Quick View Modal */}
+      <QuickViewModal
+        open={!!quickViewContent}
+        content={quickViewContent}
+        onClose={() => setQuickViewContent(null)}
+        onPlay={(content) => {
+          if (content.video_url) {
+            setPlayerModal({
+              open: true,
+              url: content.video_url,
+              urls: content.video_urls,
+              title: content.title,
+              isPremium: content.isPremium,
+              image: content.thumbnail_url,
+              description: content.description,
+              rating: content.rating
+            });
+          } else if (content.category === 'series') {
+            navigate(`/content/${content.id}`);
+          }
+          setQuickViewContent(null);
+        }}
       />
     </div>
   );

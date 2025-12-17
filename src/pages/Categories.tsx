@@ -4,6 +4,7 @@ import { MarqueeContentRow } from "@/components/MarqueeContentRow";
 import { ContentPlayerModal } from "@/components/ContentPlayerModal";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
 import { DownloadModal } from "@/components/DownloadModal";
+import { QuickViewModal } from "@/components/QuickViewModal";
 import { Content } from "@/types/content";
 import { getAllContents, addToMyList, removeFromMyList, getMyList } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,6 +33,7 @@ export default function Categories() {
     const [selectedSeries, setSelectedSeries] = useState<Content | null>(null);
     const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], internalUrl?: string, title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string }>({ open: false, url: '', title: '', isPremium: false });
     const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, title: string, thumbnail: string }>({ open: false, url: '', title: '', thumbnail: '' });
+    const [quickViewContent, setQuickViewContent] = useState<Content | null>(null);
 
     useEffect(() => {
         loadData();
@@ -96,6 +98,10 @@ export default function Categories() {
     };
 
     const handleInfoContent = (content: Content) => {
+        setQuickViewContent(content);
+    };
+
+    const handleDetailsContent = (content: Content) => {
         navigate(`/content/${content.id}`);
     };
 
@@ -260,6 +266,7 @@ export default function Categories() {
                                     contents={genreContents}
                                     onPlayContent={handlePlayContent}
                                     onInfoContent={handleInfoContent}
+                                    onDetailsContent={handleDetailsContent}
                                     onDownloadContent={handleDownloadContent}
                                 />
                             );
@@ -357,6 +364,14 @@ export default function Categories() {
                 downloadUrl={downloadModal.url}
                 title={downloadModal.title}
                 thumbnail={downloadModal.thumbnail}
+            />
+
+            {/* Quick View Modal */}
+            <QuickViewModal
+                open={!!quickViewContent}
+                content={quickViewContent}
+                onClose={() => setQuickViewContent(null)}
+                onPlay={handlePlayContent}
             />
         </div>
     );

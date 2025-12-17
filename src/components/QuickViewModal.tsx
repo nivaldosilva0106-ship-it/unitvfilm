@@ -9,12 +9,14 @@ interface QuickViewModalProps {
     content: Content | null;
     open: boolean;
     onClose: () => void;
+    onPlay?: (content: Content) => void; // New prop to open player
 }
 
-export const QuickViewModal = ({ content, open, onClose }: QuickViewModalProps) => {
+export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModalProps) => {
     const navigate = useNavigate();
     const videoRef = useRef<HTMLVideoElement>(null);
     const [muted, setMuted] = useState(true);
+    const [showTrailer, setShowTrailer] = useState(false); // Controls image->trailer transition
 
     if (!content || !open) return null;
 
@@ -31,8 +33,26 @@ export const QuickViewModal = ({ content, open, onClose }: QuickViewModalProps) 
         }
     };
 
+    // Trailer auto-play after 3 seconds
+    useEffect(() => {
+        if (open && content?.trailer_url) {
+            setShowTrailer(false); // Start with image
+            const timer = setTimeout(() => {
+                setShowTrailer(true); // Show trailer after 3s
+            }, 3000);
+
+            return () => clearTimeout(timer);
+        } else {
+            setShowTrailer(false);
+        }
+    }, [open, content]);
+
     const handlePlay = () => {
-        navigate(`/content/${content.id}`);
+        if (onPlay && content) {
+            onPlay(content); // Use parent's play handler to open player
+        } else {
+            navigate(`/content/${content?.id}`);
+        }
         onClose();
     };
 
@@ -52,7 +72,7 @@ export const QuickViewModal = ({ content, open, onClose }: QuickViewModalProps) 
 
                 {/* Hero Section with Video/Image */}
                 <div className="relative h-[400px] w-full bg-black">
-                    {content.trailer_url ? (
+                    {showTrailer && content.trailer_url ? (
                         <video
                             ref={videoRef}
                             src={content.trailer_url}

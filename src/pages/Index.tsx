@@ -47,7 +47,6 @@ const Index = () => {
   const [currentTrailerIndex, setCurrentTrailerIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const [heroTextVisible, setHeroTextVisible] = useState(true);
-  const [showVideo, setShowVideo] = useState(false); // Controls Image->Video transition
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   /* My List State */
@@ -91,40 +90,6 @@ const Index = () => {
 
     return () => clearTimeout(textTimer);
   }, []);
-
-  // Hero Slider: Image (15s) -> Video Transition
-  useEffect(() => {
-    if (trailerContents.length === 0) return;
-
-    // Start with image
-    setShowVideo(false);
-
-    // After 15 seconds, switch to video
-    const videoTimer = setTimeout(() => {
-      setShowVideo(true);
-    }, 15000);
-
-    // Cycle through trailers every 90 seconds (15s image + 75s video)
-    const cycleTimer = setInterval(() => {
-      setCurrentTrailerIndex(prev => (prev + 1) % trailerContents.length);
-      setShowVideo(false); // Reset to image for next item
-    }, 90000);
-
-    return () => {
-      clearTimeout(videoTimer);
-      clearInterval(cycleTimer);
-    };
-  }, [trailerContents.length, currentTrailerIndex]);
-
-  // Image Slider (Fallback when no trailers)
-  useEffect(() => {
-    if (allContentData.length > 0 && trailerContents.length === 0) {
-      const interval = setInterval(() => {
-        setCurrentImageIndex((prev) => (prev + 1) % allContentData.length);
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [allContentData, trailerContents]);
 
   /* Filter and Shuffle Trailers based on Slider Settings */
   useEffect(() => {
@@ -752,6 +717,7 @@ const Index = () => {
         open={!!quickViewContent}
         content={quickViewContent}
         onClose={() => setQuickViewContent(null)}
+        onPlay={handlePlayContent}
       />
 
       <CinemaWarningModal

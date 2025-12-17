@@ -83,10 +83,10 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDetails, onDow
               <Button
                 onClick={handleButtonClick(onInfo)}
                 onMouseEnter={() => {
-                  // Start 4-second timer for Quick View
+                  // Start 2-second timer for Quick View
                   hoverTimeoutRef.current = setTimeout(() => {
                     onInfo?.();
-                  }, 4000);
+                  }, 2000);
                 }}
                 onMouseLeave={() => {
                   // Cancel timer if mouse leaves before 4 seconds
