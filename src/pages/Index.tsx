@@ -43,7 +43,7 @@ const Index = () => {
   const [pendingPlayerState, setPendingPlayerState] = useState<any>(null);
 
   /* New State for Video Slider */
-  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [trailerContents, setTrailerContents] = useState<Content[]>([]);
   const [currentTrailerIndex, setCurrentTrailerIndex] = useState(0);
   const [isMuted, setIsMuted] = useState(true);
   const [heroTextVisible, setHeroTextVisible] = useState(true);

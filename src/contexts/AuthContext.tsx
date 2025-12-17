@@ -68,6 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         if (firebaseUser.isAnonymous) {
           const guestProfile: Profile = {
             id: 'guest',
+            userId: firebaseUser.uid,
             name: 'Convidado',
             avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=guest',
             isKids: false,
