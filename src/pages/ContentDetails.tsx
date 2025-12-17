@@ -486,7 +486,6 @@ const ContentDetails = () => {
         />
       </div>
     </div>
-    </div>
   );
 };
 
