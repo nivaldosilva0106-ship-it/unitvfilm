@@ -424,7 +424,27 @@ export { database, auth };
 export type { Content };
 
 export const signInAnonymously = async () => {
-  return firebaseSignInAnonymously(auth);
+  const result = await firebaseSignInAnonymously(auth);
+  const user = result.user;
+
+  // Create profile for guest if not exists
+  const profileRef = ref(database, `profiles/${user.uid}`);
+  const snapshot = await get(profileRef);
+
+  if (!snapshot.exists()) {
+    const profile: UserProfile = {
+      id: user.uid,
+      email: 'convidado@unitvfilm.com', // Dummy email
+      isPremium: false,
+      subscriptionTier: 'free',
+      planId: 'free',
+      subscriptionExpiresAt: null,
+      createdAt: new Date().toISOString()
+    };
+    await set(profileRef, profile);
+  }
+
+  return result;
 };
 
 // Plan Management
