@@ -423,9 +423,12 @@ const ContentDetails = () => {
           episodeTitle={playerModal.episodeTitle}
           internalPlayerUrl={playerModal.internalUrl}
           suggestions={relatedContents}
-          episodes={content.category === 'series' ? content.episodes : undefined}
           onPlayContent={(c) => {
             if (c.video_url || c.internal_player_url) {
+              // Check cinema mode for suggestions too? The user said "in other pages where play is available".
+              // If suggestion is part of content list, it might have 'is_cinema_mode'. 
+              // Ideally 'requestPlay' logic should be used here too if we want to support it for suggestions.
+              // But 'c' is from 'relatedContents', which is 'Content'.
               const playCall = () => setPlayerModal({
                 open: true,
                 url: c.video_url || '',
@@ -449,7 +452,9 @@ const ContentDetails = () => {
                   internalUrl: c.internal_player_url,
                   description: c.description,
                   rating: c.rating
-                });
+                }); // We need to update this to work generically.
+                // Actually current 'requestPlay' uses 'content' scope.
+                // We should probably just setCinemaModal(true) and change pending state.
                 setShowCinemaModal(true);
               } else {
                 playCall();
