@@ -401,7 +401,7 @@ const Index = () => {
       {/* Hero Section */}
       <div className="relative py-12 flex items-center justify-center overflow-hidden min-h-[500px] w-full">
         {/* Hero Background: Image first (15s), then Video */}
-        {!playerModal.open && !quickViewContent && currentTrailer && currentTrailer.trailer_url && showVideo && getYouTubeId(currentTrailer.trailer_url) ? (
+        {!playerModal.open && !quickViewContent && !selectedSeries && currentTrailer && currentTrailer.trailer_url && showVideo && getYouTubeId(currentTrailer.trailer_url) ? (
           <div className="absolute inset-0 z-0 pointer-events-none">
             <div className="relative w-full h-full">
               <iframe

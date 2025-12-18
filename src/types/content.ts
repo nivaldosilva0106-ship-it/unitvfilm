@@ -3,7 +3,13 @@ export interface Episode {
   episode: number;
   title: string;
   url: string;
-  download_url?: string;
+  download_url?: string; // Legacy
+  download_mode?: 'direct' | 'torrent' | 'mixed';
+  downloads?: {
+    label: string;
+    url: string;
+    type?: 'direct' | 'torrent';
+  }[];
 }
 
 export interface Content {

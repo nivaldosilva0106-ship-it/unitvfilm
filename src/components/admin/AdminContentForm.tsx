@@ -511,11 +511,115 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                       className="bg-input border-border text-sm"
                     />
                     <Input
-                      placeholder="URL de download (opcional)"
+                      placeholder="URL de download (opcional - legado)"
                       value={episode.download_url || ''}
                       onChange={(e) => updateEpisode(index, 'download_url', e.target.value)}
                       className="bg-input border-border text-sm"
                     />
+
+                    {/* Episode Download Configuration */}
+                    <div className="p-3 border border-white/10 rounded-lg bg-black/20 space-y-3">
+                      <Label className="text-xs font-semibold flex items-center gap-1">
+                        <DownloadIcon className="w-3 h-3" /> Configuração de Downloads (Episódio)
+                      </Label>
+
+                      <div className="flex gap-4 items-center">
+                        <Label className="text-xs">Modo:</Label>
+                        <Select
+                          value={episode.download_mode || 'direct'}
+                          onValueChange={(v) => updateEpisode(index, 'download_mode', v as any)}
+                        >
+                          <SelectTrigger className="w-[140px] h-8 text-xs bg-input border-border">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="direct">Direto</SelectItem>
+                            <SelectItem value="torrent">Torrent</SelectItem>
+                            <SelectItem value="mixed">Misto</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        {(episode.downloads || []).map((link, linkIdx) => (
+                          <div key={linkIdx} className="flex gap-2 items-start">
+                            <Input
+                              value={link.label}
+                              onChange={e => {
+                                const currentEp = editingContent.episodes?.[index];
+                                if (!currentEp) return;
+                                const newLinks = [...(currentEp.downloads || [])];
+                                newLinks[linkIdx] = { ...newLinks[linkIdx], label: e.target.value };
+                                updateEpisode(index, 'downloads', newLinks as any);
+                              }}
+                              placeholder="Título"
+                              className="w-1/3 bg-input border-border text-xs h-8"
+                            />
+                            <Input
+                              value={link.url}
+                              onChange={e => {
+                                const currentEp = editingContent.episodes?.[index];
+                                if (!currentEp) return;
+                                const newLinks = [...(currentEp.downloads || [])];
+                                newLinks[linkIdx] = { ...newLinks[linkIdx], url: e.target.value };
+                                updateEpisode(index, 'downloads', newLinks as any);
+                              }}
+                              placeholder="URL"
+                              className="flex-1 bg-input border-border text-xs h-8"
+                            />
+                            {episode.download_mode === 'mixed' && (
+                              <Select
+                                value={link.type || 'direct'}
+                                onValueChange={v => {
+                                  const currentEp = editingContent.episodes?.[index];
+                                  if (!currentEp) return;
+                                  const newLinks = [...(currentEp.downloads || [])];
+                                  newLinks[linkIdx] = { ...newLinks[linkIdx], type: v as any };
+                                  updateEpisode(index, 'downloads', newLinks as any);
+                                }}
+                              >
+                                <SelectTrigger className="w-[80px] h-8 text-xs bg-input border-border">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="direct">Direto</SelectItem>
+                                  <SelectItem value="torrent">Torrent</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            )}
+                            <Button
+                              type="button"
+                              variant="destructive"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => {
+                                const currentEp = editingContent.episodes?.[index];
+                                if (!currentEp) return;
+                                const newLinks = (currentEp.downloads || []).filter((_, i) => i !== linkIdx);
+                                updateEpisode(index, 'downloads', newLinks as any);
+                              }}
+                            >
+                              <Trash className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        ))}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => {
+                            const currentEp = editingContent.episodes?.[index];
+                            if (!currentEp) return;
+                            const newLinkType = episode.download_mode === 'torrent' ? 'torrent' : 'direct';
+                            const newLinks = [...(currentEp.downloads || []), { label: '', url: '', type: newLinkType }];
+                            updateEpisode(index, 'downloads', newLinks as any);
+                          }}
+                        >
+                          <PlusCircle className="w-3 h-3 mr-1" /> Add Link
+                        </Button>
+                      </div>
+                    </div>
                   </div>
                   <Button
                     type="button"

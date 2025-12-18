@@ -6,6 +6,8 @@ import { Play, Download, Video } from "lucide-react";
 import type { Episode } from "@/types/content";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 
+import { DownloadModal } from "./DownloadModal"; // Add import
+
 interface EpisodeSelectorProps {
   open: boolean;
   onClose: () => void;
@@ -19,6 +21,7 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
   const [selectedSeason, setSelectedSeason] = useState<number>(1);
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [showTrailerModal, setShowTrailerModal] = useState(false);
+  const [selectedDownloadEpisode, setSelectedDownloadEpisode] = useState<Episode | null>(null); // Add State
   const episodeRefs = useRef<(HTMLDivElement | null)[]>([]);
   const seasonButtonRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
@@ -85,7 +88,7 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
     // Quando o modal abre, tenta focar o primeiro elemento interativo
     if (open) {
       // Resetar o foco visual para o primeiro episódio da temporada selecionada
-      setFocusedIndex(0); 
+      setFocusedIndex(0);
       setTimeout(() => {
         if (trailerUrl) {
           document.getElementById('trailer-button')?.focus();
@@ -99,9 +102,9 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
   }, [open, trailerUrl]);
 
 
-  const handleDownload = (url?: string) => {
-    if (url) {
-      window.open(url, '_blank');
+  const handleDownload = (episode: Episode) => {
+    if (episode.downloads?.length || episode.download_url) {
+      setSelectedDownloadEpisode(episode);
     }
   };
 
@@ -166,9 +169,8 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
                     handlePlay(episode.url, `T${episode.season}E${episode.episode} - ${episode.title}`);
                   }
                 }}
-                className={`p-4 bg-secondary rounded-lg transition-all cursor-pointer ${
-                  focusedIndex === index ? 'ring-2 ring-primary glow-effect' : 'hover:bg-secondary/80'
-                }`}
+                className={`p-4 bg-secondary rounded-lg transition-all cursor-pointer ${focusedIndex === index ? 'ring-2 ring-primary glow-effect' : 'hover:bg-secondary/80'
+                  }`}
               >
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div className="flex-1">
@@ -190,12 +192,13 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
                       <Play className="w-4 h-4 mr-2" />
                       Assistir
                     </Button>
-                    {episode.download_url && (
+                    {/* Download Button */}
+                    {(episode.download_url || (episode.downloads && episode.downloads.length > 0)) && (
                       <Button
                         onClick={(e) => {
                           e.stopPropagation();
                           playNavigationSound('select');
-                          handleDownload(episode.download_url);
+                          handleDownload(episode);
                         }}
                         size="sm"
                         variant="outline"
@@ -225,6 +228,19 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
           onClose={() => setShowTrailerModal(false)}
           trailerUrl={trailerUrl}
           title={title}
+        />
+      )}
+
+      {/* Download Modal - Same system as Movies */}
+      {selectedDownloadEpisode && (
+        <DownloadModal
+          open={!!selectedDownloadEpisode}
+          onClose={() => setSelectedDownloadEpisode(null)}
+          downloadUrl={selectedDownloadEpisode.download_url || ''}
+          downloads={selectedDownloadEpisode.downloads}
+          downloadMode={selectedDownloadEpisode.download_mode}
+          title={`${title} - S${selectedDownloadEpisode.season}E${selectedDownloadEpisode.episode}: ${selectedDownloadEpisode.title}`}
+          thumbnail="" // Could pass series thumbnail if available
         />
       )}
     </Dialog>
