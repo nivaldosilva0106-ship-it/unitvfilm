@@ -17,44 +17,60 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
     const videoRef = useRef<HTMLVideoElement>(null);
     const [muted, setMuted] = useState(true);
     const [showTrailer, setShowTrailer] = useState(false);
-    const [videoOpacity, setVideoOpacity] = useState(1); // For fade-out effect
+    const [imageOpacity, setImageOpacity] = useState(1);
+    const [videoOpacity, setVideoOpacity] = useState(0);
 
-    // Trailer auto-play after 3 seconds with smooth transition
+    // Reset states when modal opens/closes
     useEffect(() => {
         if (open && content?.trailer_url) {
-            // Reset state
+            // Reset to show image
+            setImageOpacity(1);
             setVideoOpacity(0);
             setShowTrailer(false);
+            setMuted(true);
 
-            // Auto-play timer
+            // Auto-play trailer after 3 seconds
             const timer = setTimeout(() => {
-                setShowTrailer(true);
-                // Fade in video smoothly
-                setTimeout(() => setVideoOpacity(1), 100);
+                startTrailer(true); // Auto-play muted
             }, 3000);
 
             return () => clearTimeout(timer);
         } else {
             setShowTrailer(false);
+            setImageOpacity(1);
             setVideoOpacity(0);
         }
     }, [open, content]);
 
-    // Manual Trailer Play
-    const handlePlayTrailer = () => {
+    // Start trailer with smooth transition
+    const startTrailer = (autoPlay: boolean = false) => {
         if (!content?.trailer_url) return;
-        setMuted(false); // Unmute for manual play
+        
         setShowTrailer(true);
-        // Small delay to ensure render before transition
-        setTimeout(() => setVideoOpacity(1), 50);
+        if (!autoPlay) setMuted(false); // Unmute for manual play
+        
+        // Fade out image, fade in video
+        setTimeout(() => {
+            setImageOpacity(0);
+            setVideoOpacity(1);
+        }, 50);
     };
 
-    // Handle video end - show backdrop image with fade out
+    // Manual Trailer Play
+    const handlePlayTrailer = () => {
+        startTrailer(false);
+    };
+
+    // Handle video end - fade back to image
     const handleVideoEnd = () => {
+        // Fade out video, fade in image
         setVideoOpacity(0);
-        // Wait for fade out before unmounting
+        setImageOpacity(1);
+        
+        // Wait for fade transition before unmounting video
         setTimeout(() => {
             setShowTrailer(false);
+            setMuted(true);
         }, 1000);
     };
 
@@ -97,11 +113,12 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
                 </button>
 
                 <div className="relative h-[400px] w-full bg-black">
-                    {/* Always show backdrop image as base */}
+                    {/* Backdrop image with fade transition */}
                     <img
                         src={content.backdrop_url || content.thumbnail_url}
                         alt={content.title}
-                        className="w-full h-full object-cover"
+                        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000"
+                        style={{ opacity: imageOpacity }}
                     />
 
                     {/* Video overlay with fade transition */}
@@ -114,7 +131,6 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
                             autoPlay
                             muted={muted}
                             onEnded={handleVideoEnd}
-                            poster={content.backdrop_url || content.thumbnail_url}
                         />
                     )}
 
