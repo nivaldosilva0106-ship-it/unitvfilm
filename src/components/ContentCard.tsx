@@ -104,7 +104,7 @@ export const ContentCard = ({ title, thumbnail, onPlay, onInfo, onDetails, onTra
               >
                 <Info className="w-4 h-4" />
               </Button>
-              {onTrailer && (
+              {onTrailer && category !== 'series' && (
                 <Button
                   onClick={handleButtonClick(onTrailer)}
                   onFocus={handleButtonFocus}

@@ -98,6 +98,7 @@ export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDe
                 onDownload={content.download_url ? () => onDownloadContent?.(content) : undefined}
                 isPremium={content.isPremium}
                 classification={content.classification}
+                category={content.category}
               />
             </div>
           ))}

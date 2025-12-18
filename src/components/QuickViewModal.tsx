@@ -22,9 +22,11 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
     // Trailer auto-play after 3 seconds with smooth transition
     useEffect(() => {
         if (open && content?.trailer_url) {
+            // Reset state
+            setVideoOpacity(0);
             setShowTrailer(false);
-            setVideoOpacity(0); // Start invisible
 
+            // Auto-play timer
             const timer = setTimeout(() => {
                 setShowTrailer(true);
                 // Fade in video smoothly
@@ -38,10 +40,22 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
         }
     }, [open, content]);
 
-    // Handle video end - show backdrop image
+    // Manual Trailer Play
+    const handlePlayTrailer = () => {
+        if (!content?.trailer_url) return;
+        setMuted(false); // Unmute for manual play
+        setShowTrailer(true);
+        // Small delay to ensure render before transition
+        setTimeout(() => setVideoOpacity(1), 50);
+    };
+
+    // Handle video end - show backdrop image with fade out
     const handleVideoEnd = () => {
-        setShowTrailer(false);
         setVideoOpacity(0);
+        // Wait for fade out before unmounting
+        setTimeout(() => {
+            setShowTrailer(false);
+        }, 1000);
     };
 
     const handlePlay = () => {
@@ -116,12 +130,21 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
                             </Button>
 
                             {content.trailer_url && (
-                                <button
-                                    onClick={() => setMuted(!muted)}
-                                    className="p-3 rounded-full border border-zinc-500 text-zinc-300 hover:border-white hover:text-white transition-all bg-black/30 backdrop-blur"
-                                >
-                                    {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                                </button>
+                                <>
+                                    <Button
+                                        onClick={handlePlayTrailer}
+                                        className="bg-white/20 hover:bg-white/30 text-white gap-2 font-bold px-6 backdrop-blur-sm transition-all"
+                                    >
+                                        <Play className="w-5 h-5" /> Trailer
+                                    </Button>
+
+                                    <button
+                                        onClick={() => setMuted(!muted)}
+                                        className="p-3 rounded-full border border-zinc-500 text-zinc-300 hover:border-white hover:text-white transition-all bg-black/30 backdrop-blur ml-auto"
+                                    >
+                                        {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                                    </button>
+                                </>
                             )}
                         </div>
                     </div>
