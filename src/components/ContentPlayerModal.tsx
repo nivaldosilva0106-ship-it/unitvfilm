@@ -1,6 +1,6 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { X, Crown, ArrowLeft, List, Film, Maximize, Minimize, Star, Plus, ChevronUp } from "lucide-react";
-import { Content } from "@/types/content";
+import { Content, Episode } from "@/types/content";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { Button } from "./ui/button";
 import { useRef, useEffect, useState, useMemo } from "react";
@@ -11,6 +11,8 @@ import { AdManager } from "./AdManager";
 import { useNavigate } from "react-router-dom";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import { incrementDailyUsage } from "@/lib/firebase";
+import { NextEpisodeCard } from "./NextEpisodeCard";
+import { EpisodeListModal } from "./EpisodeListModal"; // Import the modal
 
 interface ContentPlayerModalProps {
   open: boolean;
@@ -24,24 +26,11 @@ interface ContentPlayerModalProps {
   rating?: number;
   episodeTitle?: string;
   suggestions?: Content[];
-  internalPlayerUrl?: string;
+  episodes?: Episode[];
+  internalPlayerUrl?: string; // Add internal player support
   onPlayContent?: (content: Content) => void;
   onAddToMyList?: (content: Content) => void;
   category?: string;
-  nextEpisode?: {
-    title: string;
-    season: number;
-    episode: number;
-    url: string;
-  };
-  onPlayNext?: (nextEpisode: {
-    title: string;
-    season: number;
-    episode: number;
-    url: string;
-  }) => void;
-  onShowEpisodes?: () => void;
-  isLastEpisode?: boolean;
 }
 
 export const ContentPlayerModal = ({
@@ -56,14 +45,11 @@ export const ContentPlayerModal = ({
   rating,
   episodeTitle,
   suggestions = [],
+  episodes = [],
   internalPlayerUrl,
   onPlayContent,
   onAddToMyList,
-  category,
-  nextEpisode,
-  onPlayNext,
-  onShowEpisodes,
-  isLastEpisode = false,
+  category
 }: ContentPlayerModalProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
@@ -79,24 +65,62 @@ export const ContentPlayerModal = ({
   const [showSuggestionCard, setShowSuggestionCard] = useState(false);
   const [suggestedContent, setSuggestedContent] = useState<Content | null>(null);
 
+  // Next Episode & Modal State
+  const [showEpisodeList, setShowEpisodeList] = useState(false);
+  const [nextEpisode, setNextEpisode] = useState<Episode | null>(null);
+  const [currentEpisode, setCurrentEpisode] = useState<Episode | null>(null);
+  const [activeVideoUrl, setActiveVideoUrl] = useState(videoUrl);
+  const [activeEpisodeTitle, setActiveEpisodeTitle] = useState(episodeTitle);
+
   const [accessState, setAccessState] = useState<{ granted: boolean; reason?: string | null }>({ granted: false });
   const hasIncrementedRef = useRef(false);
+
+  // Update active state when props change (re-opening or different content)
+  useEffect(() => {
+    if (open) {
+      setActiveVideoUrl(videoUrl);
+      setActiveEpisodeTitle(episodeTitle);
+    }
+  }, [open, videoUrl, episodeTitle]);
+
+  // Determine Next Episode logic
+  useEffect(() => {
+    if (episodes && episodes.length > 0) {
+      const current = episodes.find(e => {
+        // Match by title is somewhat risky if titles aren't unique, but URL is better.
+        // If activeVideoUrl is set, try to match it.
+        if (activeVideoUrl) return e.url === activeVideoUrl;
+        return e.title === activeEpisodeTitle;
+      });
+
+      if (current) {
+        setCurrentEpisode(current);
+        let next = episodes.find(e => e.season === current.season && e.episode === current.episode + 1);
+        if (!next) {
+          next = episodes.find(e => e.season === current.season + 1 && e.episode === 1);
+        }
+        setNextEpisode(next || null);
+      } else {
+        setCurrentEpisode(null);
+        setNextEpisode(null);
+      }
+    } else {
+      setNextEpisode(null);
+      setCurrentEpisode(null);
+    }
+  }, [episodes, activeVideoUrl, activeEpisodeTitle]);
 
   // Access Check Effect
   useEffect(() => {
     if (open) {
       hasIncrementedRef.current = false;
-
-      // Infer category if missing
-      const cat = category || (episodeTitle ? 'series' : 'movie');
+      const cat = category || (activeEpisodeTitle ? 'series' : 'movie');
       const contentMock = { isPremium, category: cat };
 
       const access = checkAccess(contentMock as any);
 
       if (access.allowed) {
         setAccessState({ granted: true });
-
-        // Increment Usage (once per open)
         if (profile && !isAdmin && !hasIncrementedRef.current) {
           incrementDailyUsage(profile.id, cat === 'series' ? 'episode' : 'movie');
           hasIncrementedRef.current = true;
@@ -106,24 +130,32 @@ export const ContentPlayerModal = ({
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, title, episodeTitle, isPremium, category]); // Removed profile/isAdmin to prevent re-check after increment
+  }, [open, title, activeEpisodeTitle, isPremium, category]);
 
   const watchingCardTimerRef = useRef<NodeJS.Timeout | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const suggestionTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Sources
+  // Sources Logic
   const allSources = useMemo(() => {
     const sources = [];
     if (internalPlayerUrl) {
       sources.push({ name: 'Player Interno', url: internalPlayerUrl, type: 'internal' });
     }
-    const embeds = (videoUrls && videoUrls.length > 0 ? videoUrls : [videoUrl]);
-    embeds.forEach((url, index) => {
-      if (url) sources.push({ name: `Player ${index + 1}`, url, type: 'embed' });
-    });
+
+    // Logic: If currentEpisode is identified, use its URL (activeVideoUrl). 
+    // If not (e.g. movie mode), use videoUrls or activeVideoUrl.
+    if (!currentEpisode && videoUrls && videoUrls.length > 0) {
+      videoUrls.forEach((url, index) => {
+        if (url) sources.push({ name: `Player ${index + 1}`, url, type: 'embed' });
+      });
+    } else {
+      if (activeVideoUrl) sources.push({ name: 'Player Principal', url: activeVideoUrl, type: 'embed' });
+    }
+    // If we only have 1 source matching activeVideoUrl, that's fine.
+
     return sources;
-  }, [internalPlayerUrl, videoUrls, videoUrl]);
+  }, [internalPlayerUrl, activeVideoUrl, videoUrls, currentEpisode]);
 
   const hasMultipleSources = allSources.length > 1;
   const currentSource = allSources[currentSourceIndex] || allSources[0];
@@ -132,7 +164,17 @@ export const ContentPlayerModal = ({
 
   const secureVideoUrl = useMemo(() => {
     if (!currentSource || currentSource.type !== 'embed') return '';
-    const url = currentSource.url;
+    let url = currentSource.url;
+
+    // Auto-play injection logic
+    // If not already present, append autoplay=1
+    if (url.includes('autoplay=0')) {
+      url = url.replace('autoplay=0', 'autoplay=1');
+    } else if (!url.includes('autoplay=')) {
+      const separator = url.includes('?') ? '&' : '?';
+      url = `${url}${separator}autoplay=1`;
+    }
+
     const timestamp = Date.now();
     const separator = url.includes('?') ? '&' : '?';
     return `${url}${separator}_t=${timestamp}`;
@@ -151,20 +193,23 @@ export const ContentPlayerModal = ({
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
-  // Watching Card Logic (Interval: Every 30 minutes = 1800000ms)
+  // Watching Card Logic
   useEffect(() => {
     if (open) {
+      // Clear any existing timers
       if (watchingCardTimerRef.current) clearTimeout(watchingCardTimerRef.current);
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       if (suggestionTimerRef.current) clearTimeout(suggestionTimerRef.current);
 
-      const showWatchingCardCycle = () => {
+      const showCardDuration = 5000;
+      const reShowInterval = 30 * 60 * 1000; // 30 minutes
+
+      const showCard = () => {
         setShowWatchingCard(true);
         setCardProgress(100);
 
-        const duration = 5000;
         const intervalTime = 50;
-        const decrementAmount = (100 / duration) * intervalTime;
+        const decrementAmount = (100 / showCardDuration) * intervalTime;
 
         progressIntervalRef.current = setInterval(() => {
           setCardProgress(prev => {
@@ -177,62 +222,19 @@ export const ContentPlayerModal = ({
           });
         }, intervalTime);
 
+        // Hide after duration and schedule next show
         watchingCardTimerRef.current = setTimeout(() => {
           setShowWatchingCard(false);
           setCardProgress(100);
           if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
 
-          // Schedule next appearance in 30 minutes
-          watchingCardTimerRef.current = setTimeout(showWatchingCardCycle, 1800000);
-        }, duration);
+          // Schedule next appearance
+          watchingCardTimerRef.current = setTimeout(showCard, reShowInterval);
+        }, showCardDuration);
       };
 
-      // Initial Delay for Watching Card (2 seconds)
-      const initialTimer = setTimeout(showWatchingCardCycle, 2000);
-
-      // --- AUTO CLICKER LOGIC (ROBUST SEQUENCE) ---
-      const fireAutoClicks = () => {
-        const centerX = window.innerWidth / 2;
-        const centerY = window.innerHeight / 2;
-
-        const performClick = () => {
-          // 1. Try generic element from point
-          const el = document.elementFromPoint(centerX, centerY);
-          if (el instanceof HTMLElement) {
-            el.click();
-            el.focus();
-          }
-
-          // 2. Target specific iframe or container
-          if (iframeRef.current) {
-            iframeRef.current.focus();
-            // Note: Can't easily click INSIDE iframe cross-origin, but we can try aiming for the container
-          }
-
-          if (playerContainerRef.current) {
-            // Dispatch multiple event types to simulate real interaction
-            const events = ['mousedown', 'mouseup', 'click'];
-            events.forEach(eventType => {
-              const evt = new MouseEvent(eventType, {
-                view: window,
-                bubbles: true,
-                cancelable: true,
-                clientX: centerX,
-                clientY: centerY
-              });
-              playerContainerRef.current?.dispatchEvent(evt);
-            });
-          }
-        };
-
-        // Fire sequence
-        setTimeout(performClick, 500);
-        setTimeout(performClick, 1500);
-        setTimeout(performClick, 2500);
-      };
-
-      const autoClickTimer = setTimeout(fireAutoClicks, 100);
-
+      // Initial show after 2 seconds
+      const initialDelay = setTimeout(showCard, 2000);
 
       // Suggestions Logic
       if (suggestions && suggestions.length > 0) {
@@ -247,8 +249,7 @@ export const ContentPlayerModal = ({
       }
 
       return () => {
-        clearTimeout(initialTimer);
-        clearTimeout(autoClickTimer);
+        clearTimeout(initialDelay);
         if (watchingCardTimerRef.current) clearTimeout(watchingCardTimerRef.current);
         if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
         if (suggestionTimerRef.current) clearTimeout(suggestionTimerRef.current);
@@ -260,7 +261,7 @@ export const ContentPlayerModal = ({
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       if (suggestionTimerRef.current) clearTimeout(suggestionTimerRef.current);
     }
-  }, [open, title, videoUrl, suggestions]);
+  }, [open, activeVideoUrl, activeEpisodeTitle, title, videoUrl, suggestions]); // Reset on episode change
 
   const toggleFullscreen = async () => {
     try {
@@ -274,33 +275,30 @@ export const ContentPlayerModal = ({
     }
   };
 
-  const isBlocked = !isAdmin && !accessState.granted;
-
-  // Blocked Message
-  const getBlockedMessage = () => {
-    switch (accessState.reason) {
-      case 'premium_content':
-        return { title: 'Conteúdo Premium', desc: 'Este conteúdo é exclusivo para assinantes Premium.' };
-      case 'plan_limit':
-        return { title: 'Limite Diário Atingido', desc: 'Você atingiu seu limite diário de visualizações gratuítas (ou do seu plano).' };
-      case 'no_credits':
-        return { title: 'Sem Créditos', desc: 'Sua conta não possui créditos ou plano ativo.' };
-      default:
-        return { title: 'Acesso Bloqueado', desc: 'Você não tem permissão para assistir.' };
-    }
+  const handleSwitchEpisode = (episode: Episode) => {
+    setActiveVideoUrl(episode.url);
+    setActiveEpisodeTitle(episode.title);
+    setShowEpisodeList(false);
+    setCurrentSourceIndex(0); // Reset source to primary for new episode
   };
 
-  const blockedInfo = getBlockedMessage();
+  const isBlocked = !isAdmin && !accessState.granted;
+  const blockedInfo = accessState.reason === 'premium_content' ?
+    { title: 'Conteúdo Premium', desc: 'Este conteúdo é exclusivo para assinantes Premium.' } :
+    accessState.reason === 'plan_limit' ?
+      { title: 'Limite Diário Atingido', desc: 'Limite diário de visualizações atingido.' } :
+      { title: 'Acesso Bloqueado', desc: 'Você não tem permissão para assistir.' };
 
-  if (!currentSource) return null;
 
-  const displayTitle = episodeTitle ? `${title} - ${episodeTitle}` : title;
+  if (!currentSource && !isBlocked) return null;
+
+  const displayTitle = activeEpisodeTitle ? `${title} - ${activeEpisodeTitle}` : title;
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent
         ref={dialogContentRef}
-        className="max-w-full w-screen h-screen p-0 bg-black border-none [&>button]:hidden protected-content"
+        className="max-w-full w-screen h-screen p-0 bg-black border-none [&>button]:hidden protected-content outline-none"
         onContextMenu={(e) => {
           e.preventDefault();
           e.stopPropagation();
@@ -335,7 +333,7 @@ export const ContentPlayerModal = ({
                   className="w-full"
                   onClick={() => {
                     onClose();
-                    navigate('/signup'); // Direct to signup/plans
+                    navigate('/signup');
                   }}
                 >
                   <Crown className="w-4 h-4 mr-2" />
@@ -358,7 +356,7 @@ export const ContentPlayerModal = ({
             <AdManager placement="player" className="absolute top-20 left-1/2 -translate-x-1/2 z-40" />
             <div
               ref={playerContainerRef}
-              className="relative w-full h-full"
+              className="relative w-full h-full bg-black flex items-center justify-center"
               onContextMenu={(e) => e.preventDefault()}
             >
               <Button
@@ -384,6 +382,10 @@ export const ContentPlayerModal = ({
                   <span className="font-bold text-lg">
                     Uni<span className="text-primary">Tv</span>Film
                   </span>
+                </div>
+                {/* Title Badge visible on Desktop */}
+                <div className="hidden md:flex items-center gap-2 ml-4 px-3 py-1 bg-white/10 rounded-full">
+                  <span className="text-sm text-white font-medium max-w-[200px] truncate">{displayTitle}</span>
                 </div>
               </div>
 
@@ -433,9 +435,30 @@ export const ContentPlayerModal = ({
                 </div>
               )}
 
+              {/* Next Episode Card */}
+              {nextEpisode && (
+                <div className="absolute top-24 right-6 z-40 animate-in fade-in slide-in-from-right-10 duration-700">
+                  <NextEpisodeCard
+                    title={nextEpisode.title}
+                    season={nextEpisode.season}
+                    episode={nextEpisode.episode}
+                    thumbnailUrl={nextEpisode.thumbnailUrl || image}
+                    onClick={() => setShowEpisodeList(true)}
+                  />
+                </div>
+              )}
+
+              <EpisodeListModal
+                isOpen={showEpisodeList}
+                onClose={() => setShowEpisodeList(false)}
+                episodes={episodes}
+                currentEpisodeId={currentEpisode?.id}
+                onPlayEpisode={handleSwitchEpisode}
+              />
+
               {/* Watching Card */}
               <div
-                className={`absolute bottom-24 left-6 z-50 max-w-sm bg-black/80 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-500 ease-out ${showWatchingCard ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}
+                className={`absolute bottom-24 left-6 z-50 max-w-xs bg-black/80 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-500 ease-out ${showWatchingCard ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}
               >
                 <div className="p-4">
                   <p className="text-xs text-primary font-semibold uppercase tracking-wider mb-2">Você está assistindo</p>
@@ -458,61 +481,10 @@ export const ContentPlayerModal = ({
                 </div>
               </div>
 
-              {/* NEXT EPISODE OVERLAY - BOTTOM RIGHT (Beside Suggestion Pill) */}
-              {(nextEpisode || isLastEpisode) && (
-                <div className="absolute bottom-6 right-[350px] z-50">
-                  <div
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onShowEpisodes) {
-                        onShowEpisodes();
-                      } else if (nextEpisode && onPlayNext) {
-                        onPlayNext(nextEpisode);
-                      }
-                    }}
-                    className={`group flex flex-col items-end gap-1 ${nextEpisode ? 'cursor-pointer' : 'cursor-default'}`}
-                  >
-                    <div className={`bg-black/60 backdrop-blur-md border border-white/10 rounded-full pl-3 pr-5 py-2 shadow-2xl transition-all duration-300 max-w-[300px] flex items-center ${nextEpisode ? 'hover:bg-black/80 group-hover:scale-105 group-hover:border-primary/50' : 'border-red-500/30'}`}>
-                      <div className="flex gap-3 items-center">
-                        <div className="relative w-9 h-9 flex-shrink-0 rounded-full overflow-hidden bg-gray-900 border border-white/10 shadow-sm">
-                          {image ? (
-                            <img src={image} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <Film className="w-4 h-4 text-gray-600 m-auto mt-2.5" />
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0 overflow-hidden flex flex-col justify-center text-right">
-                          {nextEpisode ? (
-                            <>
-                              <span className="text-[10px] text-primary uppercase font-bold tracking-wider leading-none mb-1">Próximo: T{nextEpisode.season} E{nextEpisode.episode}</span>
-                              <div className="relative overflow-hidden h-5 w-48">
-                                <p className="text-xs text-white font-bold whitespace-nowrap animate-marquee leading-normal flex items-center h-full">
-                                  {`Assistir: ${nextEpisode.title}`}
-                                </p>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider leading-none mb-1">Final da Temporada</span>
-                              <div className="relative overflow-hidden h-5 w-48 flex justify-end items-center">
-                                <p className="text-xs text-white font-bold leading-normal">
-                                  Não há mais episódios.
-                                </p>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Interactive Suggestion Pill - Bottom Right */}
-              {suggestions && suggestions.length > 0 && (
+              {/* Suggestions */}
+              {suggestions && suggestions.length > 0 && !showEpisodeList && (
                 <div className="absolute bottom-6 right-24 z-50">
                   <div className="group relative flex items-end justify-end">
-                    {/* Suggestion List Dropdown (Up) */}
                     <div className="absolute bottom-full right-0 mb-3 w-64 bg-black/90 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 translate-y-2 group-hover:translate-y-0">
                       <div className="p-3">
                         <p className="text-[10px] text-gray-400 uppercase font-bold mb-2 px-1 tracking-wider">Mais sugestões</p>
@@ -533,12 +505,6 @@ export const ContentPlayerModal = ({
                               <img src={item.thumbnail_url} className="w-10 h-14 object-cover rounded-md bg-gray-800 shadow-sm" />
                               <div className="flex flex-col justify-center min-w-0">
                                 <span className="text-xs text-white font-medium line-clamp-2 group-hover/item:text-primary transition-colors">{item.title}</span>
-                                {item.rating && (
-                                  <div className="flex items-center gap-1 mt-1">
-                                    <Star className="w-2 h-2 text-yellow-500 fill-yellow-500" />
-                                    <span className="text-[10px] text-gray-400 font-medium">{item.rating.toFixed(1)}</span>
-                                  </div>
-                                )}
                               </div>
                             </div>
                           ))}
@@ -546,7 +512,6 @@ export const ContentPlayerModal = ({
                       </div>
                     </div>
 
-                    {/* The Main Pill Trigger */}
                     <div
                       onClick={(e) => {
                         e.stopPropagation();
@@ -570,14 +535,12 @@ export const ContentPlayerModal = ({
                           </div>
                         )}
                       </div>
-
                       <div className="flex flex-col">
                         <span className="text-[9px] text-primary uppercase font-bold tracking-wider leading-none mb-0.5">Você já assistiu?</span>
                         <h4 className="text-xs text-white font-bold max-w-[140px] truncate leading-tight">
                           {suggestions[0].title}
                         </h4>
                       </div>
-
                       <ChevronUp className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors flex-shrink-0 ml-1" />
                     </div>
                   </div>
@@ -587,18 +550,19 @@ export const ContentPlayerModal = ({
               {currentSource?.type === 'internal' ? (
                 <div className="absolute inset-0 w-full h-full bg-black">
                   <ReactPlayer
-                    key={currentSource.url}
                     url={currentSource.url}
                     width="100%"
                     height="100%"
                     controls
                     playing
                     style={{ position: 'absolute', top: 0, left: 0 }}
+                    config={{
+                      file: { attributes: { autoPlay: true } }
+                    }}
                   />
                 </div>
               ) : (
                 <iframe
-                  key={secureVideoUrl}
                   ref={iframeRef}
                   src={secureVideoUrl}
                   title={`Player - ${title}`}

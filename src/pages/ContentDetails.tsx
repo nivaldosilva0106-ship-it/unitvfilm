@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate, useSearchParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
@@ -19,7 +19,6 @@ import { CommentsSection } from "@/components/CommentsSection";
 const ContentDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const [content, setContent] = useState<Content | null>(null);
   const [loading, setLoading] = useState(true);
@@ -27,11 +26,12 @@ const ContentDetails = () => {
   const [showTrailerModal, setShowTrailerModal] = useState(false);
   const [inMyList, setInMyList] = useState(false);
   const [myListItemId, setMyListItemId] = useState<string | null>(null);
-  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string, internalUrl?: string, nextEpisode?: any }>({ open: false, url: '', title: '', isPremium: false });
+  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string, internalUrl?: string }>({ open: false, url: '', title: '', isPremium: false });
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showCinemaModal, setShowCinemaModal] = useState(false);
   const [pendingPlayerState, setPendingPlayerState] = useState<any>(null);
   const [relatedContents, setRelatedContents] = useState<Content[]>([]);
+
 
   useEffect(() => {
     loadContent();
@@ -42,40 +42,6 @@ const ContentDetails = () => {
       checkMyList();
     }
   }, [user, content]);
-
-  // Auto-open episode from URL params
-  useEffect(() => {
-    if (!content || !content.episodes || loading) return;
-
-    const seasonParam = searchParams.get('season');
-    const episodeParam = searchParams.get('episode');
-
-    if (seasonParam && episodeParam) {
-      const season = parseInt(seasonParam, 10);
-      const episode = parseInt(episodeParam, 10);
-
-      const foundEpisode = content.episodes.find(
-        e => e.season === season && e.episode === episode
-      );
-
-      if (foundEpisode) {
-        const nextEp = getNextEpisode(content, season, episode);
-        requestPlay({
-          open: true,
-          url: foundEpisode.url,
-          title: content.title,
-          isPremium: content.isPremium,
-          image: content.thumbnail_url,
-          description: content.description,
-          rating: content.rating,
-          episodeTitle: `T${season}E${episode} - ${foundEpisode.title}`,
-          nextEpisode: nextEp
-        });
-        // Clear params after opening
-        setSearchParams({});
-      }
-    }
-  }, [content, loading, searchParams]);
 
   const loadContent = async () => {
     try {
@@ -100,25 +66,6 @@ const ContentDetails = () => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const getNextEpisode = (content: Content, currentSeason: number, currentEpisode: number) => {
-    if (!content.episodes) return undefined;
-
-    // Sort episodes just in case
-    const sortedEpisodes = [...content.episodes].sort((a, b) => (a.season - b.season) || (a.episode - b.episode));
-    const currentIndex = sortedEpisodes.findIndex(e => e.season === currentSeason && e.episode === currentEpisode);
-
-    if (currentIndex >= 0 && currentIndex < sortedEpisodes.length - 1) {
-      const next = sortedEpisodes[currentIndex + 1];
-      return {
-        title: next.title,
-        season: next.season,
-        episode: next.episode,
-        url: next.url
-      };
-    }
-    return undefined;
   };
 
   const requestPlay = (playerState: any) => {
@@ -213,9 +160,12 @@ const ContentDetails = () => {
     }
 
     try {
+      // Check if already in list (optimistic check against current list state might be incomplete if list not fully loaded in this component, but safe enough)
+      // Since this is a "Watch Later" feature, we assume "Add".
       await addToMyList(user.uid, c);
       toast.success("Adicionado à sua lista");
     } catch (error) {
+      // Ignore if already exists or handle error
       toast.info("Já está na sua lista ou ocorreu um erro");
     }
   };
@@ -306,7 +256,9 @@ const ContentDetails = () => {
                 </div>
               </div>
 
-              {/* Backdrop Logic */}
+              {/* Moved Metadata from here to below description */}
+
+              {/* Backdrop Logic (Optional: Apply as page background?) */}
               {content.backdrop_url && (
                 <div className="fixed inset-0 -z-10">
                   <div className="absolute inset-0 bg-background/90" />
@@ -366,8 +318,9 @@ const ContentDetails = () => {
                 </div>
               )}
 
-              {/* Extended Metadata */}
+              {/* Extended Metadata - Now Below Description */}
               <div className="flex flex-col gap-4 mt-6 border-t border-white/10 pt-6">
+                {/* Quick Info */}
                 <div className="flex flex-wrap gap-4 text-sm text-gray-300">
                   {content.duration && (
                     <div className="flex items-center gap-1.5 bg-white/5 px-3 py-1.5 rounded-full border border-white/10">
@@ -425,9 +378,11 @@ const ContentDetails = () => {
             </div>
           </div>
 
+          {/* Content Bottom Ad */}
           <AdManager placement="content-bottom" className="mt-8" />
         </div>
 
+        {/* Mobile Bottom Ad */}
         <AdManager placement="mobile-bottom" className="md:hidden fixed bottom-0 left-0 right-0 z-40" />
 
         {
@@ -438,25 +393,7 @@ const ContentDetails = () => {
               episodes={content.episodes}
               title={content.title}
               trailerUrl={content.trailer_url}
-              onPlayEpisode={(url, episodeTitle) => {
-                const foundEp = content.episodes?.find(e => e.url === url);
-                let nextEp = undefined;
-                if (foundEp) {
-                  nextEp = getNextEpisode(content, foundEp.season, foundEp.episode);
-                }
-
-                requestPlay({
-                  open: true,
-                  url,
-                  title: content.title,
-                  isPremium: content.isPremium,
-                  image: content.thumbnail_url,
-                  description: content.description,
-                  rating: content.rating,
-                  episodeTitle,
-                  nextEpisode: nextEp
-                });
-              }}
+              onPlayEpisode={(url, episodeTitle) => requestPlay({ open: true, url, title: content.title, isPremium: content.isPremium, image: content.thumbnail_url, description: content.description, rating: content.rating, episodeTitle })}
             />
           )
         }
@@ -472,6 +409,7 @@ const ContentDetails = () => {
           )
         }
 
+        {/* Main Player Modal */}
         <ContentPlayerModal
           open={playerModal.open}
           onClose={() => setPlayerModal({ open: false, url: '', title: '', isPremium: false })}
@@ -485,24 +423,7 @@ const ContentDetails = () => {
           episodeTitle={playerModal.episodeTitle}
           internalPlayerUrl={playerModal.internalUrl}
           suggestions={relatedContents}
-          nextEpisode={playerModal.nextEpisode}
-          isLastEpisode={content.category === 'series' && !playerModal.nextEpisode}
-          onPlayNext={(nextEp) => {
-            console.log("onPlayNext triggered: Updating Embed", nextEp);
-            if (nextEp) {
-              requestPlay({
-                open: true,
-                url: nextEp.url,
-                title: content.title,
-                isPremium: content.isPremium,
-                image: content.thumbnail_url,
-                description: content.description,
-                rating: content.rating,
-                episodeTitle: `T${nextEp.season}E${nextEp.episode} - ${nextEp.title}`,
-                nextEpisode: getNextEpisode(content, nextEp.season, nextEp.episode)
-              });
-            }
-          }}
+          episodes={content.category === 'series' ? content.episodes : undefined}
           onPlayContent={(c) => {
             if (c.video_url || c.internal_player_url) {
               const playCall = () => setPlayerModal({
@@ -536,7 +457,6 @@ const ContentDetails = () => {
             }
           }}
           onAddToMyList={handleAddSuggestionToList}
-          onShowEpisodes={() => setShowEpisodes(true)}
         />
 
         <DownloadModal

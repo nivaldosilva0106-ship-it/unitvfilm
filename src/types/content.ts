@@ -1,8 +1,11 @@
 export interface Episode {
+  id: string; // New: Unique ID for the episode
   season: number;
   episode: number;
   title: string;
   url: string;
+  thumbnailUrl?: string; // New: For the next episode card
+  nextEpisodeId?: string; // New: Link to next episode
   download_url?: string; // Legacy
   download_mode?: 'direct' | 'torrent' | 'mixed';
   downloads?: {

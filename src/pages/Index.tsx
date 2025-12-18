@@ -34,13 +34,12 @@ const Index = () => {
   const [randomContent, setRandomContent] = useState<Content[]>([]);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedSeries, setSelectedSeries] = useState<Content | null>(null);
-  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string, internalUrl?: string, nextEpisode?: any }>({ open: false, url: '', title: '', isPremium: false });
+  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string, internalUrl?: string }>({ open: false, url: '', title: '', isPremium: false });
   const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, title: string, thumbnail: string }>({ open: false, url: '', title: '', thumbnail: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   /* New State for Quick View */
   const [quickViewContent, setQuickViewContent] = useState<Content | null>(null);
   const [showCinemaModal, setShowCinemaModal] = useState(false);
-  const [showEpisodes, setShowEpisodes] = useState(false);
   const [pendingPlayerState, setPendingPlayerState] = useState<any>(null);
 
   /* New State for Video Slider */
@@ -60,25 +59,6 @@ const Index = () => {
     const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
     const match = url.match(regExp);
     return (match && match[2].length === 11) ? match[2] : null;
-  };
-
-  const getNextEpisode = (content: Content, currentSeason: number, currentEpisode: number) => {
-    if (!content.episodes) return undefined;
-
-    // Sort episodes just in case
-    const sortedEpisodes = [...content.episodes].sort((a, b) => (a.season - b.season) || (a.episode - b.episode));
-    const currentIndex = sortedEpisodes.findIndex(e => e.season === currentSeason && e.episode === currentEpisode);
-
-    if (currentIndex >= 0 && currentIndex < sortedEpisodes.length - 1) {
-      const next = sortedEpisodes[currentIndex + 1];
-      return {
-        title: next.title,
-        season: next.season,
-        episode: next.episode,
-        url: next.url
-      };
-    }
-    return undefined;
   };
 
   useEffect(() => {
@@ -690,24 +670,7 @@ const Index = () => {
           title={selectedSeries.title}
           trailerUrl={selectedSeries.trailer_url}
           onPlayEpisode={(url, episodeTitle) => {
-            const foundEp = selectedSeries.episodes?.find(e => e.url === url);
-            let nextEp = undefined;
-            if (foundEp) {
-              nextEp = getNextEpisode(selectedSeries, foundEp.season, foundEp.episode);
-            }
-
-            const playerState = {
-              open: true,
-              url,
-              title: selectedSeries.title,
-              isPremium: selectedSeries.isPremium,
-              image: selectedSeries.thumbnail_url,
-              description: selectedSeries.description,
-              rating: selectedSeries.rating,
-              episodeTitle,
-              nextEpisode: nextEp
-            };
-
+            const playerState = { open: true, url, title: selectedSeries.title, isPremium: selectedSeries.isPremium, image: selectedSeries.thumbnail_url, description: selectedSeries.description, rating: selectedSeries.rating, episodeTitle };
             if (selectedSeries.is_cinema_mode) {
               setPendingPlayerState(playerState);
               setShowCinemaModal(true);
@@ -732,32 +695,6 @@ const Index = () => {
         episodeTitle={playerModal.episodeTitle}
         internalPlayerUrl={playerModal.internalUrl}
         suggestions={randomContent}
-        nextEpisode={playerModal.nextEpisode}
-        isLastEpisode={selectedSeries?.category === 'series' && !playerModal.nextEpisode}
-        onPlayNext={(nextEp) => {
-          console.log("Index onPlayNext triggered: Updating Embed", nextEp);
-          if (nextEp && selectedSeries) {
-            const playerState = {
-              open: true,
-              url: nextEp.url,
-              title: selectedSeries.title,
-              isPremium: selectedSeries.isPremium,
-              image: selectedSeries.thumbnail_url,
-              description: selectedSeries.description,
-              rating: selectedSeries.rating,
-              episodeTitle: `T${nextEp.season}E${nextEp.episode} - ${nextEp.title}`,
-              nextEpisode: getNextEpisode(selectedSeries, nextEp.season, nextEp.episode)
-            };
-
-            if (selectedSeries.is_cinema_mode) {
-              setPendingPlayerState(playerState);
-              setShowCinemaModal(true);
-            } else {
-              setPlayerModal(playerState);
-            }
-          }
-        }}
-        onShowEpisodes={() => setShowEpisodes(true)}
         onPlayContent={(content) => {
           if (content.video_url || content.internal_player_url) {
             const playerState = {
@@ -791,37 +728,6 @@ const Index = () => {
         title={downloadModal.title}
         thumbnail={downloadModal.thumbnail}
       />
-
-      {/* Episode Selector Modal */}
-      {selectedSeries && selectedSeries.episodes && (
-        <EpisodeSelector
-          open={showEpisodes}
-          onClose={() => setShowEpisodes(false)}
-          episodes={selectedSeries.episodes}
-          title={selectedSeries.title}
-          trailerUrl={selectedSeries.trailer_url}
-          onPlayEpisode={(url, episodeTitle) => {
-            const foundEp = selectedSeries.episodes?.find(e => e.url === url);
-            let nextEp = undefined;
-            if (foundEp) {
-              nextEp = getNextEpisode(selectedSeries, foundEp.season, foundEp.episode);
-            }
-
-            const playerState = {
-              open: true,
-              url: url,
-              title: selectedSeries.title,
-              isPremium: selectedSeries.isPremium,
-              image: selectedSeries.thumbnail_url,
-              description: selectedSeries.description,
-              rating: selectedSeries.rating,
-              episodeTitle: episodeTitle,
-              nextEpisode: nextEp
-            };
-            setPlayerModal(playerState);
-          }}
-        />
-      )}
 
       {/* Quick View Modal */}
       <QuickViewModal
