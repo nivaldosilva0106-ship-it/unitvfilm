@@ -34,7 +34,13 @@ interface ContentPlayerModalProps {
     episode: number;
     url: string;
   };
-  onPlayNext?: () => void;
+  onPlayNext?: (nextEpisode: {
+    title: string;
+    season: number;
+    episode: number;
+    url: string;
+  }) => void;
+  onShowEpisodes?: () => void;
   isLastEpisode?: boolean;
 }
 
@@ -56,6 +62,7 @@ export const ContentPlayerModal = ({
   category,
   nextEpisode,
   onPlayNext,
+  onShowEpisodes,
   isLastEpisode = false,
 }: ContentPlayerModalProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -451,14 +458,16 @@ export const ContentPlayerModal = ({
                 </div>
               </div>
 
-              {/* NEXT EPISODE OVERLAY - TOP RIGHT (Left of Fullscreen) - COMPACT */}
+              {/* NEXT EPISODE OVERLAY - BOTTOM RIGHT (Beside Suggestion Pill) */}
               {(nextEpisode || isLastEpisode) && (
-                <div className="absolute top-6 right-[200px] z-50">
+                <div className="absolute bottom-6 right-[350px] z-50">
                   <div
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (nextEpisode && onPlayNext) {
-                        onPlayNext();
+                      if (onShowEpisodes) {
+                        onShowEpisodes();
+                      } else if (nextEpisode && onPlayNext) {
+                        onPlayNext(nextEpisode);
                       }
                     }}
                     className={`group flex flex-col items-end gap-1 ${nextEpisode ? 'cursor-pointer' : 'cursor-default'}`}

@@ -46,18 +46,18 @@ const ContentDetails = () => {
   // Auto-open episode from URL params
   useEffect(() => {
     if (!content || !content.episodes || loading) return;
-    
+
     const seasonParam = searchParams.get('season');
     const episodeParam = searchParams.get('episode');
-    
+
     if (seasonParam && episodeParam) {
       const season = parseInt(seasonParam, 10);
       const episode = parseInt(episodeParam, 10);
-      
+
       const foundEpisode = content.episodes.find(
         e => e.season === season && e.episode === episode
       );
-      
+
       if (foundEpisode) {
         const nextEp = getNextEpisode(content, season, episode);
         requestPlay({
@@ -487,11 +487,20 @@ const ContentDetails = () => {
           suggestions={relatedContents}
           nextEpisode={playerModal.nextEpisode}
           isLastEpisode={content.category === 'series' && !playerModal.nextEpisode}
-          onPlayNext={() => {
-            if (playerModal.nextEpisode) {
-              // Close modal and navigate to new episode URL
-              setPlayerModal({ open: false, url: '', title: '', isPremium: false });
-              navigate(`/content/${content.id}?season=${playerModal.nextEpisode.season}&episode=${playerModal.nextEpisode.episode}`);
+          onPlayNext={(nextEp) => {
+            console.log("onPlayNext triggered: Updating Embed", nextEp);
+            if (nextEp) {
+              requestPlay({
+                open: true,
+                url: nextEp.url,
+                title: content.title,
+                isPremium: content.isPremium,
+                image: content.thumbnail_url,
+                description: content.description,
+                rating: content.rating,
+                episodeTitle: `T${nextEp.season}E${nextEp.episode} - ${nextEp.title}`,
+                nextEpisode: getNextEpisode(content, nextEp.season, nextEp.episode)
+              });
             }
           }}
           onPlayContent={(c) => {
@@ -527,6 +536,7 @@ const ContentDetails = () => {
             }
           }}
           onAddToMyList={handleAddSuggestionToList}
+          onShowEpisodes={() => setShowEpisodes(true)}
         />
 
         <DownloadModal

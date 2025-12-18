@@ -40,6 +40,7 @@ const Index = () => {
   /* New State for Quick View */
   const [quickViewContent, setQuickViewContent] = useState<Content | null>(null);
   const [showCinemaModal, setShowCinemaModal] = useState(false);
+  const [showEpisodes, setShowEpisodes] = useState(false);
   const [pendingPlayerState, setPendingPlayerState] = useState<any>(null);
 
   /* New State for Video Slider */
@@ -733,23 +734,30 @@ const Index = () => {
         suggestions={randomContent}
         nextEpisode={playerModal.nextEpisode}
         isLastEpisode={selectedSeries?.category === 'series' && !playerModal.nextEpisode}
-        onPlayNext={() => {
-          if (playerModal.nextEpisode && selectedSeries) {
+        onPlayNext={(nextEp) => {
+          console.log("Index onPlayNext triggered: Updating Embed", nextEp);
+          if (nextEp && selectedSeries) {
             const playerState = {
               open: true,
-              url: playerModal.nextEpisode.url,
+              url: nextEp.url,
               title: selectedSeries.title,
               isPremium: selectedSeries.isPremium,
               image: selectedSeries.thumbnail_url,
               description: selectedSeries.description,
               rating: selectedSeries.rating,
-              episodeTitle: `T${playerModal.nextEpisode.season}E${playerModal.nextEpisode.episode} - ${playerModal.nextEpisode.title}`,
-              nextEpisode: getNextEpisode(selectedSeries, playerModal.nextEpisode.season, playerModal.nextEpisode.episode)
+              episodeTitle: `T${nextEp.season}E${nextEp.episode} - ${nextEp.title}`,
+              nextEpisode: getNextEpisode(selectedSeries, nextEp.season, nextEp.episode)
             };
 
-            setPlayerModal(playerState);
+            if (selectedSeries.is_cinema_mode) {
+              setPendingPlayerState(playerState);
+              setShowCinemaModal(true);
+            } else {
+              setPlayerModal(playerState);
+            }
           }
         }}
+        onShowEpisodes={() => setShowEpisodes(true)}
         onPlayContent={(content) => {
           if (content.video_url || content.internal_player_url) {
             const playerState = {
@@ -783,6 +791,37 @@ const Index = () => {
         title={downloadModal.title}
         thumbnail={downloadModal.thumbnail}
       />
+
+      {/* Episode Selector Modal */}
+      {selectedSeries && selectedSeries.episodes && (
+        <EpisodeSelector
+          open={showEpisodes}
+          onClose={() => setShowEpisodes(false)}
+          episodes={selectedSeries.episodes}
+          title={selectedSeries.title}
+          trailerUrl={selectedSeries.trailer_url}
+          onPlayEpisode={(url, episodeTitle) => {
+            const foundEp = selectedSeries.episodes?.find(e => e.url === url);
+            let nextEp = undefined;
+            if (foundEp) {
+              nextEp = getNextEpisode(selectedSeries, foundEp.season, foundEp.episode);
+            }
+
+            const playerState = {
+              open: true,
+              url: url,
+              title: selectedSeries.title,
+              isPremium: selectedSeries.isPremium,
+              image: selectedSeries.thumbnail_url,
+              description: selectedSeries.description,
+              rating: selectedSeries.rating,
+              episodeTitle: episodeTitle,
+              nextEpisode: nextEp
+            };
+            setPlayerModal(playerState);
+          }}
+        />
+      )}
 
       {/* Quick View Modal */}
       <QuickViewModal
