@@ -579,6 +579,7 @@ export const ContentPlayerModal = ({
               {currentSource?.type === 'internal' ? (
                 <div className="absolute inset-0 w-full h-full bg-black">
                   <ReactPlayer
+                    key={currentSource.url}
                     url={currentSource.url}
                     width="100%"
                     height="100%"
@@ -589,6 +590,7 @@ export const ContentPlayerModal = ({
                 </div>
               ) : (
                 <iframe
+                  key={secureVideoUrl}
                   ref={iframeRef}
                   src={secureVideoUrl}
                   title={`Player - ${title}`}
