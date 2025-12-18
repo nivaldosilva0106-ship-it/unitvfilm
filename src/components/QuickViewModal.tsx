@@ -1,92 +1,47 @@
-import { useEffect, useState } from 'react';
-import { X, Play, Star, Volume2, VolumeX } from 'lucide-react';
+import { useRef, useEffect, useState } from 'react';
+import { X, Play, Clock, Star, Info, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { Content } from '@/types/content';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
-import ReactPlayerComponent from 'react-player';
-const ReactPlayer = ReactPlayerComponent as any;
 
 interface QuickViewModalProps {
     content: Content | null;
     open: boolean;
     onClose: () => void;
-    onPlay?: (content: Content) => void;
+    onPlay?: (content: Content) => void; // New prop to open player
 }
-
-// Helper to extract YouTube video ID
-const getYoutubeVideoId = (url: string): string | null => {
-    if (!url) return null;
-    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-    const match = url.match(regExp);
-    return (match && match[2].length === 11) ? match[2] : null;
-};
-
-// Check if URL is a YouTube URL
-const isYoutubeUrl = (url: string): boolean => {
-    return url?.includes('youtube.com') || url?.includes('youtu.be');
-};
 
 export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModalProps) => {
     const navigate = useNavigate();
+    const videoRef = useRef<HTMLVideoElement>(null);
     const [muted, setMuted] = useState(true);
     const [showTrailer, setShowTrailer] = useState(false);
-    const [imageOpacity, setImageOpacity] = useState(1);
-    const [videoOpacity, setVideoOpacity] = useState(0);
-    const [isPlaying, setIsPlaying] = useState(false);
+    const [videoOpacity, setVideoOpacity] = useState(1); // For fade-out effect
 
-    // Reset states when modal opens/closes
+    // Trailer auto-play after 3 seconds with smooth transition
     useEffect(() => {
         if (open && content?.trailer_url) {
-            setImageOpacity(1);
-            setVideoOpacity(0);
             setShowTrailer(false);
-            setMuted(true);
-            setIsPlaying(false);
+            setVideoOpacity(0); // Start invisible
 
-            // Auto-play trailer after 3 seconds
             const timer = setTimeout(() => {
-                startTrailer(true);
+                setShowTrailer(true);
+                // Fade in video smoothly
+                setTimeout(() => setVideoOpacity(1), 100);
             }, 3000);
 
             return () => clearTimeout(timer);
         } else {
             setShowTrailer(false);
-            setImageOpacity(1);
             setVideoOpacity(0);
-            setIsPlaying(false);
         }
     }, [open, content]);
 
-    // Start trailer with smooth transition
-    const startTrailer = (autoPlay: boolean = false) => {
-        if (!content?.trailer_url) return;
-        
-        setShowTrailer(true);
-        setIsPlaying(true);
-        if (!autoPlay) setMuted(false);
-        
-        // Fade out image, fade in video
-        setTimeout(() => {
-            setImageOpacity(0);
-            setVideoOpacity(1);
-        }, 50);
-    };
-
-    const handlePlayTrailer = () => {
-        startTrailer(false);
-    };
-
-    // Handle video end - fade back to image
+    // Handle video end - show backdrop image
     const handleVideoEnd = () => {
+        setShowTrailer(false);
         setVideoOpacity(0);
-        setImageOpacity(1);
-        setIsPlaying(false);
-        
-        setTimeout(() => {
-            setShowTrailer(false);
-            setMuted(true);
-        }, 1000);
     };
 
     const handlePlay = () => {
@@ -100,6 +55,7 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
 
     if (!content || !open) return null;
 
+    // Classification Color
     const getClassificationColor = (cls?: string) => {
         switch (cls) {
             case 'L': return 'bg-green-500';
@@ -111,9 +67,6 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
             default: return 'bg-zinc-500';
         }
     };
-
-    const trailerUrl = content.trailer_url;
-    const isYoutube = trailerUrl ? isYoutubeUrl(trailerUrl) : false;
 
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
@@ -130,32 +83,25 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
                 </button>
 
                 <div className="relative h-[400px] w-full bg-black">
-                    {/* Backdrop image with fade transition */}
+                    {/* Always show backdrop image as base */}
                     <img
                         src={content.backdrop_url || content.thumbnail_url}
                         alt={content.title}
-                        className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000"
-                        style={{ opacity: imageOpacity }}
+                        className="w-full h-full object-cover"
                     />
 
-                    {/* Video overlay with ReactPlayer for YouTube support */}
-                    {showTrailer && trailerUrl && (
-                        <div 
-                            className="absolute inset-0 w-full h-full transition-opacity duration-1000"
+                    {/* Video overlay with fade transition */}
+                    {showTrailer && content.trailer_url && (
+                        <video
+                            ref={videoRef}
+                            src={content.trailer_url}
+                            className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000"
                             style={{ opacity: videoOpacity }}
-                        >
-                            <ReactPlayer
-                                url={trailerUrl}
-                                width="100%"
-                                height="100%"
-                                playing={isPlaying}
-                                muted={muted}
-                                onEnded={handleVideoEnd}
-                                onError={handleVideoEnd}
-                                controls={false}
-                                style={{ position: 'absolute', top: 0, left: 0 }}
-                            />
-                        </div>
+                            autoPlay
+                            muted={muted}
+                            onEnded={handleVideoEnd}
+                            poster={content.backdrop_url || content.thumbnail_url}
+                        />
                     )}
 
                     <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-transparent" />
@@ -170,21 +116,12 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
                             </Button>
 
                             {content.trailer_url && (
-                                <>
-                                    <Button
-                                        onClick={handlePlayTrailer}
-                                        className="bg-white/20 hover:bg-white/30 text-white gap-2 font-bold px-6 backdrop-blur-sm transition-all"
-                                    >
-                                        <Play className="w-5 h-5" /> Trailer
-                                    </Button>
-
-                                    <button
-                                        onClick={() => setMuted(!muted)}
-                                        className="p-3 rounded-full border border-zinc-500 text-zinc-300 hover:border-white hover:text-white transition-all bg-black/30 backdrop-blur ml-auto"
-                                    >
-                                        {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                                    </button>
-                                </>
+                                <button
+                                    onClick={() => setMuted(!muted)}
+                                    className="p-3 rounded-full border border-zinc-500 text-zinc-300 hover:border-white hover:text-white transition-all bg-black/30 backdrop-blur"
+                                >
+                                    {muted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                                </button>
                             )}
                         </div>
                     </div>
