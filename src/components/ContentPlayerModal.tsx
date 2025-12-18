@@ -27,7 +27,6 @@ interface ContentPlayerModalProps {
   internalPlayerUrl?: string;
   onPlayContent?: (content: Content) => void;
   onAddToMyList?: (content: Content) => void;
-  onAddToMyList?: (content: Content) => void;
   category?: string;
   nextEpisode?: {
     title: string;

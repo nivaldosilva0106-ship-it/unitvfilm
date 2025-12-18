@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
@@ -19,6 +19,7 @@ import { CommentsSection } from "@/components/CommentsSection";
 const ContentDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
   const [content, setContent] = useState<Content | null>(null);
   const [loading, setLoading] = useState(true);
@@ -41,6 +42,40 @@ const ContentDetails = () => {
       checkMyList();
     }
   }, [user, content]);
+
+  // Auto-open episode from URL params
+  useEffect(() => {
+    if (!content || !content.episodes || loading) return;
+    
+    const seasonParam = searchParams.get('season');
+    const episodeParam = searchParams.get('episode');
+    
+    if (seasonParam && episodeParam) {
+      const season = parseInt(seasonParam, 10);
+      const episode = parseInt(episodeParam, 10);
+      
+      const foundEpisode = content.episodes.find(
+        e => e.season === season && e.episode === episode
+      );
+      
+      if (foundEpisode) {
+        const nextEp = getNextEpisode(content, season, episode);
+        requestPlay({
+          open: true,
+          url: foundEpisode.url,
+          title: content.title,
+          isPremium: content.isPremium,
+          image: content.thumbnail_url,
+          description: content.description,
+          rating: content.rating,
+          episodeTitle: `T${season}E${episode} - ${foundEpisode.title}`,
+          nextEpisode: nextEp
+        });
+        // Clear params after opening
+        setSearchParams({});
+      }
+    }
+  }, [content, loading, searchParams]);
 
   const loadContent = async () => {
     try {
@@ -454,17 +489,9 @@ const ContentDetails = () => {
           isLastEpisode={content.category === 'series' && !playerModal.nextEpisode}
           onPlayNext={() => {
             if (playerModal.nextEpisode) {
-              requestPlay({
-                open: true,
-                url: playerModal.nextEpisode.url,
-                title: content.title,
-                isPremium: content.isPremium,
-                image: content.thumbnail_url,
-                description: content.description,
-                rating: content.rating,
-                episodeTitle: `T${playerModal.nextEpisode.season}E${playerModal.nextEpisode.episode} - ${playerModal.nextEpisode.title}`,
-                nextEpisode: getNextEpisode(content, playerModal.nextEpisode.season, playerModal.nextEpisode.episode)
-              });
+              // Close modal and navigate to new episode URL
+              setPlayerModal({ open: false, url: '', title: '', isPremium: false });
+              navigate(`/content/${content.id}?season=${playerModal.nextEpisode.season}&episode=${playerModal.nextEpisode.episode}`);
             }
           }}
           onPlayContent={(c) => {
