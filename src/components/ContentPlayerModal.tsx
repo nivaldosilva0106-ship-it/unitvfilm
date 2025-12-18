@@ -482,14 +482,16 @@ export const ContentPlayerModal = ({
               </div>
 
               {/* Suggestions */}
-              {suggestions && suggestions.length > 0 && !showEpisodeList && (
+              {displaySuggestions && displaySuggestions.length > 0 && !showEpisodeList && (
                 <div className="absolute bottom-6 right-24 z-50">
                   <div className="group relative flex items-end justify-end">
                     <div className="absolute bottom-full right-0 mb-3 w-64 bg-black/90 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 translate-y-2 group-hover:translate-y-0">
                       <div className="p-3">
-                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-2 px-1 tracking-wider">Mais sugestões</p>
+                        <p className="text-[10px] text-gray-400 uppercase font-bold mb-2 px-1 tracking-wider">
+                          {episodes && currentEpisode && displaySuggestions[0].id.toString().startsWith('ep-') ? 'Próximos Episódios' : 'Mais sugestões'}
+                        </p>
                         <div className="space-y-2 max-h-60 overflow-y-auto scrollbar-thin scrollbar-thumb-white/20">
-                          {suggestions.slice(1, 6).map((item, idx) => (
+                          {displaySuggestions.slice(1, 6).map((item, idx) => (
                             <div
                               key={idx}
                               onClick={(e) => {
@@ -516,29 +518,31 @@ export const ContentPlayerModal = ({
                       onClick={(e) => {
                         e.stopPropagation();
                         if (onPlayContent) {
-                          onPlayContent(suggestions[0]);
+                          onPlayContent(displaySuggestions[0]);
                         } else {
-                          navigate(`/content/${suggestions[0].id}`);
+                          navigate(`/content/${displaySuggestions[0].id}`);
                         }
                       }}
                       className="flex items-center gap-3 bg-black/40 hover:bg-black/80 backdrop-blur-md border border-white/10 rounded-full pl-1 pr-4 py-1.5 cursor-pointer transition-all duration-300 group-hover:border-white/30 group-hover:scale-105"
                     >
                       <div className="relative flex-shrink-0">
                         <img
-                          src={suggestions[0].thumbnail_url}
-                          alt={suggestions[0].title}
+                          src={displaySuggestions[0].thumbnail_url}
+                          alt={displaySuggestions[0].title}
                           className="w-9 h-9 rounded-full object-cover border border-white/20 shadow-md"
                         />
-                        {suggestions[0].isPremium && (
+                        {displaySuggestions[0].isPremium && (
                           <div className="absolute -top-1 -right-1 bg-gradient-to-br from-yellow-400 to-yellow-600 rounded-full p-0.5 shadow-sm">
                             <Crown className="w-2 h-2 text-black fill-black" />
                           </div>
                         )}
                       </div>
                       <div className="flex flex-col">
-                        <span className="text-[9px] text-primary uppercase font-bold tracking-wider leading-none mb-0.5">Você já assistiu?</span>
+                        <span className="text-[9px] text-primary uppercase font-bold tracking-wider leading-none mb-0.5">
+                          {episodes && currentEpisode && displaySuggestions[0].id.toString().startsWith('ep-') ? 'Próximo Episódio' : 'Você já assistiu?'}
+                        </span>
                         <h4 className="text-xs text-white font-bold max-w-[140px] truncate leading-tight">
-                          {suggestions[0].title}
+                          {displaySuggestions[0].title}
                         </h4>
                       </div>
                       <ChevronUp className="w-4 h-4 text-gray-400 group-hover:text-white transition-colors flex-shrink-0 ml-1" />
