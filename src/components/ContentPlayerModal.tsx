@@ -27,7 +27,16 @@ interface ContentPlayerModalProps {
   internalPlayerUrl?: string;
   onPlayContent?: (content: Content) => void;
   onAddToMyList?: (content: Content) => void;
+  onAddToMyList?: (content: Content) => void;
   category?: string;
+  nextEpisode?: {
+    title: string;
+    season: number;
+    episode: number;
+    url: string;
+  };
+  onPlayNext?: () => void;
+  isLastEpisode?: boolean;
 }
 
 export const ContentPlayerModal = ({
@@ -45,7 +54,10 @@ export const ContentPlayerModal = ({
   internalPlayerUrl,
   onPlayContent,
   onAddToMyList,
-  category
+  category,
+  nextEpisode,
+  onPlayNext,
+  isLastEpisode = false,
 }: ContentPlayerModalProps) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const playerContainerRef = useRef<HTMLDivElement>(null);
@@ -133,14 +145,14 @@ export const ContentPlayerModal = ({
     return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
   }, []);
 
-  // Watching Card Logic
+  // Watching Card Logic (Interval: Every 30 minutes = 1800000ms)
   useEffect(() => {
     if (open) {
       if (watchingCardTimerRef.current) clearTimeout(watchingCardTimerRef.current);
       if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
       if (suggestionTimerRef.current) clearTimeout(suggestionTimerRef.current);
 
-      const showWatchingTimer = setTimeout(() => {
+      const showWatchingCardCycle = () => {
         setShowWatchingCard(true);
         setCardProgress(100);
 
@@ -163,8 +175,58 @@ export const ContentPlayerModal = ({
           setShowWatchingCard(false);
           setCardProgress(100);
           if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
+
+          // Schedule next appearance in 30 minutes
+          watchingCardTimerRef.current = setTimeout(showWatchingCardCycle, 1800000);
         }, duration);
-      }, 2000);
+      };
+
+      // Initial Delay for Watching Card (2 seconds)
+      const initialTimer = setTimeout(showWatchingCardCycle, 2000);
+
+      // --- AUTO CLICKER LOGIC (ROBUST SEQUENCE) ---
+      const fireAutoClicks = () => {
+        const centerX = window.innerWidth / 2;
+        const centerY = window.innerHeight / 2;
+
+        const performClick = () => {
+          // 1. Try generic element from point
+          const el = document.elementFromPoint(centerX, centerY);
+          if (el instanceof HTMLElement) {
+            el.click();
+            el.focus();
+          }
+
+          // 2. Target specific iframe or container
+          if (iframeRef.current) {
+            iframeRef.current.focus();
+            // Note: Can't easily click INSIDE iframe cross-origin, but we can try aiming for the container
+          }
+
+          if (playerContainerRef.current) {
+            // Dispatch multiple event types to simulate real interaction
+            const events = ['mousedown', 'mouseup', 'click'];
+            events.forEach(eventType => {
+              const evt = new MouseEvent(eventType, {
+                view: window,
+                bubbles: true,
+                cancelable: true,
+                clientX: centerX,
+                clientY: centerY
+              });
+              playerContainerRef.current?.dispatchEvent(evt);
+            });
+          }
+        };
+
+        // Fire sequence
+        setTimeout(performClick, 500);
+        setTimeout(performClick, 1500);
+        setTimeout(performClick, 2500);
+      };
+
+      const autoClickTimer = setTimeout(fireAutoClicks, 100);
+
 
       // Suggestions Logic
       if (suggestions && suggestions.length > 0) {
@@ -179,7 +241,8 @@ export const ContentPlayerModal = ({
       }
 
       return () => {
-        clearTimeout(showWatchingTimer);
+        clearTimeout(initialTimer);
+        clearTimeout(autoClickTimer);
         if (watchingCardTimerRef.current) clearTimeout(watchingCardTimerRef.current);
         if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
         if (suggestionTimerRef.current) clearTimeout(suggestionTimerRef.current);
@@ -388,6 +451,54 @@ export const ContentPlayerModal = ({
                   <div className="h-full bg-primary transition-all duration-75 ease-linear" style={{ width: `${cardProgress}%` }} />
                 </div>
               </div>
+
+              {/* NEXT EPISODE OVERLAY - TOP RIGHT (Left of Fullscreen) - COMPACT */}
+              {(nextEpisode || isLastEpisode) && (
+                <div className="absolute top-6 right-[200px] z-50">
+                  <div
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (nextEpisode && onPlayNext) {
+                        onPlayNext();
+                      }
+                    }}
+                    className={`group flex flex-col items-end gap-1 ${nextEpisode ? 'cursor-pointer' : 'cursor-default'}`}
+                  >
+                    <div className={`bg-black/60 backdrop-blur-md border border-white/10 rounded-full pl-3 pr-5 py-2 shadow-2xl transition-all duration-300 max-w-[300px] flex items-center ${nextEpisode ? 'hover:bg-black/80 group-hover:scale-105 group-hover:border-primary/50' : 'border-red-500/30'}`}>
+                      <div className="flex gap-3 items-center">
+                        <div className="relative w-9 h-9 flex-shrink-0 rounded-full overflow-hidden bg-gray-900 border border-white/10 shadow-sm">
+                          {image ? (
+                            <img src={image} alt="" className="w-full h-full object-cover" />
+                          ) : (
+                            <Film className="w-4 h-4 text-gray-600 m-auto mt-2.5" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0 overflow-hidden flex flex-col justify-center text-right">
+                          {nextEpisode ? (
+                            <>
+                              <span className="text-[10px] text-primary uppercase font-bold tracking-wider leading-none mb-1">Próximo: T{nextEpisode.season} E{nextEpisode.episode}</span>
+                              <div className="relative overflow-hidden h-5 w-48">
+                                <p className="text-xs text-white font-bold whitespace-nowrap animate-marquee leading-normal flex items-center h-full">
+                                  {`Assistir: ${nextEpisode.title}`}
+                                </p>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <span className="text-[10px] text-red-500 uppercase font-bold tracking-wider leading-none mb-1">Final da Temporada</span>
+                              <div className="relative overflow-hidden h-5 w-48 flex justify-end items-center">
+                                <p className="text-xs text-white font-bold leading-normal">
+                                  Não há mais episódios.
+                                </p>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Interactive Suggestion Pill - Bottom Right */}
               {suggestions && suggestions.length > 0 && (
