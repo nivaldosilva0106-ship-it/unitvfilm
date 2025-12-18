@@ -1,5 +1,36 @@
-import { useEffect } from "react";
-import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
+import { useEffect, useCallback } from "react";
+
+// Navigation sound effects
+const playNavigationSound = (type: 'focus' | 'select' | 'back') => {
+  try {
+    const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+
+    const audioContext = new AudioCtx();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+
+    const frequencies = {
+      focus: 800,
+      select: 1200,
+      back: 400,
+    } as const;
+
+    oscillator.frequency.value = frequencies[type];
+    oscillator.type = 'sine';
+
+    gainNode.gain.setValueAtTime(0.08, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.09);
+
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.1);
+  } catch (e) {
+    // Silently fail if audio context is unavailable
+  }
+};
 
 function isFocusable(el: Element): el is HTMLElement {
   if (!(el instanceof HTMLElement)) return false;
@@ -27,75 +58,73 @@ function center(rect: DOMRect) {
 }
 
 export default function FocusNavigator() {
-  const { playNavigationSound } = useKeyboardNavigation({ enabled: false });
+  const handler = useCallback((e: KeyboardEvent) => {
+    const keys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
+    if (!keys.includes(e.key)) return;
+
+    const focusables = getFocusable();
+    if (focusables.length === 0) return;
+
+    const active = document.activeElement as HTMLElement | null;
+    const current = (active && isFocusable(active)) ? active : null;
+
+    // If nothing focused, focus first element on the page
+    if (!current) {
+      focusables[0].focus();
+      playNavigationSound("focus");
+      e.preventDefault();
+      return;
+    }
+
+    const currentRect = current.getBoundingClientRect();
+    const c = center(currentRect);
+
+    // Partition candidates relative to current position
+    let candidates: Array<{ el: HTMLElement; rect: DOMRect; c: { x: number; y: number } }> = [];
+    for (const el of focusables) {
+      if (el === current) continue;
+      const rect = el.getBoundingClientRect();
+      const mc = center(rect);
+      candidates.push({ el, rect, c: mc });
+    }
+
+    const sameRowThreshold = Math.max(40, currentRect.height * 0.8);
+
+    let target: HTMLElement | null = null;
+
+    if (e.key === "ArrowLeft") {
+      const lefts = candidates
+        .filter(it => it.c.x < c.x && Math.abs(it.c.y - c.y) <= sameRowThreshold)
+        .sort((a, b) => (c.x - a.c.x) - (c.x - b.c.x) || Math.abs(a.c.y - c.y) - Math.abs(b.c.y - c.y));
+      target = (lefts[0]?.el) || null;
+    } else if (e.key === "ArrowRight") {
+      const rights = candidates
+        .filter(it => it.c.x > c.x && Math.abs(it.c.y - c.y) <= sameRowThreshold)
+        .sort((a, b) => (a.c.x - c.x) - (b.c.x - c.x) || Math.abs(a.c.y - c.y) - Math.abs(b.c.y - c.y));
+      target = (rights[0]?.el) || null;
+    } else if (e.key === "ArrowUp") {
+      const ups = candidates
+        .filter(it => it.c.y < c.y)
+        .sort((a, b) => (c.y - a.c.y) - (c.y - b.c.y) || Math.abs(a.c.x - c.x) - Math.abs(b.c.x - c.x));
+      target = (ups[0]?.el) || null;
+    } else if (e.key === "ArrowDown") {
+      const downs = candidates
+        .filter(it => it.c.y > c.y)
+        .sort((a, b) => (a.c.y - c.y) - (b.c.y - c.y) || Math.abs(a.c.x - c.x) - Math.abs(b.c.x - c.x));
+      target = (downs[0]?.el) || null;
+    }
+
+    if (target) {
+      target.focus();
+      playNavigationSound("focus");
+      e.preventDefault();
+    }
+  }, []);
 
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const keys = ["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"];
-      if (!keys.includes(e.key)) return;
-
-      const focusables = getFocusable();
-      if (focusables.length === 0) return;
-
-      const active = document.activeElement as HTMLElement | null;
-      const current = (active && isFocusable(active)) ? active : null;
-
-      // If nothing focused, focus first element on the page
-      if (!current) {
-        focusables[0].focus();
-        playNavigationSound("focus");
-        e.preventDefault();
-        return;
-      }
-
-      const currentRect = current.getBoundingClientRect();
-      const c = center(currentRect);
-
-      // Partition candidates relative to current position
-      let candidates: Array<{ el: HTMLElement; rect: DOMRect; c: { x: number; y: number } }> = [];
-      for (const el of focusables) {
-        if (el === current) continue;
-        const rect = el.getBoundingClientRect();
-        const mc = center(rect);
-        candidates.push({ el, rect, c: mc });
-      }
-
-      const sameRowThreshold = Math.max(40, currentRect.height * 0.8);
-
-      let target: HTMLElement | null = null;
-
-      if (e.key === "ArrowLeft") {
-        const lefts = candidates
-          .filter(it => it.c.x < c.x && Math.abs(it.c.y - c.y) <= sameRowThreshold)
-          .sort((a, b) => (c.x - a.c.x) - (c.x - b.c.x) || Math.abs(a.c.y - c.y) - Math.abs(b.c.y - c.y));
-        target = (lefts[0]?.el) || null;
-      } else if (e.key === "ArrowRight") {
-        const rights = candidates
-          .filter(it => it.c.x > c.x && Math.abs(it.c.y - c.y) <= sameRowThreshold)
-          .sort((a, b) => (a.c.x - c.x) - (b.c.x - c.x) || Math.abs(a.c.y - c.y) - Math.abs(b.c.y - c.y));
-        target = (rights[0]?.el) || null;
-      } else if (e.key === "ArrowUp") {
-        const ups = candidates
-          .filter(it => it.c.y < c.y)
-          .sort((a, b) => (c.y - a.c.y) - (c.y - b.c.y) || Math.abs(a.c.x - c.x) - Math.abs(b.c.x - c.x));
-        target = (ups[0]?.el) || null;
-      } else if (e.key === "ArrowDown") {
-        const downs = candidates
-          .filter(it => it.c.y > c.y)
-          .sort((a, b) => (a.c.y - c.y) - (b.c.y - c.y) || Math.abs(a.c.x - c.x) - Math.abs(b.c.x - c.x));
-        target = (downs[0]?.el) || null;
-      }
-
-      if (target) {
-        target.focus();
-        playNavigationSound("focus");
-        e.preventDefault();
-      }
-    };
-
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [playNavigationSound]);
+  }, [handler]);
 
   return null;
 }
