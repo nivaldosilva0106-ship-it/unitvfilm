@@ -45,8 +45,8 @@ const App = () => (
 
         <BrowserRouter>
           <GlobalContentProtection />
-          <GuestSessionManager />
           <AuthGuard>
+            <GuestSessionManager />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/login" element={<Login />} />
