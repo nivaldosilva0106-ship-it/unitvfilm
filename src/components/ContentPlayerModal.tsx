@@ -1,5 +1,5 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { X, Crown, ArrowLeft, List, Film, Maximize, Minimize, Star, Plus, ChevronUp } from "lucide-react";
+import { X, Crown, ArrowLeft, List, Film, Maximize, Minimize, Star, Plus, ChevronUp, ChevronRight } from "lucide-react";
 import { Content } from "@/types/content";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { Button } from "./ui/button";
@@ -496,6 +496,24 @@ export const ContentPlayerModal = ({
                       </div>
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* NEW NEXT EPISODE CENTER RIGHT BUTTON */}
+              {nextEpisode && (
+                <div className="absolute top-1/2 right-4 -translate-y-1/2 z-50">
+                   <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onPlayNext) onPlayNext();
+                      }}
+                       variant="ghost"
+                       size="icon"
+                       className="w-14 h-14 rounded-full bg-black/50 hover:bg-primary hover:text-white backdrop-blur-sm border border-white/10 shadow-lg transition-all duration-300 hover:scale-110 group"
+                       title={`Próximo: ${nextEpisode.title}`}
+                   >
+                      <ChevronRight className="w-8 h-8 text-white group-hover:text-white" />
+                   </Button>
                 </div>
               )}
 

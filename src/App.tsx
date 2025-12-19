@@ -25,6 +25,7 @@ import Categories from "./pages/Categories";
 import VerifyCode from "./pages/VerifyCode";
 import AdminSystem from "./pages/AdminSystem";
 import AdminNotifications from "./pages/AdminNotifications";
+import Player from "./pages/Player";
 
 import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminAvatars } from "@/components/admin/AdminAvatars";
@@ -61,6 +62,7 @@ const App = () => (
               <Route path="/admin/notifications" element={<AdminNotifications />} />
               <Route path="/payment" element={<Payment />} />
               <Route path="/content/:id" element={<ContentDetails />} />
+              <Route path="/watch/:id" element={<Player />} />
               <Route path="/my-list" element={<MyList />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="/profiles" element={<ProfileSelection />} />

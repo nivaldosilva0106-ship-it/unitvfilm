@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
 import { TrailerModal } from "@/components/TrailerModal";
-import { ContentPlayerModal } from "@/components/ContentPlayerModal";
+
 import { AdManager } from "@/components/AdManager";
 import { Play, Download, ArrowLeft, Calendar, Globe, Star, Film, Heart, Clock, Users } from "lucide-react";
 import { getAllContents, addToMyList, removeFromMyList, getMyList } from "@/lib/firebase";
@@ -27,7 +27,7 @@ const ContentDetails = () => {
   const [showTrailerModal, setShowTrailerModal] = useState(false);
   const [inMyList, setInMyList] = useState(false);
   const [myListItemId, setMyListItemId] = useState<string | null>(null);
-  const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string, internalUrl?: string, nextEpisode?: any }>({ open: false, url: '', title: '', isPremium: false });
+
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [showCinemaModal, setShowCinemaModal] = useState(false);
   const [pendingPlayerState, setPendingPlayerState] = useState<any>(null);
@@ -46,31 +46,21 @@ const ContentDetails = () => {
   // Auto-open episode from URL params
   useEffect(() => {
     if (!content || !content.episodes || loading) return;
-    
+
     const seasonParam = searchParams.get('season');
     const episodeParam = searchParams.get('episode');
-    
+
     if (seasonParam && episodeParam) {
       const season = parseInt(seasonParam, 10);
       const episode = parseInt(episodeParam, 10);
-      
+
       const foundEpisode = content.episodes.find(
         e => e.season === season && e.episode === episode
       );
-      
+
       if (foundEpisode) {
         const nextEp = getNextEpisode(content, season, episode);
-        requestPlay({
-          open: true,
-          url: foundEpisode.url,
-          title: content.title,
-          isPremium: content.isPremium,
-          image: content.thumbnail_url,
-          description: content.description,
-          rating: content.rating,
-          episodeTitle: `T${season}E${episode} - ${foundEpisode.title}`,
-          nextEpisode: nextEp
-        });
+        requestPlay(season, episode);
         // Clear params after opening
         setSearchParams({});
       }
@@ -121,12 +111,16 @@ const ContentDetails = () => {
     return undefined;
   };
 
-  const requestPlay = (playerState: any) => {
+  const requestPlay = (season?: number, episode?: number) => {
     if (content?.is_cinema_mode) {
-      setPendingPlayerState(playerState);
+      setPendingPlayerState({ season, episode });
       setShowCinemaModal(true);
     } else {
-      setPlayerModal(playerState);
+      let url = `/watch/${content?.id}`;
+      if (season && episode) {
+        url += `?season=${season}&episode=${episode}`;
+      }
+      window.open(url, '_blank');
     }
   };
 
@@ -139,7 +133,7 @@ const ContentDetails = () => {
     }
 
     if ((videoUrl || content?.internal_player_url) && content) {
-      requestPlay({ open: true, url: videoUrl || '', urls: content.video_urls, title: content.title, isPremium: content.isPremium, image: content.thumbnail_url, description: content.description, rating: content.rating, internalUrl: content.internal_player_url });
+      requestPlay();
       return;
     }
 
@@ -440,22 +434,9 @@ const ContentDetails = () => {
               trailerUrl={content.trailer_url}
               onPlayEpisode={(url, episodeTitle) => {
                 const foundEp = content.episodes?.find(e => e.url === url);
-                let nextEp = undefined;
                 if (foundEp) {
-                  nextEp = getNextEpisode(content, foundEp.season, foundEp.episode);
+                  requestPlay(foundEp.season, foundEp.episode);
                 }
-
-                requestPlay({
-                  open: true,
-                  url,
-                  title: content.title,
-                  isPremium: content.isPremium,
-                  image: content.thumbnail_url,
-                  description: content.description,
-                  rating: content.rating,
-                  episodeTitle,
-                  nextEpisode: nextEp
-                });
               }}
             />
           )
@@ -472,62 +453,7 @@ const ContentDetails = () => {
           )
         }
 
-        <ContentPlayerModal
-          open={playerModal.open}
-          onClose={() => setPlayerModal({ open: false, url: '', title: '', isPremium: false })}
-          videoUrl={playerModal.url}
-          videoUrls={playerModal.urls}
-          title={playerModal.title}
-          isPremium={playerModal.isPremium}
-          image={playerModal.image}
-          description={playerModal.description}
-          rating={playerModal.rating}
-          episodeTitle={playerModal.episodeTitle}
-          internalPlayerUrl={playerModal.internalUrl}
-          suggestions={relatedContents}
-          nextEpisode={playerModal.nextEpisode}
-          isLastEpisode={content.category === 'series' && !playerModal.nextEpisode}
-          onPlayNext={() => {
-            if (playerModal.nextEpisode) {
-              // Close modal and navigate to new episode URL
-              setPlayerModal({ open: false, url: '', title: '', isPremium: false });
-              navigate(`/content/${content.id}?season=${playerModal.nextEpisode.season}&episode=${playerModal.nextEpisode.episode}`);
-            }
-          }}
-          onPlayContent={(c) => {
-            if (c.video_url || c.internal_player_url) {
-              const playCall = () => setPlayerModal({
-                open: true,
-                url: c.video_url || '',
-                urls: c.video_urls,
-                title: c.title,
-                isPremium: c.isPremium,
-                image: c.thumbnail_url,
-                internalUrl: c.internal_player_url,
-                description: c.description,
-                rating: c.rating
-              });
-
-              if (c.is_cinema_mode) {
-                setPendingPlayerState({
-                  open: true,
-                  url: c.video_url || '',
-                  urls: c.video_urls,
-                  title: c.title,
-                  isPremium: c.isPremium,
-                  image: c.thumbnail_url,
-                  internalUrl: c.internal_player_url,
-                  description: c.description,
-                  rating: c.rating
-                });
-                setShowCinemaModal(true);
-              } else {
-                playCall();
-              }
-            }
-          }}
-          onAddToMyList={handleAddSuggestionToList}
-        />
+        {/* ContentPlayerModal Removed */}
 
         <DownloadModal
           open={showDownloadModal}
@@ -544,7 +470,12 @@ const ContentDetails = () => {
           onClose={() => setShowCinemaModal(false)}
           onConfirm={() => {
             if (pendingPlayerState) {
-              setPlayerModal(pendingPlayerState);
+              const { season, episode } = pendingPlayerState;
+              let url = `/watch/${content?.id}`;
+              if (season && episode) {
+                url += `?season=${season}&episode=${episode}`;
+              }
+              window.open(url, '_blank');
               setPendingPlayerState(null);
             }
           }}
