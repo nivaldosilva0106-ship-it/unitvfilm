@@ -33,6 +33,9 @@ const Player = () => {
     const [isFullscreen, setIsFullscreen] = useState(false);
     const [showWatchingCard, setShowWatchingCard] = useState(false);
     const [cardProgress, setCardProgress] = useState(100);
+    const [showIntro, setShowIntro] = useState(true);
+    const [suggestions, setSuggestions] = useState<Content[]>([]); // Suggestions state
+    const [showSuggestionsCard, setShowSuggestionsCard] = useState(false); // Suggestions visibility
 
     const watchingCardTimerRef = useRef<NodeJS.Timeout | null>(null);
     const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -44,6 +47,7 @@ const Player = () => {
     useContentProtection(true);
 
     // 1. Load Content
+    // 1. Load Content & Intro Timer
     useEffect(() => {
         const fetchContent = async () => {
             try {
@@ -51,6 +55,12 @@ const Player = () => {
                 const found = contents.find((c) => c.id === id);
                 if (found) {
                     setContent(found);
+
+                    // Fetch Suggestions (Random 3, excluding current)
+                    const otherContents = contents.filter(c => c.id !== found.id);
+                    const randomSuggestions = otherContents.sort(() => 0.5 - Math.random()).slice(0, 3);
+                    setSuggestions(randomSuggestions);
+
                 } else {
                     toast.error("Conteúdo não encontrado");
                     navigate("/");
@@ -63,6 +73,21 @@ const Player = () => {
             }
         };
         fetchContent();
+
+        // Intro Animation Timer
+        const introTimer = setTimeout(() => {
+            setShowIntro(false);
+        }, 2500);
+
+        // Suggestions Card Timer (5s after intro/load)
+        const suggestionsTimer = setTimeout(() => {
+            setShowSuggestionsCard(true);
+        }, 7500);
+
+        return () => {
+            clearTimeout(introTimer);
+            clearTimeout(suggestionsTimer);
+        };
     }, [id, navigate]);
 
     // 2. Determine Video & Access
@@ -153,9 +178,9 @@ const Player = () => {
     const secureVideoUrl = useMemo(() => {
         if (!currentSource || currentSource.type !== 'embed') return '';
         const url = currentSource.url;
-        const timestamp = Date.now();
         const separator = url.includes('?') ? '&' : '?';
-        return `${url}${separator}_t=${timestamp}`;
+        // Auto-play and Auto-click simulaton params
+        return `${url}${separator}autoplay=1&mute=0&controls=1`;
     }, [currentSource]);
 
     // 4. Watching Card Effect
@@ -219,10 +244,36 @@ const Player = () => {
     const handleNextEpisode = () => {
         if (nextEpisode) {
             setSearchParams({ season: nextEpisode.season, episode: nextEpisode.episode });
+            // Reset states for new episode
+            setShowSuggestionsCard(false);
+            setTimeout(() => setShowSuggestionsCard(true), 7500);
         }
     };
 
-    if (loading) return <div className="w-screen h-screen bg-black text-white flex items-center justify-center">Carregando...</div>;
+    // Auto-click simulation (programmatic focus)
+    useEffect(() => {
+        if (!loading && !showIntro && iframeRef.current) {
+            iframeRef.current.focus();
+            // We can't click inside an iframe, but we can ensure it's active
+        }
+    }, [loading, showIntro]);
+
+    if (loading || showIntro) {
+        return (
+            <div className="w-screen h-screen bg-[#0a0a0a] flex flex-col items-center justify-center z-[100] fixed inset-0">
+                <div className="flex flex-col items-center animate-pulse">
+                    <div className="bg-primary p-4 rounded-2xl shadow-[0_0_30px_rgba(220,38,38,0.5)] mb-6 transform scale-110">
+                        <Film className="w-10 h-10 text-white" />
+                    </div>
+                    <h1 className="text-4xl sm:text-5xl font-bold text-white mb-2 tracking-tight">
+                        Uni<span className="text-primary">Tv</span>Film
+                    </h1>
+                    <p className="text-gray-400 text-sm tracking-widest uppercase">Carregando Player</p>
+                </div>
+                <div className="mt-12 w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+            </div>
+        );
+    }
 
     if (!accessState.granted) {
         return (
@@ -260,23 +311,32 @@ const Player = () => {
                         <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => window.close()} // Try close, fallback to navigate back
-                            className="w-12 h-12 rounded-full bg-black/50 text-white hover:bg-red-600 backdrop-blur-md border border-white/20"
-                        >
-                            <X className="w-6 h-6" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
                             onClick={() => navigate(-1)}
                             className="w-12 h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
                         >
                             <ArrowLeft className="w-6 h-6" />
                         </Button>
 
-                        <div className="px-4 py-2 bg-black/50 backdrop-blur-md rounded-full border border-white/20 flex items-center gap-2">
-                            <Film className="w-5 h-5 text-primary" />
-                            <span className="text-white font-bold">{currentTitle}</span>
+                        <div className="px-4 py-2 bg-black/50 backdrop-blur-md rounded-full border border-white/20 flex items-center gap-3">
+                            {/* Logo */}
+                            <div className="flex items-center gap-2 border-r border-white/20 pr-3 mr-1">
+                                <div className="bg-primary p-1 rounded">
+                                    <Film className="w-3 h-3 text-white" />
+                                </div>
+                                <span className="text-white font-bold text-sm hidden sm:inline">Uni<span className="text-primary">Tv</span>Film</span>
+                            </div>
+
+                            {/* Circular Poster */}
+                            {content?.thumbnail_url && (
+                                <img
+                                    src={content.thumbnail_url}
+                                    className="w-8 h-8 rounded-full object-cover border border-white/20 shadow-sm"
+                                    alt="Poster"
+                                />
+                            )}
+
+                            {/* Title */}
+                            <span className="text-white font-bold text-sm sm:text-base">{currentTitle}</span>
                         </div>
                     </div>
 
@@ -319,6 +379,15 @@ const Player = () => {
                         >
                             {isFullscreen ? <Minimize className="w-6 h-6" /> : <Maximize className="w-6 h-6" />}
                         </Button>
+
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => window.close()}
+                            className="w-12 h-12 rounded-full bg-black/50 text-white hover:bg-red-600 backdrop-blur-md border border-white/20"
+                        >
+                            <X className="w-6 h-6" />
+                        </Button>
                     </div>
                 </div>
 
@@ -347,9 +416,11 @@ const Player = () => {
                         <div className="flex gap-3">
                             {content.thumbnail_url && <img src={content.thumbnail_url} className="w-20 h-28 object-cover rounded-lg flex-shrink-0" alt="Capa" />}
                             <div className="flex flex-col gap-1 min-w-0">
-                                <h3 className="text-white font-bold text-sm line-clamp-2">{currentTitle}</h3>
+                                <h3 className="text-white font-bold text-sm line-clamp-1">{currentTitle}</h3>
+                                {/* Description Added */}
+                                <p className="text-xs text-gray-300 line-clamp-2 leading-relaxed opacity-90">{content.description}</p>
                                 {content.rating && (
-                                    <div className="flex items-center gap-1">
+                                    <div className="flex items-center gap-1 mt-1">
                                         <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
                                         <span className="text-yellow-500 text-xs font-medium">{content.rating.toFixed(1)}</span>
                                     </div>
@@ -361,6 +432,51 @@ const Player = () => {
                         <div className="h-full bg-primary transition-all duration-75 ease-linear" style={{ width: `${cardProgress}%` }} />
                     </div>
                 </div>
+
+                {/* SUGGESTIONS SIDEBAR (Left Center) */}
+                {showSuggestionsCard && suggestions.length > 0 && (
+                    <div className="absolute top-1/2 -translate-y-1/2 left-4 z-50 flex items-center group">
+                        {/* Trigger (Collapsed) */}
+                        <div className="relative z-20 flex flex-col items-center gap-2 bg-black/60 backdrop-blur-md p-3 rounded-full border border-white/20 cursor-pointer shadow-xl transition-all duration-300 group-hover:bg-primary/90 group-hover:scale-110">
+                            <div className="flex flex-col gap-1">
+                                <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                                <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse delay-75" />
+                                <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse delay-150" />
+                            </div>
+                            <span className="writing-vertical-rl text-[10px] font-bold text-white uppercase tracking-widest opacity-70 group-hover:opacity-100 transition-opacity rotate-180 py-2">
+                                Sugestões
+                            </span>
+                        </div>
+
+                        {/* Suggestions Panel (Expands to Right) */}
+                        <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 opacity-0 -translate-x-10 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 group-hover:pointer-events-auto transition-all duration-500 ease-out bg-black/80 backdrop-blur-xl p-4 rounded-2xl border border-white/10 shadow-2xl min-w-[180px]">
+                            <p className="text-white text-xs font-bold uppercase tracking-wider mb-2 border-b border-white/10 pb-2">Recomendados para você</p>
+                            {suggestions.map((suggestion) => (
+                                <div
+                                    key={suggestion.id}
+                                    onClick={() => window.open(`/watch/${suggestion.id}`, '_blank')}
+                                    className="relative flex items-center gap-3 p-2 rounded-lg hover:bg-white/10 cursor-pointer transition-colors group/item"
+                                >
+                                    <img
+                                        src={suggestion.thumbnail_url}
+                                        alt={suggestion.title}
+                                        className="w-12 h-16 object-cover rounded-md shadow-md group-hover/item:scale-105 transition-transform"
+                                    />
+                                    <div className="flex flex-col min-w-0">
+                                        <h4 className="text-white text-xs font-bold line-clamp-2 leading-tight group-hover/item:text-primary transition-colors">{suggestion.title}</h4>
+                                        {suggestion.rating && (
+                                            <div className="flex items-center gap-1 mt-1">
+                                                <Star className="w-2.5 h-2.5 text-yellow-500 fill-yellow-500" />
+                                                <span className="text-yellow-500 text-[10px] font-medium">{suggestion.rating.toFixed(1)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <Play className="w-4 h-4 text-primary opacity-0 group-hover/item:opacity-100 absolute right-2 transition-opacity" />
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* VIDEO PLAYER */}
                 {currentSource.type === 'internal' ? (

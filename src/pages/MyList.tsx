@@ -79,10 +79,15 @@ const MyList = () => {
   };
 
   const handlePlayContent = (item: MyListItem) => {
-    if (item.content.video_url) {
-      setPlayerModal({ open: true, url: item.content.video_url, urls: item.content.video_urls, title: item.content.title, isPremium: item.content.isPremium, image: item.content.thumbnail_url, description: item.content.description, rating: item.content.rating });
-    } else if (item.content.category === 'series' && item.content.episodes && item.content.episodes.length > 0) {
+    if (item.content.category === 'series') {
+      // If we had an episode selector here, we would use it. 
+      // For now, redirect to details page where they can pick an episode.
       navigate(`/content/${item.content.id}`);
+    } else if (item.content.category === 'movie') {
+      window.open(`/watch/${item.content.id}`, '_blank');
+    } else if (item.content.video_url) {
+      // TV Channels or others - keep modal
+      setPlayerModal({ open: true, url: item.content.video_url, urls: item.content.video_urls, title: item.content.title, isPremium: item.content.isPremium, image: item.content.thumbnail_url, description: item.content.description, rating: item.content.rating });
     } else {
       toast.error('Link de vídeo não disponível');
     }
@@ -178,7 +183,9 @@ const MyList = () => {
         internalPlayerUrl={playerModal.internalUrl}
         suggestions={suggestions}
         onPlayContent={(c) => {
-          if (c.video_url || c.internal_player_url) {
+          if (c.category === 'movie') {
+            window.open(`/watch/${c.id}`, '_blank');
+          } else if (c.video_url || c.internal_player_url) {
             setPlayerModal({
               open: true,
               url: c.video_url || '',
@@ -201,7 +208,13 @@ const MyList = () => {
         content={quickViewContent}
         onClose={() => setQuickViewContent(null)}
         onPlay={(content) => {
-          if (content.video_url) {
+          // QuickViewModal internal logic now handles navigation for movies/series
+          // But if it falls back here (e.g. for TV or special cases), we handle it
+          if (content.category === 'series') {
+            navigate(`/content/${content.id}`);
+          } else if (content.category === 'movie') {
+            window.open(`/watch/${content.id}`, '_blank');
+          } else if (content.video_url) {
             setPlayerModal({
               open: true,
               url: content.video_url,
@@ -212,8 +225,6 @@ const MyList = () => {
               description: content.description,
               rating: content.rating
             });
-          } else if (content.category === 'series') {
-            navigate(`/content/${content.id}`);
           }
           setQuickViewContent(null);
         }}

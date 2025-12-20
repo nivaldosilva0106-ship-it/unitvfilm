@@ -45,10 +45,18 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
     };
 
     const handlePlay = () => {
-        if (onPlay && content) {
-            onPlay(content);
-        } else if (content) {
-            navigate(`/content/${content.id}`);
+        if (content) {
+            // For movies and series, navigate to player page
+            if (content.category === 'movie' || content.category === 'series') {
+                window.open(`/watch/${content.id}`, '_blank');
+            } else {
+                // For TV channels or other content, use the callback or navigate to details
+                if (onPlay) {
+                    onPlay(content);
+                } else {
+                    navigate(`/content/${content.id}`);
+                }
+            }
         }
         onClose();
     };

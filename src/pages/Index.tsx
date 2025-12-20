@@ -333,10 +333,25 @@ const Index = () => {
       sessionStorage.setItem('guest_watched_count', (watched + 1).toString());
     }
 
+    // Series: Open episode selector
     if (content.category === 'series' && content.episodes && content.episodes.length > 0) {
       setSelectedSeries(content);
-    } else if (content.video_url) {
-      /* VIDEO SLIDER PAUSE Logic: handled by !playerModal.open check in render */
+      return;
+    }
+
+    // Movies: Navigate to player page
+    if (content.category === 'movie') {
+      if (content.is_cinema_mode) {
+        setPendingPlayerState({ contentId: content.id });
+        setShowCinemaModal(true);
+      } else {
+        window.open(`/watch/${content.id}`, '_blank');
+      }
+      return;
+    }
+
+    // TV Channels: Keep modal behavior
+    if (content.video_url) {
       const playerState = {
         open: true,
         url: content.video_url,
@@ -690,28 +705,19 @@ const Index = () => {
           trailerUrl={selectedSeries.trailer_url}
           onPlayEpisode={(url, episodeTitle) => {
             const foundEp = selectedSeries.episodes?.find(e => e.url === url);
-            let nextEp = undefined;
             if (foundEp) {
-              nextEp = getNextEpisode(selectedSeries, foundEp.season, foundEp.episode);
-            }
+              const watchUrl = `/watch/${selectedSeries.id}?season=${foundEp.season}&episode=${foundEp.episode}`;
 
-            const playerState = {
-              open: true,
-              url,
-              title: selectedSeries.title,
-              isPremium: selectedSeries.isPremium,
-              image: selectedSeries.thumbnail_url,
-              description: selectedSeries.description,
-              rating: selectedSeries.rating,
-              episodeTitle,
-              nextEpisode: nextEp
-            };
-
-            if (selectedSeries.is_cinema_mode) {
-              setPendingPlayerState(playerState);
-              setShowCinemaModal(true);
-            } else {
-              setPlayerModal(playerState);
+              if (selectedSeries.is_cinema_mode) {
+                setPendingPlayerState({
+                  contentId: selectedSeries.id,
+                  season: foundEp.season,
+                  episode: foundEp.episode
+                });
+                setShowCinemaModal(true);
+              } else {
+                window.open(watchUrl, '_blank');
+              }
             }
           }}
         />
@@ -797,8 +803,23 @@ const Index = () => {
         onClose={() => setShowCinemaModal(false)}
         onConfirm={() => {
           if (pendingPlayerState) {
-            setPlayerModal(pendingPlayerState);
+            let watchUrl = '';
+            if (pendingPlayerState.season && pendingPlayerState.episode) {
+              // Series episode
+              watchUrl = `/watch/${pendingPlayerState.contentId}?season=${pendingPlayerState.season}&episode=${pendingPlayerState.episode}`;
+            } else if (pendingPlayerState.contentId) {
+              // Movie
+              watchUrl = `/watch/${pendingPlayerState.contentId}`;
+            } else {
+              // Fallback to old modal behavior for TV channels
+              setPlayerModal(pendingPlayerState);
+              setPendingPlayerState(null);
+              setShowCinemaModal(false);
+              return;
+            }
+            window.open(watchUrl, '_blank');
             setPendingPlayerState(null);
+            setShowCinemaModal(false);
           }
         }}
       />

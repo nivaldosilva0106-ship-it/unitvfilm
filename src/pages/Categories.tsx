@@ -80,7 +80,10 @@ export default function Categories() {
     const handlePlayContent = (content: Content) => {
         if (content.category === 'series' && content.episodes && content.episodes.length > 0) {
             setSelectedSeries(content);
+        } else if (content.category === 'movie') {
+            window.open(`/watch/${content.id}`, '_blank');
         } else if (content.video_url || content.internal_player_url) {
+            // TV or others
             setPlayerModal({
                 open: true,
                 url: content.video_url,
@@ -328,16 +331,12 @@ export default function Categories() {
                     episodes={selectedSeries.episodes || []}
                     title={selectedSeries.title}
                     trailerUrl={selectedSeries.trailer_url}
-                    onPlayEpisode={(url, episodeTitle) => setPlayerModal({
-                        open: true,
-                        url,
-                        title: selectedSeries.title,
-                        isPremium: selectedSeries.isPremium,
-                        image: selectedSeries.thumbnail_url,
-                        description: selectedSeries.description,
-                        rating: selectedSeries.rating,
-                        episodeTitle
-                    })}
+                    onPlayEpisode={(url, episodeTitle) => {
+                        const foundEp = selectedSeries.episodes?.find(e => e.url === url);
+                        if (foundEp) {
+                            window.open(`/watch/${selectedSeries.id}?season=${foundEp.season}&episode=${foundEp.episode}`, '_blank');
+                        }
+                    }}
                 />
             )}
 
