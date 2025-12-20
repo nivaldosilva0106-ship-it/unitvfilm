@@ -4,7 +4,7 @@ import { getAllContents, incrementDailyUsage } from "@/lib/firebase";
 import { Content } from "@/types/content";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { X, ArrowLeft, Film, Maximize, Minimize, List, Star, ChevronRight, Crown } from "lucide-react";
+import { X, ArrowLeft, Film, Maximize, Minimize, List, Star, ChevronRight, Crown, Play } from "lucide-react";
 import ReactPlayerComponent from 'react-player';
 import { AdManager } from "@/components/AdManager";
 import { useContentProtection } from "@/hooks/useContentProtection";
