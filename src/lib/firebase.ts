@@ -44,19 +44,6 @@ export const addContent = async (content: Omit<Content, 'id'>) => {
   const contentWithId = removeUndefinedDeep({ ...base, id: newContentRef.key }) as Content;
   await set(newContentRef, contentWithId);
 
-  // Trigger Global Notification
-  try {
-    const typeLabel = content.category === 'movie' ? 'Novo Filme' : content.category === 'series' ? 'Nova Série' : 'Novo Canal';
-    await createGlobalNotification({
-      type: 'new_content',
-      title: `${typeLabel} Adicionado`,
-      message: `${content.title} já está disponível!`,
-      contentId: contentWithId.id
-    });
-  } catch (e) {
-    console.error("Error sending notification", e);
-  }
-
   return contentWithId;
 };
 
@@ -330,6 +317,8 @@ export const isUserAdmin = async (userId: string): Promise<boolean> => {
 // Site Settings functions
 export interface SiteSettings {
   loginBackgroundUrl?: string;
+  holidayDecorationsEnabled?: boolean;
+  holidayDecorationsType?: 'christmas' | 'newyear' | 'both';
 }
 
 export const getSiteSettings = async (): Promise<SiteSettings> => {
@@ -756,6 +745,7 @@ export interface GlobalNotification {
   title: string;
   message: string;
   contentId?: string;
+  imageUrl?: string; // Content poster image
   createdAt: string;
 }
 
@@ -833,4 +823,27 @@ export const checkPlanExpiryNotification = async (userId: string) => {
       await update(ref(database, `profiles/${userId}`), { lastExpiryNotification: todayStr });
     }
   }
+};
+
+// 6. Send Content Notification (Manual)
+export const sendContentNotification = async (contentId: string, contentTitle: string, category: string, imageUrl?: string) => {
+  const typeLabel = category === 'movie' ? 'Novo Filme' : category === 'series' ? 'Nova Série' : 'Novo Canal';
+  await createGlobalNotification({
+    type: 'new_content',
+    title: `${typeLabel} Adicionado`,
+    message: `${contentTitle} já está disponível!`,
+    contentId,
+    imageUrl
+  });
+};
+
+// 7. Clear All Notifications for User
+export const clearAllNotifications = async (userId: string) => {
+  // Clear private notifications
+  const privateRef = ref(database, `notifications/${userId}`);
+  await remove(privateRef);
+
+  // Clear read global notifications tracking
+  const readGlobalsRef = ref(database, `profiles/${userId}/readGlobalNotifications`);
+  await remove(readGlobalsRef);
 };

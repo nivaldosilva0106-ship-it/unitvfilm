@@ -6,9 +6,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Search, Save, Plus, X, Lock, Sparkles, Clapperboard } from "lucide-react";
+import { Search, Save, Plus, X, Lock, Sparkles, Clapperboard, Bell } from "lucide-react";
 import { toast } from "sonner";
 import { searchMovies, searchSeries, getImageUrl, getMovieTrailer, getSeriesTrailer, getMovieDetails, getSeriesDetails } from "@/lib/tmdb";
+import { sendContentNotification } from "@/lib/firebase";
 import { PlusCircle, Trash, Download as DownloadIcon } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { Content, Episode } from "@/types/content";
@@ -17,7 +18,7 @@ import type { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 interface AdminContentFormProps {
   editingContent: Partial<Content>;
   setEditingContent: React.Dispatch<React.SetStateAction<Partial<Content>>>;
-  handleSave: () => Promise<void>;
+  handleSave: (sendNotification?: boolean) => Promise<void>;
 }
 
 const normalizeVideoUrl = (value?: string) => {
@@ -33,6 +34,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
   const [tmdbSearchQuery, setTmdbSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<(TMDBMovie | TMDBSeries)[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [sendNotification, setSendNotification] = useState(false);
 
   const isTV = editingContent.category === 'tv';
   const isSeries = editingContent.category === 'series';
@@ -776,7 +778,26 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           </div>
         </div>
 
-        <Button onClick={handleSave} className="w-full bg-primary hover:bg-primary/90 glow-effect-hover">
+        {/* Notification Toggle */}
+        <div className="flex items-center justify-between p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+          <div className="flex items-center gap-2">
+            <div className={`p-2 rounded-full ${sendNotification ? 'bg-blue-500/20 text-blue-500' : 'bg-muted text-muted-foreground'}`}>
+              <Bell className={`w-5 h-5 ${sendNotification ? 'fill-current' : ''}`} />
+            </div>
+            <div className="flex flex-col">
+              <Label htmlFor="sendNotification" className="cursor-pointer font-medium text-base">Enviar Notificação aos Usuários</Label>
+              <span className="text-xs text-muted-foreground">Notificar todos os usuários sobre este conteúdo</span>
+            </div>
+          </div>
+          <Switch
+            id="sendNotification"
+            checked={sendNotification}
+            onCheckedChange={setSendNotification}
+            className="data-[state=checked]:bg-blue-600"
+          />
+        </div>
+
+        <Button onClick={() => handleSave(sendNotification)} className="w-full bg-primary hover:bg-primary/90 glow-effect-hover">
           <Save className="w-4 h-4 mr-2" />
           Salvar Conteúdo
         </Button>

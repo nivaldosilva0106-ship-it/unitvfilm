@@ -33,6 +33,8 @@ export const NotificationItem = ({ notification, isRead, onClick }: Notification
         }
     };
 
+    const hasImage = 'imageUrl' in notification && notification.imageUrl;
+
     return (
         <div
             onClick={handleClick}
@@ -45,12 +47,21 @@ export const NotificationItem = ({ notification, isRead, onClick }: Notification
                 <div className="absolute left-0 top-0 bottom-0 w-1 bg-green-500" />
             )}
 
-            <div className={cn(
-                "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
-                "bg-zinc-900 border border-white/10"
-            )}>
-                {getIcon()}
-            </div>
+            {/* Content Image or Icon */}
+            {hasImage ? (
+                <img
+                    src={notification.imageUrl}
+                    alt=""
+                    className="w-12 h-16 object-cover rounded shrink-0 border border-white/10"
+                />
+            ) : (
+                <div className={cn(
+                    "w-10 h-10 rounded-full flex items-center justify-center shrink-0",
+                    "bg-zinc-900 border border-white/10"
+                )}>
+                    {getIcon()}
+                </div>
+            )}
 
             <div className="flex-1 min-w-0">
                 <h4 className={cn("text-sm font-medium mb-1 truncate", !isRead ? "text-white" : "text-gray-400")}>

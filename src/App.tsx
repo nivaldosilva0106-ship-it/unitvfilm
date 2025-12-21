@@ -32,6 +32,7 @@ import { AdminAvatars } from "@/components/admin/AdminAvatars";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AuthGuard } from "@/components/AuthGuard";
 import { GuestSessionManager } from "@/components/GuestSessionManager";
+import { HolidayDecorations } from "@/components/HolidayDecorations";
 
 const queryClient = new QueryClient();
 
@@ -42,7 +43,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <FocusNavigator />
-
+        <HolidayDecorations />
 
         <BrowserRouter>
           <GlobalContentProtection />

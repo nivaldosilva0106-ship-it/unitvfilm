@@ -3,13 +3,14 @@ import {
     NotificationItem,
     GlobalNotification,
     markNotificationRead,
-    markAllPrivateNotificationsRead
+    markAllPrivateNotificationsRead,
+    clearAllNotifications
 } from "@/lib/firebase";
 import { NotificationItem as ItemComponent } from "./NotificationItem";
 import { getDatabase, ref, onValue, off, get } from "firebase/database";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Check, BellOff } from "lucide-react";
+import { Check, BellOff, Trash2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const NotificationDropdown = ({ onClose }: { onClose: () => void }) => {
@@ -133,16 +134,31 @@ export const NotificationDropdown = ({ onClose }: { onClose: () => void }) => {
         <div className="absolute top-12 right-0 w-80 md:w-96 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 z-50">
             <div className="flex items-center justify-between p-4 border-b border-white/5 bg-zinc-900/50 backdrop-blur-md">
                 <h3 className="font-bold text-white">Notificações</h3>
-                {mergedNotifications.length > 0 && (
-                    <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={handleMarkAllRead}
-                        className="text-xs h-7 text-green-500 hover:text-green-400 hover:bg-green-500/10"
-                    >
-                        <Check className="w-3 h-3 mr-1" /> Marcar lidas
-                    </Button>
-                )}
+                <div className="flex gap-2">
+                    {mergedNotifications.length > 0 && (
+                        <>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleMarkAllRead}
+                                className="text-xs h-7 text-green-500 hover:text-green-400 hover:bg-green-500/10"
+                            >
+                                <Check className="w-3 h-3 mr-1" /> Marcar lidas
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={async () => {
+                                    if (!user) return;
+                                    await clearAllNotifications(user.uid);
+                                }}
+                                className="text-xs h-7 text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                            >
+                                <Trash2 className="w-3 h-3 mr-1" /> Limpar
+                            </Button>
+                        </>
+                    )}
+                </div>
             </div>
 
             <ScrollArea className="h-[400px]">

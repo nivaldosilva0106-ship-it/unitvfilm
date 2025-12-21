@@ -1,13 +1,19 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { addContent, getAllContents, deleteContent, updateContent } from "@/lib/firebase";
+import { addContent, getAllContents, deleteContent, updateContent, sendContentNotification } from "@/lib/firebase";
 import type { Content } from "@/types/content";
 import { AdminContentForm } from "@/components/admin/AdminContentForm";
 import { AdminContentList } from "@/components/admin/AdminContentList";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminContentImporter } from "@/components/admin/AdminContentImporter";
 import { useAuth } from "@/contexts/AuthContext";
+
+interface AdminContentFormProps {
+  editingContent: Partial<Content>;
+  setEditingContent: React.Dispatch<React.SetStateAction<Partial<Content>>>;
+  handleSave: (sendNotification?: boolean) => Promise<void>;
+}
 
 const Admin = () => {
   const navigate = useNavigate();
@@ -56,7 +62,7 @@ const Admin = () => {
     return trimmed;
   };
 
-  const handleSave = async () => {
+  const handleSave = async (sendNotification = false) => {
     if (!editingContent.title || !editingContent.category || !editingContent.thumbnail_url) {
       toast.error("Preencha os campos obrigatórios (Título, Categoria, URL da Imagem)");
       return;
@@ -99,12 +105,32 @@ const Admin = () => {
     if (!contentToSave.tmdb_id) delete contentToSave.tmdb_id;
 
     try {
+      let contentId: string;
+
       if (editingContent.id) {
         await updateContent(editingContent.id, contentToSave);
+        contentId = editingContent.id;
         toast.success("Conteúdo atualizado!");
       } else {
-        await addContent(contentToSave as Omit<Content, 'id'>);
+        const newContent = await addContent(contentToSave as Omit<Content, 'id'>);
+        contentId = newContent.id;
         toast.success("Conteúdo adicionado!");
+      }
+
+      // Send notification if requested
+      if (sendNotification && contentToSave.title && contentToSave.category) {
+        try {
+          await sendContentNotification(
+            contentId,
+            contentToSave.title,
+            contentToSave.category,
+            contentToSave.thumbnail_url
+          );
+          toast.success("Notificação enviada aos usuários!");
+        } catch (error) {
+          console.error("Error sending notification:", error);
+          toast.error("Conteúdo salvo, mas erro ao enviar notificação");
+        }
       }
 
       setEditingContent({
