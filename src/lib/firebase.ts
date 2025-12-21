@@ -3,7 +3,7 @@ import { getDatabase, ref, set, get, remove, update, push, onValue, off } from '
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously as firebaseSignInAnonymously, User } from 'firebase/auth';
 
 import type { Content } from '@/types/content';
-import type { UserProfile, MyListItem, SubscriptionTier, Plan, VerificationCode } from '@/types/user';
+import type { UserProfile, MyListItem, SubscriptionTier, Plan, VerificationCode, UserContentProgress } from '@/types/user';
 import type { Ad } from '@/types/ad';
 import type { Payment } from '@/types/payment';
 
@@ -443,6 +443,47 @@ export const getAllUsers = async (): Promise<UserProfile[]> => {
 
 export const adminUpdateUser = async (userId: string, updates: Partial<UserProfile>) => {
   return updateUserProfile(userId, updates);
+};
+
+// ==========================================
+// Progress Tracking (Continue Watching)
+// ==========================================
+
+export const saveUserProgress = async (progress: Omit<UserContentProgress, 'updatedAt'>) => {
+  const { profileId, contentId, season, episode } = progress;
+  // Unique path for progress: progress/{profileId}/{contentId}_{season || 0}_{episode || 0}
+  const key = `${contentId}_${season || 0}_${episode || 0}`;
+  const progressRef = ref(database, `userProgress/${profileId}/${key}`);
+
+  const fullProgress: UserContentProgress = {
+    ...progress,
+    updatedAt: new Date().toISOString()
+  };
+
+  const cleaned = removeUndefinedDeep(fullProgress);
+  await set(progressRef, cleaned);
+};
+
+export const getUserProgress = async (profileId: string, contentId: string, season?: number, episode?: number): Promise<UserContentProgress | null> => {
+  const key = `${contentId}_${season || 0}_${episode || 0}`;
+  const progressRef = ref(database, `userProgress/${profileId}/${key}`);
+  const snapshot = await get(progressRef);
+
+  if (snapshot.exists()) {
+    return snapshot.val();
+  }
+  return null;
+};
+
+export const getUserAllProgress = async (profileId: string): Promise<UserContentProgress[]> => {
+  const progressRef = ref(database, `userProgress/${profileId}`);
+  const snapshot = await get(progressRef);
+
+  if (snapshot.exists()) {
+    const data = snapshot.val();
+    return Object.values(data);
+  }
+  return [];
 };
 
 export { database, auth };

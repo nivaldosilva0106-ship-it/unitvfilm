@@ -45,7 +45,7 @@ const Profile = () => {
   const [systemAvatars, setSystemAvatars] = useState<Avatar[]>([]);
 
   // Check Limits
-  const maxProfiles = plan?.limits?.maxProfiles || 2;
+  const maxProfiles = accountProfile?.profilesLimitOverride ?? plan?.limits?.maxProfiles ?? 2;
   const canCreateProfile = profiles.length < maxProfiles;
 
   useEffect(() => {
@@ -461,7 +461,7 @@ const Profile = () => {
                   onChange={e => setFormIsKids(e.target.checked)}
                   className="rounded border-gray-600 bg-transparent"
                 />
-                <Label htmlFor="kidstoggle">Perfil Kids (Conteúdo Infantil apenas)</Label>
+                <Label htmlFor="kidstoggle">Perfil Kids (Restringe conteúdos adultos e violentos)</Label>
               </div>
             </div>
           </div>

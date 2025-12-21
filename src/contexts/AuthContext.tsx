@@ -128,9 +128,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     if (limit === -1) return { allowed: true };
 
-    const usage = isSeries
-      ? (profile.credits?.episodesWatched || 0)
-      : (profile.credits?.moviesWatched || 0);
+    const today = new Date().toISOString().split('T')[0];
+    const usage = profile.credits?.date === today
+      ? (isSeries ? (profile.credits?.episodesWatched || 0) : (profile.credits?.moviesWatched || 0))
+      : 0;
 
     if (usage >= limit) {
       return { allowed: false, reason: 'plan_limit' as const };

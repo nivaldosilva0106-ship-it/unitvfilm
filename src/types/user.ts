@@ -19,6 +19,7 @@ export interface UserProfile {
   name?: string;
   photoURL?: string;
   lastExpiryNotification?: string;
+  profilesLimitOverride?: number | null;
 }
 
 export interface Plan {
@@ -74,4 +75,15 @@ export interface Avatar {
   id: string;
   url: string;
   createdAt: string;
+}
+
+export interface UserContentProgress {
+  userId: string;
+  profileId: string;
+  contentId: string;
+  season?: number;
+  episode?: number;
+  lastPositionSeconds: number;
+  durationSeconds?: number;
+  updatedAt: string; // ISO String
 }

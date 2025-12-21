@@ -7,11 +7,12 @@ import { TrailerModal } from "@/components/TrailerModal";
 import { ContentRow } from "@/components/ContentRow";
 
 import { AdManager } from "@/components/AdManager";
-import { Play, Download, ArrowLeft, Calendar, Globe, Star, Film, Heart, Clock, Users } from "lucide-react";
+import { Play, Download, ArrowLeft, Calendar, Globe, Star, Film, Heart, Clock, Users, AlertTriangle } from "lucide-react";
 import { getAllContents, addToMyList, removeFromMyList, getMyList } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { Content } from "@/types/content";
+import { isContentAllowedForProfile } from "@/lib/utils";
 
 import { DownloadModal } from "@/components/DownloadModal";
 import { CinemaWarningModal } from "@/components/CinemaWarningModal";
@@ -21,7 +22,7 @@ const ContentDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user } = useAuth();
+  const { user, currentProfile } = useAuth();
   const [content, setContent] = useState<Content | null>(null);
   const [loading, setLoading] = useState(true);
   const [showEpisodes, setShowEpisodes] = useState(false);
@@ -113,6 +114,13 @@ const ContentDetails = () => {
   };
 
   const requestPlay = (season?: number, episode?: number) => {
+    if (!content) return;
+
+    if (!isContentAllowedForProfile(content.classification, currentProfile?.isKids || false)) {
+      toast.error("Acesso Restrito: Este conteúdo não é permitido para perfis Kids.");
+      return;
+    }
+
     if (content?.is_cinema_mode) {
       setPendingPlayerState({ season, episode });
       setShowCinemaModal(true);
@@ -310,14 +318,21 @@ const ContentDetails = () => {
               )}
 
               <div className="flex flex-wrap gap-3">
-                <Button
-                  onClick={() => handlePlay()}
-                  className="bg-primary hover:bg-primary/90 text-primary-foreground glow-effect-hover"
-                  tabIndex={0}
-                >
-                  <Play className="w-5 h-5 mr-2" />
-                  {isTV ? 'Assistir Canal' : content.category === 'series' ? 'Ver Episódios' : 'Assistir Agora'}
-                </Button>
+                {isContentAllowedForProfile(content.classification, currentProfile?.isKids || false) ? (
+                  <Button
+                    onClick={() => handlePlay()}
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground glow-effect-hover"
+                    tabIndex={0}
+                  >
+                    <Play className="w-5 h-5 mr-2" />
+                    {isTV ? 'Assistir Canal' : content.category === 'series' ? 'Ver Episódios' : 'Assistir Agora'}
+                  </Button>
+                ) : (
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium">
+                    <AlertTriangle className="w-4 h-4" />
+                    Conteúdo Restrito (Perfil Kids)
+                  </div>
+                )}
 
                 <Button
                   onClick={handleToggleMyList}
@@ -489,7 +504,7 @@ const ContentDetails = () => {
               if (season && episode) {
                 url += `?season=${season}&episode=${episode}`;
               }
-              window.open(url, '_blank');
+              navigate(url);
               setPendingPlayerState(null);
             }
           }}
