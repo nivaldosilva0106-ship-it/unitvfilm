@@ -45,7 +45,7 @@ const Index = () => {
   /* New State for Video Slider */
   const [trailerContents, setTrailerContents] = useState<Content[]>([]);
   const [currentTrailerIndex, setCurrentTrailerIndex] = useState(0);
-  const [isMuted, setIsMuted] = useState(true);
+  const [isMuted, setIsMuted] = useState(false);
   const [heroTextVisible, setHeroTextVisible] = useState(true);
   const [showVideo, setShowVideo] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -433,20 +433,23 @@ const Index = () => {
       <AdManager placement="header" className="container mx-auto px-4 pt-20" />
 
       {/* Hero Section */}
-      <div className="relative py-12 flex items-center justify-center overflow-hidden min-h-[500px] w-full">
+      <div className="relative py-12 flex items-center justify-center overflow-hidden min-h-[400px] md:min-h-[500px] lg:min-h-[600px] w-full">
         {/* Hero Background: Image first (15s), then Video */}
         {!playerModal.open && !quickViewContent && !selectedSeries && currentTrailer && currentTrailer.trailer_url && showVideo && getYouTubeId(currentTrailer.trailer_url) ? (
           <div className="absolute inset-0 z-0 pointer-events-none">
-            <div className="relative w-full h-full">
+            <div className="relative w-full h-full overflow-hidden">
               <iframe
                 ref={iframeRef}
                 key={currentTrailer.id}
-                className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2 opacity-60"
-                src={`https://www.youtube.com/embed/${getYouTubeId(currentTrailer.trailer_url)}?autoplay=1&mute=0&controls=0&enablejsapi=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&end=90`}
+                className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2 opacity-60 transition-opacity duration-1000"
+                src={`https://www.youtube.com/embed/${getYouTubeId(currentTrailer.trailer_url)}?autoplay=1&mute=0&controls=0&enablejsapi=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&end=90&loop=1&playlist=${getYouTubeId(currentTrailer.trailer_url)}`}
                 title="Hero Video"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                style={{ pointerEvents: 'auto' }}
+                style={{ border: 'none' }}
               />
+              {/* Invisible overlay to block clicks */}
+              <div className="absolute inset-0 z-10 bg-transparent pointer-events-auto cursor-default" />
+              <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-transparent to-background" />
             </div>
           </div>
         ) : (

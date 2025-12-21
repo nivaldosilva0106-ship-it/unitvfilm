@@ -384,7 +384,7 @@ const Player = () => {
                         <Button
                             variant="ghost"
                             size="icon"
-                            onClick={() => window.close()}
+                            onClick={() => navigate('/')}
                             className="w-12 h-12 rounded-full bg-black/50 text-white hover:bg-red-600 backdrop-blur-md border border-white/20"
                         >
                             <X className="w-6 h-6" />

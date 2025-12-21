@@ -839,11 +839,28 @@ export const sendContentNotification = async (contentId: string, contentTitle: s
 
 // 7. Clear All Notifications for User
 export const clearAllNotifications = async (userId: string) => {
-  // Clear private notifications
-  const privateRef = ref(database, `notifications/${userId}`);
-  await remove(privateRef);
+  const db = getDatabase();
 
-  // Clear read global notifications tracking
-  const readGlobalsRef = ref(database, `profiles/${userId}/readGlobalNotifications`);
-  await remove(readGlobalsRef);
+  // First, get all global notifications to mark them as read
+  const globalRef = ref(db, 'globalNotifications');
+  const globalSnapshot = await get(globalRef);
+
+  if (globalSnapshot.exists()) {
+    const globals = globalSnapshot.val();
+    const globalIds = Object.keys(globals);
+
+    // Mark all global notifications as read for this user
+    const updates: any = {};
+    globalIds.forEach(id => {
+      updates[`profiles/${userId}/readGlobalNotifications/${id}`] = true;
+    });
+
+    if (Object.keys(updates).length > 0) {
+      await update(ref(db), updates);
+    }
+  }
+
+  // Clear private notifications
+  const privateRef = ref(db, `notifications/${userId}`);
+  await remove(privateRef);
 };

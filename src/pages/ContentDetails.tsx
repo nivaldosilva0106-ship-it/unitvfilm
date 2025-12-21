@@ -4,6 +4,7 @@ import { Header } from "@/components/Header";
 import { Button } from "@/components/ui/button";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
 import { TrailerModal } from "@/components/TrailerModal";
+import { ContentRow } from "@/components/ContentRow";
 
 import { AdManager } from "@/components/AdManager";
 import { Play, Download, ArrowLeft, Calendar, Globe, Star, Film, Heart, Clock, Users } from "lucide-react";
@@ -416,6 +417,19 @@ const ContentDetails = () => {
               </div>
 
               <CommentsSection contentId={content.id} />
+
+              {/* Related Content / "Assista Também" */}
+              {relatedContents.length > 0 && (
+                <div className="mt-12 border-t border-white/10 pt-8">
+                  <ContentRow
+                    title="Assista Também"
+                    contents={relatedContents}
+                    onPlayContent={(c) => navigate(`/watch/${c.id}`)}
+                    onInfoContent={(c) => navigate(`/content/${c.id}`)}
+                    onDetailsContent={(c) => navigate(`/content/${c.id}`)}
+                  />
+                </div>
+              )}
             </div>
           </div>
 
