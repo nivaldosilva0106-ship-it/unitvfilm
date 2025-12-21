@@ -81,7 +81,7 @@ export default function Categories() {
         if (content.category === 'series' && content.episodes && content.episodes.length > 0) {
             setSelectedSeries(content);
         } else if (content.category === 'movie') {
-            window.open(`/watch/${content.id}`, '_blank');
+            navigate(`/watch/${content.id}`);
         } else if (content.video_url || content.internal_player_url) {
             // TV or others
             setPlayerModal({
@@ -334,7 +334,7 @@ export default function Categories() {
                     onPlayEpisode={(url, episodeTitle) => {
                         const foundEp = selectedSeries.episodes?.find(e => e.url === url);
                         if (foundEp) {
-                            window.open(`/watch/${selectedSeries.id}?season=${foundEp.season}&episode=${foundEp.episode}`, '_blank');
+                            navigate(`/watch/${selectedSeries.id}?season=${foundEp.season}&episode=${foundEp.episode}`);
                         }
                     }}
                 />

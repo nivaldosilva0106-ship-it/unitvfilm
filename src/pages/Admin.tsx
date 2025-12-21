@@ -6,6 +6,7 @@ import type { Content } from "@/types/content";
 import { AdminContentForm } from "@/components/admin/AdminContentForm";
 import { AdminContentList } from "@/components/admin/AdminContentList";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminContentImporter } from "@/components/admin/AdminContentImporter";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Admin = () => {
@@ -153,11 +154,18 @@ const Admin = () => {
   return (
     <AdminLayout title="Gerenciar Conteúdos">
       <div className="grid lg:grid-cols-2 gap-6">
-        <AdminContentForm
-          editingContent={editingContent}
-          setEditingContent={setEditingContent}
-          handleSave={handleSave}
-        />
+        <div className="space-y-6">
+          <AdminContentImporter
+            onImport={(importedData) => {
+              setEditingContent(prev => ({ ...prev, ...importedData }));
+            }}
+          />
+          <AdminContentForm
+            editingContent={editingContent}
+            setEditingContent={setEditingContent}
+            handleSave={handleSave}
+          />
+        </div>
 
         <AdminContentList
           allContents={allContents}

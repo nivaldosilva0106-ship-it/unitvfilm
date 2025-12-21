@@ -345,7 +345,7 @@ const Index = () => {
         setPendingPlayerState({ contentId: content.id });
         setShowCinemaModal(true);
       } else {
-        window.open(`/watch/${content.id}`, '_blank');
+        navigate(`/watch/${content.id}`);
       }
       return;
     }
@@ -716,7 +716,7 @@ const Index = () => {
                 });
                 setShowCinemaModal(true);
               } else {
-                window.open(watchUrl, '_blank');
+                navigate(watchUrl);
               }
             }
           }}
@@ -817,7 +817,7 @@ const Index = () => {
               setShowCinemaModal(false);
               return;
             }
-            window.open(watchUrl, '_blank');
+            navigate(watchUrl);
             setPendingPlayerState(null);
             setShowCinemaModal(false);
           }

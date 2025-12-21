@@ -97,6 +97,9 @@ export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDe
                 onTrailer={content.trailer_url ? () => onTrailerContent?.(content) : undefined}
                 onDownload={content.download_url ? () => onDownloadContent?.(content) : undefined}
                 isPremium={content.isPremium}
+                isNew={content.is_new}
+                newSince={content.new_since}
+                category={content.category}
                 classification={content.classification}
               />
             </div>

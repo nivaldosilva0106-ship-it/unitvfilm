@@ -84,7 +84,7 @@ const MyList = () => {
       // For now, redirect to details page where they can pick an episode.
       navigate(`/content/${item.content.id}`);
     } else if (item.content.category === 'movie') {
-      window.open(`/watch/${item.content.id}`, '_blank');
+      navigate(`/watch/${item.content.id}`);
     } else if (item.content.video_url) {
       // TV Channels or others - keep modal
       setPlayerModal({ open: true, url: item.content.video_url, urls: item.content.video_urls, title: item.content.title, isPremium: item.content.isPremium, image: item.content.thumbnail_url, description: item.content.description, rating: item.content.rating });
@@ -184,7 +184,7 @@ const MyList = () => {
         suggestions={suggestions}
         onPlayContent={(c) => {
           if (c.category === 'movie') {
-            window.open(`/watch/${c.id}`, '_blank');
+            navigate(`/watch/${c.id}`);
           } else if (c.video_url || c.internal_player_url) {
             setPlayerModal({
               open: true,
@@ -213,7 +213,7 @@ const MyList = () => {
           if (content.category === 'series') {
             navigate(`/content/${content.id}`);
           } else if (content.category === 'movie') {
-            window.open(`/watch/${content.id}`, '_blank');
+            navigate(`/watch/${content.id}`);
           } else if (content.video_url) {
             setPlayerModal({
               open: true,

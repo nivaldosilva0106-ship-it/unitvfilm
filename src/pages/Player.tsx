@@ -34,8 +34,9 @@ const Player = () => {
     const [showWatchingCard, setShowWatchingCard] = useState(false);
     const [cardProgress, setCardProgress] = useState(100);
     const [showIntro, setShowIntro] = useState(true);
-    const [suggestions, setSuggestions] = useState<Content[]>([]); // Suggestions state
-    const [showSuggestionsCard, setShowSuggestionsCard] = useState(false); // Suggestions visibility
+    const [suggestions, setSuggestions] = useState<Content[]>([]);
+    const [showSuggestionsCard, setShowSuggestionsCard] = useState(false);
+    const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false); // Sidebar toggle state
 
     const watchingCardTimerRef = useRef<NodeJS.Timeout | null>(null);
     const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -435,26 +436,29 @@ const Player = () => {
 
                 {/* SUGGESTIONS SIDEBAR (Left Center) */}
                 {showSuggestionsCard && suggestions.length > 0 && (
-                    <div className="absolute top-1/2 -translate-y-1/2 left-4 z-50 flex items-center group">
+                    <div className="absolute top-1/2 -translate-y-1/2 left-4 z-50 flex items-center">
                         {/* Trigger (Collapsed) */}
-                        <div className="relative z-20 flex flex-col items-center gap-2 bg-black/60 backdrop-blur-md p-3 rounded-full border border-white/20 cursor-pointer shadow-xl transition-all duration-300 group-hover:bg-primary/90 group-hover:scale-110">
-                            <div className="flex flex-col gap-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                                <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse delay-75" />
-                                <div className="w-1.5 h-1.5 rounded-full bg-white animate-pulse delay-150" />
-                            </div>
-                            <span className="writing-vertical-rl text-[10px] font-bold text-white uppercase tracking-widest opacity-70 group-hover:opacity-100 transition-opacity rotate-180 py-2">
-                                Sugestões
+                        <div
+                            onClick={() => setIsSuggestionsOpen(!isSuggestionsOpen)}
+                            className={`relative z-20 flex flex-row items-center gap-2 bg-black/60 backdrop-blur-md px-2 py-3 rounded-full border border-white/20 cursor-pointer shadow-xl transition-all duration-300 hover:bg-primary/90 hover:scale-110 ${isSuggestionsOpen ? 'bg-primary border-primary' : ''}`}
+                        >
+                            <span className="writing-vertical-rl text-[10px] font-bold text-white uppercase tracking-widest opacity-90 transition-opacity">
+                                {isSuggestionsOpen ? 'Fechar' : 'Sugestões'}
                             </span>
+                            <div className="flex flex-col gap-0.5">
+                                <div className="w-0.5 h-0.5 rounded-full bg-white animate-pulse" />
+                                <div className="w-0.5 h-0.5 rounded-full bg-white animate-pulse delay-75" />
+                                <div className="w-0.5 h-0.5 rounded-full bg-white animate-pulse delay-150" />
+                            </div>
                         </div>
 
                         {/* Suggestions Panel (Expands to Right) */}
-                        <div className="absolute left-full ml-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 opacity-0 -translate-x-10 pointer-events-none group-hover:opacity-100 group-hover:translate-x-0 group-hover:pointer-events-auto transition-all duration-500 ease-out bg-black/80 backdrop-blur-xl p-4 rounded-2xl border border-white/10 shadow-2xl min-w-[180px]">
-                            <p className="text-white text-xs font-bold uppercase tracking-wider mb-2 border-b border-white/10 pb-2">Recomendados para você</p>
+                        <div className={`absolute left-full ml-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 transition-all duration-500 ease-out bg-black/80 backdrop-blur-xl p-4 rounded-2xl border border-white/10 shadow-2xl min-w-[180px] ${isSuggestionsOpen ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 -translate-x-10 pointer-events-none'}`}>
+                            <p className="text-white text-xs font-bold uppercase tracking-wider mb-2 border-b border-white/10 pb-2">Recomendados</p>
                             {suggestions.map((suggestion) => (
                                 <div
                                     key={suggestion.id}
-                                    onClick={() => window.open(`/watch/${suggestion.id}`, '_blank')}
+                                    onClick={() => navigate(`/watch/${suggestion.id}`)}
                                     className="relative flex items-center gap-3 p-2 rounded-lg hover:bg-white/10 cursor-pointer transition-colors group/item"
                                 >
                                     <img

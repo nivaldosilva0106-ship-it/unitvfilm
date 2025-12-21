@@ -120,7 +120,7 @@ const ContentDetails = () => {
       if (season && episode) {
         url += `?season=${season}&episode=${episode}`;
       }
-      window.open(url, '_blank');
+      navigate(url);
     }
   };
 
