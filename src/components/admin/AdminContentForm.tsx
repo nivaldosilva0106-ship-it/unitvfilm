@@ -8,7 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Search, Save, Plus, X, Lock, Sparkles, Clapperboard, Bell } from "lucide-react";
 import { toast } from "sonner";
-import { searchMovies, searchSeries, getImageUrl, getMovieTrailer, getSeriesTrailer, getMovieDetails, getSeriesDetails } from "@/lib/tmdb";
+import { searchMovies, searchSeries, getImageUrl, getMovieTrailer, getSeriesTrailer, getMovieDetails, getSeriesDetails, getSeasonDetails } from "@/lib/tmdb";
 import { sendContentNotification } from "@/lib/firebase";
 import { PlusCircle, Trash, Download as DownloadIcon } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -35,6 +35,8 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
   const [searchResults, setSearchResults] = useState<(TMDBMovie | TMDBSeries)[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [sendNotification, setSendNotification] = useState(false);
+  const [comandoPlayUrl, setComandoPlayUrl] = useState("");
+  const [isImportingComando, setIsImportingComando] = useState(false);
 
   const isTV = editingContent.category === 'tv';
   const isSeries = editingContent.category === 'series';
@@ -61,20 +63,28 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
   };
 
   const fillFromTMDB = async (item: TMDBMovie | TMDBSeries) => {
-    const isMovie = 'title' in item;
+    console.log("Iniciando preenchimento TMDB para:", item);
+    const isTVCategory = editingContent.category === 'tv' || editingContent.category === 'series';
+    const isActuallySeries = isTVCategory || !('title' in item);
 
     let trailerUrl = '';
     let details: any = {};
 
     try {
-      if (isMovie) {
+      if (!isActuallySeries) {
+        console.log("Detectado como Filme. Buscando ID:", item.id);
         trailerUrl = await getMovieTrailer(item.id);
         details = await getMovieDetails(item.id);
       } else {
+        console.log("Detectado como Série/TV. Buscando ID:", item.id);
         trailerUrl = await getSeriesTrailer(item.id);
         details = await getSeriesDetails(item.id);
       }
-    } catch (e) { console.error(e); }
+    } catch (e) {
+      console.error("Erro ao buscar detalhes fundamentais:", e);
+    }
+
+    console.log("Detalhes extraídos:", details);
 
     const cast = details?.credits?.cast?.slice(0, 5).map((c: any) => c.name).join(', ') || '';
     const castMembers = details?.credits?.cast?.slice(0, 10).map((c: any) => ({
@@ -86,16 +96,45 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     const duration = details?.runtime ? `${Math.floor(details.runtime / 60)}h ${details.runtime % 60}m` : '';
     const genres = details?.genres?.map((g: any) => g.name) || [];
     const backdrop = details?.backdrop_path ? getImageUrl(details.backdrop_path) : getImageUrl(item.backdrop_path);
-    const year = isMovie ? (item.release_date ? new Date(item.release_date).getFullYear() : undefined) : (item.first_air_date ? new Date(item.first_air_date).getFullYear() : undefined);
+    const releaseDate = !isActuallySeries ? (item as TMDBMovie).release_date : (item as TMDBSeries).first_air_date;
+    const year = releaseDate ? new Date(releaseDate).getFullYear() : undefined;
+
+    let fetchedEpisodes: Episode[] = [];
+    if (isActuallySeries && details?.seasons) {
+      toast.info("Buscando episódios das temporadas...");
+      try {
+        const seasonPromises = details.seasons
+          .filter((s: any) => s.season_number > 0)
+          .map((s: any) => getSeasonDetails(item.id, s.season_number));
+
+        const seasonsData = await Promise.all(seasonPromises);
+
+        seasonsData.forEach((season: any) => {
+          if (season && season.episodes) {
+            const eps: Episode[] = season.episodes.map((ep: any) => ({
+              season: ep.season_number,
+              episode: ep.episode_number,
+              title: ep.name || 'Sem título',
+              url: "",
+              download_url: ""
+            }));
+            fetchedEpisodes = [...fetchedEpisodes, ...eps];
+          }
+        });
+      } catch (error) {
+        console.error("Erro ao buscar episódios:", error);
+        toast.error("Erro ao carregar episódios de todas as temporadas");
+      }
+    }
 
     setEditingContent(prev => ({
       ...prev,
-      title: isMovie ? item.title : item.name,
+      title: !isActuallySeries ? (item as TMDBMovie).title : (item as TMDBSeries).name,
       description: item.overview,
       thumbnail_url: getImageUrl(item.poster_path),
       trailer_url: trailerUrl,
       language: item.original_language,
-      release_date: isMovie ? item.release_date : item.first_air_date,
+      release_date: releaseDate,
       rating: item.vote_average,
       tmdb_id: item.id,
       // New Fields
@@ -104,10 +143,125 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       duration,
       year,
       genre: genres,
-      backdrop_url: backdrop
+      backdrop_url: backdrop,
+      episodes: fetchedEpisodes.length > 0 ? fetchedEpisodes : prev.episodes
     }));
     setSearchResults([]);
-    toast.success("Dados preenchidos com sucesso!" + (trailerUrl ? " (Trailer encontrado)" : ""));
+    toast.success("Dados preenchidos com sucesso!" +
+      (trailerUrl ? " (Trailer encontrado)" : "") +
+      (fetchedEpisodes.length > 0 ? ` (${fetchedEpisodes.length} episódios adicionados)` : ""));
+  };
+
+  const handleComandoPlayImport = async () => {
+    if (!comandoPlayUrl.trim()) {
+      toast.error("Por favor, insira a URL do Comando Play");
+      return;
+    }
+
+    let url;
+    try {
+      url = new URL(comandoPlayUrl);
+      if (!url.hostname.includes('comandoplay.com')) {
+        toast.error("A URL deve ser do site comandoplay.com");
+        return;
+      }
+    } catch (e) {
+      toast.error("URL inválida");
+      return;
+    }
+
+    setIsImportingComando(true);
+    const loadId = toast.loading("Buscando dados no Comando Play...");
+
+    try {
+      const proxyPath = `/comandoplay${url.pathname}${url.search}`;
+      const response = await fetch(proxyPath);
+
+      if (!response.ok) throw new Error("Falha ao acessar o site");
+
+      const html = await response.text();
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(html, 'text/html');
+
+      const episodes: Episode[] = [];
+      const episodeElements = doc.querySelectorAll('.episodios li, .les-content li');
+
+      episodeElements.forEach((el) => {
+        const titleEl = el.querySelector('.ep-t, .title');
+        const numEl = el.querySelector('.ep-n, .num');
+
+        let epTitle = titleEl?.textContent?.trim() || "";
+        let epNumText = numEl?.textContent?.trim() || "";
+
+        if (epTitle) {
+          const match = epTitle.match(/Temporada\s*(\d+)\s*Episódio\s*(\d+)\s*:\s*(.*)/i);
+          if (match) {
+            episodes.push({
+              season: parseInt(match[1]),
+              episode: parseInt(match[2]),
+              title: match[3].trim(),
+              url: "",
+              download_url: ""
+            });
+          } else {
+            const sMatch = epNumText.match(/(\d+)x(\d+)/i) || epTitle.match(/(\d+)x(\d+)/i);
+            if (sMatch) {
+              episodes.push({
+                season: parseInt(sMatch[1]),
+                episode: parseInt(sMatch[2]),
+                title: epTitle.includes(':') ? epTitle.split(':')[1].trim() : epTitle,
+                url: "",
+                download_url: ""
+              });
+            } else {
+              episodes.push({
+                season: 1,
+                episode: episodes.length + 1,
+                title: epTitle,
+                url: "",
+                download_url: ""
+              });
+            }
+          }
+        }
+      });
+
+      if (episodes.length === 0) {
+        const scriptTags = Array.from(doc.querySelectorAll('script'));
+        scriptTags.forEach(s => {
+          if (s.innerHTML.includes('episodes')) {
+            const matches = s.innerHTML.matchAll(/"title":"Temporada\s*(\d+)\s*Episódio\s*(\d+)\s*:\s*([^"]+)"/gi);
+            for (const match of matches) {
+              episodes.push({
+                season: parseInt(match[1]),
+                episode: parseInt(match[2]),
+                title: match[3].trim(),
+                url: "",
+                download_url: ""
+              });
+            }
+          }
+        });
+      }
+
+      if (episodes.length > 0) {
+        const uniqueEpisodes = episodes.filter((v, i, a) => a.findIndex(t => (t.season === v.season && t.episode === v.episode)) === i);
+
+        setEditingContent(prev => ({
+          ...prev,
+          episodes: uniqueEpisodes
+        }));
+        toast.success(`Sucesso! ${uniqueEpisodes.length} episódios importados.`);
+      } else {
+        toast.error("Não foram encontrados episódios no link. Verifique se a página contém a lista de episódios.");
+      }
+    } catch (error) {
+      console.error("Erro na importação ComandoPlay:", error);
+      toast.error("Erro ao importar. Tente novamente mais tarde.");
+    } finally {
+      setIsImportingComando(false);
+      toast.dismiss(loadId);
+    }
   };
 
   // --- Episode Handlers ---
@@ -290,6 +444,33 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {isSeries && (
+          <div className="space-y-2 p-4 bg-primary/5 border border-primary/20 rounded-lg">
+            <Label className="flex items-center gap-2 text-primary font-semibold">
+              <Sparkles className="w-4 h-4" /> Importar Episódios do ComandoPlay
+            </Label>
+            <div className="flex gap-2">
+              <Input
+                placeholder="Cole o link da série (ex: https://comandoplay.com/the-boys/)"
+                value={comandoPlayUrl}
+                onChange={(e) => setComandoPlayUrl(e.target.value)}
+                className="bg-input border-border"
+              />
+              <Button
+                onClick={handleComandoPlayImport}
+                disabled={isImportingComando}
+                variant="outline"
+                className="border-primary text-primary hover:bg-primary/10 whitespace-nowrap"
+              >
+                {isImportingComando ? "Importando..." : "Importar"}
+              </Button>
+            </div>
+            <p className="text-[10px] text-muted-foreground italic">
+              Use esta ferramenta se o TMDB não tiver os nomes dos episódios em português.
+            </p>
           </div>
         )}
 

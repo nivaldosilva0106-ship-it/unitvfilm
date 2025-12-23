@@ -4,7 +4,7 @@ import { getAllContents, incrementDailyUsage, saveUserProgress, getUserProgress,
 import { Content } from "@/types/content";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { X, ArrowLeft, Film, Maximize, Minimize, List, Star, ChevronRight, Crown, Play } from "lucide-react";
+import { X, ArrowLeft, Film, Maximize, Minimize, List, Star, ChevronRight, ChevronDown, Crown, Play } from "lucide-react";
 import ReactPlayerComponent from 'react-player';
 import { AdManager } from "@/components/AdManager";
 import { useContentProtection } from "@/hooks/useContentProtection";
@@ -45,7 +45,9 @@ const Player = () => {
     const [suggestions, setSuggestions] = useState<Content[]>([]);
     const [showSuggestionsCard, setShowSuggestionsCard] = useState(false);
     const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false); // Sidebar toggle state
+    const [suggestionCountdown, setSuggestionCountdown] = useState(10);
     const [continueWatchingList, setContinueWatchingList] = useState<any[]>([]); // Progress + Content data
+    const [isContinueWatchingOpen, setIsContinueWatchingOpen] = useState(false);
 
     const watchingCardTimerRef = useRef<NodeJS.Timeout | null>(null);
     const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -102,10 +104,12 @@ const Player = () => {
             setShowIntro(false);
         }, 2500);
 
-        // Suggestions Card Timer (5s after intro/load)
+        // Suggestions Card Timer (15s after intro/load)
         const suggestionsTimer = setTimeout(() => {
             setShowSuggestionsCard(true);
-        }, 7500);
+            setIsSuggestionsOpen(true);
+            setSuggestionCountdown(10);
+        }, 15000);
 
         return () => {
             clearTimeout(introTimer);
@@ -185,7 +189,7 @@ const Player = () => {
                         })
                         .filter(Boolean)
                         .sort((a: any, b: any) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-                        .slice(0, 10);
+                        .slice(0, 6);
 
                     setContinueWatchingList(list);
                 });
@@ -265,6 +269,25 @@ const Player = () => {
 
         return finalUrl;
     }, [currentSource, isResuming, lastPositionSeconds]);
+
+    // Suggestion Countdown Logic
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
+        if (showSuggestionsCard && isSuggestionsOpen && suggestionCountdown > 0) {
+            timer = setInterval(() => {
+                setSuggestionCountdown(prev => {
+                    if (prev <= 1) {
+                        setIsSuggestionsOpen(false);
+                        setShowSuggestionsCard(false);
+                        clearInterval(timer);
+                        return 0;
+                    }
+                    return prev - 1;
+                });
+            }, 1000);
+        }
+        return () => { if (timer) clearInterval(timer); };
+    }, [showSuggestionsCard, isSuggestionsOpen, suggestionCountdown]);
 
     // 4. Watching Card Effect
     useEffect(() => {
@@ -528,9 +551,9 @@ const Player = () => {
                         </div>
                     </div>
 
-                    {/* NEXT EPISODE BUTTON - CENTER RIGHT */}
+                    {/* NEXT EPISODE BUTTON - FAR RIGHT */}
                     {nextEpisode && (
-                        <div className={`absolute top-1/2 right-4 -translate-y-1/2 z-50 transition-opacity duration-300 ${isFullscreen ? 'opacity-0 group-hover:opacity-100' : ''}`}>
+                        <div className={`absolute top-1/2 right-2 -translate-y-1/2 z-50 transition-opacity duration-300 flex flex-col items-center gap-2 ${isFullscreen ? 'opacity-0 group-hover:opacity-100' : ''}`}>
                             <Button
                                 onClick={handleNextEpisode}
                                 variant="ghost"
@@ -538,10 +561,10 @@ const Player = () => {
                                 className="w-16 h-16 rounded-full bg-black/60 hover:bg-primary text-white backdrop-blur-md border border-white/20 shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center"
                                 title={`Próximo: ${nextEpisode.title}`}
                             >
-                                <ChevronRight className="w-10 h-10 ml-1" />
+                                <ChevronRight className="w-8 h-8 ml-0.5" />
                             </Button>
-                            <div className="mt-2 text-center bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <span className="text-xs text-white uppercase font-bold tracking-wider">Próximo Episódio</span>
+                            <div className="bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <span className="text-[9px] text-white uppercase font-bold tracking-wider">Próximo Episódio</span>
                             </div>
                         </div>
                     )}
@@ -589,8 +612,14 @@ const Player = () => {
                             </div>
 
                             {/* Suggestions Panel (Expands to Right) */}
-                            <div className={`absolute left-full ml-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 transition-all duration-500 ease-out bg-black/80 backdrop-blur-xl p-4 rounded-2xl border border-white/10 shadow-2xl min-w-[180px] ${isSuggestionsOpen ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 -translate-x-10 pointer-events-none'}`}>
-                                <p className="text-white text-xs font-bold uppercase tracking-wider mb-2 border-b border-white/10 pb-2">Recomendados</p>
+                            <div className={`absolute left-full ml-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 transition-all duration-500 ease-out bg-black/80 backdrop-blur-xl p-4 rounded-2xl border border-white/10 shadow-2xl min-w-[200px] ${isSuggestionsOpen ? 'opacity-100 translate-x-0 scale-100 pointer-events-auto' : 'opacity-0 -translate-x-10 scale-95 pointer-events-none'}`}>
+                                <div className="flex items-center justify-between mb-2 border-b border-white/10 pb-2">
+                                    <p className="text-white text-[10px] font-bold uppercase tracking-wider">Recomendados</p>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                                        <span className="text-primary text-[10px] font-bold">{suggestionCountdown}s</span>
+                                    </div>
+                                </div>
                                 {suggestions.map((suggestion) => (
                                     <div
                                         key={suggestion.id}
@@ -643,67 +672,93 @@ const Player = () => {
                             sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
                         />
                     )}
+
+                    {/* CONTINUE WATCHING TOGGLE ARROW */}
+                    {continueWatchingList.length > 0 && (
+                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 transition-opacity duration-300 pointer-events-auto">
+                            <Button
+                                onClick={() => {
+                                    setIsContinueWatchingOpen(!isContinueWatchingOpen);
+                                    if (!isContinueWatchingOpen) {
+                                        setTimeout(() => {
+                                            window.scrollTo({
+                                                top: window.innerHeight,
+                                                behavior: 'smooth'
+                                            });
+                                        }, 100);
+                                    }
+                                }}
+                                variant="ghost"
+                                size="icon"
+                                className={`w-12 h-12 rounded-full bg-black/50 text-white border border-white/20 backdrop-blur-md transition-all duration-300 hover:bg-primary hover:scale-110 ${isContinueWatchingOpen ? 'rotate-180' : ''}`}
+                            >
+                                <ChevronDown className="w-8 h-8" />
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </div>
 
             {/* Continue Watching List Section */}
             {continueWatchingList.length > 0 && (
-                <div className="px-6 md:px-12 py-12 pb-24 bg-gradient-to-b from-black to-[#0a0a0a]">
-                    <div className="flex items-center gap-3 mb-8">
-                        <div className="w-1 h-8 bg-primary rounded-full shadow-[0_0_10px_rgba(220,38,38,0.5)]"></div>
-                        <h2 className="text-2xl font-bold text-white tracking-tight">Continuar Assistindo</h2>
-                    </div>
+                <div className={`transition-all duration-700 ease-in-out overflow-hidden ${isContinueWatchingOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                    <div className="px-6 md:px-12 py-12 pb-24 bg-gradient-to-b from-black to-[#0a0a0a]">
+                        <div className="flex items-center gap-3 mb-8">
+                            <div className="w-1 h-8 bg-primary rounded-full shadow-[0_0_10px_rgba(220,38,38,0.5)]"></div>
+                            <h2 className="text-2xl font-bold text-white tracking-tight">Continuar Assistindo</h2>
+                        </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-                        {continueWatchingList.map((item, idx) => (
-                            <div
-                                key={idx}
-                                onClick={() => {
-                                    const path = `/watch/${item.contentId}${item.season ? `?season=${item.season}&episode=${item.episode}` : ''}`;
-                                    navigate(path);
-                                    window.scrollTo(0, 0);
-                                }}
-                                className="group/card relative cursor-pointer"
-                            >
-                                <div className="relative aspect-[2/3] rounded-xl overflow-hidden border border-white/5 shadow-xl transition-all duration-300 group-hover/card:scale-105 group-hover/card:border-primary/50 group-hover/card:shadow-primary/20">
-                                    <img
-                                        src={item.content.thumbnail_url}
-                                        className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-110"
-                                        alt={item.content.title}
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-60"></div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
+                            {continueWatchingList.map((item, idx) => (
+                                <div
+                                    key={idx}
+                                    onClick={() => {
+                                        const path = `/watch/${item.contentId}${item.season ? `?season=${item.season}&episode=${item.episode}` : ''}`;
+                                        navigate(path);
+                                        window.scrollTo(0, 0);
+                                    }}
+                                    className="group/card relative cursor-pointer"
+                                >
+                                    <div className="relative aspect-[2/3] rounded-xl overflow-hidden border border-white/5 shadow-xl transition-all duration-300 group-hover/card:scale-105 group-hover/card:border-primary/50 group-hover/card:shadow-primary/20">
+                                        <img
+                                            src={item.content.thumbnail_url}
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-110"
+                                            alt={item.content.title}
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-60"></div>
 
-                                    {/* Play Overlay */}
-                                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity duration-300">
-                                        <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-2xl transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
-                                            <Play className="w-6 h-6 text-white fill-white ml-0.5" />
+                                        {/* Play Overlay */}
+                                        <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover/card:opacity-100 transition-opacity duration-300">
+                                            <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center shadow-2xl transform scale-75 group-hover/card:scale-100 transition-transform duration-300">
+                                                <Play className="w-6 h-6 text-white fill-white ml-0.5" />
+                                            </div>
+                                        </div>
+
+                                        {/* Progress Bar */}
+                                        <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-black/60">
+                                            <div
+                                                className="h-full bg-primary shadow-[0_0_8px_rgba(220,38,38,0.8)]"
+                                                style={{ width: `${item.percent}%` }}
+                                            ></div>
                                         </div>
                                     </div>
 
-                                    {/* Progress Bar */}
-                                    <div className="absolute bottom-0 left-0 right-0 h-1.5 bg-black/60">
-                                        <div
-                                            className="h-full bg-primary shadow-[0_0_8px_rgba(220,38,38,0.8)]"
-                                            style={{ width: `${item.percent}%` }}
-                                        ></div>
+                                    <div className="mt-3">
+                                        <h3 className="text-sm font-bold text-white line-clamp-1 group-hover/card:text-primary transition-colors">
+                                            {item.content.title}
+                                        </h3>
+                                        {item.season && (
+                                            <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">
+                                                T{item.season} E{item.episode}
+                                            </p>
+                                        )}
+                                        <p className="text-[10px] text-primary/80 font-bold mt-1">
+                                            {item.percent}% assistido
+                                        </p>
                                     </div>
                                 </div>
-
-                                <div className="mt-3">
-                                    <h3 className="text-sm font-bold text-white line-clamp-1 group-hover/card:text-primary transition-colors">
-                                        {item.content.title}
-                                    </h3>
-                                    {item.season && (
-                                        <p className="text-[10px] text-gray-400 uppercase tracking-wider font-semibold">
-                                            T{item.season} E{item.episode}
-                                        </p>
-                                    )}
-                                    <p className="text-[10px] text-primary/80 font-bold mt-1">
-                                        {item.percent}% assistido
-                                    </p>
-                                </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}

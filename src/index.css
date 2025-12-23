@@ -1,3 +1,4 @@
+/* Tailwind CSS at-rules. These may be flagged as warnings by some IDEs, but they are required for Tailwind to function. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

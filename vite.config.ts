@@ -8,6 +8,13 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    proxy: {
+      '/comandoplay': {
+        target: 'https://comandoplay.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/comandoplay/, ''),
+      },
+    },
   },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {

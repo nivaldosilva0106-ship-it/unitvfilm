@@ -138,3 +138,33 @@ export const getSeriesDetails = async (id: number) => {
     return null;
   }
 };
+
+export const getSeasonDetails = async (seriesId: number, seasonNumber: number) => {
+  try {
+    const response = await tmdbApi.get(`/tv/${seriesId}/season/${seasonNumber}`, {
+      params: { language: 'pt-BR' },
+    });
+
+    // Se não houver episódios, tentamos em inglês
+    if (!response.data || !response.data.episodes || response.data.episodes.length === 0) {
+      console.log(`Dados PT-BR ausentes para S${seasonNumber}, tentando EN-US...`);
+      const engResponse = await tmdbApi.get(`/tv/${seriesId}/season/${seasonNumber}`, {
+        params: { language: 'en-US' },
+      });
+      return engResponse.data;
+    }
+
+    return response.data;
+  } catch (e) {
+    console.warn(`Erro ao buscar temporada em PT-BR para ID ${seriesId}:`, e);
+    try {
+      const engResponse = await tmdbApi.get(`/tv/${seriesId}/season/${seasonNumber}`, {
+        params: { language: 'en-US' },
+      });
+      return engResponse.data;
+    } catch (err) {
+      console.error("Falha fatal ao buscar temporada em ambos idiomas:", err);
+      return null;
+    }
+  }
+};
