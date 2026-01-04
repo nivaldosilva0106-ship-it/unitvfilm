@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { VideoPlayer } from "@/components/VideoPlayer";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -36,6 +37,8 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
   const [sendNotification, setSendNotification] = useState(false);
   const [comandoPlayUrl, setComandoPlayUrl] = useState("");
   const [isImportingComando, setIsImportingComando] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState("");
 
   const isTV = editingContent.category === 'tv';
   const isSeries = editingContent.category === 'series';
@@ -649,17 +652,59 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
               Cole URLs dos players. Se colar um iframe, extrairemos automaticamente o src. Adicione múltiplas fontes para permitir que usuários escolham entre diferentes players.
             </p>
 
-            <div className="pt-2 border-t border-border mt-4">
+            <div className="pt-2 border-t border-border mt-4 space-y-3">
               <Label>URL do Player Interno (m3u8, mp4, ts)</Label>
-              <Input
-                value={editingContent.internal_player_url || ''}
-                onChange={(e) => setEditingContent(prev => ({ ...prev, internal_player_url: e.target.value }))}
-                className="bg-input border-border mt-1"
-                placeholder="https://... (URL direta para arquivo m3u8, mp4, etc)"
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                URL direta do arquivo de vídeo para usar o player nativo do próprio site (suporta HLS/m3u8).
+              <div className="flex gap-2">
+                <Input
+                  value={editingContent.internal_player_url || ''}
+                  onChange={(e) => setEditingContent(prev => ({ ...prev, internal_player_url: e.target.value }))}
+                  className="bg-input border-border flex-1"
+                  placeholder="https://... (URL direta para arquivo m3u8, mp4, etc)"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    if (editingContent.internal_player_url) {
+                      setPreviewUrl(editingContent.internal_player_url);
+                      setShowPreview(true);
+                    } else {
+                      toast.error("Insira uma URL para visualizar");
+                    }
+                  }}
+                  className="border-primary text-primary hover:bg-primary/10"
+                >
+                  Testar
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                URL direta do arquivo de vídeo para usar o player nativo do próprio site (suporta HLS/m3u8, Google Drive, mp4, ts).
               </p>
+              
+              {showPreview && previewUrl && (
+                <div className="relative rounded-lg overflow-hidden border border-border bg-black">
+                  <div className="flex items-center justify-between bg-secondary/50 px-3 py-2">
+                    <span className="text-xs text-muted-foreground truncate flex-1">{previewUrl}</span>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowPreview(false)}
+                      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                  <div className="aspect-video">
+                    <VideoPlayer
+                      url={previewUrl}
+                      title="Preview do Player"
+                      poster={editingContent.thumbnail_url}
+                      autoPlay={false}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
