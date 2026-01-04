@@ -120,19 +120,19 @@ const AdminPayments = () => {
             return (
               <Card key={payment.id} className="border-border">
                 <CardHeader className="pb-3">
-                  <div className="flex items-start justify-between">
-                    <div>
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        {payment.userEmail}
-                        <Badge className="bg-primary text-primary-foreground text-xs">
+                  <div className="flex flex-col sm:flex-row items-start justify-between gap-2">
+                    <div className="w-full sm:w-auto">
+                      <CardTitle className="flex items-center gap-2 text-base flex-wrap">
+                        <span className="truncate max-w-[200px]">{payment.userEmail}</span>
+                        <Badge className="bg-primary text-primary-foreground text-xs whitespace-nowrap">
                           {tierInfo.name}
                         </Badge>
                       </CardTitle>
-                      <CardDescription className="text-xs">
+                      <CardDescription className="text-xs mt-1">
                         {new Date(payment.createdAt).toLocaleString('pt-BR')}
                       </CardDescription>
                     </div>
-                    <Badge variant="outline">
+                    <Badge variant="outline" className="self-start sm:self-center bg-background/50">
                       {payment.amount.toLocaleString('pt-AO')} Kzs
                     </Badge>
                   </div>

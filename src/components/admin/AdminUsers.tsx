@@ -112,7 +112,7 @@ export const AdminUsers = () => {
     }, [users]);
 
     return (
-        <div className="p-6 md:p-10 space-y-8 animate-in fade-in duration-500">
+        <div className="p-4 sm:p-6 md:p-10 space-y-6 sm:space-y-8 animate-in fade-in duration-500">
             <div className="flex items-center gap-4 border-b border-border pb-6">
                 <div className="p-3 bg-primary/10 rounded-xl">
                     <Users className="w-8 h-8 text-primary" />
@@ -124,7 +124,7 @@ export const AdminUsers = () => {
             </div>
 
             {/* Statistics Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="bg-white/5 border border-white/10 p-5 rounded-2xl hover:bg-white/[0.08] transition-colors">
                     <div className="text-muted-foreground text-sm font-medium mb-1">Usuários Ativos</div>
                     <div className="text-3xl font-bold text-white">{stats.total}</div>
@@ -187,11 +187,11 @@ export const AdminUsers = () => {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-white/5 border-b border-white/10 text-muted-foreground text-xs uppercase tracking-widest font-semibold">
-                                <th className="px-6 py-4">Usuário</th>
-                                <th className="px-6 py-4">Status</th>
-                                <th className="px-6 py-4">Criado em</th>
-                                <th className="px-6 py-4">ID</th>
-                                <th className="px-6 py-4 text-right">Ações</th>
+                                <th className="px-4 sm:px-6 py-4">Usuário</th>
+                                <th className="px-4 sm:px-6 py-4">Status</th>
+                                <th className="px-6 py-4 hidden md:table-cell">Criado em</th>
+                                <th className="px-6 py-4 hidden lg:table-cell">ID</th>
+                                <th className="px-4 sm:px-6 py-4 text-right">Ações</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
@@ -213,18 +213,18 @@ export const AdminUsers = () => {
                             ) : filteredUsers.map((user) => (
                                 <>
                                     <tr key={user.id} className="hover:bg-white/[0.02] transition-colors group">
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 sm:px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="p-2.5 bg-zinc-800 rounded-lg group-hover:bg-zinc-700 transition-colors">
+                                                <div className="p-2.5 bg-zinc-800 rounded-lg group-hover:bg-zinc-700 transition-colors hidden sm:block">
                                                     <Mail className="w-4 h-4 text-muted-foreground" />
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-medium text-white">{user.email}</span>
+                                                    <span className="text-sm font-medium text-white break-all sm:break-normal">{user.email}</span>
                                                     <span className="text-[10px] text-muted-foreground">{user.name || 'Sem nome'}</span>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-4 sm:px-6 py-4">
                                             {user.isPremium ? (
                                                 <div className="flex items-center gap-1.5 text-primary">
                                                     <Crown className="w-4 h-4" />
@@ -237,7 +237,7 @@ export const AdminUsers = () => {
                                                 </div>
                                             )}
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-4 hidden md:table-cell">
                                             <div className="flex items-center gap-2 text-muted-foreground">
                                                 <Calendar className="w-3.5 h-3.5" />
                                                 <span className="text-sm">
@@ -245,12 +245,12 @@ export const AdminUsers = () => {
                                                 </span>
                                             </div>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-4 hidden lg:table-cell">
                                             <code className="text-[11px] bg-black/40 px-2 py-1 rounded border border-white/5 text-muted-foreground">
                                                 {user.id}
                                             </code>
                                         </td>
-                                        <td className="px-6 py-4 text-right">
+                                        <td className="px-4 sm:px-6 py-4 text-right">
                                             <div className="flex justify-end gap-2">
                                                 <Button
                                                     variant="ghost"

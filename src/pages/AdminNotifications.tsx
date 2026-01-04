@@ -83,9 +83,9 @@ export default function AdminNotifications() {
         <AdminLayout title="Gerenciar Notificações">
             <div className="space-y-6 animate-in fade-in duration-500">
                 <Tabs defaultValue="send" className="w-full">
-                    <TabsList className="bg-zinc-900 border-zinc-800">
-                        <TabsTrigger value="send">Enviar Notificação</TabsTrigger>
-                        <TabsTrigger value="history">Histórico Global</TabsTrigger>
+                    <TabsList className="bg-zinc-900 border-zinc-800 w-full flex-wrap h-auto p-1">
+                        <TabsTrigger value="send" className="flex-1">Enviar Notificação</TabsTrigger>
+                        <TabsTrigger value="history" className="flex-1">Histórico Global</TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="send" className="mt-6">
@@ -99,18 +99,18 @@ export default function AdminNotifications() {
                             <CardContent className="space-y-4">
                                 <div className="space-y-2">
                                     <Label>Destinatário</Label>
-                                    <div className="flex gap-4">
+                                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
                                         <Button
                                             variant={targetType === 'all' ? 'default' : 'outline'}
                                             onClick={() => setTargetType('all')}
-                                            className="flex-1"
+                                            className="flex-1 justify-start sm:justify-center"
                                         >
                                             <Globe className="w-4 h-4 mr-2" /> Todos (Global)
                                         </Button>
                                         <Button
                                             variant={targetType === 'user' ? 'default' : 'outline'}
                                             onClick={() => setTargetType('user')}
-                                            className="flex-1"
+                                            className="flex-1 justify-start sm:justify-center"
                                         >
                                             <Users className="w-4 h-4 mr-2" /> Usuário Específico
                                         </Button>

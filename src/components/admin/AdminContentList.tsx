@@ -44,7 +44,7 @@ export const AdminContentList = ({
         />
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4">
         {filteredContents.map((content) => (
           <div key={content.id} className="group relative aspect-[2/3] rounded-lg overflow-hidden bg-secondary shadow-sm ring-1 ring-white/10">
             <img

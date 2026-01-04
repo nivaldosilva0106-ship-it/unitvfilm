@@ -1,4 +1,4 @@
-import { Film, Search, User, LogOut, List, Settings, Home, Download, ChevronDown, Clapperboard, Tv } from "lucide-react";
+import { Film, Search, User, LogOut, List, Settings, Home, Download, ChevronDown, Clapperboard, Tv, Menu } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -13,6 +13,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "./ui/sheet";
 import { Input } from "./ui/input";
 import { toast } from "sonner";
 import type { Content } from "@/types/content";
@@ -165,42 +172,106 @@ export const Header = () => {
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-background/95 to-transparent backdrop-blur-sm border-b border-border/40">
-      <div className="container mx-auto px-4 sm:px-8 py-4">
-        <div className="flex items-center justify-between gap-4">
-          {/* Logo */}
-          <div
-            className="flex items-center gap-2 cursor-pointer group flex-shrink-0"
-            onClick={() => navigate("/")}
-          >
-            <div className="bg-primary p-2 rounded-lg glow-effect group-hover:scale-110 transition-transform">
-              <Film className="w-6 h-6 text-primary-foreground" />
+      <div className="container mx-auto px-4 sm:px-8 py-3 sm:py-4">
+        <div className="flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-4">
+            {/* Mobile Menu Trigger */}
+            <div className="md:hidden">
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-gray-300">
+                    <Menu className="h-6 w-6" />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="bg-background border-white/10 text-white w-[280px]">
+                  <SheetHeader className="text-left border-b border-white/10 pb-4 mb-4">
+                    <SheetTitle className="text-white flex items-center gap-2">
+                      <Film className="w-5 h-5 text-primary" />
+                      UniTvFilm
+                    </SheetTitle>
+                  </SheetHeader>
+                  <nav className="flex flex-col gap-4">
+                    <button
+                      onClick={() => { navigate("/"); }}
+                      className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
+                    >
+                      <Home className="w-5 h-5" />
+                      Início
+                    </button>
+                    <button
+                      onClick={() => { navigate("/my-list"); }}
+                      className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
+                    >
+                      <List className="w-5 h-5" />
+                      Minha Lista
+                    </button>
+                    <button
+                      onClick={() => { navigate("/categories"); }}
+                      className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
+                    >
+                      <Film className="w-5 h-5" />
+                      Categorias
+                    </button>
+
+                    <div className="pt-4 border-t border-white/10 mt-2">
+                      <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 px-2">Créditos Diários</p>
+                      {user && plan && (
+                        <div className="space-y-3 px-2">
+                          {plan.limits.moviesPerDay !== -1 && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-400">Filmes</span>
+                              <span className="text-white font-bold">{plan.limits.moviesPerDay - (profile?.credits?.moviesWatched || 0)} / {plan.limits.moviesPerDay}</span>
+                            </div>
+                          )}
+                          {plan.limits.episodesPerDay !== -1 && (
+                            <div className="flex items-center justify-between text-sm">
+                              <span className="text-gray-400">Séries</span>
+                              <span className="text-white font-bold">{plan.limits.episodesPerDay - (profile?.credits?.episodesWatched || 0)} / {plan.limits.episodesPerDay}</span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </nav>
+                </SheetContent>
+              </Sheet>
             </div>
-            <h1 className="text-xl sm:text-2xl font-bold text-foreground">
-              Uni<span className="text-primary">Tv</span>Film
-            </h1>
+
+            {/* Logo */}
+            <div
+              className="flex items-center gap-2 cursor-pointer group flex-shrink-0"
+              onClick={() => navigate("/")}
+            >
+              <div className="bg-primary p-1.5 sm:p-2 rounded-lg glow-effect group-hover:scale-110 transition-transform">
+                <Film className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground" />
+              </div>
+              <h1 className="text-lg sm:text-2xl font-bold text-white tracking-tight">
+                Uni<span className="text-primary">Tv</span><span className="hidden xs:inline">Film</span>
+              </h1>
+            </div>
+
+            {/* Desktop Navigation */}
+            <nav className="hidden md:flex items-center gap-6 ml-4">
+              <button onClick={() => navigate("/")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+                Início
+              </button>
+              <button onClick={() => navigate("/my-list")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+                Minha Lista
+              </button>
+              <button onClick={() => navigate("/categories")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+                Categorias
+              </button>
+            </nav>
           </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6 ml-8">
-            <button onClick={() => navigate("/")} className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white transition-colors">
-              Início
-            </button>
-            <button onClick={() => navigate("/my-list")} className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white transition-colors">
-              Minha Lista
-            </button>
-            <button onClick={() => navigate("/categories")} className="flex items-center gap-2 text-sm font-medium text-gray-300 hover:text-white transition-colors">
-              Categorias
-            </button>
-          </nav>
-
-          <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
-            {/* PWA Install Icon */}
+          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+            {/* PWA Install Icon - Only on Desktop or supported mobile browsers */}
             {installButtonVisible && (
               <Button
-                variant="outline"
+                variant="ghost"
                 size="icon"
                 onClick={handleInstallPWA}
-                className="border-primary/50 hover:border-primary hover:bg-primary/10"
+                className="text-gray-300 hover:text-white hidden sm:flex"
                 title="Instalar aplicativo"
               >
                 <Download className="h-5 w-5" />
@@ -218,10 +289,10 @@ export const Header = () => {
                   <Search className="h-5 w-5" />
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80 bg-[#141414] border-white/10 text-white">
+              <DropdownMenuContent align="end" className="w-[calc(100vw-2rem)] sm:w-80 bg-[#141414] border-white/10 text-white mt-2">
                 <div className="p-2">
                   <Input
-                    placeholder="Pesquisar conteúdo..."
+                    placeholder="Pesquisar..."
                     value={searchQuery}
                     onChange={(e) => handleSearch(e.target.value)}
                     className="mb-2 bg-[#333] border-none text-white focus-visible:ring-1 focus-visible:ring-white/20"
@@ -248,8 +319,8 @@ export const Header = () => {
                             }`}
                         >
                           <img src={content.thumbnail_url} className="w-8 h-12 object-cover rounded bg-zinc-800" />
-                          <div>
-                            <p className="font-medium text-sm line-clamp-1">{content.title}</p>
+                          <div className="min-w-0">
+                            <p className="font-medium text-sm truncate">{content.title}</p>
                             <p className={`text-xs ${focusedResultIndex === index
                               ? 'text-gray-300'
                               : 'text-gray-500'
@@ -259,24 +330,18 @@ export const Header = () => {
                       ))}
                     </div>
                   )}
-                  {searchQuery.length >= 2 && searchResults.length === 0 && !isSearching && (
-                    <p className="text-sm text-gray-500 text-center py-2">
-                      Nenhum resultado encontrado
-                    </p>
-                  )}
                 </div>
               </DropdownMenuContent>
             </DropdownMenu>
 
             {/* Notification Bell */}
-            <div className="mr-2 hidden md:block">
+            <div className="hidden sm:block">
               <NotificationBell />
             </div>
 
-            {/* Credits Display for Limited Plans */}
+            {/* Credits Display - Desktop Only */}
             {user && plan && (plan.limits.moviesPerDay !== -1 || plan.limits.episodesPerDay !== -1) && (
-              <div className="hidden md:flex items-center gap-3 mr-4">
-                {/* Movies Pill */}
+              <div className="hidden lg:flex items-center gap-3 mr-2">
                 {plan.limits.moviesPerDay !== -1 && (
                   <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-md transition-all ${(profile?.credits?.moviesWatched || 0) >= plan.limits.moviesPerDay
                     ? 'bg-red-500/10 border-red-500/50 text-red-500'
@@ -286,13 +351,12 @@ export const Header = () => {
                     <div className="flex flex-col leading-none">
                       <span className="text-[10px] uppercase font-bold text-gray-400">Filmes</span>
                       <span className="text-xs font-bold text-white">
-                        {plan.limits.moviesPerDay - (profile?.credits?.moviesWatched || 0)} <span className="text-gray-500 text-[10px] font-normal">/ {plan.limits.moviesPerDay}</span>
+                        {plan.limits.moviesPerDay - (profile?.credits?.moviesWatched || 0)}
                       </span>
                     </div>
                   </div>
                 )}
 
-                {/* Episodes Pill */}
                 {plan.limits.episodesPerDay !== -1 && (
                   <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border backdrop-blur-md transition-all ${(profile?.credits?.episodesWatched || 0) >= plan.limits.episodesPerDay
                     ? 'bg-red-500/10 border-red-500/50 text-red-500'
@@ -302,7 +366,7 @@ export const Header = () => {
                     <div className="flex flex-col leading-none">
                       <span className="text-[10px] uppercase font-bold text-gray-400">Séries</span>
                       <span className="text-xs font-bold text-white">
-                        {plan.limits.episodesPerDay - (profile?.credits?.episodesWatched || 0)} <span className="text-gray-500 text-[10px] font-normal">/ {plan.limits.episodesPerDay}</span>
+                        {plan.limits.episodesPerDay - (profile?.credits?.episodesWatched || 0)}
                       </span>
                     </div>
                   </div>
@@ -314,7 +378,7 @@ export const Header = () => {
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <div className="flex items-center gap-2 cursor-pointer group ml-2">
+                  <div className="flex items-center gap-1 sm:gap-2 cursor-pointer group">
                     <div className="w-8 h-8 rounded overflow-hidden border border-transparent group-hover:border-white transition-all">
                       <img
                         src={useAuth().currentProfile?.avatarUrl || "https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png"}
@@ -322,7 +386,7 @@ export const Header = () => {
                         className="w-full h-full object-cover"
                       />
                     </div>
-                    <ChevronDown className="w-4 h-4 text-white group-hover:rotate-180 transition-transform duration-200" />
+                    <ChevronDown className="w-4 h-4 text-white hidden sm:block group-hover:rotate-180 transition-transform duration-200" />
                   </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56 bg-black/95 border-white/10 text-white backdrop-blur-xl">
@@ -362,7 +426,8 @@ export const Header = () => {
             ) : (
               <Button
                 onClick={() => navigate("/login")}
-                className="bg-primary hover:bg-primary/90 text-primary-foreground ml-2"
+                size="sm"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 Entrar
               </Button>

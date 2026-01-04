@@ -441,7 +441,7 @@ const Index = () => {
               <iframe
                 ref={iframeRef}
                 key={currentTrailer.id}
-                className="absolute top-1/2 left-1/2 w-[150%] h-[150%] -translate-x-1/2 -translate-y-1/2 opacity-60 transition-opacity duration-1000"
+                className="absolute top-1/2 left-1/2 w-[250%] h-[250%] md:w-[150%] md:h-[150%] -translate-x-1/2 -translate-y-1/2 opacity-60 transition-opacity duration-1000"
                 src={`https://www.youtube.com/embed/${getYouTubeId(currentTrailer.trailer_url)}?autoplay=1&mute=0&controls=0&enablejsapi=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&end=90&loop=1&playlist=${getYouTubeId(currentTrailer.trailer_url)}`}
                 title="Hero Video"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -514,7 +514,7 @@ const Index = () => {
           </div>
 
           {/* Category Navigation */}
-          <div className="w-full flex justify-center mb-10">
+          <div className="w-full flex justify-center mb-6 sm:mb-10 overflow-x-auto scrollbar-hide">
             <CategoryNavigation
               categories={ALL_CATEGORIES}
               selectedCategory={selectedCategory}
@@ -525,17 +525,17 @@ const Index = () => {
           {/* INFO CARD - MEDIUM SIZE */}
           {activeContent && (
             <div className="w-full max-w-3xl mx-auto z-50 relative animate-in fade-in zoom-in duration-700">
-              <div className="bg-black/70 backdrop-blur-xl border border-white/10 rounded-xl p-4 md:p-5 flex flex-col md:flex-row items-start gap-5 shadow-2xl hover:bg-black/80 transition-all">
-                <div className="relative group shrink-0 mx-auto md:mx-0">
+              <div className="bg-black/70 backdrop-blur-xl border border-white/10 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5 shadow-2xl hover:bg-black/80 transition-all">
+                <div className="relative group shrink-0 w-32 sm:w-auto">
                   <img
                     src={activeContent.thumbnail_url}
                     alt={activeContent.title}
-                    className="w-24 h-36 md:w-28 md:h-42 object-cover rounded-lg shadow-xl group-hover:scale-105 transition-transform duration-300 ring-1 ring-white/10"
+                    className="w-full sm:w-28 sm:h-42 object-cover rounded-lg shadow-xl group-hover:scale-105 transition-transform duration-300 ring-1 ring-white/10"
                   />
                 </div>
-                <div className="flex-1 min-w-0 flex flex-col justify-between h-full w-full text-left">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2 flex-wrap">
+                <div className="flex-1 min-w-0 flex flex-col justify-between h-full w-full text-center sm:text-left">
+                  <div className="mb-4 sm:mb-0">
+                    <div className="flex items-center justify-center sm:justify-start gap-2 mb-2 flex-wrap">
                       <span className="bg-primary/90 text-white px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shadow-sm">
                         Assista agora
                       </span>
@@ -549,19 +549,19 @@ const Index = () => {
                       </span>
                     </div>
 
-                    <h3 className="text-xl md:text-2xl font-bold text-white mb-2 truncate leading-tight">
+                    <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 truncate leading-tight">
                       {activeContent.title}
                     </h3>
-                    <p className="text-sm text-gray-300 line-clamp-2 mb-4 leading-relaxed">
+                    <p className="text-sm text-gray-300 line-clamp-2 sm:line-clamp-2 md:line-clamp-3 mb-4 leading-relaxed">
                       {activeContent.description || "Sem descrição disponível."}
                     </p>
                   </div>
 
                   {/* Action Buttons */}
-                  <div className="flex flex-wrap gap-2.5 mt-auto">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 mt-auto">
                     <Button
                       onClick={() => handlePlayContent(activeContent)}
-                      className="bg-primary hover:bg-primary/90 text-white font-semibold h-9 px-5 rounded-md transition-all hover:scale-105 shadow-lg shadow-primary/20 text-sm"
+                      className="bg-primary hover:bg-primary/90 text-white font-semibold h-9 px-5 rounded-md transition-all hover:scale-105 shadow-lg shadow-primary/20 text-sm flex-1 sm:flex-none"
                     >
                       <Play className="w-4 h-4 mr-1.5 fill-current" /> Assistir
                     </Button>
@@ -569,7 +569,7 @@ const Index = () => {
                     <Button
                       variant="outline"
                       onClick={() => handleInfoContent(activeContent)}
-                      className="bg-transparent border-white/20 text-white hover:bg-white/10 hover:border-white/40 h-9 px-4 rounded-md backdrop-blur-sm transition-all text-sm"
+                      className="bg-transparent border-white/20 text-white hover:bg-white/10 hover:border-white/40 h-9 px-4 rounded-md backdrop-blur-sm transition-all text-sm flex-1 sm:flex-none"
                     >
                       <Info className="w-4 h-4 mr-1.5" /> Detalhes
                     </Button>
@@ -577,7 +577,7 @@ const Index = () => {
                     <Button
                       variant="ghost"
                       onClick={() => handleToggleMyList(activeContent)}
-                      className="text-white hover:bg-white/10 h-9 w-9 rounded-full border border-white/10"
+                      className="text-white hover:bg-white/10 h-9 w-9 rounded-full border border-white/10 flex-shrink-0"
                       title={isInList ? "Remover da lista" : "Adicionar à lista"}
                     >
                       {isInList ? (

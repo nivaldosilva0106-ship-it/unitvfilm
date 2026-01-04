@@ -457,7 +457,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                 placeholder="Cole o link da série (ex: https://comandoplay.com/the-boys/)"
                 value={comandoPlayUrl}
                 onChange={(e) => setComandoPlayUrl(e.target.value)}
-                className="bg-input border-border"
+                className="bg-input border-border min-w-0"
               />
               <Button
                 onClick={handleComandoPlayImport}
@@ -493,7 +493,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
         </div>
 
         {/* New Metadata Fields */}
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label>Elenco</Label>
             <Input
@@ -530,7 +530,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
               className="bg-input border-border"
             />
           </div>
-          <div className="col-span-2">
+          <div className="col-span-1 sm:col-span-2">
             <Label>URL Imagem de Fundo (Backdrop)</Label>
             <Input
               value={editingContent.backdrop_url || ''}
@@ -666,7 +666,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                     <div className="grid grid-cols-2 gap-2">
                       <Input
                         type="number"
-                        placeholder="Temporada"
+                        placeholder="Temp."
                         value={episode.season || ''}
                         onChange={(e) => updateEpisode(index, 'season', parseInt(e.target.value) || 1)}
                         className="bg-input border-border text-sm"
@@ -674,7 +674,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                       />
                       <Input
                         type="number"
-                        placeholder="Episódio"
+                        placeholder="Ep."
                         value={episode.episode || ''}
                         onChange={(e) => updateEpisode(index, 'episode', parseInt(e.target.value) || 1)}
                         className="bg-input border-border text-sm"
@@ -799,145 +799,155 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                             updateEpisode(index, 'downloads', newLinks as any);
                           }}
                         >
-                          <PlusCircle className="w-3 h-3 mr-1" /> Add Link
+                          Adicionar Link
                         </Button>
                       </div>
                     </div>
+
+                    <div className="flex justify-end pt-2">
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => removeEpisode(index)}
+                        className="h-8"
+                      >
+                        <Trash className="w-4 h-4 mr-2" /> Remover Episódio
+                      </Button>
+                    </div>
                   </div>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="destructive"
-                    onClick={() => removeEpisode(index)}
-                  >
-                    <X className="w-4 h-4" />
-                  </Button>
                 </div>
               ))}
-              {(!editingContent.episodes || editingContent.episodes.length === 0) && (
-                <p className="text-sm text-muted-foreground text-center py-4">
-                  Nenhum episódio adicionado. Clique em "Adicionar Episódio" para começar.
-                </p>
-              )}
-            </div>
-          </div>
+              {
+                (!editingContent.episodes || editingContent.episodes.length === 0) && (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    Nenhum episódio adicionado. Clique em "Adicionar Episódio" para começar.
+                  </p>
+                )
+              }
+            </div >
+          </div >
         )}
 
-        {!isTV && (
-          <div>
-            <Label>URL do Trailer</Label>
-            <Input
-              value={editingContent.trailer_url || ''}
-              onChange={(e) => setEditingContent(prev => ({ ...prev, trailer_url: e.target.value }))}
-              className="bg-input border-border"
-              placeholder="https://youtube.com/... (preenchido automaticamente)"
-            />
-          </div>
-        )}
-
-        {isMovie && (
-          <div className="space-y-4 p-4 border border-white/10 rounded-lg bg-black/20">
-            <h3 className="font-semibold flex items-center gap-2">
-              <DownloadIcon className="w-4 h-4" /> Configuração de Downloads
-            </h3>
-
-            <div className="space-y-3">
-              <Label>Modo de Download</Label>
-              <RadioGroup
-                value={editingContent.download_mode || 'direct'}
-                onValueChange={(v) => setEditingContent(prev => ({ ...prev, download_mode: v as any }))}
-                className="flex gap-4"
-              >
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="direct" id="d-direct" />
-                  <Label htmlFor="d-direct">Direto (MP4/MKV)</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="torrent" id="d-torrent" />
-                  <Label htmlFor="d-torrent">Torrent</Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <RadioGroupItem value="mixed" id="d-mixed" />
-                  <Label htmlFor="d-mixed">Misto</Label>
-                </div>
-              </RadioGroup>
-
-              {editingContent.download_mode === 'mixed' && (
-                <p className="text-xs text-yellow-500">
-                  No modo Misto, você pode definir o tipo (Direto/Torrent) para cada link individualmente.
-                </p>
-              )}
+        {
+          !isTV && (
+            <div>
+              <Label>URL do Trailer</Label>
+              <Input
+                value={editingContent.trailer_url || ''}
+                onChange={(e) => setEditingContent(prev => ({ ...prev, trailer_url: e.target.value }))}
+                className="bg-input border-border"
+                placeholder="https://youtube.com/... (preenchido automaticamente)"
+              />
             </div>
+          )
+        }
 
-            <div className="space-y-2">
-              <Label>Links de Download</Label>
-              {(editingContent.downloads || []).map((link, idx) => (
-                <div key={idx} className="flex gap-2 items-start">
-                  <Input
-                    value={link.label}
-                    onChange={e => {
-                      const newLinks = [...(editingContent.downloads || [])];
-                      newLinks[idx].label = e.target.value;
-                      setEditingContent(prev => ({ ...prev, downloads: newLinks }));
-                    }}
-                    placeholder="Título (ex: 4K Dual Audio)"
-                    className="w-1/3 bg-input border-border"
-                  />
-                  <Input
-                    value={link.url}
-                    onChange={e => {
-                      const newLinks = [...(editingContent.downloads || [])];
-                      newLinks[idx].url = e.target.value;
-                      setEditingContent(prev => ({ ...prev, downloads: newLinks }));
-                    }}
-                    placeholder="URL"
-                    className="flex-1 bg-input border-border"
-                  />
-                  {editingContent.download_mode === 'mixed' && (
-                    <Select
-                      value={link.type || 'direct'}
-                      onValueChange={v => {
+        {
+          isMovie && (
+            <div className="space-y-4 p-4 border border-white/10 rounded-lg bg-black/20">
+              <h3 className="font-semibold flex items-center gap-2">
+                <DownloadIcon className="w-4 h-4" /> Configuração de Downloads
+              </h3>
+
+              <div className="space-y-3">
+                <Label>Modo de Download</Label>
+                <RadioGroup
+                  value={editingContent.download_mode || 'direct'}
+                  onValueChange={(v) => setEditingContent(prev => ({ ...prev, download_mode: v as any }))}
+                  className="flex gap-4"
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="direct" id="d-direct" />
+                    <Label htmlFor="d-direct">Direto (MP4/MKV)</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="torrent" id="d-torrent" />
+                    <Label htmlFor="d-torrent">Torrent</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="mixed" id="d-mixed" />
+                    <Label htmlFor="d-mixed">Misto</Label>
+                  </div>
+                </RadioGroup>
+
+                {editingContent.download_mode === 'mixed' && (
+                  <p className="text-xs text-yellow-500">
+                    No modo Misto, você pode definir o tipo (Direto/Torrent) para cada link individualmente.
+                  </p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label>Links de Download</Label>
+                {(editingContent.downloads || []).map((link, idx) => (
+                  <div key={idx} className="flex gap-2 items-start">
+                    <Input
+                      value={link.label}
+                      onChange={e => {
                         const newLinks = [...(editingContent.downloads || [])];
-                        newLinks[idx].type = v as any;
+                        newLinks[idx].label = e.target.value;
+                        setEditingContent(prev => ({ ...prev, downloads: newLinks }));
+                      }}
+                      placeholder="Título (ex: 4K Dual Audio)"
+                      className="w-1/3 bg-input border-border"
+                    />
+                    <Input
+                      value={link.url}
+                      onChange={e => {
+                        const newLinks = [...(editingContent.downloads || [])];
+                        newLinks[idx].url = e.target.value;
+                        setEditingContent(prev => ({ ...prev, downloads: newLinks }));
+                      }}
+                      placeholder="URL"
+                      className="flex-1 bg-input border-border"
+                    />
+                    {editingContent.download_mode === 'mixed' && (
+                      <Select
+                        value={link.type || 'direct'}
+                        onValueChange={v => {
+                          const newLinks = [...(editingContent.downloads || [])];
+                          newLinks[idx].type = v as any;
+                          setEditingContent(prev => ({ ...prev, downloads: newLinks }));
+                        }}
+                      >
+                        <SelectTrigger className="w-[100px] bg-input border-border">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="direct">Direto</SelectItem>
+                          <SelectItem value="torrent">Torrent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                    <Button
+                      variant="destructive"
+                      size="icon"
+                      onClick={() => {
+                        const newLinks = (editingContent.downloads || []).filter((_, i) => i !== idx);
                         setEditingContent(prev => ({ ...prev, downloads: newLinks }));
                       }}
                     >
-                      <SelectTrigger className="w-[100px] bg-input border-border">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="direct">Direto</SelectItem>
-                        <SelectItem value="torrent">Torrent</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
-                  <Button
-                    variant="destructive"
-                    size="icon"
-                    onClick={() => {
-                      const newLinks = (editingContent.downloads || []).filter((_, i) => i !== idx);
-                      setEditingContent(prev => ({ ...prev, downloads: newLinks }));
-                    }}
-                  >
-                    <Trash className="w-4 h-4" />
-                  </Button>
-                </div>
-              ))}
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const newLinkType: 'direct' | 'torrent' = editingContent.download_mode === 'torrent' ? 'torrent' : 'direct';
-                  const newLinks = [...(editingContent.downloads || []), { label: '', url: '', type: newLinkType }];
-                  setEditingContent(prev => ({ ...prev, downloads: newLinks }));
-                }}
-              >
-                <PlusCircle className="w-4 h-4 mr-2" /> Adicionar Link
-              </Button>
+                      <Trash className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const newLinkType: 'direct' | 'torrent' = editingContent.download_mode === 'torrent' ? 'torrent' : 'direct';
+                    const newLinks = [...(editingContent.downloads || []), { label: '', url: '', type: newLinkType }];
+                    setEditingContent(prev => ({ ...prev, downloads: newLinks }));
+                  }}
+                >
+                  <PlusCircle className="w-4 h-4 mr-2" /> Adicionar Link
+                </Button>
+              </div>
             </div>
-          </div>
-        )}
+          )
+        }
 
         <div className="grid grid-cols-2 gap-4">
           <div>
@@ -982,7 +992,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           <Save className="w-4 h-4 mr-2" />
           Salvar Conteúdo
         </Button>
-      </div>
+      </div >
     </Card >
   );
 };

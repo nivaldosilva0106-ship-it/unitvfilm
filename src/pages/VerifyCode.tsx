@@ -57,12 +57,12 @@ export default function VerifyCode() {
 
     return (
         <div className="min-h-screen bg-[#141414] text-white flex items-center justify-center p-4">
-            <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-lg p-8 shadow-xl">
+            <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-xl p-6 sm:p-8 shadow-xl">
                 <div className="text-center mb-8">
                     <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
                         <CheckCircle className="w-8 h-8 text-primary" />
                     </div>
-                    <h1 className="text-2xl font-bold mb-2">Validar Assinatura</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold mb-2">Validar Assinatura</h1>
                     <p className="text-gray-400">Insira o código de confirmação fornecido pelo administrador via WhatsApp.</p>
                 </div>
 
@@ -74,7 +74,7 @@ export default function VerifyCode() {
                             value={code}
                             onChange={e => setCode(e.target.value)}
                             placeholder="XXXXXX"
-                            className="bg-black/50 border-zinc-700 text-center text-2xl font-mono tracking-widest uppercase h-14"
+                            className="bg-black/50 border-zinc-700 text-center text-xl sm:text-2xl font-mono tracking-widest uppercase h-14"
                             maxLength={8}
                             required
                         />

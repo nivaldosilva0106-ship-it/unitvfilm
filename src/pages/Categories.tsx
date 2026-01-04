@@ -152,21 +152,21 @@ export default function Categories() {
         <div className="min-h-screen bg-[#141414] text-white font-sans">
             <Header />
 
-            <div className="pt-24 pb-8 container mx-auto px-4">
+            <div className="pt-20 sm:pt-24 pb-8 container mx-auto px-4">
                 <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
-                    <h1 className="text-3xl font-bold flex items-center gap-2">
-                        <Filter className="w-8 h-8 text-primary" /> Categorias
+                    <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
+                        <Filter className="w-6 h-6 sm:w-8 sm:h-8 text-primary" /> Categorias
                     </h1>
 
                     {/* Filters */}
-                    <div className="flex flex-wrap items-center justify-center gap-3">
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full md:w-auto">
                         {/* Type Filters */}
-                        <div className="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800">
+                        <div className="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800 w-full sm:w-auto overflow-x-auto scrollbar-hide">
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setTypeFilter('all')}
-                                className={`h-8 px-3 rounded text-xs ${typeFilter === 'all' ? 'bg-zinc-700 text-white' : 'text-gray-400 hover:text-white'}`}
+                                className={`h-8 px-4 sm:px-3 rounded text-xs whitespace-nowrap ${typeFilter === 'all' ? 'bg-zinc-700 text-white' : 'text-gray-400 hover:text-white'}`}
                             >
                                 Todos
                             </Button>
@@ -174,7 +174,7 @@ export default function Categories() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setTypeFilter('movie')}
-                                className={`h-8 px-3 rounded text-xs gap-1 ${typeFilter === 'movie' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                                className={`h-8 px-4 sm:px-3 rounded text-xs gap-1 whitespace-nowrap ${typeFilter === 'movie' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'}`}
                             >
                                 <Film className="w-3 h-3" /> Filmes
                             </Button>
@@ -182,7 +182,7 @@ export default function Categories() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setTypeFilter('series')}
-                                className={`h-8 px-3 rounded text-xs gap-1 ${typeFilter === 'series' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                                className={`h-8 px-4 sm:px-3 rounded text-xs gap-1 whitespace-nowrap ${typeFilter === 'series' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'}`}
                             >
                                 <Tv className="w-3 h-3" /> Séries
                             </Button>
@@ -190,19 +190,19 @@ export default function Categories() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setTypeFilter('tv')}
-                                className={`h-8 px-3 rounded text-xs gap-1 ${typeFilter === 'tv' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                                className={`h-8 px-4 sm:px-3 rounded text-xs gap-1 whitespace-nowrap ${typeFilter === 'tv' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'}`}
                             >
                                 <MonitorPlay className="w-3 h-3" /> TV
                             </Button>
                         </div>
 
                         {/* Access Filters */}
-                        <div className="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800">
+                        <div className="flex bg-zinc-900 rounded-lg p-1 border border-zinc-800 w-full sm:w-auto overflow-x-auto scrollbar-hide">
                             <Button
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setAccessFilter('all')}
-                                className={`h-8 px-3 rounded text-xs ${accessFilter === 'all' ? 'bg-zinc-700 text-white' : 'text-gray-400 hover:text-white'}`}
+                                className={`h-8 px-4 sm:px-3 rounded text-xs whitespace-nowrap ${accessFilter === 'all' ? 'bg-zinc-700 text-white' : 'text-gray-400 hover:text-white'}`}
                             >
                                 Todos
                             </Button>
@@ -210,7 +210,7 @@ export default function Categories() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setAccessFilter('free')}
-                                className={`h-8 px-3 rounded text-xs gap-1 ${accessFilter === 'free' ? 'bg-green-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                                className={`h-8 px-4 sm:px-3 rounded text-xs gap-1 whitespace-nowrap ${accessFilter === 'free' ? 'bg-green-600 text-white' : 'text-gray-400 hover:text-white'}`}
                             >
                                 <Unlock className="w-3 h-3" /> Grátis
                             </Button>
@@ -218,7 +218,7 @@ export default function Categories() {
                                 variant="ghost"
                                 size="sm"
                                 onClick={() => setAccessFilter('premium')}
-                                className={`h-8 px-3 rounded text-xs gap-1 ${accessFilter === 'premium' ? 'bg-yellow-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                                className={`h-8 px-4 sm:px-3 rounded text-xs gap-1 whitespace-nowrap ${accessFilter === 'premium' ? 'bg-yellow-600 text-white' : 'text-gray-400 hover:text-white'}`}
                             >
                                 <Lock className="w-3 h-3" /> Premium
                             </Button>

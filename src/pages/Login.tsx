@@ -80,7 +80,7 @@ const Login = () => {
               <Film className="w-8 h-8 text-primary-foreground" />
             </div>
           </Link>
-          <h1 className="text-3xl font-bold text-foreground mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
             Uni<span className="text-primary">Tv</span>Film
           </h1>
           <p className="text-muted-foreground">
@@ -92,7 +92,7 @@ const Login = () => {
           <div className="space-y-4">
             <div
               onClick={handleGuestLogin}
-              className="bg-card/80 backdrop-blur border border-border/50 rounded-xl p-6 cursor-pointer hover:bg-card hover:border-primary transition-all group"
+              className="bg-card/80 backdrop-blur border border-border/50 rounded-xl p-4 sm:p-6 cursor-pointer hover:bg-card hover:border-primary transition-all group"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -110,7 +110,7 @@ const Login = () => {
 
             <div
               onClick={() => setMode('login')}
-              className="bg-card/80 backdrop-blur border border-border/50 rounded-xl p-6 cursor-pointer hover:bg-card hover:border-primary transition-all group"
+              className="bg-card/80 backdrop-blur border border-border/50 rounded-xl p-4 sm:p-6 cursor-pointer hover:bg-card hover:border-primary transition-all group"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
@@ -133,7 +133,7 @@ const Login = () => {
             </div>
           </div>
         ) : (
-          <div className="bg-card border border-border rounded-lg p-8">
+          <div className="bg-card border border-border rounded-xl p-6 sm:p-8">
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>

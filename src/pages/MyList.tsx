@@ -116,9 +116,9 @@ const MyList = () => {
     <div className="min-h-screen bg-background">
       <Header />
 
-      <div className="container mx-auto px-4 pt-24 pb-16">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold text-foreground mb-2 flex items-center gap-3">
+      <div className="container mx-auto px-4 pt-20 sm:pt-24 pb-16">
+        <div className="mb-8 text-center sm:text-left">
+          <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-2 flex items-center justify-center sm:justify-start gap-3">
             <Heart className="w-8 h-8 text-primary fill-primary" />
             Minha Lista
           </h1>
@@ -128,7 +128,7 @@ const MyList = () => {
         </div>
 
         {myList.length > 0 ? (
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3">
+          <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 sm:gap-4">
             {myList.map((item) => (
               <div key={item.id} className="relative group">
                 <ContentCard

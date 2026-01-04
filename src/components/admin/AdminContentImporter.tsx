@@ -112,7 +112,7 @@ export const AdminContentImporter = ({ onImport }: AdminContentImporterProps) =>
 
             <div className="space-y-4">
                 {/* Step 1: Search Help */}
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                     <Input
                         placeholder="Nome do Filme ou Série..."
                         value={searchQuery}
@@ -120,7 +120,7 @@ export const AdminContentImporter = ({ onImport }: AdminContentImporterProps) =>
                         onKeyDown={(e) => e.key === 'Enter' && handleSearchRedirect()}
                         className="flex-1"
                     />
-                    <Button onClick={handleSearchRedirect} variant="secondary">
+                    <Button onClick={handleSearchRedirect} variant="secondary" className="w-full sm:w-auto">
                         <Search className="w-4 h-4 mr-2" />
                         Buscar no Site
                     </Button>
@@ -136,7 +136,7 @@ export const AdminContentImporter = ({ onImport }: AdminContentImporterProps) =>
                 </div>
 
                 {/* Step 2: URL Import */}
-                <div className="flex gap-2">
+                <div className="flex flex-col sm:flex-row gap-2">
                     <div className="relative flex-1">
                         <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                         <Input
@@ -146,7 +146,7 @@ export const AdminContentImporter = ({ onImport }: AdminContentImporterProps) =>
                             className="pl-9"
                         />
                     </div>
-                    <Button onClick={handleImportFromUrl} disabled={loading} className="min-w-[120px]">
+                    <Button onClick={handleImportFromUrl} disabled={loading} className="w-full sm:w-auto min-w-[120px]">
                         {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2" />}
                         Importar
                     </Button>

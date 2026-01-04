@@ -306,9 +306,9 @@ export default function AdminPlans() {
                             <TableRow>
                                 <TableHead>Nome</TableHead>
                                 <TableHead>Preço</TableHead>
-                                <TableHead>Limites (F/E/P)</TableHead>
-                                <TableHead>Download</TableHead>
-                                <TableHead>Verificação</TableHead>
+                                <TableHead className="hidden md:table-cell">Limites (F/E/P)</TableHead>
+                                <TableHead className="hidden lg:table-cell">Download</TableHead>
+                                <TableHead className="hidden lg:table-cell">Verificação</TableHead>
                                 <TableHead>Ações</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -317,9 +317,9 @@ export default function AdminPlans() {
                                 <TableRow key={plan.id}>
                                     <TableCell className="font-medium">{plan.name}</TableCell>
                                     <TableCell>{plan.price > 0 ? `${plan.price} KZ` : 'Grátis'}</TableCell>
-                                    <TableCell>{plan.limits.moviesPerDay === -1 ? '∞' : plan.limits.moviesPerDay} / {plan.limits.episodesPerDay === -1 ? '∞' : plan.limits.episodesPerDay} / {plan.limits.maxProfiles} P</TableCell>
-                                    <TableCell>{plan.limits.canDownload ? 'Sim' : 'Não'}</TableCell>
-                                    <TableCell>{plan.requiresVerification ? 'Sim' : 'Não'}</TableCell>
+                                    <TableCell className="hidden md:table-cell">{plan.limits.moviesPerDay === -1 ? '∞' : plan.limits.moviesPerDay} / {plan.limits.episodesPerDay === -1 ? '∞' : plan.limits.episodesPerDay} / {plan.limits.maxProfiles} P</TableCell>
+                                    <TableCell className="hidden lg:table-cell">{plan.limits.canDownload ? 'Sim' : 'Não'}</TableCell>
+                                    <TableCell className="hidden lg:table-cell">{plan.requiresVerification ? 'Sim' : 'Não'}</TableCell>
                                     <TableCell>
                                         <Button variant="ghost" size="sm" onClick={() => handleEdit(plan)}>Editar</Button>
                                     </TableCell>

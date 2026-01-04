@@ -637,10 +637,10 @@ export const validatePin = async (userId: string, profileId: string, inputPin: s
 
     if (attempts >= 3) {
       const lockout = new Date();
-      lockout.setHours(lockout.getHours() + 1);
+      lockout.setMinutes(lockout.getMinutes() + 15);
       updates.lockoutUntil = lockout.toISOString();
       await update(profileRef, updates);
-      return { success: false, locked: true, remainingTime: 60 };
+      return { success: false, locked: true, remainingTime: 15 };
     } else {
       await update(profileRef, updates);
       return { success: false };

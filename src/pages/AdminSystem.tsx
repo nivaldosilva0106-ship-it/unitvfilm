@@ -34,7 +34,7 @@ export default function AdminSystem() {
                     <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                         <Activity className="w-5 h-5 text-primary" /> Visão Geral do Sistema
                     </h2>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
                         <Card className="bg-zinc-900/50 border-zinc-800">
                             <CardHeader className="pb-2">
                                 <CardTitle className="text-sm text-gray-400">Total Usuários</CardTitle>
@@ -83,7 +83,7 @@ export default function AdminSystem() {
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
                                 <div className="space-y-2">
                                     <Label>API Key</Label>
                                     <div className="flex gap-2">

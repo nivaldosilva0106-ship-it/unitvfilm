@@ -1,10 +1,10 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
-import { getAllContents, incrementDailyUsage, saveUserProgress, getUserProgress, getUserAllProgress } from "@/lib/firebase";
+import { getAllContents, incrementDailyUsage, saveUserProgress, getUserProgress, getUserAllProgress, addToMyList, removeFromMyList, getMyList } from "@/lib/firebase";
 import { Content } from "@/types/content";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { X, ArrowLeft, Film, Maximize, Minimize, List, Star, ChevronRight, ChevronDown, Crown, Play } from "lucide-react";
+import { X, ArrowLeft, Film, Maximize, Minimize, List, Star, ChevronRight, ChevronDown, Crown, Play, Plus, Check } from "lucide-react";
 import ReactPlayerComponent from 'react-player';
 import { AdManager } from "@/components/AdManager";
 import { useContentProtection } from "@/hooks/useContentProtection";
@@ -17,7 +17,7 @@ const Player = () => {
     const { id } = useParams();
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
-    const { profile, currentProfile, isAdmin, checkAccess, plan } = useAuth();
+    const { profile, currentProfile, isAdmin, checkAccess, plan, user } = useAuth();
 
     const [content, setContent] = useState<Content | null>(null);
     const [loading, setLoading] = useState(true);
@@ -49,6 +49,10 @@ const Player = () => {
     const [continueWatchingList, setContinueWatchingList] = useState<any[]>([]); // Progress + Content data
     const [isContinueWatchingOpen, setIsContinueWatchingOpen] = useState(false);
 
+    // My List State
+    const [isInMyList, setIsInMyList] = useState(false);
+    const [myListId, setMyListId] = useState<string | null>(null);
+
     const watchingCardTimerRef = useRef<NodeJS.Timeout | null>(null);
     const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const hasIncrementedRef = useRef(false);
@@ -57,6 +61,48 @@ const Player = () => {
     const episodeParam = searchParams.get('episode');
 
     useContentProtection(true);
+
+    // Check My List Status
+    useEffect(() => {
+        const checkMyList = async () => {
+            if (user?.uid && content) {
+                try {
+                    const list = await getMyList(user.uid);
+                    const found = list.find(item => item.contentId === content.id);
+                    if (found) {
+                        setIsInMyList(true);
+                        setMyListId(found.id);
+                    } else {
+                        setIsInMyList(false);
+                        setMyListId(null);
+                    }
+                } catch (error) {
+                    console.error("Error checking My List:", error);
+                }
+            }
+        };
+        checkMyList();
+    }, [user, content]);
+
+    const handleToggleMyList = async () => {
+        if (!user || !content) return;
+
+        try {
+            if (isInMyList && myListId) {
+                await removeFromMyList(user.uid, myListId);
+                setIsInMyList(false);
+                setMyListId(null);
+                toast.success("Removido da Minha Lista");
+            } else {
+                const newItem = await addToMyList(user.uid, content);
+                setIsInMyList(true);
+                setMyListId(newItem.id);
+                toast.success("Adicionado à Minha Lista");
+            }
+        } catch (error) {
+            toast.error("Erro ao atualizar Minha Lista");
+        }
+    };
 
     // 1. Load Content
     // 1. Load Content & Intro Timer
@@ -431,20 +477,20 @@ const Player = () => {
                                     </div>
                                 </div>
                                 <div>
-                                    <h3 className="text-xl font-bold text-white mb-2">Continuar assistindo?</h3>
-                                    <p className="text-gray-400 text-sm">
+                                    <h3 className="text-lg sm:text-xl font-bold text-white mb-1.5 sm:mb-2 text-center sm:text-left">Continuar assistindo?</h3>
+                                    <p className="text-gray-400 text-xs sm:text-sm text-center sm:text-left">
                                         Você parou em <span className="text-white font-mono">{formatTime(lastPositionSeconds)}</span>.
                                         Deseja retomar de onde parou?
                                     </p>
                                 </div>
-                                <div className="grid grid-cols-1 gap-3">
+                                <div className="flex flex-col gap-2.5">
                                     <Button
                                         onClick={() => {
                                             setIsResuming(true);
                                             setShowResumePrompt(false);
                                             sessionStartTimestamp.current = Date.now();
                                         }}
-                                        className="bg-primary hover:bg-primary/90 text-white font-bold py-6 rounded-xl"
+                                        className="bg-primary hover:bg-primary/90 text-white font-bold py-5 sm:py-6 rounded-xl text-sm sm:text-base w-full"
                                     >
                                         Continuar ({formatTime(lastPositionSeconds)})
                                     </Button>
@@ -456,9 +502,9 @@ const Player = () => {
                                             setLastPositionSeconds(0);
                                             sessionStartTimestamp.current = Date.now();
                                         }}
-                                        className="text-gray-400 hover:text-white hover:bg-white/5 py-6"
+                                        className="text-gray-400 hover:text-white hover:bg-white/5 py-5 sm:py-6 text-sm sm:text-base w-full"
                                     >
-                                        Recomeçar do início
+                                        Recomeçar
                                     </Button>
                                 </div>
                             </div>
@@ -466,20 +512,20 @@ const Player = () => {
                     )}
 
                     {/* Header Controls (Close, Title, etc) */}
-                    <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-start z-50 pointer-events-none transition-opacity duration-300 opacity-0 group-hover:opacity-100">
-                        <div className="pointer-events-auto flex items-center gap-4">
+                    <div className="absolute top-0 left-0 right-0 p-3 sm:p-6 flex justify-between items-start z-50 pointer-events-none transition-opacity duration-300 opacity-0 group-hover:opacity-100">
+                        <div className="pointer-events-auto flex items-center gap-2 sm:gap-4 max-w-[70%] sm:max-w-none">
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => navigate(-1)}
-                                className="w-12 h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 flex-shrink-0"
                             >
-                                <ArrowLeft className="w-6 h-6" />
+                                <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
                             </Button>
 
-                            <div className="px-4 py-2 bg-black/50 backdrop-blur-md rounded-full border border-white/20 flex items-center gap-3">
+                            <div className="px-3 sm:px-4 py-1.5 sm:py-2 bg-black/50 backdrop-blur-md rounded-full border border-white/20 flex items-center gap-2 sm:gap-3 min-w-0">
                                 {/* Logo */}
-                                <div className="flex items-center gap-2 border-r border-white/20 pr-3 mr-1">
+                                <div className="hidden xs:flex items-center gap-2 border-r border-white/20 pr-3 mr-1 flex-shrink-0">
                                     <div className="bg-primary p-1 rounded">
                                         <Film className="w-3 h-3 text-white" />
                                     </div>
@@ -490,17 +536,17 @@ const Player = () => {
                                 {content?.thumbnail_url && (
                                     <img
                                         src={content.thumbnail_url}
-                                        className="w-8 h-8 rounded-full object-cover border border-white/20 shadow-sm"
+                                        className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover border border-white/20 shadow-sm flex-shrink-0"
                                         alt="Poster"
                                     />
                                 )}
 
                                 {/* Title */}
-                                <span className="text-white font-bold text-sm sm:text-base">{currentTitle}</span>
+                                <span className="text-white font-bold text-xs sm:text-base truncate">{currentTitle}</span>
                             </div>
                         </div>
 
-                        <div className="pointer-events-auto flex items-center gap-4">
+                        <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-4">
                             {allSources.length > 1 && (
                                 <div className="relative">
                                     <Button
@@ -534,55 +580,64 @@ const Player = () => {
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={toggleFullscreen}
-                                className="w-12 h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                onClick={handleToggleMyList}
+                                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                title={isInMyList ? "Remover da lista" : "Assistir mais tarde"}
                             >
-                                {isFullscreen ? <Minimize className="w-6 h-6" /> : <Maximize className="w-6 h-6" />}
+                                {isInMyList ? <Check className="w-5 h-5 sm:w-6 sm:h-6" /> : <Plus className="w-5 h-5 sm:w-6 sm:h-6" />}
+                            </Button>
+
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={toggleFullscreen}
+                                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                            >
+                                {isFullscreen ? <Minimize className="w-5 h-5 sm:w-6 sm:h-6" /> : <Maximize className="w-5 h-5 sm:w-6 sm:h-6" />}
                             </Button>
 
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => navigate('/')}
-                                className="w-12 h-12 rounded-full bg-black/50 text-white hover:bg-red-600 backdrop-blur-md border border-white/20"
+                                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-red-600 backdrop-blur-md border border-white/20"
                             >
-                                <X className="w-6 h-6" />
+                                <X className="w-5 h-5 sm:w-6 sm:h-6" />
                             </Button>
                         </div>
                     </div>
 
                     {/* NEXT EPISODE BUTTON - FAR RIGHT */}
                     {nextEpisode && (
-                        <div className={`absolute top-1/2 right-2 -translate-y-1/2 z-50 transition-opacity duration-300 flex flex-col items-center gap-2 ${isFullscreen ? 'opacity-0 group-hover:opacity-100' : ''}`}>
+                        <div className={`absolute top-1/2 right-4 -translate-y-1/2 z-50 transition-opacity duration-300 flex flex-col items-center gap-2 ${isFullscreen ? 'opacity-0 group-hover:opacity-100' : ''}`}>
                             <Button
                                 onClick={handleNextEpisode}
                                 variant="ghost"
                                 size="icon"
-                                className="w-16 h-16 rounded-full bg-black/60 hover:bg-primary text-white backdrop-blur-md border border-white/20 shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center"
+                                className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-black/60 hover:bg-primary text-white backdrop-blur-md border border-white/20 shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center"
                                 title={`Próximo: ${nextEpisode.title}`}
                             >
-                                <ChevronRight className="w-8 h-8 ml-0.5" />
+                                <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8 ml-0.5" />
                             </Button>
-                            <div className="bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <div className="bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block">
                                 <span className="text-[9px] text-white uppercase font-bold tracking-wider">Próximo Episódio</span>
                             </div>
                         </div>
                     )}
 
                     {/* WATCHING CARD */}
-                    <div className={`absolute bottom-24 left-6 z-50 max-w-sm bg-black/80 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-500 ease-out ${showWatchingCard ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}>
-                        <div className="p-4">
-                            <p className="text-xs text-primary font-semibold uppercase tracking-wider mb-2">Você está assistindo</p>
-                            <div className="flex gap-3">
-                                {content.thumbnail_url && <img src={content.thumbnail_url} className="w-20 h-28 object-cover rounded-lg flex-shrink-0" alt="Capa" />}
-                                <div className="flex flex-col gap-1 min-w-0">
-                                    <h3 className="text-white font-bold text-sm line-clamp-1">{currentTitle}</h3>
-                                    {/* Description Added */}
-                                    <p className="text-xs text-gray-300 line-clamp-2 leading-relaxed opacity-90">{content.description}</p>
+                    <div className={`absolute bottom-20 sm:bottom-24 left-4 sm:left-6 z-50 max-w-[280px] sm:max-w-sm bg-black/80 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-500 ease-out ${showWatchingCard ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}>
+                        <div className="p-3 sm:p-4">
+                            <p className="text-[10px] sm:text-xs text-primary font-semibold uppercase tracking-wider mb-2">Você está assistindo</p>
+                            <div className="flex gap-2.5 sm:gap-3">
+                                {content.thumbnail_url && <img src={content.thumbnail_url} className="w-14 h-20 sm:w-20 sm:h-28 object-cover rounded-lg flex-shrink-0" alt="Capa" />}
+                                <div className="flex flex-col gap-0.5 sm:gap-1 min-w-0">
+                                    <h3 className="text-white font-bold text-xs sm:text-sm line-clamp-1">{currentTitle}</h3>
+                                    <p className="text-[10px] sm:text-xs text-gray-300 line-clamp-2 leading-relaxed opacity-90">{content.description}</p>
                                     {content.rating && (
-                                        <div className="flex items-center gap-1 mt-1">
-                                            <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
-                                            <span className="text-yellow-500 text-xs font-medium">{content.rating.toFixed(1)}</span>
+                                        <div className="flex items-center gap-1 mt-0.5 sm:mt-1">
+                                            <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500 fill-yellow-500" />
+                                            <span className="text-yellow-500 text-[10px] sm:text-xs font-medium">{content.rating.toFixed(1)}</span>
                                         </div>
                                     )}
                                 </div>

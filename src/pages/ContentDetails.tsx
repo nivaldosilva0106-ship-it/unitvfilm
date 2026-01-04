@@ -268,23 +268,23 @@ const ContentDetails = () => {
             Voltar
           </Button>
 
-          <div className="grid lg:grid-cols-4 gap-8">
-            <div className="lg:col-span-1 flex flex-col items-center lg:items-start gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+            <div className="flex flex-col items-center lg:items-start gap-4">
               <img
                 src={content.thumbnail_url || "/placeholder.svg"}
                 alt={content.title}
-                className="w-2/3 sm:w-1/2 lg:w-full max-w-xs rounded-lg shadow-2xl"
+                className="w-48 sm:w-64 lg:w-full rounded-lg shadow-2xl"
               />
               {/* Sidebar Ad */}
               <AdManager placement="sidebar" className="w-full max-w-xs" />
             </div>
 
             <div className="lg:col-span-3 space-y-6">
-              <div>
-                <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-2">
+              <div className="text-center lg:text-left">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-foreground mb-3">
                   {content.title}
                 </h1>
-                <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                <div className="flex flex-wrap justify-center lg:justify-start gap-3 sm:gap-4 text-sm text-muted-foreground">
                   {content.release_date && !isTV && (
                     <div className="flex items-center gap-1">
                       <Calendar className="w-4 h-4" />
@@ -303,7 +303,7 @@ const ContentDetails = () => {
                       {content.rating.toFixed(1)}
                     </div>
                   )}
-                  <span className="px-3 py-1 bg-primary/20 text-primary rounded-full capitalize">
+                  <span className="px-3 py-1 bg-primary/20 text-primary rounded-full capitalize text-xs font-semibold">
                     {content.category === 'movie' ? 'Filme' : content.category === 'series' ? 'Série' : 'TV ao Vivo'}
                   </span>
                 </div>
@@ -317,37 +317,38 @@ const ContentDetails = () => {
                 </div>
               )}
 
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3">
                 {isContentAllowedForProfile(content.classification, currentProfile?.isKids || false) ? (
                   <Button
                     onClick={() => handlePlay()}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground glow-effect-hover"
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground glow-effect-hover flex-1 sm:flex-none py-6"
                     tabIndex={0}
                   >
                     <Play className="w-5 h-5 mr-2" />
-                    {isTV ? 'Assistir Canal' : content.category === 'series' ? 'Ver Episódios' : 'Assistir Agora'}
+                    {isTV ? 'Assistir' : content.category === 'series' ? 'Episódios' : 'Assistir'}
                   </Button>
                 ) : (
-                  <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium">
+                  <div className="bg-red-500/10 border border-red-500/20 text-red-500 px-4 py-2 rounded-lg flex items-center gap-2 text-sm font-medium w-full lg:w-auto">
                     <AlertTriangle className="w-4 h-4" />
-                    Conteúdo Restrito (Perfil Kids)
+                    Conteúdo Restrito (Kids)
                   </div>
                 )}
 
                 <Button
                   onClick={handleToggleMyList}
                   variant={inMyList ? "default" : "outline"}
-                  className={inMyList ? "bg-primary/20 hover:bg-primary/30" : ""}
+                  className={`flex-1 sm:flex-none py-6 ${inMyList ? "bg-primary/20 hover:bg-primary/30" : ""}`}
                   tabIndex={0}
                 >
                   <Heart className={`w-5 h-5 mr-2 ${inMyList ? 'fill-primary text-primary' : ''}`} />
-                  {inMyList ? 'Na Minha Lista' : 'Adicionar à Lista'}
+                  {inMyList ? 'Na Lista' : 'Lista'}
                 </Button>
 
                 {content.trailer_url && !isTV && (
                   <Button
                     onClick={handleTrailer}
                     variant="secondary"
+                    className="flex-1 sm:flex-none py-6"
                     tabIndex={0}
                   >
                     <Film className="w-5 h-5 mr-2" />
@@ -359,6 +360,7 @@ const ContentDetails = () => {
                   <Button
                     onClick={handleDownload}
                     variant="outline"
+                    className="flex-1 sm:flex-none py-6"
                     tabIndex={0}
                   >
                     <Download className="w-5 h-5 mr-2" />

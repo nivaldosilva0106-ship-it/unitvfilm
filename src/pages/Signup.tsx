@@ -134,15 +134,15 @@ const Signup = () => {
             </div>
             <span className="text-2xl font-bold text-white">Uni<span className="text-primary">Tv</span>Film</span>
           </Link>
-          <h1 className="text-3xl font-bold text-white">
+          <h1 className="text-2xl sm:text-3xl font-bold text-white px-4">
             {step === 'plans' ? 'Escolha seu Plano' : 'Para finalizar, crie sua conta'}
           </h1>
         </div>
 
         {step === 'plans' ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {plans.map(plan => (
-              <div key={plan.id} className={`bg-zinc-900 border ${plan.price > 0 ? 'border-primary' : 'border-zinc-800'} rounded-xl p-6 hover:scale-105 transition-transform cursor-pointer flex flex-col`} onClick={() => handlePlanSelect(plan)}>
+              <div key={plan.id} className={`bg-zinc-900 border ${plan.price > 0 ? 'border-primary' : 'border-zinc-800'} rounded-xl p-5 sm:p-6 hover:scale-[1.02] sm:hover:scale-105 transition-transform cursor-pointer flex flex-col`} onClick={() => handlePlanSelect(plan)}>
                 <div className="flex-1">
                   <h3 className="text-xl font-bold text-white mb-2">{plan.name}</h3>
                   <div className="flex items-baseline gap-1 mb-4">
@@ -185,7 +185,7 @@ const Signup = () => {
             ))}
           </div>
         ) : (
-          <div className="max-w-md mx-auto bg-zinc-900 border border-zinc-800 rounded-xl p-8">
+          <div className="max-w-md mx-auto bg-zinc-900 border border-zinc-800 rounded-xl p-6 sm:p-8">
             <div className="mb-6 flex items-center justify-between">
               <h3 className="font-semibold text-lg text-white">Plano Selecionado: <span className="text-primary">{selectedPlan?.name}</span></h3>
               <Button variant="ghost" size="sm" onClick={() => setStep('plans')} className="text-xs">Alterar</Button>

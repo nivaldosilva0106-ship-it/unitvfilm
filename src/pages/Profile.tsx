@@ -250,10 +250,10 @@ const Profile = () => {
     <div className="min-h-screen bg-[#141414] text-white font-sans">
       <Header />
 
-      <div className="container mx-auto px-4 py-24 max-w-6xl animate-in fade-in duration-500">
+      <div className="container mx-auto px-4 py-16 sm:py-24 max-w-6xl animate-in fade-in duration-500">
 
         {/* Cabeçalho do Perfil Ativo */}
-        <div className="mb-12 flex flex-col md:flex-row items-center md:items-start gap-8 border-b border-zinc-800 pb-10">
+        <div className="mb-8 sm:mb-12 flex flex-col md:flex-row items-center md:items-start gap-6 md:gap-8 border-b border-zinc-800 pb-10">
           <div className="relative group">
             <img
               src={currentProfile?.avatar || currentProfile?.avatarUrl || "https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png"}
@@ -272,7 +272,7 @@ const Profile = () => {
 
           <div className="flex-1 text-center md:text-left space-y-4">
             <div>
-              <h1 className="text-3xl md:text-5xl font-bold mb-2">{currentProfile?.name || "Usuário"}</h1>
+              <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold mb-2">{currentProfile?.name || "Usuário"}</h1>
               <div className="flex items-center justify-center md:justify-start gap-3">
                 <Badge variant="outline" className="border-green-500/50 text-green-400 bg-green-500/10 uppercase tracking-wider text-xs px-2 py-0.5">
                   {accountProfile.isPremium ? "Premium" : "Free"}
@@ -309,20 +309,20 @@ const Profile = () => {
                     currentProfile?.id === p.id ? "ring-2 ring-primary rounded-lg p-1" : ""
                   )}
                 >
-                  <div className="relative aspect-square mb-3 overflow-hidden rounded-lg bg-zinc-800">
+                  <div className="relative aspect-square mb-2 sm:mb-3 overflow-hidden rounded-lg bg-zinc-800">
                     <img
                       src={p.avatar || p.avatarUrl}
                       alt={p.name}
                       className="w-full h-full object-cover group-hover:opacity-80 transition-opacity"
                     />
                     {p.isKids && (
-                      <div className="absolute top-2 right-2 bg-blue-500 text-white text-[10px] px-1.5 py-0.5 rounded font-bold shadow-sm">
+                      <div className="absolute top-2 right-2 bg-blue-500 text-white text-[9px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 rounded font-bold shadow-sm">
                         KIDS
                       </div>
                     )}
                     {p.pin && (
                       <div className="absolute top-2 left-2 bg-black/60 p-1 rounded-full">
-                        <Lock className="w-3 h-3 text-white" />
+                        <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
                       </div>
                     )}
 

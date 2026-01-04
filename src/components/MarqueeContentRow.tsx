@@ -57,32 +57,32 @@ export const MarqueeContentRow = ({
     if (contents.length === 0) return null;
 
     return (
-        <div className="mb-8 group/row">
-            <h2 className="text-2xl font-bold mb-4 px-4 md:px-8">{title}</h2>
-            <div className="relative px-4 md:px-8">
-                {/* Left Arrow */}
+        <div className="mb-6 sm:mb-8 group/row">
+            <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 px-4 md:px-8 tracking-tight">{title}</h2>
+            <div className="relative px-4 md:px-8 lg:px-12">
+                {/* Desktop Left Arrow */}
                 {scrollPosition > 0 && (
                     <button
                         onClick={() => scroll('left')}
-                        className="absolute left-0 top-0 bottom-0 z-20 w-12 bg-gradient-to-r from-background to-transparent flex items-center justify-start pl-2 opacity-0 group-hover/row:opacity-100 transition-opacity"
+                        className="hidden md:flex absolute left-0 top-0 bottom-0 z-20 w-12 bg-gradient-to-r from-background to-transparent items-center justify-start pl-2 opacity-0 group-hover/row:opacity-100 transition-opacity"
                         aria-label="Scroll left"
                     >
-                        <div className="bg-black/80 hover:bg-black rounded-full p-2">
+                        <div className="bg-black/80 hover:bg-black rounded-full p-2 border border-white/5">
                             <ChevronLeft className="w-6 h-6" />
                         </div>
                     </button>
                 )}
 
                 {/* Content Container */}
-                <div className="overflow-hidden">
+                <div className="overflow-x-auto md:overflow-hidden scrollbar-hide snap-x snap-mandatory">
                     <div
-                        className="flex gap-3 transition-transform duration-500 ease-out"
+                        className="flex gap-2.5 sm:gap-4 transition-transform duration-500 ease-out md:translate-x-0"
                         style={{
-                            transform: `translateX(-${scrollPosition * (itemWidth + 12)}px)`,
+                            transform: `md:translateX(-${scrollPosition * (itemWidth + 16)}px)`,
                         }}
                     >
                         {contents.map((content, index) => (
-                            <div key={content.id} className="flex-shrink-0 relative">
+                            <div key={content.id} className="flex-shrink-0 relative snap-start w-[140px] xs:w-[160px] sm:w-[180px] md:w-[200px]">
                                 <ContentCard
                                     title={content.title}
                                     thumbnail={content.thumbnail_url}
@@ -97,11 +97,11 @@ export const MarqueeContentRow = ({
                                     classification={content.classification}
                                 />
                                 {showNumbers && (
-                                    <div className="absolute -left-6 top-0 bottom-0 flex items-end pb-4 z-30 pointer-events-none">
+                                    <div className="absolute -left-4 sm:-left-6 top-0 bottom-0 flex items-end pb-2 sm:pb-4 z-30 pointer-events-none">
                                         <span
-                                            className="text-[160px] font-black leading-none select-none"
+                                            className="text-[100px] sm:text-[160px] font-black leading-none select-none"
                                             style={{
-                                                WebkitTextStroke: '3px rgba(255,255,255,0.6)',
+                                                WebkitTextStroke: '2px rgba(255,255,255,0.6)',
                                                 color: 'transparent',
                                                 paintOrder: 'stroke fill',
                                                 filter: 'drop-shadow(0 4px 12px rgba(0,0,0,0.8))'
@@ -116,14 +116,14 @@ export const MarqueeContentRow = ({
                     </div>
                 </div>
 
-                {/* Right Arrow */}
+                {/* Desktop Right Arrow */}
                 {scrollPosition < maxScroll && (
                     <button
                         onClick={() => scroll('right')}
-                        className="absolute right-0 top-0 bottom-0 z-20 w-12 bg-gradient-to-l from-background to-transparent flex items-center justify-end pr-2 opacity-0 group-hover/row:opacity-100 transition-opacity"
+                        className="hidden md:flex absolute right-0 top-0 bottom-0 z-20 w-12 bg-gradient-to-l from-background to-transparent items-center justify-end pr-2 opacity-0 group-hover/row:opacity-100 transition-opacity"
                         aria-label="Scroll right"
                     >
-                        <div className="bg-black/80 hover:bg-black rounded-full p-2">
+                        <div className="bg-black/80 hover:bg-black rounded-full p-2 border border-white/5">
                             <ChevronRight className="w-6 h-6" />
                         </div>
                     </button>

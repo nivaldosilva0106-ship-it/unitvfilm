@@ -64,8 +64,8 @@ export const AdminAvatars = () => {
                 </div>
             </div>
 
-            <div className="flex gap-4 items-end bg-card p-6 rounded-xl border border-border shadow-sm">
-                <div className="flex-1 space-y-2">
+            <div className="flex flex-col sm:flex-row gap-4 items-end bg-card p-6 rounded-xl border border-border shadow-sm">
+                <div className="w-full sm:flex-1 space-y-2">
                     <label className="text-sm font-medium text-muted-foreground">URL da Imagem</label>
                     <div className="flex gap-2">
                         <Input
@@ -77,7 +77,7 @@ export const AdminAvatars = () => {
                         />
                     </div>
                 </div>
-                <Button onClick={handleAdd} disabled={loading || !newUrl} className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground min-w-[120px]">
+                <Button onClick={handleAdd} disabled={loading || !newUrl} className="w-full sm:w-auto gap-2 bg-primary hover:bg-primary/90 text-primary-foreground min-w-[120px]">
                     {loading ? 'Adicionando...' : <><Plus className="w-4 h-4" /> Adicionar</>}
                 </Button>
             </div>

@@ -107,19 +107,19 @@ const Payment = () => {
               <Film className="w-8 h-8 text-primary-foreground" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-foreground mb-2">
             Uni<span className="text-primary">Tv</span>Film
           </h1>
           <p className="text-muted-foreground">Complete seu pagamento</p>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Detalhes da Assinatura */}
           <Card className="border-primary/50">
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
                 <span>Plano {tierInfo.name}</span>
-                <Badge className="bg-primary text-primary-foreground">
+                <Badge className="bg-primary text-primary-foreground text-xs sm:text-sm">
                   {tierInfo.price.toLocaleString('pt-AO')} Kzs/mês
                 </Badge>
               </CardTitle>
@@ -160,13 +160,15 @@ const Payment = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="bg-muted p-4 rounded-lg mb-6 space-y-2">
+              <div className="bg-muted p-3 sm:p-4 rounded-lg mb-6 space-y-2">
                 <p className="text-sm font-medium text-foreground">Dados Bancários:</p>
-                <p className="text-sm text-muted-foreground">Banco: BAI</p>
-                <p className="text-sm text-muted-foreground">Conta: 0000 0000 0000 0000</p>
-                <p className="text-sm text-muted-foreground">Titular: UniTvFilm, Lda</p>
-                <p className="text-sm font-semibold text-primary mt-2">
-                  Valor: {tierInfo.price.toLocaleString('pt-AO')} Kzs
+                <div className="space-y-1">
+                  <p className="text-xs sm:text-sm text-muted-foreground flex justify-between"><span>Banco:</span> <span className="font-mono">BAI</span></p>
+                  <p className="text-xs sm:text-sm text-muted-foreground flex justify-between"><span>Conta:</span> <span className="font-mono">0000 0000 0000 0000</span></p>
+                  <p className="text-xs sm:text-sm text-muted-foreground flex justify-between"><span>Titular:</span> <span>UniTvFilm, Lda</span></p>
+                </div>
+                <p className="text-sm sm:text-base font-semibold text-primary mt-2 pt-2 border-t border-border/50">
+                  Total: {tierInfo.price.toLocaleString('pt-AO')} Kzs
                 </p>
               </div>
 
