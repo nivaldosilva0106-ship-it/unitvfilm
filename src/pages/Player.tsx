@@ -4,7 +4,7 @@ import { getAllContents, incrementDailyUsage, saveUserProgress, getUserProgress,
 import { Content } from "@/types/content";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { X, ArrowLeft, Film, Maximize, Minimize, List, Star, ChevronRight, ChevronDown, Crown, Play, Plus, Check } from "lucide-react";
+import { X, ArrowLeft, Film, Maximize, Minimize, List, Star, ChevronRight, ChevronDown, Crown, Play, Plus, Check, ShieldCheck } from "lucide-react";
 import ReactPlayerComponent from 'react-player';
 import { AdManager } from "@/components/AdManager";
 import { useContentProtection } from "@/hooks/useContentProtection";
@@ -42,6 +42,7 @@ const Player = () => {
     const [showWatchingCard, setShowWatchingCard] = useState(false);
     const [cardProgress, setCardProgress] = useState(100);
     const [showIntro, setShowIntro] = useState(true);
+    const [showAdBlockModal, setShowAdBlockModal] = useState(false);
     const [suggestions, setSuggestions] = useState<Content[]>([]);
     const [showSuggestionsCard, setShowSuggestionsCard] = useState(false);
     const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false); // Sidebar toggle state
@@ -113,6 +114,10 @@ const Player = () => {
                 const found = contents.find((c) => c.id === id);
                 if (found) {
                     setContent(found);
+
+                    if (found.adBlockFriendly) {
+                        setShowAdBlockModal(true);
+                    }
 
                     // Fetch Suggestions (Random 3, excluding current)
                     const otherContents = contents.filter(c => c.id !== found.id);
@@ -421,17 +426,32 @@ const Player = () => {
 
     if (loading || showIntro) {
         return (
-            <div className="w-screen h-screen bg-[#0a0a0a] flex flex-col items-center justify-center z-[100] fixed inset-0">
-                <div className="flex flex-col items-center animate-pulse">
+            <div className="w-screen h-screen relative flex flex-col items-center justify-center z-[100] fixed inset-0 overflow-hidden">
+                {/* Background Image */}
+                {content && (
+                    <div className="absolute inset-0 z-0">
+                        <img
+                            src={content.cover_url || content.thumbnail_url}
+                            alt="Background"
+                            className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
+                    </div>
+                )}
+
+                {/* Fallback Background */}
+                {!content && <div className="absolute inset-0 bg-[#0a0a0a] z-0" />}
+
+                <div className="relative z-10 flex flex-col items-center animate-pulse">
                     <div className="bg-primary p-4 rounded-2xl shadow-[0_0_30px_rgba(220,38,38,0.5)] mb-6 transform scale-110">
                         <Film className="w-10 h-10 text-white" />
                     </div>
-                    <h1 className="text-4xl sm:text-5xl font-bold text-white mb-2 tracking-tight">
+                    <h1 className="text-4xl sm:text-5xl font-bold text-white mb-2 tracking-tight drop-shadow-xl">
                         Uni<span className="text-primary">Tv</span>Film
                     </h1>
-                    <p className="text-gray-400 text-sm tracking-widest uppercase">Carregando Player</p>
+                    <p className="text-gray-200 text-sm tracking-widest uppercase drop-shadow-md">Carregando Player</p>
                 </div>
-                <div className="mt-12 w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin"></div>
+                <div className="relative z-10 mt-12 w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin shadow-xl"></div>
             </div>
         );
     }
@@ -458,6 +478,44 @@ const Player = () => {
     }
 
     if (!currentSource) return <div className="w-screen h-screen bg-black text-white flex items-center justify-center">Vídeo indisponível</div>;
+
+    if (showAdBlockModal && content?.adBlockFriendly) {
+        return (
+            <div className="w-screen h-screen bg-black/90 flex items-center justify-center z-[100] fixed inset-0 backdrop-blur-md">
+                {/* Background Image for Modal */}
+                <div className="absolute inset-0 z-0 opacity-30">
+                    <img
+                        src={content.cover_url || content.thumbnail_url}
+                        alt="Background"
+                        className="w-full h-full object-cover grayscale"
+                    />
+                </div>
+
+                <div className="relative z-10 max-w-md w-full mx-4 bg-[#1a1a1a] border border-white/10 rounded-2xl p-8 shadow-2xl animate-in fade-in zoom-in duration-300">
+                    <div className="flex flex-col items-center text-center space-y-6">
+                        <div className="w-20 h-20 bg-amber-500/10 rounded-full flex items-center justify-center mb-2 animate-bounce">
+                            <ShieldCheck className="w-10 h-10 text-amber-500" />
+                        </div>
+
+                        <div className="space-y-2">
+                            <h2 className="text-2xl font-bold text-white">Atenção: Player com Anúncios</h2>
+                            <p className="text-gray-400 text-sm leading-relaxed">
+                                Este player contém anúncios externos. Ao clicar na tela, janelas (pop-ups) podem abrir. Basta fechá-las para continuar assistindo. Ative bloqueadores de anúncio se preferir.
+                            </p>
+                        </div>
+
+                        <Button
+                            className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-6 text-lg rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.3)] transition-all hover:scale-105"
+                            onClick={() => setShowAdBlockModal(false)}
+                        >
+                            <Play className="w-5 h-5 mr-2 fill-current" />
+                            Entendi, ir para o vídeo
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-[#0a0a0a] overflow-x-hidden relative">

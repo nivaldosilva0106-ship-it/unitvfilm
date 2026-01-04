@@ -10,7 +10,7 @@ import { Search, Save, Plus, X, Lock, Sparkles, Clapperboard, Bell } from "lucid
 import { toast } from "sonner";
 import { searchMovies, searchSeries, getImageUrl, getMovieTrailer, getSeriesTrailer, getMovieDetails, getSeriesDetails, getSeasonDetails } from "@/lib/tmdb";
 import { sendContentNotification } from "@/lib/firebase";
-import { PlusCircle, Trash, Download as DownloadIcon } from "lucide-react";
+import { Search, Plus, Trash, Upload, X, Film, Tv, Clapperboard, Download as DownloadIcon, Lock, Sparkles, ShieldCheck } from "lucide-react";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { Content, Episode } from "@/types/content";
 import type { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
@@ -400,6 +400,26 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
               id="cinemaMode"
               checked={editingContent.is_cinema_mode || false}
               onCheckedChange={(checked) => setEditingContent(prev => ({ ...prev, is_cinema_mode: checked }))}
+              className="data-[state=checked]:bg-amber-600"
+            />
+          </div>
+
+          {/* AdBlock Friendly Toggle */}
+          {/* AdBlock Friendly Toggle */}
+          <div className="flex items-center justify-between border-t border-border/50 pt-4">
+            <div className="flex items-center gap-2">
+              <div className={`p-2 rounded-full ${editingContent.adBlockFriendly ? 'bg-amber-500/20 text-amber-500' : 'bg-muted text-muted-foreground'}`}>
+                <ShieldCheck className={`w-5 h-5 ${editingContent.adBlockFriendly ? 'fill-current' : ''}`} />
+              </div>
+              <div className="flex flex-col">
+                <Label htmlFor="adBlockFriendly" className="cursor-pointer font-medium text-base">Aviso de Anúncios / Pop-ups</Label>
+                <span className="text-xs text-muted-foreground">Exibe aviso sobre janelas pop-up no player</span>
+              </div>
+            </div>
+            <Switch
+              id="adBlockFriendly"
+              checked={editingContent.adBlockFriendly || false}
+              onCheckedChange={(checked) => setEditingContent(prev => ({ ...prev, adBlockFriendly: checked }))}
               className="data-[state=checked]:bg-amber-600"
             />
           </div>

@@ -39,6 +39,7 @@ export interface Content {
   year?: number;
   genre?: string[];
   backdrop_url?: string;
+  adBlockFriendly?: boolean;
 
   // New Downloads
   download_mode?: 'direct' | 'torrent' | 'mixed';
