@@ -707,9 +707,15 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                       className="bg-input border-border text-sm"
                     />
                     <Input
-                      placeholder="URL do episódio"
+                      placeholder="URL do episódio (embed)"
                       value={episode.url}
                       onChange={(e) => updateEpisode(index, 'url', e.target.value)}
+                      className="bg-input border-border text-sm"
+                    />
+                    <Input
+                      placeholder="URL Player Interno (m3u8, mp4, ts)"
+                      value={episode.internal_player_url || ''}
+                      onChange={(e) => updateEpisode(index, 'internal_player_url', e.target.value)}
                       className="bg-input border-border text-sm"
                     />
                     <Input

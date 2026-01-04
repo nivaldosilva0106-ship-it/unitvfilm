@@ -73,9 +73,11 @@ const Admin = () => {
     const isMovie = editingContent.category === 'movie';
 
     const normalizedVideo = normalizeVideoUrl(editingContent.video_url || undefined);
+    const hasInternalPlayer = !!editingContent.internal_player_url;
 
-    if ((isTV || isMovie) && !normalizedVideo) {
-      toast.error(`Para ${isTV ? 'TV' : 'Filme'}, informe a URL do vídeo.`);
+    // Allow saving with internal_player_url OR video_url for movies/tv
+    if ((isTV || isMovie) && !normalizedVideo && !hasInternalPlayer) {
+      toast.error(`Para ${isTV ? 'TV' : 'Filme'}, informe a URL do vídeo ou do Player Interno.`);
       return;
     }
 
