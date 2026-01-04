@@ -246,7 +246,7 @@ export const Header = () => {
                 <Film className="w-5 h-5 sm:w-6 sm:h-6 text-primary-foreground" />
               </div>
               <h1 className="text-lg sm:text-2xl font-bold text-white tracking-tight">
-                Uni<span className="text-primary">Tv</span><span className="hidden xs:inline">Film</span>
+                Uni<span className="text-primary">Tv</span>Film
               </h1>
             </div>
 
