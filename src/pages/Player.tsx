@@ -5,13 +5,11 @@ import { Content } from "@/types/content";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { X, ArrowLeft, Film, Maximize, Minimize, List, Star, ChevronRight, ChevronDown, Crown, Play, Plus, Check, ShieldCheck } from "lucide-react";
-import ReactPlayerComponent from 'react-player';
 import { AdManager } from "@/components/AdManager";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import { toast } from "sonner";
 import { isContentAllowedForProfile } from "@/lib/utils";
-
-const ReactPlayer = ReactPlayerComponent as any;
+import { VideoPlayer } from "@/components/VideoPlayer";
 
 const Player = () => {
     const { id } = useParams();
@@ -183,7 +181,8 @@ const Player = () => {
             const episodeData = content.episodes?.find(ep => ep.season === s && ep.episode === e);
 
             if (episodeData) {
-                url = episodeData.url;
+                // Prefer internal_player_url, fallback to url
+                url = episodeData.internal_player_url || episodeData.url;
                 title = `${content.title} - T${s}E${e}: ${episodeData.title}`;
                 isEpisode = true;
 
@@ -288,22 +287,37 @@ const Player = () => {
     const allSources = useMemo(() => {
         if (!content) return [];
 
-        const sources = [];
+        const sources: { name: string; url: string; type: 'internal' | 'embed' }[] = [];
 
-        if (content.internal_player_url && !seasonParam) { // Internal player usually for movies
-            sources.push({ name: 'Player Interno', url: content.internal_player_url, type: 'internal' });
+        // For series with episodes, check if current episode has internal_player_url
+        if (content.category === 'series' && seasonParam && episodeParam) {
+            const s = parseInt(seasonParam);
+            const e = parseInt(episodeParam);
+            const episodeData = content.episodes?.find(ep => ep.season === s && ep.episode === e);
+            
+            if (episodeData?.internal_player_url) {
+                sources.push({ name: 'Player Interno', url: episodeData.internal_player_url, type: 'internal' });
+            }
+            if (episodeData?.url) {
+                sources.push({ name: 'Player Embed', url: episodeData.url, type: 'embed' });
+            }
+        } else {
+            // For movies/TV
+            if (content.internal_player_url) {
+                sources.push({ name: 'Player Interno', url: content.internal_player_url, type: 'internal' });
+            }
+
+            const currentUrls = (content.video_urls && content.video_urls.length > 0)
+                ? content.video_urls
+                : content.video_url ? [content.video_url] : [];
+
+            currentUrls.forEach((u, index) => {
+                if (u) sources.push({ name: `Player ${index + 1}`, url: u, type: 'embed' });
+            });
         }
 
-        const currentUrls = (content.video_urls && content.video_urls.length > 0 && !seasonParam)
-            ? content.video_urls
-            : [videoUrl]; // Fallback to the single resolved URL
-
-        currentUrls.forEach((u, index) => {
-            if (u) sources.push({ name: `Player ${index + 1}`, url: u, type: 'embed' });
-        });
-
         return sources;
-    }, [content, videoUrl, seasonParam]);
+    }, [content, seasonParam, episodeParam]);
 
     const currentSource = allSources[currentSourceIndex] || allSources[0];
 
@@ -763,13 +777,13 @@ const Player = () => {
                     {/* VIDEO PLAYER */}
                     {currentSource.type === 'internal' ? (
                         <div className="absolute inset-0 w-full h-full bg-black">
-                            <ReactPlayer
+                            <VideoPlayer
                                 key={currentSource.url}
                                 url={currentSource.url}
-                                width="100%"
-                                height="100%"
-                                controls
-                                playing
+                                poster={content?.backdrop_url || content?.thumbnail_url}
+                                title={currentTitle}
+                                autoPlay
+                                startTime={isResuming ? lastPositionSeconds : 0}
                             />
                         </div>
                     ) : (

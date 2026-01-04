@@ -3,6 +3,7 @@ export interface Episode {
   episode: number;
   title: string;
   url: string;
+  internal_player_url?: string; // URL for internal player (m3u8, mp4, ts)
   download_url?: string; // Legacy
   download_mode?: 'direct' | 'torrent' | 'mixed';
   downloads?: {
