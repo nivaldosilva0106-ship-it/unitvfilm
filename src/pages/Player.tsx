@@ -431,7 +431,7 @@ const Player = () => {
                 {content && (
                     <div className="absolute inset-0 z-0">
                         <img
-                            src={content.cover_url || content.thumbnail_url}
+                            src={content.backdrop_url || content.thumbnail_url}
                             alt="Background"
                             className="w-full h-full object-cover"
                         />
@@ -485,7 +485,7 @@ const Player = () => {
                 {/* Background Image for Modal */}
                 <div className="absolute inset-0 z-0 opacity-30">
                     <img
-                        src={content.cover_url || content.thumbnail_url}
+                        src={content.backdrop_url || content.thumbnail_url}
                         alt="Background"
                         className="w-full h-full object-cover grayscale"
                     />
