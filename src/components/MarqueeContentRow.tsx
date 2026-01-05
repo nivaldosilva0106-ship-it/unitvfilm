@@ -94,7 +94,6 @@ export const MarqueeContentRow = ({
                                     isNew={content.is_new}
                                     newSince={content.new_since}
                                     category={content.category}
-                                    category={content.category}
                                     classification={content.classification}
                                     hasDownloads={!!(content.download_url || (content.downloads && content.downloads.length > 0))}
                                     internal_player_url={content.internal_player_url}
