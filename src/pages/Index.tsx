@@ -35,7 +35,7 @@ const Index = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedSeries, setSelectedSeries] = useState<Content | null>(null);
   const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string, internalUrl?: string, nextEpisode?: any }>({ open: false, url: '', title: '', isPremium: false });
-  const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, title: string, thumbnail: string }>({ open: false, url: '', title: '', thumbnail: '' });
+  const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, downloads?: { label: string; url: string; type?: 'direct' | 'torrent' }[], downloadMode?: 'direct' | 'torrent' | 'mixed', title: string, thumbnail: string }>({ open: false, url: '', title: '', thumbnail: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   /* New State for Quick View */
   const [quickViewContent, setQuickViewContent] = useState<Content | null>(null);
@@ -390,10 +390,13 @@ const Index = () => {
       navigate("/login");
       return;
     }
-    if (content.download_url) {
+    const hasDownloads = content.download_url || (content.downloads && content.downloads.length > 0);
+    if (hasDownloads) {
       setDownloadModal({
         open: true,
-        url: content.download_url,
+        url: content.download_url || '',
+        downloads: content.downloads,
+        downloadMode: content.download_mode,
         title: content.title,
         thumbnail: content.thumbnail_url
       });
@@ -789,6 +792,8 @@ const Index = () => {
         open={downloadModal.open}
         onClose={() => setDownloadModal(prev => ({ ...prev, open: false }))}
         downloadUrl={downloadModal.url}
+        downloads={downloadModal.downloads}
+        downloadMode={downloadModal.downloadMode}
         title={downloadModal.title}
         thumbnail={downloadModal.thumbnail}
       />

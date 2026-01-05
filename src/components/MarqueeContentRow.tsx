@@ -89,7 +89,7 @@ export const MarqueeContentRow = ({
                                     onPlay={() => onPlayContent(content)}
                                     onInfo={() => onInfoContent(content)}
                                     onDetails={() => onDetailsContent?.(content)}
-                                    onDownload={content.download_url ? () => onDownloadContent(content) : undefined}
+                                    onDownload={(content.download_url || (content.downloads && content.downloads.length > 0)) ? () => onDownloadContent(content) : undefined}
                                     isPremium={content.isPremium}
                                     isNew={content.is_new}
                                     newSince={content.new_since}
