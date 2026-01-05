@@ -96,8 +96,13 @@ export const MarqueeContentRow = ({
                                     category={content.category}
                                     category={content.category}
                                     classification={content.classification}
+<<<<<<< HEAD
                                     hasDownloads={!!(content.download_url || (content.downloads && content.downloads.length > 0))}
                                     internal_player_url={content.internal_player_url}
+=======
+                                    hasInternalPlayer={!!content.internal_player_url}
+                                    hasDownload={!!(content.download_url || (content.downloads && content.downloads.length > 0))}
+>>>>>>> fa2da7ecb3e68cc2d288cef1d8fd94d8bf91a2be
                                 />
                                 {showNumbers && (
                                     <div className="absolute -left-4 sm:-left-6 top-0 bottom-0 flex items-end pb-2 sm:pb-4 z-30 pointer-events-none">

@@ -40,6 +40,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
   const [showPreview, setShowPreview] = useState(false);
   const [previewUrl, setPreviewUrl] = useState("");
 
+  const isNostalgia = editingContent.category === 'nostalgia';
   const isTV = editingContent.category === 'tv';
   const isSeries = editingContent.category === 'series';
   const isMovie = editingContent.category === 'movie';
@@ -51,7 +52,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     setIsSearching(true);
     try {
       const category = editingContent.category || "movie";
-      const results = category === "movie"
+      const results = (category === "movie" || category === "nostalgia") // Nostalgia can use movie search or we might want to disable it
         ? await searchMovies(tmdbSearchQuery)
         : await searchSeries(tmdbSearchQuery);
 
@@ -325,6 +326,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
               <SelectItem value="movie">Filme</SelectItem>
               <SelectItem value="series">Série</SelectItem>
               <SelectItem value="tv">TV</SelectItem>
+              <SelectItem value="nostalgia">NostalgiaTube</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -722,7 +724,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           </div>
         )}
 
-        {isSeries && (
+        {(isSeries || isNostalgia) && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label>Episódios / Temporadas</Label>

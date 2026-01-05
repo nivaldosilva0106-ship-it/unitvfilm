@@ -26,6 +26,7 @@ import VerifyCode from "./pages/VerifyCode";
 import AdminSystem from "./pages/AdminSystem";
 import AdminNotifications from "./pages/AdminNotifications";
 import Player from "./pages/Player";
+import NostalgiaTube from "./pages/NostalgiaTube";
 
 import { AdminUsers } from "@/components/admin/AdminUsers";
 import { AdminAvatars } from "@/components/admin/AdminAvatars";
@@ -68,6 +69,8 @@ const App = () => (
               <Route path="/profile" element={<Profile />} />
               <Route path="/profiles" element={<ProfileSelection />} />
               <Route path="/categories" element={<Categories />} />
+              <Route path="/nostalgia" element={<NostalgiaTube />} />
+              <Route path="/nostalgia/:id" element={<NostalgiaTube />} />
               <Route path="/verify-code" element={<VerifyCode />} />
 
               <Route path="/admin/users" element={

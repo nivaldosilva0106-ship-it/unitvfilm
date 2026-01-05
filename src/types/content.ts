@@ -17,7 +17,7 @@ export interface Episode {
 export interface Content {
   id: string;
   title: string;
-  category: 'movie' | 'series' | 'tv';
+  category: 'movie' | 'series' | 'tv' | 'nostalgia';
   description: string;
   thumbnail_url: string;
   video_url: string;

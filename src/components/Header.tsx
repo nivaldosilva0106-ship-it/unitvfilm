@@ -261,6 +261,9 @@ export const Header = () => {
               <button onClick={() => navigate("/categories")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
                 Categorias
               </button>
+              <button onClick={() => navigate("/nostalgia")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+                NostalgiaTube
+              </button>
             </nav>
           </div>
 
