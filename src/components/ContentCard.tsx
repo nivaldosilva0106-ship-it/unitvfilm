@@ -17,10 +17,12 @@ interface ContentCardProps {
   isPremium?: boolean;
   isNew?: boolean;
   newSince?: string;
-  category?: 'movie' | 'series' | 'tv';
+  category?: 'movie' | 'series' | 'tv' | 'nostalgia';
   classification?: string; // e.g. '10', '12', '16', '18', 'L'
   internal_player_url?: string;
   hasDownloads?: boolean;
+  hasInternalPlayer?: boolean;
+  hasDownload?: boolean;
 }
 
 export const ContentCard = ({
@@ -37,7 +39,9 @@ export const ContentCard = ({
   category,
   classification,
   internal_player_url,
-  hasDownloads
+  hasDownloads,
+  hasInternalPlayer,
+  hasDownload
 }: ContentCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
