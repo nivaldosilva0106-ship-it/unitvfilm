@@ -14,6 +14,7 @@ export const AdminSettings = () => {
     const [loginBgUrl, setLoginBgUrl] = useState("");
     const [holidayDecorationsEnabled, setHolidayDecorationsEnabled] = useState(false);
     const [holidayDecorationsType, setHolidayDecorationsType] = useState<'christmas' | 'newyear' | 'both'>('christmas');
+    const [youtubeApiKey, setYoutubeApiKey] = useState("");
     const [loading, setLoading] = useState(true);
     const { isAdmin, loading: authLoading } = useAuth();
     const navigate = useNavigate();
@@ -37,6 +38,7 @@ export const AdminSettings = () => {
             }
             setHolidayDecorationsEnabled(settings.holidayDecorationsEnabled || false);
             setHolidayDecorationsType(settings.holidayDecorationsType || 'christmas');
+            setYoutubeApiKey(settings.youtubeApiKey || "");
         } catch (error) {
             console.error("Error loading settings:", error);
             toast.error("Erro ao carregar configurações");
@@ -51,7 +53,8 @@ export const AdminSettings = () => {
             await updateSiteSettings({
                 loginBackgroundUrl: loginBgUrl,
                 holidayDecorationsEnabled,
-                holidayDecorationsType
+                holidayDecorationsType,
+                youtubeApiKey
             });
             toast.success("Configurações salvas com sucesso!");
         } catch (error) {
@@ -158,6 +161,43 @@ export const AdminSettings = () => {
                                     {holidayDecorationsType === 'newyear' && 'As decorações de Ano Novo incluem fogos de artifício, brilhos e elementos festivos.'}
                                     {holidayDecorationsType === 'both' && 'Todas as decorações de Natal e Ano Novo estão ativas!'}
                                 </p>
+                            </div>
+                        )}
+                    </form>
+                </div>
+
+                {/* YouTube API Key Settings */}
+                <div className="bg-card border border-border rounded-lg p-6">
+                    <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                        🔑 YouTube API Key
+                    </h2>
+                    <form onSubmit={handleSave} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="youtubeApiKey">API Key do YouTube Data v3</Label>
+                            <Input
+                                id="youtubeApiKey"
+                                type="password"
+                                placeholder="AIzaSy..."
+                                value={youtubeApiKey}
+                                onChange={(e) => setYoutubeApiKey(e.target.value)}
+                                className="bg-background/50 font-mono"
+                            />
+                            <p className="text-sm text-muted-foreground">
+                                Esta chave é usada para importar playlists do YouTube automaticamente no NostalgiaTube.
+                                <br />
+                                <a
+                                    href="https://console.cloud.google.com/apis/credentials"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-primary hover:underline"
+                                >
+                                    Obter uma chave API →
+                                </a>
+                            </p>
+                        </div>
+                        {youtubeApiKey && (
+                            <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                                <p className="text-xs text-green-500 font-medium">✓ API Key configurada</p>
                             </div>
                         )}
                     </form>

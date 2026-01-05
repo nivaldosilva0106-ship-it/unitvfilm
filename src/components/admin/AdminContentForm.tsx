@@ -84,14 +84,13 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
         return;
       }
 
-      // NOTE: Using a public proxy or requiring a key would be better. 
-      // For now, we will try to use the 'yt-api-key' from localStorage if set, or prompt.
-      // Since we don't have a secure backend, we'll use a direct fetch with a placeholder key mechanism.
-      // User must provide their own key or we use a demo one if available.
+      // Load YouTube API Key from Firebase settings
+      const { getSiteSettings } = await import('@/lib/firebase');
+      const settings = await getSiteSettings();
+      const API_KEY = settings.youtubeApiKey || "";
 
-      const API_KEY = ""; // TODO: Add your YouTube Data API Key here or load from env
       if (!API_KEY) {
-        toast.error("API Key do YouTube não configurada no código (AdminContentForm.tsx).");
+        toast.error("API Key do YouTube não configurada. Configure nas Configurações do Site.");
         setIsImportingPlaylist(false);
         return;
       }

@@ -319,6 +319,7 @@ export interface SiteSettings {
   loginBackgroundUrl?: string;
   holidayDecorationsEnabled?: boolean;
   holidayDecorationsType?: 'christmas' | 'newyear' | 'both';
+  youtubeApiKey?: string;
 }
 
 export const getSiteSettings = async (): Promise<SiteSettings> => {
