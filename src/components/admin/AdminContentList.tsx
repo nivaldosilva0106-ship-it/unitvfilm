@@ -32,7 +32,7 @@ export const AdminContentList = ({
   });
 
   return (
-    <Card className="p-6 bg-card border-border flex flex-col h-full">
+    <Card className="p-6 bg-card border-border flex flex-col h-full overflow-hidden">
       <h2 className="text-xl font-semibold text-foreground mb-4">Conteúdos Cadastrados</h2>
 
       <div className="relative mb-4">

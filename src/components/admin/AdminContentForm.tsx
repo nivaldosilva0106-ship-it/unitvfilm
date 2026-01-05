@@ -39,6 +39,8 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
   const [isImportingComando, setIsImportingComando] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [previewUrl, setPreviewUrl] = useState("");
+  const [playlistUrl, setPlaylistUrl] = useState("");
+  const [isImportingPlaylist, setIsImportingPlaylist] = useState(false);
 
   const isNostalgia = editingContent.category === 'nostalgia';
   const isTV = editingContent.category === 'tv';
@@ -62,6 +64,72 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       toast.error("Erro ao buscar no TMDB");
     } finally {
       setIsSearching(false);
+    }
+  };
+
+  const handlePlaylistImport = async () => {
+    if (!playlistUrl.trim()) {
+      toast.error("Insira a URL da playlist");
+      return;
+    }
+
+    setIsImportingPlaylist(true);
+    try {
+      // Extract Playlist ID
+      const playlistIdMatch = playlistUrl.match(/[?&]list=([^#\&\?]+)/);
+      const playlistId = playlistIdMatch ? playlistIdMatch[1] : null;
+
+      if (!playlistId) {
+        toast.error("ID da playlist não encontrado na URL");
+        return;
+      }
+
+      // NOTE: Using a public proxy or requiring a key would be better. 
+      // For now, we will try to use the 'yt-api-key' from localStorage if set, or prompt.
+      // Since we don't have a secure backend, we'll use a direct fetch with a placeholder key mechanism.
+      // User must provide their own key or we use a demo one if available.
+
+      const API_KEY = ""; // TODO: Add your YouTube Data API Key here or load from env
+      if (!API_KEY) {
+        toast.error("API Key do YouTube não configurada no código (AdminContentForm.tsx).");
+        setIsImportingPlaylist(false);
+        return;
+      }
+
+      const response = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${API_KEY}`);
+
+      if (!response.ok) {
+        throw new Error("Falha ao buscar playlist do YouTube");
+      }
+
+      const data = await response.json();
+
+      if (!data.items) {
+        toast.error("Nenhum vídeo encontrado na playlist");
+        return;
+      }
+
+      const newEpisodes: Episode[] = data.items.map((item: any, index: number) => ({
+        season: 1,
+        episode: (editingContent.episodes?.length || 0) + index + 1,
+        title: item.snippet.title,
+        url: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
+        downloads: []
+      }));
+
+      setEditingContent(prev => ({
+        ...prev,
+        episodes: [...(prev.episodes || []), ...newEpisodes]
+      }));
+
+      toast.success(`${newEpisodes.length} vídeos importados da playlist!`);
+      setPlaylistUrl("");
+
+    } catch (error) {
+      console.error("Erro ao importar playlist:", error);
+      toast.error("Erro ao importar playlist. Verifique a API Key e a URL.");
+    } finally {
+      setIsImportingPlaylist(false);
     }
   };
 
@@ -738,6 +806,25 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                 Adicionar Episódio
               </Button>
             </div>
+
+            {isNostalgia && (
+              <div className="flex gap-2 items-center mb-4 p-4 bg-red-900/10 border border-red-900/20 rounded-lg">
+                <Input
+                  placeholder="URL da Playlist do YouTube (Extrair vídeos automaticamente)"
+                  value={playlistUrl}
+                  onChange={(e) => setPlaylistUrl(e.target.value)}
+                  className="bg-input border-border"
+                />
+                <Button
+                  onClick={handlePlaylistImport}
+                  disabled={isImportingPlaylist}
+                  className="whitespace-nowrap bg-[#FF0000] hover:bg-[#CC0000] text-white"
+                >
+                  {isImportingPlaylist ? "Carregando..." : "Importar Playlist"}
+                </Button>
+              </div>
+            )}
+
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {(editingContent.episodes || []).map((episode, index) => (
                 <div key={index} className="flex gap-2 items-start p-3 bg-secondary/50 rounded-lg">
@@ -773,43 +860,48 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                       className="bg-input border-border text-sm"
                     />
 
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="URL Player Interno (m3u8, mp4, ts)"
-                        value={episode.internal_player_url || ''}
-                        onChange={(e) => updateEpisode(index, 'internal_player_url', e.target.value)}
-                        className="bg-input border-border text-sm flex-1"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="icon"
-                        onClick={() => {
-                          if (episode.internal_player_url) {
-                            setPreviewUrl(episode.internal_player_url);
-                            setShowPreview(true);
-                          } else {
-                            toast.error("Insira uma URL para visualizar");
-                          }
-                        }}
-                        className="border-primary text-primary hover:bg-primary/10 h-10 w-10 flex-shrink-0"
-                        title="Testar Player Interno"
-                      >
-                        <Play className="w-4 h-4" />
-                      </Button>
-                    </div>
-                    <Input
-                      placeholder="URL da Legenda (VTT)"
-                      value={episode.subtitle_url || ''}
-                      onChange={(e) => updateEpisode(index, 'subtitle_url', e.target.value)}
-                      className="bg-input border-border text-sm"
-                    />
-                    <Input
-                      placeholder="URL de download (opcional - legado)"
-                      value={episode.download_url || ''}
-                      onChange={(e) => updateEpisode(index, 'download_url', e.target.value)}
-                      className="bg-input border-border text-sm"
-                    />
+
+                    {!isNostalgia && (
+                      <>
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="URL Player Interno (m3u8, mp4, ts)"
+                            value={episode.internal_player_url || ''}
+                            onChange={(e) => updateEpisode(index, 'internal_player_url', e.target.value)}
+                            className="bg-input border-border text-sm flex-1"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="icon"
+                            onClick={() => {
+                              if (episode.internal_player_url) {
+                                setPreviewUrl(episode.internal_player_url);
+                                setShowPreview(true);
+                              } else {
+                                toast.error("Insira uma URL para visualizar");
+                              }
+                            }}
+                            className="border-primary text-primary hover:bg-primary/10 h-10 w-10 flex-shrink-0"
+                            title="Testar Player Interno"
+                          >
+                            <Play className="w-4 h-4" />
+                          </Button>
+                        </div>
+                        <Input
+                          placeholder="URL da Legenda (VTT)"
+                          value={episode.subtitle_url || ''}
+                          onChange={(e) => updateEpisode(index, 'subtitle_url', e.target.value)}
+                          className="bg-input border-border text-sm"
+                        />
+                        <Input
+                          placeholder="URL de download (opcional - legado)"
+                          value={episode.download_url || ''}
+                          onChange={(e) => updateEpisode(index, 'download_url', e.target.value)}
+                          className="bg-input border-border text-sm"
+                        />
+                      </>
+                    )}
 
                     {/* Episode Download Configuration */}
                     <div className="p-3 border border-white/10 rounded-lg bg-black/20 space-y-3">
