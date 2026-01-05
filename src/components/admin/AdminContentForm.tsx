@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Search, Save, Plus, X, Lock, Sparkles, Clapperboard, Bell, Trash, Upload, Film, Tv, Download as DownloadIcon, ShieldCheck, PlusCircle } from "lucide-react";
+import { Search, Save, Plus, X, Lock, Sparkles, Clapperboard, Bell, Trash, Upload, Film, Tv, Download as DownloadIcon, ShieldCheck, PlusCircle, Play } from "lucide-react";
 import { toast } from "sonner";
 import { searchMovies, searchSeries, getImageUrl, getMovieTrailer, getSeriesTrailer, getMovieDetails, getSeriesDetails, getSeasonDetails } from "@/lib/tmdb";
 import { sendContentNotification } from "@/lib/firebase";
