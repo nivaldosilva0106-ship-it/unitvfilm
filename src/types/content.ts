@@ -4,6 +4,7 @@ export interface Episode {
   title: string;
   url: string;
   internal_player_url?: string; // URL for internal player (m3u8, mp4, ts)
+  subtitle_url?: string; // URL for VTT subtitles
   download_url?: string; // Legacy
   download_mode?: 'direct' | 'torrent' | 'mixed';
   downloads?: {
@@ -21,6 +22,7 @@ export interface Content {
   thumbnail_url: string;
   video_url: string;
   internal_player_url?: string;
+  subtitle_url?: string; // URL for VTT subtitles
   is_new?: boolean;
   new_since?: string; // ISO timestamp // Player Próprio URL (m3u8, mp4, etc)
   video_urls?: string[]; // Multiple video sources

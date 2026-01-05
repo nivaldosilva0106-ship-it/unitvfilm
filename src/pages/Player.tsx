@@ -287,16 +287,21 @@ const Player = () => {
     const allSources = useMemo(() => {
         if (!content) return [];
 
-        const sources: { name: string; url: string; type: 'internal' | 'embed' }[] = [];
+        const sources: { name: string; url: string; type: 'internal' | 'embed'; subtitle_url?: string }[] = [];
 
         // For series with episodes, check if current episode has internal_player_url
         if (content.category === 'series' && seasonParam && episodeParam) {
             const s = parseInt(seasonParam);
             const e = parseInt(episodeParam);
             const episodeData = content.episodes?.find(ep => ep.season === s && ep.episode === e);
-            
+
             if (episodeData?.internal_player_url) {
-                sources.push({ name: 'Player Interno', url: episodeData.internal_player_url, type: 'internal' });
+                sources.push({
+                    name: 'Player Interno',
+                    url: episodeData.internal_player_url,
+                    type: 'internal',
+                    subtitle_url: episodeData.subtitle_url
+                });
             }
             if (episodeData?.url) {
                 sources.push({ name: 'Player Embed', url: episodeData.url, type: 'embed' });
@@ -304,7 +309,12 @@ const Player = () => {
         } else {
             // For movies/TV
             if (content.internal_player_url) {
-                sources.push({ name: 'Player Interno', url: content.internal_player_url, type: 'internal' });
+                sources.push({
+                    name: 'Player Interno',
+                    url: content.internal_player_url,
+                    type: 'internal',
+                    subtitle_url: content.subtitle_url
+                });
             }
 
             const currentUrls = (content.video_urls && content.video_urls.length > 0)
@@ -784,6 +794,7 @@ const Player = () => {
                                 title={currentTitle}
                                 autoPlay
                                 startTime={isResuming ? lastPositionSeconds : 0}
+                                subtitles={currentSource.subtitle_url}
                             />
                         </div>
                     ) : (

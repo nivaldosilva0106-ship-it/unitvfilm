@@ -275,7 +275,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
 
     setEditingContent(prev => ({
       ...prev,
-      episodes: [...currentEpisodes, { season: nextSeason, episode: nextEpisode, title: "", url: "", download_url: "" }],
+      episodes: [...currentEpisodes, { season: nextSeason, episode: nextEpisode, title: "", url: "", download_url: "", internal_player_url: "", subtitle_url: "" }],
     }));
   };
 
@@ -680,7 +680,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
               <p className="text-xs text-muted-foreground">
                 URL direta do arquivo de vídeo para usar o player nativo do próprio site (suporta HLS/m3u8, Google Drive, mp4, ts).
               </p>
-              
+
               {showPreview && previewUrl && (
                 <div className="relative rounded-lg overflow-hidden border border-border bg-black">
                   <div className="flex items-center justify-between bg-secondary/50 px-3 py-2">
@@ -705,6 +705,19 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                   </div>
                 </div>
               )}
+
+              <div className="pt-2 border-t border-border mt-2">
+                <Label>URL da Legenda (VTT)</Label>
+                <Input
+                  value={editingContent.subtitle_url || ''}
+                  onChange={(e) => setEditingContent(prev => ({ ...prev, subtitle_url: e.target.value }))}
+                  className="bg-input border-border"
+                  placeholder="https://... (URL direta para arquivo .vtt)"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  URL direta do arquivo de legenda no formato WebVTT (.vtt).
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -757,10 +770,36 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                       onChange={(e) => updateEpisode(index, 'url', e.target.value)}
                       className="bg-input border-border text-sm"
                     />
+
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="URL Player Interno (m3u8, mp4, ts)"
+                        value={episode.internal_player_url || ''}
+                        onChange={(e) => updateEpisode(index, 'internal_player_url', e.target.value)}
+                        className="bg-input border-border text-sm flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="icon"
+                        onClick={() => {
+                          if (episode.internal_player_url) {
+                            setPreviewUrl(episode.internal_player_url);
+                            setShowPreview(true);
+                          } else {
+                            toast.error("Insira uma URL para visualizar");
+                          }
+                        }}
+                        className="border-primary text-primary hover:bg-primary/10 h-10 w-10 flex-shrink-0"
+                        title="Testar Player Interno"
+                      >
+                        <Play className="w-4 h-4" />
+                      </Button>
+                    </div>
                     <Input
-                      placeholder="URL Player Interno (m3u8, mp4, ts)"
-                      value={episode.internal_player_url || ''}
-                      onChange={(e) => updateEpisode(index, 'internal_player_url', e.target.value)}
+                      placeholder="URL da Legenda (VTT)"
+                      value={episode.subtitle_url || ''}
+                      onChange={(e) => updateEpisode(index, 'subtitle_url', e.target.value)}
                       className="bg-input border-border text-sm"
                     />
                     <Input

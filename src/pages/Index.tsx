@@ -351,16 +351,17 @@ const Index = () => {
     }
 
     // TV Channels: Keep modal behavior
-    if (content.video_url) {
+    if (content.video_url || content.internal_player_url) {
       const playerState = {
         open: true,
-        url: content.video_url,
+        url: content.video_url || '',
         urls: content.video_urls,
         title: content.title,
         isPremium: content.isPremium,
         image: content.thumbnail_url,
         description: content.description,
-        rating: content.rating
+        rating: content.rating,
+        internalUrl: content.internal_player_url
       };
 
       if (content.is_cinema_mode) {

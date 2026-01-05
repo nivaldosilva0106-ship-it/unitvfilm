@@ -181,8 +181,8 @@ const Admin = () => {
 
   return (
     <AdminLayout title="Gerenciar Conteúdos">
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="space-y-6">
+      <div className="grid lg:grid-cols-2 gap-6 h-[calc(100vh-140px)]">
+        <div className="space-y-6 overflow-y-auto pr-2 pb-4">
           <AdminContentImporter
             onImport={(importedData) => {
               setEditingContent(prev => ({ ...prev, ...importedData }));

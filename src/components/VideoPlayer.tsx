@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { 
-  Play, Pause, Volume2, VolumeX, Maximize, Minimize, 
-  Settings, SkipBack, SkipForward, Loader2
+import {
+  Play, Pause, Volume2, VolumeX, Maximize, Minimize,
+  Settings, SkipBack, SkipForward, Loader2, Captions, CaptionsOff
 } from "lucide-react";
 import Hls from "hls.js";
 import { Slider } from "@/components/ui/slider";
@@ -19,6 +19,7 @@ interface VideoPlayerProps {
   onEnded?: () => void;
   autoPlay?: boolean;
   startTime?: number;
+  subtitles?: string;
 }
 
 const formatTime = (seconds: number): string => {
@@ -32,13 +33,15 @@ const formatTime = (seconds: number): string => {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-export const VideoPlayer = ({ 
-  url, 
-  poster, 
-  title, 
-  onEnded, 
+export const VideoPlayer = ({
+  url,
+  poster,
+  title,
+  onEnded,
+  onEnded,
   autoPlay = true,
-  startTime = 0 
+  startTime = 0,
+  subtitles
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -56,6 +59,7 @@ export const VideoPlayer = ({
   const [qualities, setQualities] = useState<{ height: number; level: number }[]>([]);
   const [currentQuality, setCurrentQuality] = useState<number>(-1);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [showSubtitles, setShowSubtitles] = useState(false);
 
   // Detect stream type
   const isHLS = url.includes('.m3u8') || url.includes('m3u8');
@@ -85,19 +89,19 @@ export const VideoPlayer = ({
         enableWorker: true,
         lowLatencyMode: true,
       });
-      
+
       hls.loadSource(videoUrl);
       hls.attachMedia(video);
-      
+
       hls.on(Hls.Events.MANIFEST_PARSED, (_, data) => {
         const levelsWithHeight = data.levels
           .filter(l => l.height)
           .map((l, i) => ({ height: l.height, level: i }))
           .sort((a, b) => b.height - a.height);
         setQualities(levelsWithHeight);
-        
+
         if (autoPlay) {
-          video.play().catch(() => {});
+          video.play().catch(() => { });
         }
       });
 
@@ -115,13 +119,13 @@ export const VideoPlayer = ({
       // Safari native HLS
       video.src = videoUrl;
       if (autoPlay) {
-        video.play().catch(() => {});
+        video.play().catch(() => { });
       }
     } else {
       // Regular video (mp4, ts, etc.)
       video.src = videoUrl;
       if (autoPlay) {
-        video.play().catch(() => {});
+        video.play().catch(() => { });
       }
     }
   }, [url, isHLS, autoPlay, getVideoUrl]);
@@ -303,7 +307,17 @@ export const VideoPlayer = ({
         className="w-full h-full object-contain"
         playsInline
         crossOrigin="anonymous"
-      />
+      >
+        {subtitles && showSubtitles && (
+          <track
+            label="Português"
+            kind="subtitles"
+            srcLang="pt"
+            src={subtitles}
+            default
+          />
+        )}
+      </video>
 
       {/* Buffering Indicator */}
       {isBuffering && (
@@ -326,9 +340,8 @@ export const VideoPlayer = ({
 
       {/* Controls Overlay */}
       <div
-        className={`absolute inset-0 flex flex-col justify-end transition-opacity duration-300 z-30 ${
-          showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
-        }`}
+        className={`absolute inset-0 flex flex-col justify-end transition-opacity duration-300 z-30 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
       >
         {/* Gradient Background */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
@@ -418,6 +431,15 @@ export const VideoPlayer = ({
 
             {/* Right Controls */}
             <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowSubtitles(!showSubtitles)}
+                className={`w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors ${showSubtitles ? 'text-primary' : 'text-white'}`}
+                title="Legendas"
+                disabled={!subtitles}
+              >
+                {showSubtitles ? <Captions className="w-5 h-5" /> : <CaptionsOff className="w-5 h-5" />}
+              </button>
+
               {/* Settings Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -425,22 +447,22 @@ export const VideoPlayer = ({
                     <Settings className="w-5 h-5 text-white" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent 
-                  align="end" 
+                <DropdownMenuContent
+                  align="end"
                   className="bg-black/95 border-white/20 backdrop-blur-xl min-w-[180px]"
                 >
                   {/* Quality */}
                   {qualities.length > 0 && (
                     <>
                       <div className="px-2 py-1.5 text-xs text-gray-400 font-semibold">Qualidade</div>
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         onClick={() => changeQuality(-1)}
                         className={`text-white hover:bg-white/10 cursor-pointer ${currentQuality === -1 ? 'bg-primary/20' : ''}`}
                       >
                         Auto
                       </DropdownMenuItem>
                       {qualities.map(q => (
-                        <DropdownMenuItem 
+                        <DropdownMenuItem
                           key={q.level}
                           onClick={() => changeQuality(q.level)}
                           className={`text-white hover:bg-white/10 cursor-pointer ${currentQuality === q.level ? 'bg-primary/20' : ''}`}
@@ -451,11 +473,11 @@ export const VideoPlayer = ({
                       <div className="h-px bg-white/10 my-1" />
                     </>
                   )}
-                  
+
                   {/* Playback Speed */}
                   <div className="px-2 py-1.5 text-xs text-gray-400 font-semibold">Velocidade</div>
                   {[0.5, 0.75, 1, 1.25, 1.5, 2].map(rate => (
-                    <DropdownMenuItem 
+                    <DropdownMenuItem
                       key={rate}
                       onClick={() => changePlaybackRate(rate)}
                       className={`text-white hover:bg-white/10 cursor-pointer ${playbackRate === rate ? 'bg-primary/20' : ''}`}
