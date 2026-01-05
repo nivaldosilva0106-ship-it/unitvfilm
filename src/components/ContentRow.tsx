@@ -101,6 +101,8 @@ export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDe
                 newSince={content.new_since}
                 category={content.category}
                 classification={content.classification}
+                hasInternalPlayer={!!content.internal_player_url}
+                hasDownload={!!(content.download_url || (content.downloads && content.downloads.length > 0))}
               />
             </div>
           ))}

@@ -95,6 +95,8 @@ export const MarqueeContentRow = ({
                                     newSince={content.new_since}
                                     category={content.category}
                                     classification={content.classification}
+                                    hasInternalPlayer={!!content.internal_player_url}
+                                    hasDownload={!!(content.download_url || (content.downloads && content.downloads.length > 0))}
                                 />
                                 {showNumbers && (
                                     <div className="absolute -left-4 sm:-left-6 top-0 bottom-0 flex items-end pb-2 sm:pb-4 z-30 pointer-events-none">
