@@ -38,7 +38,6 @@ export const VideoPlayer = ({
   poster,
   title,
   onEnded,
-  onEnded,
   autoPlay = true,
   startTime = 0,
   subtitles
