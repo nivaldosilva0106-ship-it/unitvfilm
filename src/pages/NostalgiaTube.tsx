@@ -100,16 +100,20 @@ export default function NostalgiaTube(): JSX.Element {
                     enablejsapi: 1
                 },
                 events: {
+                    onReady: () => {
+                        // Player is ready - can now safely use player methods
+                    },
                     onStateChange: (event: any) => {
                         setIsPlaying(event.data === window.YT.PlayerState.PLAYING);
                     }
                 }
             });
             setPlayer(newPlayer);
-        } else if (player && youtubeId) {
+        } else if (player && youtubeId && typeof player.loadVideoById === 'function') {
+            // Only call loadVideoById if the player is ready and has the method
             player.loadVideoById(youtubeId);
         }
-    }, [apiReady, youtubeId]);
+    }, [apiReady, youtubeId, player]);
 
     // Player Controls
     const togglePlay = () => {
