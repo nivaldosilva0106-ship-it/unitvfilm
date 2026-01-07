@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
+import { LoadingScreen } from "@/components/LoadingScreen";
 import { Volume2, VolumeX, Play, Info, Plus, Check, Star } from "lucide-react";
 import { ContentRow } from "@/components/ContentRow";
 import { MarqueeContentRow } from "@/components/MarqueeContentRow";
@@ -407,14 +408,7 @@ const Index = () => {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-foreground">Carregando...</p>
-        </div>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   const showAllRows = selectedCategory === 'Todos';
