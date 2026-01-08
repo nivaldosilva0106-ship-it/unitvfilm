@@ -600,31 +600,31 @@ const Player = () => {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => navigate(-1)}
-                                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 flex-shrink-0"
+                                className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 flex-shrink-0"
                             >
-                                <ArrowLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+                                <ArrowLeft className="w-4 h-4 sm:w-6 sm:h-6" />
                             </Button>
 
-                            <div className="px-3 sm:px-4 py-1.5 sm:py-2 bg-black/50 backdrop-blur-md rounded-full border border-white/20 flex items-center gap-2 sm:gap-3 min-w-0">
+                            <div className="px-2 sm:px-4 py-1 sm:py-2 bg-black/50 backdrop-blur-md rounded-full border border-white/20 flex items-center gap-2 sm:gap-3 min-w-0">
                                 {/* Logo */}
-                                <div className="hidden xs:flex items-center gap-2 border-r border-white/20 pr-3 mr-1 flex-shrink-0">
-                                    <div className="bg-primary p-1 rounded">
-                                        <Film className="w-3 h-3 text-white" />
+                                <div className="flex items-center gap-1.5 sm:gap-2 border-r border-white/20 pr-2 sm:pr-3 mr-1 flex-shrink-0">
+                                    <div className="bg-primary p-0.5 sm:p-1 rounded">
+                                        <Film className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
                                     </div>
-                                    <span className="text-white font-bold text-sm hidden sm:inline">Uni<span className="text-primary">Tv</span>Film</span>
+                                    <span className="text-white font-bold text-xs sm:text-sm hidden sm:inline">Uni<span className="text-primary">Tv</span>Film</span>
                                 </div>
 
                                 {/* Circular Poster */}
                                 {content?.thumbnail_url && (
                                     <img
                                         src={content.thumbnail_url}
-                                        className="w-6 h-6 sm:w-8 sm:h-8 rounded-full object-cover border border-white/20 shadow-sm flex-shrink-0"
+                                        className="w-5 h-5 sm:w-8 sm:h-8 rounded-full object-cover border border-white/20 shadow-sm flex-shrink-0"
                                         alt="Poster"
                                     />
                                 )}
 
                                 {/* Title */}
-                                <span className="text-white font-bold text-xs sm:text-base truncate">{currentTitle}</span>
+                                <span className="text-white font-bold text-[10px] sm:text-base truncate">{currentTitle}</span>
                             </div>
                         </div>
 
@@ -635,12 +635,12 @@ const Player = () => {
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => setShowSourceMenu(!showSourceMenu)}
-                                        className="w-12 h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                        className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
                                     >
-                                        <List className="w-6 h-6" />
+                                        <List className="w-4 h-4 sm:w-6 sm:h-6" />
                                     </Button>
                                     {showSourceMenu && (
-                                        <div className="absolute top-14 right-0 bg-black/90 backdrop-blur-md rounded-lg shadow-xl border border-white/20 overflow-hidden min-w-[150px]">
+                                        <div className="absolute top-10 sm:top-14 right-0 bg-black/90 backdrop-blur-md rounded-lg shadow-xl border border-white/20 overflow-hidden min-w-[150px]">
                                             {allSources.map((source, index) => (
                                                 <button
                                                     key={index}
@@ -650,7 +650,7 @@ const Player = () => {
                                                     }}
                                                     className={`w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center justify-between ${currentSourceIndex === index ? 'bg-primary/20' : ''}`}
                                                 >
-                                                    <span>{source.name}</span>
+                                                    <span className="text-xs sm:text-sm">{source.name}</span>
                                                     {currentSourceIndex === index && <span className="text-primary">✓</span>}
                                                 </button>
                                             ))}
@@ -663,28 +663,28 @@ const Player = () => {
                                 variant="ghost"
                                 size="icon"
                                 onClick={handleToggleMyList}
-                                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
                                 title={isInMyList ? "Remover da lista" : "Assistir mais tarde"}
                             >
-                                {isInMyList ? <Check className="w-5 h-5 sm:w-6 sm:h-6" /> : <Plus className="w-5 h-5 sm:w-6 sm:h-6" />}
+                                {isInMyList ? <Check className="w-4 h-4 sm:w-6 sm:h-6" /> : <Plus className="w-4 h-4 sm:w-6 sm:h-6" />}
                             </Button>
 
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={toggleFullscreen}
-                                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
                             >
-                                {isFullscreen ? <Minimize className="w-5 h-5 sm:w-6 sm:h-6" /> : <Maximize className="w-5 h-5 sm:w-6 sm:h-6" />}
+                                {isFullscreen ? <Minimize className="w-4 h-4 sm:w-6 sm:h-6" /> : <Maximize className="w-4 h-4 sm:w-6 sm:h-6" />}
                             </Button>
 
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => navigate('/')}
-                                className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-red-600 backdrop-blur-md border border-white/20"
+                                className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-red-600 backdrop-blur-md border border-white/20"
                             >
-                                <X className="w-5 h-5 sm:w-6 sm:h-6" />
+                                <X className="w-4 h-4 sm:w-6 sm:h-6" />
                             </Button>
                         </div>
                     </div>
@@ -696,10 +696,10 @@ const Player = () => {
                                 onClick={handleNextEpisode}
                                 variant="ghost"
                                 size="icon"
-                                className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-black/60 hover:bg-primary text-white backdrop-blur-md border border-white/20 shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center"
+                                className="w-10 h-10 sm:w-16 sm:h-16 rounded-full bg-black/60 hover:bg-primary text-white backdrop-blur-md border border-white/20 shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center"
                                 title={`Próximo: ${nextEpisode.title}`}
                             >
-                                <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8 ml-0.5" />
+                                <ChevronRight className="w-5 h-5 sm:w-8 sm:h-8 ml-0.5" />
                             </Button>
                             <div className="bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block">
                                 <span className="text-[9px] text-white uppercase font-bold tracking-wider">Próximo Episódio</span>
@@ -828,9 +828,9 @@ const Player = () => {
                                 }}
                                 variant="ghost"
                                 size="icon"
-                                className={`w-12 h-12 rounded-full bg-black/50 text-white border border-white/20 backdrop-blur-md transition-all duration-300 hover:bg-primary hover:scale-110 ${isContinueWatchingOpen ? 'rotate-180' : ''}`}
+                                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white border border-white/20 backdrop-blur-md transition-all duration-300 hover:bg-primary hover:scale-110 ${isContinueWatchingOpen ? 'rotate-180' : ''}`}
                             >
-                                <ChevronDown className="w-8 h-8" />
+                                <ChevronDown className="w-6 h-6 sm:w-8 sm:h-8" />
                             </Button>
                         </div>
                     )}

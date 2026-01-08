@@ -330,9 +330,9 @@ export const VideoPlayer = ({
         <div className="absolute inset-0 flex items-center justify-center z-10">
           <button
             onClick={togglePlay}
-            className="w-20 h-20 bg-primary/90 hover:bg-primary rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-2xl"
+            className="w-14 h-14 md:w-20 md:h-20 bg-primary/90 hover:bg-primary rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-2xl"
           >
-            <Play className="w-10 h-10 text-white fill-white ml-1" />
+            <Play className="w-6 h-6 md:w-10 md:h-10 text-white fill-white ml-1" />
           </button>
         </div>
       )}
@@ -348,15 +348,15 @@ export const VideoPlayer = ({
         {/* Title */}
         {title && (
           <div className="absolute top-4 left-4 right-4">
-            <h2 className="text-white font-bold text-lg drop-shadow-lg line-clamp-1">{title}</h2>
+            <h2 className="text-white font-bold text-sm md:text-lg drop-shadow-lg line-clamp-1">{title}</h2>
           </div>
         )}
 
         {/* Controls Container */}
-        <div className="relative p-4 space-y-3">
+        <div className="relative p-3 md:p-4 space-y-2 md:space-y-3">
           {/* Progress Bar */}
-          <div className="flex items-center gap-3">
-            <span className="text-white text-xs font-mono min-w-[45px]">
+          <div className="flex items-center gap-2 md:gap-3">
+            <span className="text-white text-[10px] md:text-xs font-mono min-w-[35px] md:min-w-[45px]">
               {formatTime(currentTime)}
             </span>
             <div className="flex-1 group/progress">
@@ -366,10 +366,10 @@ export const VideoPlayer = ({
                 max={duration || 100}
                 step={0.1}
                 onValueChange={handleSeek}
-                className="cursor-pointer [&_[data-radix-slider-track]]:h-1 [&_[data-radix-slider-track]]:bg-white/30 [&_[data-radix-slider-range]]:bg-primary [&_[data-radix-slider-thumb]]:w-4 [&_[data-radix-slider-thumb]]:h-4 [&_[data-radix-slider-thumb]]:bg-primary [&_[data-radix-slider-thumb]]:border-2 [&_[data-radix-slider-thumb]]:border-white [&_[data-radix-slider-thumb]]:opacity-0 group-hover/progress:[&_[data-radix-slider-thumb]]:opacity-100 [&_[data-radix-slider-thumb]]:transition-opacity"
+                className="cursor-pointer [&_[data-radix-slider-track]]:h-1 [&_[data-radix-slider-track]]:bg-white/30 [&_[data-radix-slider-range]]:bg-primary [&_[data-radix-slider-thumb]]:w-3 [&_[data-radix-slider-thumb]]:h-3 md:[&_[data-radix-slider-thumb]]:w-4 md:[&_[data-radix-slider-thumb]]:h-4 [&_[data-radix-slider-thumb]]:bg-primary [&_[data-radix-slider-thumb]]:border-2 [&_[data-radix-slider-thumb]]:border-white [&_[data-radix-slider-thumb]]:opacity-0 group-hover/progress:[&_[data-radix-slider-thumb]]:opacity-100 [&_[data-radix-slider-thumb]]:transition-opacity"
               />
             </div>
-            <span className="text-white text-xs font-mono min-w-[45px] text-right">
+            <span className="text-white text-[10px] md:text-xs font-mono min-w-[35px] md:min-w-[45px] text-right">
               {formatTime(duration)}
             </span>
           </div>
@@ -377,45 +377,45 @@ export const VideoPlayer = ({
           {/* Bottom Controls */}
           <div className="flex items-center justify-between">
             {/* Left Controls */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 md:gap-2">
               <button
                 onClick={togglePlay}
-                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
               >
                 {isPlaying ? (
-                  <Pause className="w-6 h-6 text-white fill-white" />
+                  <Pause className="w-4 h-4 md:w-6 md:h-6 text-white fill-white" />
                 ) : (
-                  <Play className="w-6 h-6 text-white fill-white ml-0.5" />
+                  <Play className="w-4 h-4 md:w-6 md:h-6 text-white fill-white ml-0.5" />
                 )}
               </button>
 
               <button
                 onClick={() => skip(-10)}
-                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
               >
-                <SkipBack className="w-5 h-5 text-white" />
+                <SkipBack className="w-4 h-4 md:w-5 md:h-5 text-white" />
               </button>
 
               <button
                 onClick={() => skip(10)}
-                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
               >
-                <SkipForward className="w-5 h-5 text-white" />
+                <SkipForward className="w-4 h-4 md:w-5 md:h-5 text-white" />
               </button>
 
               {/* Volume */}
-              <div className="flex items-center gap-2 group/volume">
+              <div className="flex items-center gap-1 md:gap-2 group/volume">
                 <button
                   onClick={toggleMute}
-                  className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                  className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
                 >
                   {isMuted || volume === 0 ? (
-                    <VolumeX className="w-5 h-5 text-white" />
+                    <VolumeX className="w-4 h-4 md:w-5 md:h-5 text-white" />
                   ) : (
-                    <Volume2 className="w-5 h-5 text-white" />
+                    <Volume2 className="w-4 h-4 md:w-5 md:h-5 text-white" />
                   )}
                 </button>
-                <div className="w-0 overflow-hidden group-hover/volume:w-20 transition-all duration-300">
+                <div className="w-0 overflow-hidden group-hover/volume:w-16 md:group-hover/volume:w-20 transition-all duration-300">
                   <Slider
                     value={[isMuted ? 0 : volume]}
                     min={0}
@@ -429,34 +429,34 @@ export const VideoPlayer = ({
             </div>
 
             {/* Right Controls */}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 md:gap-2">
               <button
                 onClick={() => setShowSubtitles(!showSubtitles)}
-                className={`w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors ${showSubtitles ? 'text-primary' : 'text-white'}`}
+                className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors ${showSubtitles ? 'text-primary' : 'text-white'}`}
                 title="Legendas"
                 disabled={!subtitles}
               >
-                {showSubtitles ? <Captions className="w-5 h-5" /> : <CaptionsOff className="w-5 h-5" />}
+                {showSubtitles ? <Captions className="w-4 h-4 md:w-5 md:h-5" /> : <CaptionsOff className="w-4 h-4 md:w-5 md:h-5" />}
               </button>
 
               {/* Settings Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
-                    <Settings className="w-5 h-5 text-white" />
+                  <button className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
+                    <Settings className="w-4 h-4 md:w-5 md:h-5 text-white" />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
-                  className="bg-black/95 border-white/20 backdrop-blur-xl min-w-[180px]"
+                  className="bg-black/95 border-white/20 backdrop-blur-xl min-w-[150px] md:min-w-[180px]"
                 >
                   {/* Quality */}
                   {qualities.length > 0 && (
                     <>
-                      <div className="px-2 py-1.5 text-xs text-gray-400 font-semibold">Qualidade</div>
+                      <div className="px-2 py-1.5 text-[10px] md:text-xs text-gray-400 font-semibold">Qualidade</div>
                       <DropdownMenuItem
                         onClick={() => changeQuality(-1)}
-                        className={`text-white hover:bg-white/10 cursor-pointer ${currentQuality === -1 ? 'bg-primary/20' : ''}`}
+                        className={`text-white hover:bg-white/10 cursor-pointer text-xs md:text-sm ${currentQuality === -1 ? 'bg-primary/20' : ''}`}
                       >
                         Auto
                       </DropdownMenuItem>
@@ -464,7 +464,7 @@ export const VideoPlayer = ({
                         <DropdownMenuItem
                           key={q.level}
                           onClick={() => changeQuality(q.level)}
-                          className={`text-white hover:bg-white/10 cursor-pointer ${currentQuality === q.level ? 'bg-primary/20' : ''}`}
+                          className={`text-white hover:bg-white/10 cursor-pointer text-xs md:text-sm ${currentQuality === q.level ? 'bg-primary/20' : ''}`}
                         >
                           {getQualityLabel(q.height)}
                         </DropdownMenuItem>
@@ -474,12 +474,12 @@ export const VideoPlayer = ({
                   )}
 
                   {/* Playback Speed */}
-                  <div className="px-2 py-1.5 text-xs text-gray-400 font-semibold">Velocidade</div>
+                  <div className="px-2 py-1.5 text-[10px] md:text-xs text-gray-400 font-semibold">Velocidade</div>
                   {[0.5, 0.75, 1, 1.25, 1.5, 2].map(rate => (
                     <DropdownMenuItem
                       key={rate}
                       onClick={() => changePlaybackRate(rate)}
-                      className={`text-white hover:bg-white/10 cursor-pointer ${playbackRate === rate ? 'bg-primary/20' : ''}`}
+                      className={`text-white hover:bg-white/10 cursor-pointer text-xs md:text-sm ${playbackRate === rate ? 'bg-primary/20' : ''}`}
                     >
                       {rate === 1 ? 'Normal' : `${rate}x`}
                     </DropdownMenuItem>
@@ -490,12 +490,12 @@ export const VideoPlayer = ({
               {/* Fullscreen */}
               <button
                 onClick={toggleFullscreen}
-                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
               >
                 {isFullscreen ? (
-                  <Minimize className="w-5 h-5 text-white" />
+                  <Minimize className="w-4 h-4 md:w-5 md:h-5 text-white" />
                 ) : (
-                  <Maximize className="w-5 h-5 text-white" />
+                  <Maximize className="w-4 h-4 md:w-5 md:h-5 text-white" />
                 )}
               </button>
             </div>
