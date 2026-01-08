@@ -212,6 +212,22 @@ export const Header = () => {
                       <Film className="w-5 h-5" />
                       Categorias
                     </button>
+                    <button
+                      onClick={() => { navigate("/nostalgia"); }}
+                      className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
+                    >
+                      <Film className="w-5 h-5" />
+                      <span>NostalgiaTube</span>
+                      {window.location.pathname.includes('/nostalgia') && (
+                        <div className="flex items-center gap-1.5">
+                          <div className="relative">
+                            <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
+                            <div className="absolute inset-0 w-2 h-2 bg-red-600 rounded-full animate-ping"></div>
+                          </div>
+                          <span className="text-[10px] font-semibold text-red-500 uppercase tracking-wider">Live</span>
+                        </div>
+                      )}
+                    </button>
 
                     <div className="pt-4 border-t border-white/10 mt-2">
                       <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 px-2">Créditos Diários</p>
@@ -261,8 +277,17 @@ export const Header = () => {
               <button onClick={() => navigate("/categories")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
                 Categorias
               </button>
-              <button onClick={() => navigate("/nostalgia")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+              <button onClick={() => navigate("/nostalgia")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors flex items-center gap-2">
                 NostalgiaTube
+                {window.location.pathname.includes('/nostalgia') && (
+                  <div className="flex items-center gap-1.5">
+                    <div className="relative">
+                      <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></div>
+                      <div className="absolute inset-0 w-2 h-2 bg-red-600 rounded-full animate-ping"></div>
+                    </div>
+                    <span className="text-[10px] font-semibold text-red-500 uppercase tracking-wider">Live</span>
+                  </div>
+                )}
               </button>
             </nav>
           </div>
