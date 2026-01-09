@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getAllContents, saveUserProgress, getUserProgress } from "@/lib/firebase";
 import { Header } from "@/components/Header";
@@ -467,17 +467,19 @@ export default function NostalgiaTube(): JSX.Element {
 
     const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-    const qualityLabels: Record<string, string> = {
-        'auto': 'Auto',
-        'highres': '4K',
+    // Quality labels mapping
+    const qualityLabels: { [key: string]: string } = useMemo(() => ({
+        'highres': '4K+',
+        'hd2160': '4K',
+        'hd1440': '1440p',
         'hd1080': '1080p',
         'hd720': '720p',
         'large': '480p',
         'medium': '360p',
         'small': '240p',
         'tiny': '144p',
-        'default': 'Auto'
-    };
+        'auto': 'Auto'
+    }), []);
 
     return (
         <div className="min-h-screen bg-[#141414] text-white font-sans">
@@ -490,7 +492,7 @@ export default function NostalgiaTube(): JSX.Element {
                     onMouseEnter={() => setShowControls(true)}
                     onMouseLeave={() => setShowControls(false)}
                 >
-                    <div className="relative w-full pb-[65%] md:pb-[42%] [&:fullscreen]:pb-0 [&:fullscreen]:h-screen [&:fullscreen]:w-screen">
+                    <div className="relative w-full pb-[75%] md:pb-[42%] [&:fullscreen]:pb-0 [&:fullscreen]:h-screen [&:fullscreen]:w-screen">
                         {youtubeId ? (
                             <>
                                 {/* Scaled YouTube Player - 130% */}
@@ -623,6 +625,50 @@ export default function NostalgiaTube(): JSX.Element {
                                                 </div>
                                             )}
                                         </div>
+
+                                        {/* Like/Dislike Buttons */}
+                                        <div className="flex items-center gap-1 bg-white/10 rounded-full px-1 ml-2">
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className={`text-white hover:bg-white/20 h-8 w-8 md:h-9 md:w-9 rounded-full ${liked ? 'text-primary' : ''}`}
+                                                onClick={() => {
+                                                    setLiked(!liked);
+                                                    if (disliked) setDisliked(false);
+                                                    if (!liked) toast.success("Marcado como 'Gostei'!");
+                                                }}
+                                            >
+                                                <ThumbsUp className="w-4 h-4 md:w-5 md:h-5" fill={liked ? "currentColor" : "none"} />
+                                            </Button>
+                                            <div className="w-px h-3 bg-white/20" />
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className={`text-white hover:bg-white/20 h-8 w-8 md:h-9 md:w-9 rounded-full ${disliked ? 'text-white' : ''}`}
+                                                onClick={() => {
+                                                    setDisliked(!disliked);
+                                                    if (liked) setLiked(false);
+                                                }}
+                                            >
+                                                <ThumbsDown className="w-4 h-4 md:w-5 md:h-5" fill={disliked ? "currentColor" : "none"} />
+                                            </Button>
+                                        </div>
+
+                                        {/* Download Button */}
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="text-white hover:bg-white/20 h-8 w-8 md:h-9 md:w-9 hidden sm:flex"
+                                            title="Baixar MP3/MP4"
+                                            onClick={() => {
+                                                toast.info("Iniciando download...");
+                                                setTimeout(() => {
+                                                    toast.success("Download iniciado! (Simulação)");
+                                                }, 1500);
+                                            }}
+                                        >
+                                            <Download className="w-4 h-4 md:w-5 md:h-5" />
+                                        </Button>
 
                                         {/* Refresh Button */}
                                         <Button

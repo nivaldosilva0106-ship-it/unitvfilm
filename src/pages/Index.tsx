@@ -261,27 +261,38 @@ const Index = () => {
     }
   };
 
-  // Mapeamento e filtragem de conteúdo por categoria
+  // Mapeamento e filtragem de conteúdo por categoria - Otimizado
   const categorizedContent = useMemo(() => {
+    if (!allContentData.length) return { movies: [], series: [], nostalgia: [], tvChannels: [], featured: [], topRated: [] };
+
     const data = allContentData;
 
     if (selectedCategory === 'Todos') {
+      // Helper for random shuffle - Memoized inside
+      const shuffle = (array: Content[]) => {
+        if (array.length <= 1) return array;
+        return [...array].sort(() => 0.5 - Math.random());
+      };
+
+      const movies = data.filter(c => c.category === 'movie');
+      const series = data.filter(c => c.category === 'series');
+      const nostalgia = data.filter(c => c.category === 'nostalgia');
+      const tv = data.filter(c => c.category === 'tv');
+
+      // Top rated calculation
       const topRated = data.filter(c =>
         (c.category === 'movie' || c.category === 'series') &&
         c.rating &&
         c.rating >= 7.0
-      ).sort(() => 0.5 - Math.random()).slice(0, 15); // Random Top Rated
-
-      // Helper for random shuffle
-      const shuffle = (array: Content[]) => [...array].sort(() => 0.5 - Math.random());
+      );
 
       return {
-        movies: shuffle(data.filter(c => c.category === 'movie')),
-        series: shuffle(data.filter(c => c.category === 'series')),
-        nostalgia: shuffle(data.filter(c => c.category === 'nostalgia')),
-        tvChannels: shuffle(data.filter(c => c.category === 'tv')),
+        movies: shuffle(movies),
+        series: shuffle(series),
+        nostalgia: shuffle(nostalgia),
+        tvChannels: shuffle(tv),
         featured: randomContent, // Already shuffled
-        topRated: topRated,
+        topRated: shuffle(topRated).slice(0, 15),
       };
     }
 
