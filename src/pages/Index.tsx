@@ -278,6 +278,7 @@ const Index = () => {
       return {
         movies: shuffle(data.filter(c => c.category === 'movie')),
         series: shuffle(data.filter(c => c.category === 'series')),
+        nostalgia: shuffle(data.filter(c => c.category === 'nostalgia')),
         tvChannels: shuffle(data.filter(c => c.category === 'tv')),
         featured: randomContent, // Already shuffled
         topRated: topRated,
@@ -337,6 +338,12 @@ const Index = () => {
     // Series: Open episode selector
     if (content.category === 'series' && content.episodes && content.episodes.length > 0) {
       setSelectedSeries(content);
+      return;
+    }
+
+    // Nostalgia: Navigate to nostalgia player
+    if (content.category === 'nostalgia') {
+      navigate(`/nostalgia/${content.id}`);
       return;
     }
 
@@ -643,6 +650,17 @@ const Index = () => {
               <ContentRow
                 title="Séries"
                 contents={categorizedContent.series}
+                onPlayContent={handlePlayContent}
+                onInfoContent={handleInfoContent}
+                onDetailsContent={handleDetailsContent}
+                onDownloadContent={handleDownloadContent}
+              />
+            )}
+
+            {categorizedContent.nostalgia && categorizedContent.nostalgia.length > 0 && (
+              <ContentRow
+                title="Nostalgia"
+                contents={categorizedContent.nostalgia}
                 onPlayContent={handlePlayContent}
                 onInfoContent={handleInfoContent}
                 onDetailsContent={handleDetailsContent}

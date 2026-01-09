@@ -26,7 +26,7 @@ export default function Categories() {
     const [myList, setMyList] = useState<string[]>([]); // Store IDs for quick check
 
     // Filter State
-    const [typeFilter, setTypeFilter] = useState<'all' | 'movie' | 'series' | 'tv'>('all');
+    const [typeFilter, setTypeFilter] = useState<'all' | 'movie' | 'series' | 'tv' | 'nostalgia'>('all');
     const [accessFilter, setAccessFilter] = useState<'all' | 'free' | 'premium'>('all');
 
     // Modal State
@@ -80,6 +80,8 @@ export default function Categories() {
     const handlePlayContent = (content: Content) => {
         if (content.category === 'series' && content.episodes && content.episodes.length > 0) {
             setSelectedSeries(content);
+        } else if (content.category === 'nostalgia') {
+            navigate(`/nostalgia/${content.id}`);
         } else if (content.category === 'movie') {
             navigate(`/watch/${content.id}`);
         } else if (content.video_url || content.internal_player_url) {
@@ -193,6 +195,14 @@ export default function Categories() {
                                 className={`h-8 px-4 sm:px-3 rounded text-xs gap-1 whitespace-nowrap ${typeFilter === 'tv' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'}`}
                             >
                                 <MonitorPlay className="w-3 h-3" /> TV
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setTypeFilter('nostalgia')}
+                                className={`h-8 px-4 sm:px-3 rounded text-xs gap-1 whitespace-nowrap ${typeFilter === 'nostalgia' ? 'bg-red-600 text-white' : 'text-gray-400 hover:text-white'}`}
+                            >
+                                <PlayCircle className="w-3 h-3" /> Nostalgia
                             </Button>
                         </div>
 
