@@ -43,6 +43,7 @@ const AdminUsers = React.lazy(() => import("@/components/admin/AdminUsers").then
 const AdminAvatars = React.lazy(() => import("@/components/admin/AdminAvatars").then(module => ({ default: module.AdminAvatars })));
 
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { NetworkStatus } from "@/components/NetworkStatus";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -52,6 +53,7 @@ const App = () => (
         <Sonner />
         <FocusNavigator />
         <HolidayDecorations />
+        <NetworkStatus />
 
         <BrowserRouter>
           <GlobalContentProtection />
