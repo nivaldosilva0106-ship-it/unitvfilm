@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// https://vitejs.dev/config/
+// Vite config - cache busted 2026-01-09
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",

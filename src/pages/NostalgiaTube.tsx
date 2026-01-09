@@ -53,6 +53,20 @@ export default function NostalgiaTube(): JSX.Element {
     const [liked, setLiked] = useState(false);
     const [disliked, setDisliked] = useState(false);
 
+    // Quality labels mapping - MUST be before any conditional returns
+    const qualityLabels: { [key: string]: string } = useMemo(() => ({
+        'highres': '4K+',
+        'hd2160': '4K',
+        'hd1440': '1440p',
+        'hd1080': '1080p',
+        'hd720': '720p',
+        'large': '480p',
+        'medium': '360p',
+        'small': '240p',
+        'tiny': '144p',
+        'auto': 'Auto'
+    }), []);
+
     // Load YouTube IFrame API
     useEffect(() => {
         if (!window.YT) {
@@ -467,19 +481,6 @@ export default function NostalgiaTube(): JSX.Element {
 
     const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-    // Quality labels mapping
-    const qualityLabels: { [key: string]: string } = useMemo(() => ({
-        'highres': '4K+',
-        'hd2160': '4K',
-        'hd1440': '1440p',
-        'hd1080': '1080p',
-        'hd720': '720p',
-        'large': '480p',
-        'medium': '360p',
-        'small': '240p',
-        'tiny': '144p',
-        'auto': 'Auto'
-    }), []);
 
     return (
         <div className="min-h-screen bg-[#141414] text-white font-sans">
