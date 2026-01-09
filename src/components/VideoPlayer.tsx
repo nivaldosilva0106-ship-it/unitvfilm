@@ -67,10 +67,25 @@ export const VideoPlayer = ({
   // Transform Google Drive URL if needed
   const getVideoUrl = useCallback(() => {
     if (isGoogleDrive) {
-      // Extract file ID and format for direct streaming
+      // Extract file ID
       const match = url.match(/files\/([a-zA-Z0-9_-]+)/);
       if (match) {
-        return `https://www.googleapis.com/drive/v3/files/${match[1]}?alt=media`;
+        try {
+          const urlObj = new URL(url);
+          const params = new URLSearchParams(urlObj.search);
+
+          // Force alt=media if not present
+          if (!params.has('alt')) {
+            params.set('alt', 'media');
+          }
+
+          // Return constructed URL with ALL original params (including key)
+          return `https://www.googleapis.com/drive/v3/files/${match[1]}?${params.toString()}`;
+        } catch (e) {
+          console.error("Error parsing Google Drive URL:", e);
+          // Fallback to simple construction if URL parsing fails
+          return `https://www.googleapis.com/drive/v3/files/${match[1]}?alt=media`;
+        }
       }
     }
     return url;
