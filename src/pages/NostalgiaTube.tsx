@@ -6,6 +6,7 @@ import { Content } from "@/types/content";
 import { Play, Pause, Volume2, VolumeX, Maximize, ChevronLeft, ChevronRight, Settings, RotateCw, ThumbsUp, ThumbsDown, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 // Declare YouTube IFrame API types
 declare global {
@@ -145,20 +146,20 @@ export default function NostalgiaTube(): JSX.Element {
         }
 
         progressIntervalRef.current = setInterval(() => {
-            if (player && playerReady && currentProfile && currentContent) {
+            if (player && playerReady && currentProfile && currentContent && user) {
                 try {
                     const time = player.getCurrentTime();
                     const dur = player.getDuration();
 
                     if (time && dur && time > 5) {
                         saveUserProgress({
+                            userId: user.uid,
                             profileId: currentProfile.id,
                             contentId: currentContent.id,
                             season: currentEpisode?.season,
                             episode: currentEpisode?.episode,
-                            currentTime: time,
-                            duration: dur,
-                            completed: time / dur > 0.9
+                            lastPositionSeconds: time,
+                            durationSeconds: dur
                         });
                     }
                 } catch (e) {
@@ -179,21 +180,8 @@ export default function NostalgiaTube(): JSX.Element {
                     currentEpisode?.episode
                 );
 
-                if (progress && progress.currentTime && !progress.completed) {
-                    const randomChoice = Math.random();
-                    if (randomChoice < 0.5) {
-                        player.seekTo(progress.currentTime, true);
-                    } else if (randomChoice < 0.75) {
-                        player.seekTo(0, true);
-                    } else {
-                        const randomTime = Math.random() * progress.duration;
-                        player.seekTo(randomTime, true);
-                    }
-                } else {
-                    if (Math.random() > 0.5 && duration > 0) {
-                        const randomTime = Math.random() * duration;
-                        player.seekTo(randomTime, true);
-                    }
+                if (progress && progress.lastPositionSeconds && progress.durationSeconds && progress.lastPositionSeconds / progress.durationSeconds < 0.9) {
+                    player.seekTo(progress.lastPositionSeconds, true);
                 }
             } catch (e) {
                 console.error("Error loading progress:", e);
@@ -244,12 +232,14 @@ export default function NostalgiaTube(): JSX.Element {
                 enablejsapi: 1,
                 disablekb: 0,
                 cc_load_policy: 0,
-                playsinline: 1
+                playsinline: 1,
+                origin: window.location.origin
             },
             events: {
                 onReady: (event: any) => {
                     setPlayerReady(true);
                     setPlayer(event.target);
+                    setIsLoadingVideo(false);
                     setDuration(event.target.getDuration());
 
                     // Get available quality levels
@@ -267,13 +257,15 @@ export default function NostalgiaTube(): JSX.Element {
                         setAvailableQualities(['auto', 'hd1080', 'hd720', 'large', 'medium', 'small']);
                     }
 
-                    setTimeout(() => loadSavedProgress(), 500);
+                    loadSavedProgress();
                 },
                 onStateChange: (event: any) => {
                     const playing = event.data === window.YT.PlayerState.PLAYING;
                     const ended = event.data === window.YT.PlayerState.ENDED;
+                    const buffering = event.data === window.YT.PlayerState.BUFFERING;
 
                     setIsPlaying(playing);
+                    setIsLoadingVideo(buffering);
 
                     if (playing) {
                         setIsLoadingVideo(false);

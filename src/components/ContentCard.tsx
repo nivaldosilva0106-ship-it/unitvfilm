@@ -42,8 +42,6 @@ export const ContentCard = ({
   internal_player_url,
   hasDownloads,
   hasInternalPlayer,
-  hasDownloads,
-  hasInternalPlayer,
   hasDownload,
   hideDownloadIcon
 }: ContentCardProps) => {
