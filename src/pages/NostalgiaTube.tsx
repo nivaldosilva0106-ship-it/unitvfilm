@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getAllContents, saveUserProgress, getUserProgress } from "@/lib/firebase";
 import { Header } from "@/components/Header";
 import { Content } from "@/types/content";
-import { Play, Pause, Volume2, VolumeX, Maximize, ChevronLeft, ChevronRight, Settings, RotateCw } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Maximize, ChevronLeft, ChevronRight, Settings, RotateCw, ThumbsUp, ThumbsDown, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -49,6 +49,8 @@ export default function NostalgiaTube(): JSX.Element {
     const [countdown, setCountdown] = useState(10);
     const [showCountdown, setShowCountdown] = useState(false);
     const [userInteracted, setUserInteracted] = useState(false);
+    const [liked, setLiked] = useState(false);
+    const [disliked, setDisliked] = useState(false);
 
     // Load YouTube IFrame API
     useEffect(() => {

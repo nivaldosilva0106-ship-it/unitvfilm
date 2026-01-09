@@ -389,6 +389,11 @@ const Index = () => {
   };
 
   const handleDetailsContent = (content: Content) => {
+    // Force routing to Nostalgia page if category is nostalgia
+    if (content.category === 'nostalgia') {
+      navigate(`/nostalgia/${content.id}`);
+      return;
+    }
     // Navigate to Details Page
     navigate(`/content/${content.id}`);
   };
@@ -626,6 +631,7 @@ const Index = () => {
                 onInfoContent={handleInfoContent} // For QuickView
                 onDetailsContent={handleDetailsContent}
                 onDownloadContent={handleDownloadContent}
+                hideDownloadIcon={true}
               // @ts-ignore - ContentRow needs update for onDetails prop, but passing it wont hurt if ignored for now, 
               // we need to update ContentRow to pass it to Card. 
               // Better approach: verify ContentRow passes props.
@@ -640,6 +646,7 @@ const Index = () => {
                 onInfoContent={handleInfoContent}
                 onDetailsContent={handleDetailsContent}
                 onDownloadContent={handleDownloadContent}
+                hideDownloadIcon={true}
               />
             )}
 
@@ -654,6 +661,7 @@ const Index = () => {
                 onInfoContent={handleInfoContent}
                 onDetailsContent={handleDetailsContent}
                 onDownloadContent={handleDownloadContent}
+                hideDownloadIcon={true}
               />
             )}
 
@@ -665,6 +673,7 @@ const Index = () => {
                 onInfoContent={handleInfoContent}
                 onDetailsContent={handleDetailsContent}
                 onDownloadContent={handleDownloadContent}
+                hideDownloadIcon={true}
               />
             )}
 
@@ -676,6 +685,7 @@ const Index = () => {
                 onInfoContent={handleInfoContent}
                 onDetailsContent={handleDetailsContent}
                 onDownloadContent={handleDownloadContent}
+                hideDownloadIcon={true}
               />
             )}
           </>

@@ -23,6 +23,7 @@ interface ContentCardProps {
   hasDownloads?: boolean;
   hasInternalPlayer?: boolean;
   hasDownload?: boolean;
+  hideDownloadIcon?: boolean;
 }
 
 export const ContentCard = ({
@@ -41,7 +42,10 @@ export const ContentCard = ({
   internal_player_url,
   hasDownloads,
   hasInternalPlayer,
-  hasDownload
+  hasDownloads,
+  hasInternalPlayer,
+  hasDownload,
+  hideDownloadIcon
 }: ContentCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -93,7 +97,7 @@ export const ContentCard = ({
             <Play className="w-3 h-3 text-primary-foreground fill-primary-foreground" />
           </div>
         )}
-        {hasDownloads && !isRestricted && (
+        {hasDownloads && !isRestricted && !hideDownloadIcon && (
           <div className="bg-emerald-500/90 backdrop-blur-sm p-1.5 rounded-full shadow-lg" title="Download Disponível">
             <Download className="w-3 h-3 text-white" />
           </div>

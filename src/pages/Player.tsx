@@ -405,7 +405,17 @@ const Player = () => {
 
     // Fullscreen
     useEffect(() => {
-        const handleFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
+        const handleFullscreenChange = () => {
+            const isFull = !!document.fullscreenElement;
+            setIsFullscreen(isFull);
+
+            // Auto-rotate on mobile when fullscreen
+            if (isFull && screen.orientation && (screen.orientation as any).lock) {
+                (screen.orientation as any).lock('landscape').catch((e: any) => console.log('Orientation lock failed:', e));
+            } else if (!isFull && screen.orientation && (screen.orientation as any).unlock) {
+                (screen.orientation as any).unlock();
+            }
+        };
         document.addEventListener("fullscreenchange", handleFullscreenChange);
         return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
     }, []);
@@ -611,7 +621,7 @@ const Player = () => {
                                     <div className="bg-primary p-0.5 sm:p-1 rounded">
                                         <Film className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
                                     </div>
-                                    <span className="text-white font-bold text-xs sm:text-sm hidden sm:inline">Uni<span className="text-primary">Tv</span>Film</span>
+                                    <span className="text-white font-bold text-[9px] sm:text-sm hidden sm:inline">Uni<span className="text-primary">Tv</span>Film</span>
                                 </div>
 
                                 {/* Circular Poster */}
@@ -708,18 +718,18 @@ const Player = () => {
                     )}
 
                     {/* WATCHING CARD */}
-                    <div className={`absolute bottom-20 sm:bottom-24 left-4 sm:left-6 z-50 max-w-[280px] sm:max-w-sm bg-black/80 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-500 ease-out ${showWatchingCard ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}>
-                        <div className="p-3 sm:p-4">
-                            <p className="text-[10px] sm:text-xs text-primary font-semibold uppercase tracking-wider mb-2">Você está assistindo</p>
-                            <div className="flex gap-2.5 sm:gap-3">
-                                {content.thumbnail_url && <img src={content.thumbnail_url} className="w-14 h-20 sm:w-20 sm:h-28 object-cover rounded-lg flex-shrink-0" alt="Capa" />}
+                    <div className={`absolute bottom-16 sm:bottom-24 left-3 sm:left-6 z-50 max-w-[200px] sm:max-w-sm bg-black/80 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-500 ease-out ${showWatchingCard ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}>
+                        <div className="p-2 sm:p-4">
+                            <p className="text-[9px] sm:text-xs text-primary font-semibold uppercase tracking-wider mb-1 sm:mb-2">Você está assistindo</p>
+                            <div className="flex gap-2 sm:gap-3">
+                                {content.thumbnail_url && <img src={content.thumbnail_url} className="w-10 h-14 sm:w-20 sm:h-28 object-cover rounded-lg flex-shrink-0" alt="Capa" />}
                                 <div className="flex flex-col gap-0.5 sm:gap-1 min-w-0">
-                                    <h3 className="text-white font-bold text-xs sm:text-sm line-clamp-1">{currentTitle}</h3>
-                                    <p className="text-[10px] sm:text-xs text-gray-300 line-clamp-2 leading-relaxed opacity-90">{content.description}</p>
+                                    <h3 className="text-white font-bold text-[10px] sm:text-sm line-clamp-1">{currentTitle}</h3>
+                                    <p className="text-[9px] sm:text-xs text-gray-300 line-clamp-2 leading-relaxed opacity-90">{content.description}</p>
                                     {content.rating && (
                                         <div className="flex items-center gap-1 mt-0.5 sm:mt-1">
-                                            <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-yellow-500 fill-yellow-500" />
-                                            <span className="text-yellow-500 text-[10px] sm:text-xs font-medium">{content.rating.toFixed(1)}</span>
+                                            <Star className="w-2 h-2 sm:w-3 sm:h-3 text-yellow-500 fill-yellow-500" />
+                                            <span className="text-yellow-500 text-[9px] sm:text-xs font-medium">{content.rating.toFixed(1)}</span>
                                         </div>
                                     )}
                                 </div>
