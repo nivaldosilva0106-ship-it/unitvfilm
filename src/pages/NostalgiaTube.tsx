@@ -81,37 +81,6 @@ export default function NostalgiaTube(): JSX.Element {
                         setCurrentEpisodeIndex(0);
                         setUserInteracted(true);
                     }
-                } else if (nostalgiaItems.length > 0) {
-                    // Show countdown for auto-selection
-                    setShowCountdown(true);
-                    setCountdown(10);
-
-                    // Start countdown
-                    countdownIntervalRef.current = setInterval(() => {
-                        setCountdown(prev => {
-                            if (prev <= 1) {
-                                // Auto-select random content
-                                if (!userInteracted) {
-                                    const randomContent = nostalgiaItems[Math.floor(Math.random() * nostalgiaItems.length)];
-                                    setCurrentContent(randomContent);
-
-                                    if (randomContent.episodes && randomContent.episodes.length > 0) {
-                                        const randomEpisode = Math.floor(Math.random() * randomContent.episodes.length);
-                                        setCurrentEpisodeIndex(randomEpisode);
-                                    }
-
-                                    navigate(`/nostalgia/${randomContent.id}`, { replace: true });
-                                }
-
-                                setShowCountdown(false);
-                                if (countdownIntervalRef.current) {
-                                    clearInterval(countdownIntervalRef.current);
-                                }
-                                return 0;
-                            }
-                            return prev - 1;
-                        });
-                    }, 1000);
                 }
             } catch (error) {
                 console.error("Error fetching nostalgia content:", error);
@@ -120,12 +89,6 @@ export default function NostalgiaTube(): JSX.Element {
             }
         };
         fetchContent();
-
-        return () => {
-            if (countdownIntervalRef.current) {
-                clearInterval(countdownIntervalRef.current);
-            }
-        };
     }, [id, navigate]);
 
     // Check scroll position for arrows
@@ -391,17 +354,28 @@ export default function NostalgiaTube(): JSX.Element {
         }
     };
 
-    const toggleFullscreen = () => {
+    const toggleFullscreen = async () => {
         const container = playerContainerRef.current;
         if (!container) return;
 
         try {
             if (document.fullscreenElement) {
-                document.exitFullscreen();
+                await document.exitFullscreen();
+                if (screen.orientation && screen.orientation.unlock) {
+                    screen.orientation.unlock();
+                }
             } else {
                 // Try different fullscreen methods for cross-browser compatibility
                 if (container.requestFullscreen) {
-                    container.requestFullscreen();
+                    await container.requestFullscreen();
+                    // Attempt to lock orientation on mobile
+                    if (screen.orientation && (screen.orientation as any).lock) {
+                        try {
+                            await (screen.orientation as any).lock('landscape');
+                        } catch (e) {
+                            console.log("Orientation lock failed or not supported:", e);
+                        }
+                    }
                 } else if ((container as any).webkitRequestFullscreen) {
                     (container as any).webkitRequestFullscreen();
                 } else if ((container as any).mozRequestFullScreen) {
@@ -435,13 +409,17 @@ export default function NostalgiaTube(): JSX.Element {
     const changeQuality = (quality: string) => {
         if (player && playerReady) {
             try {
-                if (quality === 'auto') {
-                    player.setPlaybackQuality('default');
-                } else {
-                    player.setPlaybackQuality(quality);
-                }
+                player.setPlaybackQuality(quality);
                 setCurrentQuality(quality);
                 setShowQualityMenu(false);
+
+                // Force quality update feedback if possible
+                const actualQuality = player.getPlaybackQuality();
+                if (actualQuality !== quality && quality !== 'default') {
+                    console.log(`Requested ${quality}, got ${actualQuality}`);
+                }
+
+                toast.success(`Qualidade alterada para ${qualityLabels[quality] || quality}`);
             } catch (e) {
                 console.error("Error changing quality:", e);
             }
@@ -450,7 +428,6 @@ export default function NostalgiaTube(): JSX.Element {
 
     const handlePostClick = (content: Content) => {
         setUserInteracted(true);
-        setShowCountdown(false);
         if (countdownIntervalRef.current) {
             clearInterval(countdownIntervalRef.current);
         }
@@ -462,7 +439,6 @@ export default function NostalgiaTube(): JSX.Element {
 
     const handleEpisodeClick = (index: number) => {
         setUserInteracted(true);
-        setShowCountdown(false);
         if (countdownIntervalRef.current) {
             clearInterval(countdownIntervalRef.current);
         }
@@ -515,12 +491,12 @@ export default function NostalgiaTube(): JSX.Element {
 
             <main className="pt-16 pb-10">
                 <div
-                    className="w-full bg-black mb-6 group"
+                    className="w-full bg-black mb-6 group relative"
                     ref={playerContainerRef}
                     onMouseEnter={() => setShowControls(true)}
                     onMouseLeave={() => setShowControls(false)}
                 >
-                    <div className="relative w-full" style={{ paddingBottom: '42%' }}>
+                    <div className="relative w-full pb-[65%] md:pb-[42%] [&:fullscreen]:pb-0 [&:fullscreen]:h-screen [&:fullscreen]:w-screen">
                         {youtubeId ? (
                             <>
                                 {/* Scaled YouTube Player - 130% */}
@@ -536,19 +512,6 @@ export default function NostalgiaTube(): JSX.Element {
                                         }}
                                     ></div>
                                 </div>
-
-                                {/* Countdown Overlay */}
-                                {showCountdown && (
-                                    <div className={`absolute inset-0 w-full h-full z-40 flex items-center justify-center bg-black/80 transition-opacity duration-500 ${countdown === 0 ? 'opacity-0' : 'opacity-100'}`}>
-                                        <div className="text-center">
-                                            <div className="text-8xl font-bold text-primary mb-4 animate-pulse">
-                                                {countdown}
-                                            </div>
-                                            <p className="text-xl text-white">Selecionando episódio aleatório...</p>
-                                            <p className="text-sm text-gray-400 mt-2">Clique em qualquer episódio para cancelar</p>
-                                        </div>
-                                    </div>
-                                )}
 
                                 {/* Loading/Ended Overlay with Poster Image */}
                                 <div className={`absolute inset-0 w-full h-full z-30 flex items-center justify-center bg-black transition-opacity duration-700 ${(isLoadingVideo || videoEnded) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
@@ -701,8 +664,14 @@ export default function NostalgiaTube(): JSX.Element {
                                 </div>
                             </>
                         ) : (
-                            <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
-                                <p className="text-gray-500">Aguardando seleção...</p>
+                            <div className="absolute inset-0 flex items-center justify-center bg-zinc-900 border border-white/5">
+                                <div className="text-center p-6">
+                                    <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+                                        <Play className="w-8 h-8 text-white/50" />
+                                    </div>
+                                    <p className="text-white font-medium text-lg mb-2">NostalgiaTube</p>
+                                    <p className="text-gray-500 text-sm max-w-xs mx-auto">Escolha uma série nostálgica na lista abaixo para começar a assistir</p>
+                                </div>
                             </div>
                         )}
                     </div>

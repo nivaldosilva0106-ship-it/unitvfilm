@@ -95,20 +95,39 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
         return;
       }
 
-      const response = await fetch(`https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${API_KEY}`);
+      let allItems: any[] = [];
+      let nextPageToken = "";
+      let hasNextPage = true;
 
-      if (!response.ok) {
-        throw new Error("Falha ao buscar playlist do YouTube");
+      while (hasNextPage) {
+        const tokenParam = nextPageToken ? `&pageToken=${nextPageToken}` : "";
+        const response: Response = await fetch(
+          `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${API_KEY}${tokenParam}`
+        );
+
+        if (!response.ok) {
+          throw new Error("Falha ao buscar playlist do YouTube");
+        }
+
+        const data = await response.json();
+
+        if (data.items) {
+          allItems = [...allItems, ...data.items];
+        }
+
+        if (data.nextPageToken) {
+          nextPageToken = data.nextPageToken;
+        } else {
+          hasNextPage = false;
+        }
       }
 
-      const data = await response.json();
-
-      if (!data.items) {
+      if (allItems.length === 0) {
         toast.error("Nenhum vídeo encontrado na playlist");
         return;
       }
 
-      const newEpisodes: Episode[] = data.items.map((item: any, index: number) => ({
+      const newEpisodes: Episode[] = allItems.map((item: any, index: number) => ({
         season: 1,
         episode: (editingContent.episodes?.length || 0) + index + 1,
         title: item.snippet.title,
