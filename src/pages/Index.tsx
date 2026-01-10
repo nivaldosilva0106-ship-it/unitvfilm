@@ -630,6 +630,7 @@ const Index = () => {
                 onDetailsContent={handleDetailsContent}
                 onDownloadContent={handleDownloadContent}
                 showNumbers={true}
+                hideDownloadIcon={true}
               />
             )}
 

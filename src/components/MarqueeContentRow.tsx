@@ -12,6 +12,7 @@ interface MarqueeContentRowProps {
     onTrailerContent?: (content: Content) => void;
     onDownloadContent: (content: Content) => void;
     showNumbers?: boolean;
+    hideDownloadIcon?: boolean;
 }
 
 export const MarqueeContentRow = ({
@@ -23,6 +24,7 @@ export const MarqueeContentRow = ({
     onTrailerContent,
     onDownloadContent,
     showNumbers = false,
+    hideDownloadIcon = false,
 }: MarqueeContentRowProps) => {
     const [scrollPosition, setScrollPosition] = useState(0);
     const itemWidth = 200; // Approximate width of each card
@@ -97,6 +99,7 @@ export const MarqueeContentRow = ({
                                     classification={content.classification}
                                     hasDownloads={!!(content.download_url || (content.downloads && content.downloads.length > 0))}
                                     internal_player_url={content.internal_player_url}
+                                    hideDownloadIcon={hideDownloadIcon}
                                 />
                                 {showNumbers && (
                                     <div className="absolute -left-4 sm:-left-6 top-0 bottom-0 flex items-end pb-2 sm:pb-4 z-30 pointer-events-none">
