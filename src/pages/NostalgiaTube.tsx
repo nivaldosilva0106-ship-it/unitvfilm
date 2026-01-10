@@ -500,21 +500,7 @@ export default function NostalgiaTube(): JSX.Element {
         }
     };
 
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-[#141414] text-white">
-                <Header />
-                <div className="flex items-center justify-center h-[calc(100vh-80px)]">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div>
-                </div>
-            </div>
-        )
-    }
-
-    const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
-
-
-    // Idle Controls Logic
+    // Idle Controls Logic - MUST be before any conditional returns
     useEffect(() => {
         let timeout: NodeJS.Timeout;
 
@@ -551,6 +537,19 @@ export default function NostalgiaTube(): JSX.Element {
         };
         checkSavedProgress();
     }, [currentContent, user, currentProfile]);
+
+    if (loading) {
+        return (
+            <div className="min-h-screen bg-[#141414] text-white">
+                <Header />
+                <div className="flex items-center justify-center h-[calc(100vh-80px)]">
+                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div>
+                </div>
+            </div>
+        )
+    }
+
+    const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
     return (
         <div className="min-h-screen bg-[#141414] text-white font-sans">
