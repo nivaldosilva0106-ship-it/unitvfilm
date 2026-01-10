@@ -7,6 +7,8 @@ import { Play, Pause, Volume2, VolumeX, Maximize, ChevronLeft, ChevronRight, Set
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { DownloadModal } from "@/components/DownloadModal";
+import { voteContent, getUserVote } from "@/lib/firebase";
 
 const formatTime = (seconds: number) => {
     if (!seconds) return "0:00";
@@ -26,7 +28,7 @@ declare global {
 export default function NostalgiaTube(): JSX.Element {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { user, currentProfile } = useAuth();
+    const { user, currentProfile, checkAccess } = useAuth(); // Added checkAccess
     const [contents, setContents] = useState<Content[]>([]);
     const [currentContent, setCurrentContent] = useState<Content | null>(null);
     const [currentEpisodeIndex, setCurrentEpisodeIndex] = useState(0);
@@ -59,7 +61,10 @@ export default function NostalgiaTube(): JSX.Element {
     const [userInteracted, setUserInteracted] = useState(false);
     const [liked, setLiked] = useState(false);
     const [disliked, setDisliked] = useState(false);
+    const [userVote, setUserVote] = useState<'like' | 'dislike' | null>(null);
+    const [showDownloadModal, setShowDownloadModal] = useState(false);
     const [hasStartedPlaying, setHasStartedPlaying] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false); // Track fullscreen state locally
 
     // Quality labels mapping - MUST be before any conditional returns
     const qualityLabels: { [key: string]: string } = useMemo(() => ({
@@ -133,6 +138,61 @@ export default function NostalgiaTube(): JSX.Element {
             return () => scrollEl.removeEventListener('scroll', checkScroll);
         }
     }, [currentContent]);
+
+    // Check Access & Load Vote when content changes
+    useEffect(() => {
+        if (currentContent && user) {
+            const checkContentAccess = () => {
+                const access = checkAccess({
+                    isPremium: currentContent.isPremium,
+                    category: 'nostalgia' // Treat as nostalgia/series
+                } as any);
+
+                if (!access.allowed) {
+                    toast.error("Conteúdo exclusivo para Premium. Atualize seu plano!");
+                    // If blocked, maybe clear content or redirect?
+                    // For now, let's just stop it from playing or showing properly?
+                    // But the user might be on the page seeing the poster.
+                    // We'll enforce it on Play.
+                }
+            };
+            checkContentAccess();
+
+            getUserVote(user.uid, currentContent.id).then(vote => {
+                setUserVote(vote);
+            });
+        }
+    }, [currentContent, user, checkAccess]);
+
+    const handleVote = async (vote: 'like' | 'dislike') => {
+        if (!user || !currentContent) return;
+
+        const newVote = userVote === vote ? null : vote;
+        setUserVote(newVote); // Optimistic UI
+
+        // Update local content counters for display
+        const updatedContent = { ...currentContent };
+        if (!updatedContent.likes) updatedContent.likes = 0;
+        if (!updatedContent.dislikes) updatedContent.dislikes = 0;
+
+        // Undo previous
+        if (userVote === 'like') updatedContent.likes--;
+        if (userVote === 'dislike') updatedContent.dislikes--;
+
+        // Apply new
+        if (newVote === 'like') updatedContent.likes++;
+        if (newVote === 'dislike') updatedContent.dislikes++;
+
+        setCurrentContent(updatedContent);
+
+        try {
+            await voteContent(user.uid, currentContent.id, newVote);
+        } catch (error) {
+            console.error("Error voting:", error);
+            toast.error("Erro ao salvar voto");
+            // Revert state if needed, but usually fine
+        }
+    };
 
     const scrollEpisodes = (direction: 'left' | 'right') => {
         if (episodesScrollRef.current) {
@@ -400,6 +460,7 @@ export default function NostalgiaTube(): JSX.Element {
         try {
             if (document.fullscreenElement) {
                 await document.exitFullscreen();
+                setIsFullscreen(false);
                 if (screen.orientation && screen.orientation.unlock) {
                     screen.orientation.unlock();
                 }
@@ -407,6 +468,8 @@ export default function NostalgiaTube(): JSX.Element {
                 // Try different fullscreen methods for cross-browser compatibility
                 if (container.requestFullscreen) {
                     await container.requestFullscreen();
+                    setIsFullscreen(true);
+                    // Attempt to lock orientation on mobile
                     // Attempt to lock orientation on mobile
                     if (screen.orientation && (screen.orientation as any).lock) {
                         try {
@@ -466,6 +529,16 @@ export default function NostalgiaTube(): JSX.Element {
     };
 
     const handlePostClick = (content: Content) => {
+        const access = checkAccess({
+            isPremium: content.isPremium,
+            category: 'nostalgia'
+        } as any);
+
+        if (!access.allowed) {
+            toast.error("Conteúdo exclusivo para Premium.");
+            return;
+        }
+
         setUserInteracted(true);
         if (countdownIntervalRef.current) {
             clearInterval(countdownIntervalRef.current);
@@ -564,12 +637,12 @@ export default function NostalgiaTube(): JSX.Element {
                         {youtubeId ? (
                             <>
                                 {/* Scaled YouTube Player */}
-                                <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none">
+                                <div className={`absolute inset-0 w-full h-full overflow-hidden pointer-events-none ${isFullscreen ? 'z-0' : ''}`}>
                                     <div
                                         id="youtube-player"
                                         className="absolute w-full h-full"
                                         style={{
-                                            transform: 'scale(1.35)',
+                                            transform: isFullscreen ? 'none' : 'scale(1.35)', // Remove scale in fullscreen to fit correctly
                                             transformOrigin: 'center'
                                         }}
                                     ></div>
@@ -766,13 +839,57 @@ export default function NostalgiaTube(): JSX.Element {
                                 <h3 className="text-lg md:text-xl text-gray-300 mb-4">{currentEpisode.title}</h3>
                             )}
 
-                            <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm text-gray-400 mb-4">
+                            <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm text-gray-400 mb-4 items-center">
                                 {currentContent.year && <span>{currentContent.year}</span>}
                                 {currentContent.duration && <span>{currentContent.duration}</span>}
                                 {currentContent.genre && currentContent.genre.map((g, i) => (
                                     <span key={i} className="px-2 py-0.5 bg-white/10 rounded-full text-xs">{g}</span>
                                 ))}
+
+                                {/* Interaction Buttons */}
+                                <div className="flex items-center gap-3 ml-auto">
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleVote('like')}
+                                        className={`flex items-center gap-1.5 hover:bg-white/10 ${userVote === 'like' ? 'text-primary' : 'text-gray-400'}`}
+                                    >
+                                        <ThumbsUp className={`w-4 h-4 ${userVote === 'like' ? 'fill-current' : ''}`} />
+                                        <span>{currentContent.likes || 0}</span>
+                                    </Button>
+
+                                    <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleVote('dislike')}
+                                        className={`flex items-center gap-1.5 hover:bg-white/10 ${userVote === 'dislike' ? 'text-red-500' : 'text-gray-400'}`}
+                                    >
+                                        <ThumbsDown className={`w-4 h-4 ${userVote === 'dislike' ? 'fill-current' : ''}`} />
+                                        <span>{currentContent.dislikes || 0}</span>
+                                    </Button>
+
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => setShowDownloadModal(true)}
+                                        className="flex items-center gap-2 border-white/20 bg-white/5 hover:bg-white/10 text-gray-200"
+                                    >
+                                        <Download className="w-4 h-4" />
+                                        <span className="hidden sm:inline">Download</span>
+                                    </Button>
+                                </div>
                             </div>
+
+                            {/* Download Modal - Pass correct Data */}
+                            <DownloadModal
+                                open={showDownloadModal}
+                                onClose={() => setShowDownloadModal(false)}
+                                title={currentContent.title}
+                                thumbnail={currentContent.thumbnail_url}
+                                downloadUrl={currentEpisode?.download_url || currentContent.download_url || ''}
+                                downloads={currentEpisode?.downloads || currentContent.downloads}
+                                downloadMode={currentEpisode?.download_mode || currentContent.download_mode || 'direct'}
+                            />
 
                             <p className="text-sm md:text-base text-gray-300 leading-relaxed mb-6">
                                 {currentContent.description}

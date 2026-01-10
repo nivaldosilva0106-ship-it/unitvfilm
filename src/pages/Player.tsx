@@ -861,8 +861,12 @@ const Player = () => {
                                 <div
                                     key={idx}
                                     onClick={() => {
-                                        const path = `/watch/${item.contentId}${item.season ? `?season=${item.season}&episode=${item.episode}` : ''}`;
-                                        navigate(path);
+                                        if (item.content.category === 'nostalgia') {
+                                            navigate(`/nostalgia/${item.contentId}`);
+                                        } else {
+                                            const path = `/watch/${item.contentId}${item.season ? `?season=${item.season}&episode=${item.episode}` : ''}`;
+                                            navigate(path);
+                                        }
                                         window.scrollTo(0, 0);
                                     }}
                                     className="group/card relative cursor-pointer"

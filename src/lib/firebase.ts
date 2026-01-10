@@ -906,3 +906,49 @@ export const clearAllNotifications = async (userId: string) => {
   const privateRef = ref(db, `notifications/${userId}`);
   await remove(privateRef);
 };
+
+// ==========================================
+// Voting System (Likes/Dislikes)
+// ==========================================
+
+export const voteContent = async (userId: string, contentId: string, vote: 'like' | 'dislike' | null) => {
+  const { runTransaction } = await import('firebase/database');
+  const voteRef = ref(database, `votes/${contentId}/${userId}`);
+  const contentRef = ref(database, `contents/${contentId}`);
+
+  // Get current vote
+  const currentVoteSnapshot = await get(voteRef);
+  const currentVote = currentVoteSnapshot.val();
+
+  if (currentVote === vote) return; // No change
+
+  // Update User Vote
+  if (vote === null) {
+    await remove(voteRef);
+  } else {
+    await set(voteRef, vote);
+  }
+
+  // Update Content Counters Transactionally
+  await runTransaction(contentRef, (content) => {
+    if (content) {
+      if (!content.likes) content.likes = 0;
+      if (!content.dislikes) content.dislikes = 0;
+
+      // Remove old vote effect
+      if (currentVote === 'like') content.likes--;
+      if (currentVote === 'dislike') content.dislikes--;
+
+      // Add new vote effect
+      if (vote === 'like') content.likes++;
+      if (vote === 'dislike') content.dislikes++;
+    }
+    return content;
+  });
+};
+
+export const getUserVote = async (userId: string, contentId: string): Promise<'like' | 'dislike' | null> => {
+  const voteRef = ref(database, `votes/${contentId}/${userId}`);
+  const snapshot = await get(voteRef);
+  return snapshot.exists() ? snapshot.val() : null;
+};

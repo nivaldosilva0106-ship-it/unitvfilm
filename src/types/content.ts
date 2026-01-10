@@ -34,6 +34,9 @@ export interface Content {
   tmdb_id?: number;
   rating?: number;
   isPremium?: boolean;
+  likes?: number;
+  dislikes?: number;
+  user_vote?: 'like' | 'dislike'; // Local state helper
 
   // New Metadata
   classification?: 'L' | '10' | '12' | '14' | '16' | '18';
