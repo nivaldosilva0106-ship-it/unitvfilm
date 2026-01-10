@@ -47,15 +47,14 @@ import { NetworkStatus } from "@/components/NetworkStatus";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <FocusNavigator />
-        <HolidayDecorations />
-        <NetworkStatus />
-
-        <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <FocusNavigator />
+          <HolidayDecorations />
+          <NetworkStatus />
           <GlobalContentProtection />
           <AuthGuard>
             <GuestSessionManager />
@@ -98,9 +97,9 @@ const App = () => (
               </Routes>
             </Suspense>
           </AuthGuard>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+        </TooltipProvider>
+      </AuthProvider>
+    </BrowserRouter>
   </QueryClientProvider>
 );
 
