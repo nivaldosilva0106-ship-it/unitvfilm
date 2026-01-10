@@ -462,7 +462,7 @@ const Index = () => {
               <iframe
                 ref={iframeRef}
                 key={currentTrailer.id}
-                className="absolute top-1/2 left-1/2 w-[250%] h-[250%] md:w-[150%] md:h-[150%] -translate-x-1/2 -translate-y-1/2 opacity-60 transition-opacity duration-1000"
+                className="absolute top-[35%] left-1/2 w-[300%] h-[300%] md:top-1/2 md:w-[150%] md:h-[150%] -translate-x-1/2 -translate-y-1/2 opacity-60 transition-opacity duration-1000"
                 src={`https://www.youtube.com/embed/${getYouTubeId(currentTrailer.trailer_url)}?autoplay=1&mute=0&controls=0&enablejsapi=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&end=90&loop=1&playlist=${getYouTubeId(currentTrailer.trailer_url)}`}
                 title="Hero Video"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
