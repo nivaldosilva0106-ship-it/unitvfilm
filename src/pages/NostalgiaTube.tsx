@@ -140,6 +140,15 @@ export default function NostalgiaTube(): JSX.Element {
         }
     }, [currentContent]);
 
+    // Handle Fullscreen Changes from Browser interactions (ESC key, etc)
+    useEffect(() => {
+        const handleFullscreenCheck = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenCheck);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenCheck);
+    }, []);
+
     // Check Access & Load Vote when content changes
     useEffect(() => {
         if (currentContent && user) {
@@ -469,9 +478,7 @@ export default function NostalgiaTube(): JSX.Element {
                 // Try different fullscreen methods for cross-browser compatibility
                 if (container.requestFullscreen) {
                     await container.requestFullscreen();
-                    setIsFullscreen(true);
-                    // Attempt to lock orientation on mobile
-                    // Attempt to lock orientation on mobile
+                    // State will be updated by listener
                     if (screen.orientation && (screen.orientation as any).lock) {
                         try {
                             await (screen.orientation as any).lock('landscape');
@@ -548,6 +555,11 @@ export default function NostalgiaTube(): JSX.Element {
         setCurrentEpisodeIndex(0);
         navigate(`/nostalgia/${content.id}`);
         window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        toast("Que a diversão comece!", {
+            description: "Selecione um episódio ou filme abaixo para dar play.",
+            duration: 5000,
+        });
     };
 
     const handleEpisodeClick = (index: number) => {
@@ -633,7 +645,7 @@ export default function NostalgiaTube(): JSX.Element {
                     className="w-full bg-black mb-6 group relative"
                     ref={playerContainerRef}
                 >
-                    <div className="relative w-full pb-[56.25%] md:pb-[42%] lg:pb-[40%] [&:fullscreen]:pb-0 [&:fullscreen]:h-screen [&:fullscreen]:w-screen [&:fullscreen]:bg-black flex items-center justify-center">
+                    <div className={`relative w-full flex items-center justify-center ${isFullscreen ? 'h-full bg-black' : 'pb-[56.25%] md:pb-[42%] lg:pb-[40%]'}`}>
                         {youtubeId ? (
                             <>
                                 {/* Scaled YouTube Player */}
