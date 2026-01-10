@@ -534,14 +534,6 @@ const Index = () => {
             </p>
           </div>
 
-          {/* Category Navigation */}
-          <div className="w-full flex justify-center mb-6 sm:mb-10 overflow-x-auto scrollbar-hide">
-            <CategoryNavigation
-              categories={ALL_CATEGORIES}
-              selectedCategory={selectedCategory}
-              onSelectCategory={setSelectedCategory}
-            />
-          </div>
 
           {/* INFO CARD - MEDIUM SIZE */}
           {activeContent && (
