@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { getAllUsers, getAccountProfiles, updateUserProfile, deleteUserProfile } from '@/lib/firebase';
+import { getAllUsers, getAccountProfiles, updateUserProfile, deleteUserProfile, getAllAdmins, setUserAsAdmin, removeUserAdmin } from '@/lib/firebase';
 import { UserProfile, Profile } from '@/types/user';
 import {
     Users,
@@ -15,7 +15,9 @@ import {
     Settings,
     Baby,
     Lock,
-    Save
+    Save,
+    Shield,
+    ShieldOff
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -40,9 +42,14 @@ export const AdminUsers = () => {
     // New state for profile limit editing
     const [savingLimit, setSavingLimit] = useState(false);
     const [limitOverride, setLimitOverride] = useState<string>('');
+    
+    // Admin management state
+    const [adminUserIds, setAdminUserIds] = useState<string[]>([]);
+    const [togglingAdmin, setTogglingAdmin] = useState<string | null>(null);
 
     useEffect(() => {
         loadUsers();
+        loadAdmins();
     }, []);
 
     const loadUsers = async () => {
@@ -56,6 +63,49 @@ export const AdminUsers = () => {
             setLoading(false);
         }
     };
+
+    const loadAdmins = async () => {
+        try {
+            const admins = await getAllAdmins();
+            setAdminUserIds(admins);
+        } catch (e) {
+            console.error('Error loading admins:', e);
+        }
+    };
+
+    const handleToggleAdmin = async (userId: string, userEmail: string, isCurrentlyAdmin: boolean) => {
+        // Prevent removing the original admin
+        if (userEmail === 'www.nivaldo.com.ao@gmail.com' && isCurrentlyAdmin) {
+            toast.error("Não é possível remover o admin original");
+            return;
+        }
+
+        setTogglingAdmin(userId);
+        try {
+            if (isCurrentlyAdmin) {
+                await removeUserAdmin(userId);
+                toast.success(`${userEmail} removido como admin`);
+            } else {
+                await setUserAsAdmin(userId, userEmail);
+                // Set unlimited profiles and premium for admin
+                await updateUserProfile(userId, {
+                    isPremium: true,
+                    subscriptionTier: 'vip',
+                    profilesLimitOverride: 999,
+                    subscriptionExpiresAt: null // Never expires
+                });
+                toast.success(`${userEmail} agora é admin com acesso VIP ilimitado`);
+            }
+            await loadAdmins();
+            await loadUsers();
+        } catch (e) {
+            toast.error("Erro ao alterar status de admin");
+        } finally {
+            setTogglingAdmin(null);
+        }
+    };
+
+    const isUserAdminLocal = (userId: string) => adminUserIds.includes(userId);
 
     const toggleExpand = async (userId: string) => {
         if (expandedUserId === userId) {
@@ -215,17 +265,31 @@ export const AdminUsers = () => {
                                     <tr key={user.id} className="hover:bg-white/[0.02] transition-colors group">
                                         <td className="px-4 sm:px-6 py-4">
                                             <div className="flex items-center gap-3">
-                                                <div className="p-2.5 bg-zinc-800 rounded-lg group-hover:bg-zinc-700 transition-colors hidden sm:block">
-                                                    <Mail className="w-4 h-4 text-muted-foreground" />
+                                                <div className={`p-2.5 rounded-lg transition-colors hidden sm:block ${isUserAdminLocal(user.id) ? 'bg-amber-500/20' : 'bg-zinc-800 group-hover:bg-zinc-700'}`}>
+                                                    {isUserAdminLocal(user.id) ? (
+                                                        <Shield className="w-4 h-4 text-amber-400" />
+                                                    ) : (
+                                                        <Mail className="w-4 h-4 text-muted-foreground" />
+                                                    )}
                                                 </div>
                                                 <div className="flex flex-col">
-                                                    <span className="text-sm font-medium text-white break-all sm:break-normal">{user.email}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-sm font-medium text-white break-all sm:break-normal">{user.email}</span>
+                                                        {isUserAdminLocal(user.id) && (
+                                                            <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 font-semibold">ADMIN</span>
+                                                        )}
+                                                    </div>
                                                     <span className="text-[10px] text-muted-foreground">{user.name || 'Sem nome'}</span>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-4 sm:px-6 py-4">
-                                            {user.isPremium ? (
+                                            {isUserAdminLocal(user.id) ? (
+                                                <div className="flex items-center gap-1.5 text-amber-400">
+                                                    <Shield className="w-4 h-4" />
+                                                    <span className="text-xs font-semibold uppercase tracking-wider">Admin VIP</span>
+                                                </div>
+                                            ) : user.isPremium ? (
                                                 <div className="flex items-center gap-1.5 text-primary">
                                                     <Crown className="w-4 h-4" />
                                                     <span className="text-xs font-semibold uppercase tracking-wider">Premium</span>
@@ -255,6 +319,22 @@ export const AdminUsers = () => {
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
+                                                    onClick={() => handleToggleAdmin(user.id, user.email, isUserAdminLocal(user.id))}
+                                                    disabled={togglingAdmin === user.id || (user.email === 'www.nivaldo.com.ao@gmail.com' && isUserAdminLocal(user.id))}
+                                                    className={`h-8 px-2 ${isUserAdminLocal(user.id) ? 'text-amber-400 hover:text-amber-300 hover:bg-amber-500/10' : 'text-muted-foreground hover:text-amber-400 hover:bg-amber-500/10'}`}
+                                                    title={isUserAdminLocal(user.id) ? 'Remover admin' : 'Tornar admin'}
+                                                >
+                                                    {togglingAdmin === user.id ? (
+                                                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                                    ) : isUserAdminLocal(user.id) ? (
+                                                        <ShieldOff className="w-4 h-4" />
+                                                    ) : (
+                                                        <Shield className="w-4 h-4" />
+                                                    )}
+                                                </Button>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
                                                     onClick={() => toggleExpand(user.id)}
                                                     className="h-8 px-2 text-muted-foreground hover:text-white"
                                                 >
@@ -264,7 +344,8 @@ export const AdminUsers = () => {
                                                     variant="ghost"
                                                     size="sm"
                                                     onClick={() => handleDeleteUser(user.id, user.email)}
-                                                    className="h-8 px-2 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                                                    disabled={user.email === 'www.nivaldo.com.ao@gmail.com'}
+                                                    className="h-8 px-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 disabled:opacity-30"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>

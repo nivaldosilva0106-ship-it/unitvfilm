@@ -52,11 +52,10 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <FocusNavigator />
-        <HolidayDecorations />
-        <NetworkStatus />
-
         <BrowserRouter>
+          <FocusNavigator />
+          <HolidayDecorations />
+          <NetworkStatus />
           <GlobalContentProtection />
           <AuthGuard>
             <GuestSessionManager />
