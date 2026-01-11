@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getAllContents, saveUserProgress, getUserProgress } from "@/lib/firebase";
 import { Header } from "@/components/Header";
 import { Content } from "@/types/content";
-import { Play, Pause, Volume2, VolumeX, Maximize, ChevronLeft, ChevronRight, Settings, RotateCw, ThumbsUp, ThumbsDown, Download, Check, Film } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Maximize, ChevronLeft, ChevronRight, ChevronDown, Settings, RotateCw, ThumbsUp, ThumbsDown, Download, Check, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -850,15 +850,23 @@ export default function NostalgiaTube(): JSX.Element {
                                 </div>
                             </>
                         ) : (
-                            <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/50 backdrop-blur-sm">
-                                <div className="text-center p-6 max-w-md">
-                                    <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl skew-y-3">
-                                        <Film className="w-10 h-10 text-white/20" />
+                            <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/80 backdrop-blur-sm">
+                                <div className="text-center p-6 max-w-md animate-in fade-in zoom-in duration-500">
+                                    <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl border border-primary/20">
+                                        <Film className="w-10 h-10 text-primary" />
                                     </div>
                                     <h3 className="text-white font-bold text-xl mb-3 tracking-tight">NostalgiaTube</h3>
-                                    <p className="text-gray-400 text-sm leading-relaxed">
-                                        Selecione um episódio da lista abaixo para reviver os clássicos.
+                                    <p className="text-gray-300 text-sm leading-relaxed mb-4">
+                                        {currentContent ? (
+                                            <>Clica em um <span className="text-primary font-semibold">episódio</span> abaixo para começares a assistir.</>
+                                        ) : (
+                                            <>Selecione um conteúdo da secção <span className="text-primary font-semibold">Nostalgia</span> abaixo para começar.</>
+                                        )}
                                     </p>
+                                    <div className="flex items-center justify-center gap-2 text-gray-500 text-xs">
+                                        <ChevronDown className="w-4 h-4 animate-bounce" />
+                                        <span>Role para ver os episódios</span>
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -1021,8 +1029,8 @@ export default function NostalgiaTube(): JSX.Element {
                                             <Play className="w-10 h-10 md:w-12 md:h-12 text-white fill-current drop-shadow-lg scale-0 group-hover:scale-100 transition-transform duration-300 delay-75" />
                                         </div>
                                     </div>
-                                    <h3 className="mt-2 md:mt-3 text-xs md:text-sm font-medium leading-tight text-white group-hover:text-primary transition-colors line-clamp-2">
-                                        {item.title}
+                                    <h3 className="mt-2 md:mt-3 text-xs md:text-sm font-medium leading-tight text-white group-hover:text-primary transition-colors line-clamp-2 p-2">
+                                        {content.title}
                                     </h3>
                                 </div>
                             ))}
