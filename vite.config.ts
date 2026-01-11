@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// Vite config - cache busted 2026-01-10 v2
+// Vite config - cache bust v3 - force rebuild 2026-01-11
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -20,21 +20,20 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "react": path.resolve(__dirname, "./node_modules/react"),
-      "react-dom": path.resolve(__dirname, "./node_modules/react-dom"),
     },
-    dedupe: ["react", "react-dom", "react-router-dom"],
+    dedupe: ["react", "react-dom", "react-router-dom", "@tanstack/react-query"],
   },
   optimizeDeps: {
     include: ["react", "react-dom", "react-router-dom", "@tanstack/react-query"],
+    force: true,
   },
   build: {
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          firebase: ['firebase/app', 'firebase/auth', 'firebase/firestore', 'firebase/storage', 'firebase/database'],
-          ui: ['@radix-ui/react-dialog', '@radix-ui/react-slot', '@radix-ui/react-toast', 'lucide-react'],
+          react: ['react', 'react-dom'],
+          router: ['react-router-dom'],
+          query: ['@tanstack/react-query'],
         },
       },
     },
