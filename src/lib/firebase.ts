@@ -306,11 +306,53 @@ export const checkSubscriptionExpired = async (userId: string): Promise<boolean>
 // Admin role functions
 export const isUserAdmin = async (userId: string): Promise<boolean> => {
   try {
+    // Check in admins table
+    const adminRef = ref(database, `admins/${userId}`);
+    const snapshot = await get(adminRef);
+    if (snapshot.exists()) {
+      return true;
+    }
+    // Fallback: check if is the original admin email
     const profile = await getUserProfile(userId);
     return profile?.email === 'www.nivaldo.com.ao@gmail.com';
   } catch (error) {
     console.error('Error checking admin role:', error);
     return false;
+  }
+};
+
+export const getAllAdmins = async (): Promise<string[]> => {
+  const adminsRef = ref(database, 'admins');
+  const snapshot = await get(adminsRef);
+  if (snapshot.exists()) {
+    return Object.keys(snapshot.val());
+  }
+  return [];
+};
+
+export const setUserAsAdmin = async (userId: string, email: string) => {
+  const adminRef = ref(database, `admins/${userId}`);
+  await set(adminRef, {
+    email,
+    createdAt: new Date().toISOString()
+  });
+};
+
+export const removeUserAdmin = async (userId: string) => {
+  const adminRef = ref(database, `admins/${userId}`);
+  await remove(adminRef);
+};
+
+// Initialize the original admin (www.nivaldo.com.ao@gmail.com)
+export const initializeOriginalAdmin = async () => {
+  const users = await getAllUsers();
+  const originalAdmin = users.find(u => u.email === 'www.nivaldo.com.ao@gmail.com');
+  if (originalAdmin) {
+    const adminRef = ref(database, `admins/${originalAdmin.id}`);
+    const snapshot = await get(adminRef);
+    if (!snapshot.exists()) {
+      await setUserAsAdmin(originalAdmin.id, originalAdmin.email);
+    }
   }
 };
 
