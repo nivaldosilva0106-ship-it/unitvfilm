@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { type User } from 'firebase/auth';
-import { onAuthChange, logOut, isUserAdmin, getAccountProfiles, getPlans, subscribeToUserProfile } from '@/lib/firebase';
+import { onAuthChange, logOut, isUserAdmin, getAccountProfiles, getPlans, subscribeToUserProfile, initializeOriginalAdmin } from '@/lib/firebase';
 import type { UserProfile, Profile, Plan } from '@/types/user';
 import type { Content } from '@/types/content';
 
@@ -26,6 +26,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [plan, setPlan] = useState<Plan | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // Initialize the original admin on app start
+    initializeOriginalAdmin().catch(console.error);
+  }, []);
 
   useEffect(() => {
     let unsubscribeProfile: (() => void) | undefined;
