@@ -1,4 +1,4 @@
-import { Film, Search, User, LogOut, List, Settings, Home, Download, ChevronDown, Clapperboard, Tv, Menu } from "lucide-react";
+import { Film, Search, User, LogOut, List, Settings, Home, Download, ChevronDown, Clapperboard, Tv, Menu, FileText } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -232,7 +232,7 @@ export const Header = () => {
                       onClick={() => { navigate("/about"); }}
                       className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
                     >
-                      <Settings className="w-5 h-5" />
+                      <FileText className="w-5 h-5" />
                       Sobre Nós
                     </button>
 
