@@ -3,7 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// Vite config - cache bust v3 - force rebuild 2026-01-11
+// Cache invalidation: 2026-01-11T00:00:00Z - v4
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -21,21 +21,9 @@ export default defineConfig(({ mode }) => ({
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
-    dedupe: ["react", "react-dom", "react-router-dom", "@tanstack/react-query"],
+    dedupe: ["react", "react-dom"],
   },
   optimizeDeps: {
-    include: ["react", "react-dom", "react-router-dom", "@tanstack/react-query"],
     force: true,
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          react: ['react', 'react-dom'],
-          router: ['react-router-dom'],
-          query: ['@tanstack/react-query'],
-        },
-      },
-    },
   },
 }));
