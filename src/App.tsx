@@ -37,6 +37,7 @@ const Categories = React.lazy(() => import("./pages/Categories"));
 import NostalgiaTube from "./pages/NostalgiaTube";
 const VerifyCode = React.lazy(() => import("./pages/VerifyCode"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
+const About = React.lazy(() => import("./pages/About"));
 
 // Lazy load admin components
 const AdminUsers = React.lazy(() => import("@/components/admin/AdminUsers").then(module => ({ default: module.AdminUsers })));
@@ -81,6 +82,7 @@ const App = () => (
                 <Route path="/categories" element={<Categories />} />
                 <Route path="/nostalgia" element={<NostalgiaTube />} />
                 <Route path="/nostalgia/:id" element={<NostalgiaTube />} />
+                <Route path="/about" element={<About />} />
                 <Route path="/verify-code" element={<VerifyCode />} />
 
                 <Route path="/admin/users" element={

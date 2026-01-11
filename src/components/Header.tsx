@@ -228,6 +228,13 @@ export const Header = () => {
                         </div>
                       )}
                     </button>
+                    <button
+                      onClick={() => { navigate("/about"); }}
+                      className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
+                    >
+                      <Settings className="w-5 h-5" />
+                      Sobre Nós
+                    </button>
 
                     <div className="pt-4 border-t border-white/10 mt-2">
                       <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 px-2">Créditos Diários</p>
@@ -288,6 +295,9 @@ export const Header = () => {
                     <span className="text-[10px] font-semibold text-red-500 uppercase tracking-wider">Live</span>
                   </div>
                 )}
+              </button>
+              <button onClick={() => navigate("/about")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+                Sobre Nós
               </button>
             </nav>
           </div>

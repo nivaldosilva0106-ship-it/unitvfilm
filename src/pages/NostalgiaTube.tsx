@@ -66,6 +66,7 @@ export default function NostalgiaTube(): JSX.Element {
     const [showDownloadModal, setShowDownloadModal] = useState(false);
     const [hasStartedPlaying, setHasStartedPlaying] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false); // Track fullscreen state locally
+    const [waitingForSelection, setWaitingForSelection] = useState(false); // New state for prompt
 
     // Quality labels mapping - MUST be before any conditional returns
     const qualityLabels: { [key: string]: string } = useMemo(() => ({
@@ -553,6 +554,13 @@ export default function NostalgiaTube(): JSX.Element {
         }
         setCurrentContent(content);
         setCurrentEpisodeIndex(0);
+
+        // UX: Stop playing, show prompt
+        setHasStartedPlaying(false);
+        setIsLoadingVideo(false);
+        setVideoEnded(false);
+        setWaitingForSelection(true);
+
         navigate(`/nostalgia/${content.id}`);
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -568,6 +576,8 @@ export default function NostalgiaTube(): JSX.Element {
             clearInterval(countdownIntervalRef.current);
         }
         setCurrentEpisodeIndex(index);
+        setWaitingForSelection(false); // Clear prompt, start loading
+        setHasStartedPlaying(false); // Will trigger load
     };
 
     const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -661,7 +671,7 @@ export default function NostalgiaTube(): JSX.Element {
                                 </div>
 
                                 {/* Poster / Loading / Ended Overlay - PERSISTENT until playing */}
-                                <div className={`absolute inset-0 w-full h-full z-30 flex items-center justify-center bg-black transition-opacity duration-500 ${(!hasStartedPlaying || isLoadingVideo || videoEnded) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                                <div className={`absolute inset-0 w-full h-full z-30 flex items-center justify-center bg-black transition-opacity duration-500 ${(!hasStartedPlaying || isLoadingVideo || videoEnded || waitingForSelection) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                                     <div className="absolute inset-0 w-full h-full overflow-hidden">
                                         <img
                                             src={getPosterImage()}
@@ -670,9 +680,21 @@ export default function NostalgiaTube(): JSX.Element {
                                         />
                                     </div>
                                     <div className="absolute inset-0 bg-black/60"></div>
-                                    <div className="relative z-10 flex flex-col items-center">
-                                        {/* Only show spinner if specifically loading OR if we are waiting for start but not ended */}
-                                        {(isLoadingVideo && !videoEnded) && (
+                                    <div className="relative z-10 flex flex-col items-center p-4 text-center">
+
+                                        {/* Prompt State */}
+                                        {waitingForSelection && (
+                                            <div className="animate-in fade-in zoom-in duration-300">
+                                                <p className="text-xl md:text-3xl font-bold text-white mb-2">Quase lá!</p>
+                                                <p className="text-gray-300 text-sm md:text-lg animate-pulse">Clica em um episódio para começares assistindo</p>
+                                                <div className="mt-8 flex justify-center">
+                                                    <ChevronDown className="w-8 h-8 text-white animate-bounce" />
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Only show spinner if specifically loading OR if we are waiting for start but not ended AND NOT waiting for selection */}
+                                        {(isLoadingVideo && !videoEnded && !waitingForSelection) && (
                                             <div className="flex flex-col items-center gap-4">
                                                 <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-primary shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
                                                 <p className="text-white text-base font-medium tracking-wide">Carregando...</p>
@@ -685,6 +707,7 @@ export default function NostalgiaTube(): JSX.Element {
                                                     onClick={() => {
                                                         setCurrentEpisodeIndex(0);
                                                         setVideoEnded(false);
+                                                        setWaitingForSelection(false);
                                                     }}
                                                     variant="outline"
                                                     className="border-white/20 hover:bg-white/10"
@@ -694,7 +717,7 @@ export default function NostalgiaTube(): JSX.Element {
                                             </div>
                                         )}
                                         {/* Initial Start Button if needed, though we auto-play */}
-                                        {!hasStartedPlaying && !isLoadingVideo && !videoEnded && (
+                                        {!hasStartedPlaying && !isLoadingVideo && !videoEnded && !waitingForSelection && (
                                             <div className="animate-pulse">
                                                 <Play className="w-16 h-16 text-white/80" />
                                             </div>
@@ -981,17 +1004,17 @@ export default function NostalgiaTube(): JSX.Element {
                             <span className="text-primary">NOSTALGIA</span>
                         </h2>
 
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6">
-                            {contents.map((item) => (
+                        <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x">
+                            {contents.map((content) => (
                                 <div
-                                    key={item.id}
-                                    className="group relative cursor-pointer"
-                                    onClick={() => handlePostClick(item)}
+                                    key={content.id}
+                                    className="bg-zinc-900/50 rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-300 border border-white/5 hover:border-primary/50 group/card min-w-[200px] md:min-w-[260px] snap-start"
+                                    onClick={() => handlePostClick(content)}
                                 >
                                     <div className="aspect-[2/3] rounded-lg overflow-hidden border border-white/5 transition-transform duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-primary/20">
                                         <img
-                                            src={item.thumbnail_url}
-                                            alt={item.title}
+                                            src={content.thumbnail_url}
+                                            alt={content.title}
                                             className="w-full h-full object-cover"
                                         />
                                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
