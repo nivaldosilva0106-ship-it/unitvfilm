@@ -27,11 +27,6 @@ const Index = () => {
   const navigate = useNavigate();
   const { user, currentProfile, loading: authLoading } = useAuth();
 
-  // Show Landing Page for unauthenticated users
-  if (!authLoading && !user) {
-    return <Landing />;
-  }
-
   useEffect(() => {
     if (!authLoading && user && !currentProfile) {
       navigate('/profiles');

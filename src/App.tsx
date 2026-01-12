@@ -17,6 +17,7 @@ const queryClient = new QueryClient();
 
 // Lazy load pages
 const Index = React.lazy(() => import("./pages/Index"));
+const HomeWrapper = React.lazy(() => import("./pages/HomeWrapper"));
 const Login = React.lazy(() => import("./pages/Login"));
 const Signup = React.lazy(() => import("./pages/Signup"));
 const Admin = React.lazy(() => import("./pages/Admin"));
@@ -63,7 +64,7 @@ const App = () => (
             <GuestSessionManager />
             <Suspense fallback={<LoadingScreen />}>
               <Routes>
-                <Route path="/" element={<Index />} />
+                <Route path="/" element={<HomeWrapper />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/admin" element={<Admin />} />
