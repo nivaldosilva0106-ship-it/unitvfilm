@@ -1,0 +1,258 @@
+import { useState, useEffect, useMemo } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Film, Play, Monitor, Smartphone, Tv, Check, ChevronRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { getAllContents } from '@/lib/firebase';
+import { Content } from '@/types/content';
+import { ContentRow } from '@/components/ContentRow';
+
+export const Landing = () => {
+    const navigate = useNavigate();
+    const [email, setEmail] = useState('');
+    const [allContent, setAllContent] = useState<Content[]>([]);
+    const [heroContent, setHeroContent] = useState<Content | null>(null);
+
+    useEffect(() => {
+        const loadContent = async () => {
+            try {
+                const data = await getAllContents();
+                setAllContent(data);
+                if (data.length > 0) {
+                    // Select a random popular content for hero background/featured card
+                    setHeroContent(data[Math.floor(Math.random() * data.length)]);
+                }
+            } catch (error) {
+                console.error("Error loading landing content", error);
+            }
+        };
+        loadContent();
+    }, []);
+
+    const categorizedContent = useMemo(() => {
+        const shuffle = (array: Content[]) => [...array].sort(() => 0.5 - Math.random());
+        return {
+            popular: shuffle(allContent.filter(c => c.rating && c.rating > 7)).slice(0, 10),
+            new: shuffle(allContent.filter(c => c.is_new)).slice(0, 10),
+            action: shuffle(allContent.filter(c => c.genre?.some(g => g.toLowerCase().includes('ação') || g.toLowerCase().includes('action')))).slice(0, 10),
+            series: shuffle(allContent.filter(c => c.category === 'series')).slice(0, 10)
+        };
+    }, [allContent]);
+
+    const handleGetStarted = (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        navigate('/signup');
+    };
+
+    const dummyRedirect = () => navigate('/signup');
+
+    return (
+        <div className="min-h-screen bg-[#021b16] text-white overflow-x-hidden font-sans selection:bg-[#0aff7a] selection:text-[#021b16]">
+
+            {/* Navbar */}
+            <nav className="fixed top-0 w-full z-50 bg-gradient-to-b from-[#021b16]/90 to-transparent backdrop-blur-[2px] px-4 md:px-8 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-8">
+                    <Link to="/" className="flex items-center gap-2 group">
+                        <div className="bg-[#021b16] border border-[#0aff7a] p-1.5 rounded glow-effect group-hover:bg-[#0aff7a] transition-colors duration-300">
+                            <Film className="w-5 h-5 text-[#0aff7a] group-hover:text-[#021b16]" />
+                        </div>
+                        <span className="text-xl md:text-2xl font-bold tracking-tight">UniTv<span className="text-[#0aff7a]">Film</span></span>
+                    </Link>
+                    <div className="hidden md:flex items-center gap-6 text-sm font-medium text-gray-300">
+                        <button onClick={dummyRedirect} className="hover:text-white transition-colors">Séries</button>
+                        <button onClick={dummyRedirect} className="hover:text-white transition-colors">Filmes</button>
+                        <button onClick={dummyRedirect} className="hover:text-white transition-colors">TV ao Vivo</button>
+                    </div>
+                </div>
+                <div className="flex items-center gap-4">
+                    <Link to="/login">
+                        <Button variant="outline" className="border-[#0aff7a] text-white hover:bg-[#0aff7a]/10 hover:text-[#0aff7a] bg-transparent font-medium hidden sm:flex">
+                            Entrar
+                        </Button>
+                    </Link>
+                    <Link to="/signup">
+                        <Button className="bg-[#0aff7a] text-[#021b16] hover:bg-[#0aff7a]/90 font-bold px-6">
+                            Começar agora
+                        </Button>
+                    </Link>
+                </div>
+            </nav>
+
+            {/* Hero Section */}
+            <header className="relative w-full h-[85vh] md:h-screen flex items-center justify-center overflow-hidden">
+                {/* Hero Background Collage */}
+                <div className="absolute inset-0 z-0 opacity-40 md:opacity-30">
+                    <div className="grid grid-cols-3 md:grid-cols-6 gap-2 transform -rotate-6 scale-110">
+                        {allContent.slice(0, 18).map((c, i) => (
+                            <div key={i} className="aspect-[2/3] bg-zinc-800 rounded-lg overflow-hidden relative">
+                                <img src={c.thumbnail_url} alt="" className="w-full h-full object-cover grayscale-[30%] hover:grayscale-0 transition-all duration-700" />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Gradient Overlay */}
+                <div className="absolute inset-0 z-10 bg-gradient-to-t from-[#021b16] via-[#021b16]/70 to-[#021b16]/50" />
+                <div className="absolute inset-0 z-10 bg-[radial-gradient(circle_at_center,transparent_0%,#021b16_100%)]" />
+
+                {/* Hero Content */}
+                <div className="relative z-20 text-center px-4 max-w-4xl mx-auto mt-12 md:mt-0">
+                    <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold mb-6 tracking-tight leading-[1.1]">
+                        Assista filmes, séries e TV <br className="hidden md:block" /> em qualquer lugar.
+                    </h1>
+                    <p className="text-lg md:text-2xl text-gray-200 mb-8 max-w-2xl mx-auto font-light">
+                        Conteúdo em alta qualidade, reunido em um só lugar, <br className="hidden sm:block" /> com planos que cabem no seu bolso.
+                    </p>
+
+                    <form onSubmit={handleGetStarted} className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-xl mx-auto">
+                        <div className="relative w-full">
+                            <Input
+                                type="email"
+                                placeholder="Seu endereço de email"
+                                className="h-12 md:h-14 bg-black/40 border-gray-600 text-white placeholder:text-gray-400 focus:border-[#0aff7a] focus:ring-1 focus:ring-[#0aff7a]"
+                                value={email}
+                                onChange={e => setEmail(e.target.value)}
+                            />
+                        </div>
+                        <Button size="lg" type="submit" className="h-12 md:h-14 px-8 w-full sm:w-auto bg-[#0aff7a] text-[#021b16] hover:bg-[#0aff7a]/90 font-bold text-lg md:text-xl flex items-center gap-2 group whitespace-nowrap">
+                            Começar <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                        </Button>
+                    </form>
+                    <p className="mt-4 text-sm text-gray-400">Pronto para assistir? Crie uma conta em poucos minutos.</p>
+                </div>
+            </header>
+
+            {/* Low Cost Plan Highlight */}
+            <section className="relative z-20 -mt-20 md:-mt-32 px-4 pb-20">
+                <div className="max-w-4xl mx-auto bg-[#062820] border border-[#0aff7a]/50 rounded-2xl p-6 md:p-8 shadow-[0_0_30px_rgba(10,255,122,0.1)] flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#0aff7a]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+
+                    <div className="flex-1 text-center md:text-left">
+                        <div className="inline-block px-3 py-1 bg-[#0aff7a]/20 text-[#0aff7a] text-xs font-bold rounded-full mb-3 uppercase tracking-wider">
+                            Mais Econômico
+                        </div>
+                        <h3 className="text-2xl md:text-3xl font-bold mb-2">Plano Essencial UniTvFilm</h3>
+                        <p className="text-gray-300 text-sm md:text-base">
+                            Tenha acesso a nossa biblioteca de filmes e séries selecionados com qualidade HD.
+                            Cancele quando quiser.
+                        </p>
+                    </div>
+
+                    <div className="flex flex-col items-center md:items-end gap-1">
+                        <div className="text-sm text-gray-400">A partir de</div>
+                        <div className="text-3xl md:text-4xl font-bold text-[#0aff7a]">999 KZ <span className="text-base font-normal text-white">/mês</span></div>
+                    </div>
+
+                    <div className="w-full md:w-auto">
+                        <Button onClick={() => navigate('/signup')} className="w-full md:w-auto border border-[#0aff7a] bg-transparent hover:bg-[#0aff7a] text-[#0aff7a] hover:text-[#021b16] font-bold h-12">
+                            Ver Planos Completos
+                        </Button>
+                    </div>
+                </div>
+            </section>
+
+            {/* Content Rows */}
+            <section className="pb-16 space-y-8 pl-4 md:pl-8">
+                {categorizedContent.popular.length > 0 && (
+                    <ContentRow
+                        title="Populares na UniTvFilm"
+                        contents={categorizedContent.popular}
+                        hideDownloadIcon={true}
+                        onDetailsContent={dummyRedirect}
+                        onPlayContent={dummyRedirect}
+                    />
+                )}
+                {categorizedContent.new.length > 0 && (
+                    <ContentRow
+                        title="Novos Lançamentos"
+                        contents={categorizedContent.new}
+                        hideDownloadIcon={true}
+                        onDetailsContent={dummyRedirect}
+                        onPlayContent={dummyRedirect}
+                    />
+                )}
+                {categorizedContent.series.length > 0 && (
+                    <ContentRow
+                        title="Séries para Maratonar"
+                        contents={categorizedContent.series}
+                        hideDownloadIcon={true}
+                        onDetailsContent={dummyRedirect}
+                        onPlayContent={dummyRedirect}
+                    />
+                )}
+            </section>
+
+            {/* Features Section */}
+            <section className="py-20 bg-gradient-to-b from-[#021b16] to-[#04120e] border-t border-white/5">
+                <div className="max-w-7xl mx-auto px-4 md:px-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                        <div className="bg-[#062820]/30 p-6 rounded-xl border border-white/5 hover:border-[#0aff7a]/30 transition-colors">
+                            <div className="w-12 h-12 bg-[#0aff7a]/10 rounded-lg flex items-center justify-center mb-4">
+                                <Monitor className="w-6 h-6 text-[#0aff7a]" />
+                            </div>
+                            <h3 className="text-xl font-bold mb-2">Assista em qualquer lugar</h3>
+                            <p className="text-gray-400 text-sm">Aproveite seus filmes e séries favoritos no seu celular, tablet, laptop e TV sem pagar a mais por isso.</p>
+                        </div>
+                        <div className="bg-[#062820]/30 p-6 rounded-xl border border-white/5 hover:border-[#0aff7a]/30 transition-colors">
+                            <div className="w-12 h-12 bg-[#0aff7a]/10 rounded-lg flex items-center justify-center mb-4">
+                                <Tv className="w-6 h-6 text-[#0aff7a]" />
+                            </div>
+                            <h3 className="text-xl font-bold mb-2">Feito para TV Box</h3>
+                            <p className="text-gray-400 text-sm">Navegação otimizada para controles remotos. Transforme sua TV em um cinema com nossa interface fluida.</p>
+                        </div>
+                        <div className="bg-[#062820]/30 p-6 rounded-xl border border-white/5 hover:border-[#0aff7a]/30 transition-colors">
+                            <div className="w-12 h-12 bg-[#0aff7a]/10 rounded-lg flex items-center justify-center mb-4">
+                                <Check className="w-6 h-6 text-[#0aff7a]" />
+                            </div>
+                            <h3 className="text-xl font-bold mb-2">Planos para todos</h3>
+                            <p className="text-gray-400 text-sm">Desde opções econômicas até planos familiares completos. Escolha o que melhor se adapta a você.</p>
+                        </div>
+                        <div className="bg-[#062820]/30 p-6 rounded-xl border border-white/5 hover:border-[#0aff7a]/30 transition-colors">
+                            <div className="w-12 h-12 bg-[#0aff7a]/10 rounded-lg flex items-center justify-center mb-4">
+                                <Smartphone className="w-6 h-6 text-[#0aff7a]" />
+                            </div>
+                            <h3 className="text-xl font-bold mb-2">Atualizado Sempre</h3>
+                            <p className="text-gray-400 text-sm">Novos conteúdos adicionados semanalmente. Nunca fique sem ter o que assistir.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* CTA Footer */}
+            <section className="py-24 bg-[#010b09] relative overflow-hidden text-center px-4">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,#062820_0%,#010b09_70%)] opacity-50"></div>
+                <div className="relative z-10 max-w-3xl mx-auto">
+                    <h2 className="text-3xl md:text-5xl font-bold mb-6">Pronto para começar a maratonar?</h2>
+                    <p className="text-lg text-gray-400 mb-8">
+                        Crie sua conta UniTvFilm, escolha um plano e comece a assistir agora mesmo.
+                    </p>
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                        <Button onClick={() => navigate('/signup')} size="lg" className="h-14 px-8 bg-[#0aff7a] text-[#021b16] hover:bg-[#0aff7a]/90 font-bold text-lg w-full sm:w-auto">
+                            Começar assistindo agora
+                        </Button>
+                        <Button onClick={() => navigate('/login')} size="lg" variant="outline" className="h-14 px-8 border-gray-700 text-white hover:bg-white/5 hover:border-gray-500 font-bold text-lg w-full sm:w-auto">
+                            Já tem conta? Entrar
+                        </Button>
+                    </div>
+                </div>
+            </section>
+
+            {/* Plain Footer */}
+            <footer className="bg-[#000504] py-12 px-8 border-t border-white/5 text-sm text-gray-500">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-6">
+                    <div className="flex flex-wrap justify-center gap-6">
+                        <Link to="/about" className="hover:text-white transition-colors">Sobre Nós</Link>
+                        <Link to="/terms" className="hover:text-white transition-colors">Termos de Uso</Link>
+                        <Link to="/privacy" className="hover:text-white transition-colors">Política de Privacidade</Link>
+                        <a href="#" className="hover:text-white transition-colors">Ajuda</a>
+                    </div>
+                    <div>
+                        UniTvFilm © {new Date().getFullYear()}. Todos os direitos reservados.
+                    </div>
+                </div>
+            </footer>
+        </div>
+    );
+};
+
+export default Landing;

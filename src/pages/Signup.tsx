@@ -21,8 +21,18 @@ const Signup = () => {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
 
+  /* Background State */
+  const [bgUrl, setBgUrl] = useState('/login-bg.jpg');
+
   useEffect(() => {
     loadPlans();
+    import('@/lib/firebase').then(({ getSiteSettings }) => {
+      getSiteSettings().then(settings => {
+        if (settings.loginBackgroundUrl) {
+          setBgUrl(settings.loginBackgroundUrl);
+        }
+      });
+    });
   }, []);
 
   const loadPlans = async () => {
@@ -124,7 +134,10 @@ const Signup = () => {
   return (
     <div className="min-h-screen bg-[#141414] flex items-center justify-center px-4 py-8">
       {/* Background similar to Login */}
-      <div className="absolute inset-0 z-0 bg-[url('/login-bg.jpg')] bg-cover bg-center opacity-20" />
+      <div
+        className="absolute inset-0 z-0 bg-cover bg-center opacity-20"
+        style={{ backgroundImage: `url("${bgUrl}")` }}
+      />
 
       <div className="w-full max-w-4xl relative z-10">
         <div className="text-center mb-8">

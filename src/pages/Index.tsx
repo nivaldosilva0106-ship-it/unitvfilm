@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { LoadingScreen } from "@/components/LoadingScreen";
+import { Landing } from "@/pages/Landing";
 import { Volume2, VolumeX, Play, Info, Plus, Check, Star } from "lucide-react";
 import { ContentRow } from "@/components/ContentRow";
 import { MarqueeContentRow } from "@/components/MarqueeContentRow";
@@ -26,11 +27,17 @@ const Index = () => {
   const navigate = useNavigate();
   const { user, currentProfile, loading: authLoading } = useAuth();
 
+  // Show Landing Page for unauthenticated users
+  if (!authLoading && !user) {
+    return <Landing />;
+  }
+
   useEffect(() => {
     if (!authLoading && user && !currentProfile) {
       navigate('/profiles');
     }
   }, [user, currentProfile, authLoading, navigate]);
+
   const [allContentData, setAllContentData] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
   const [randomContent, setRandomContent] = useState<Content[]>([]);
