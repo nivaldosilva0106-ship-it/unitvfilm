@@ -136,18 +136,20 @@ const Index = () => {
           const isManualMode = sliderSettings.mode === 'manual';
           const hasSelectedIds = Array.isArray(sliderSettings.selectedContentIds) && sliderSettings.selectedContentIds.length > 0;
 
-          if (isManualMode && hasSelectedIds) {
+          if (isManualMode) {
             // Manual mode: strictly show only selected content
-            filtered = allContentData.filter(c =>
-              c.trailer_url &&
-              getYouTubeId(c.trailer_url) &&
-              sliderSettings.selectedContentIds.includes(c.id)
-            );
-            console.log('Slider mode: MANUAL, selected IDs:', sliderSettings.selectedContentIds, 'filtered count:', filtered.length);
-          } else if (isManualMode && !hasSelectedIds) {
-            // Manual mode but no content selected - show nothing
-            filtered = [];
-            console.log('Slider mode: MANUAL, but NO content selected - showing empty');
+            if (hasSelectedIds) {
+              filtered = allContentData.filter(c =>
+                c.trailer_url &&
+                getYouTubeId(c.trailer_url) &&
+                sliderSettings.selectedContentIds.includes(c.id)
+              );
+              console.log('Slider mode: MANUAL, selected IDs:', sliderSettings.selectedContentIds, 'filtered count:', filtered.length);
+            } else {
+              // Manual mode but no content selected - show nothing
+              filtered = [];
+              console.log('Slider mode: MANUAL, but NO content selected - showing empty');
+            }
           } else {
             // Random mode OR mode not set: show all content with trailers
             filtered = allContentData.filter(c => c.trailer_url && getYouTubeId(c.trailer_url));
@@ -157,12 +159,17 @@ const Index = () => {
           if (filtered.length > 0) {
             const shuffled = [...filtered].sort(() => 0.5 - Math.random());
             setTrailerContents(shuffled);
+            setCurrentTrailerIndex(0); // Reset index
           } else {
             setTrailerContents([]);
           }
         } catch (error) {
           console.error('Error loading slider settings:', error);
-          // Fallback to all trailers if settings fail to load
+          // Fallback only filters valid trailers, assuming random if settings fail (safety default)
+          // But if we want STRICT strict, we might want to default to empty. 
+          // For now, let's stick to safe fallback of showing something if error occurs, OR empty if we are paranoid.
+          // Given user request "only selected", maybe error should default to empty? 
+          // Let's keep existing behavior (random fallback on error) but strictly obey settings if success.
           const withTrailers = allContentData.filter(c => c.trailer_url && getYouTubeId(c.trailer_url));
           if (withTrailers.length > 0) {
             const shuffled = [...withTrailers].sort(() => 0.5 - Math.random());
@@ -275,7 +282,7 @@ const Index = () => {
 
   // Mapeamento e filtragem de conteúdo por categoria - Otimizado
   const categorizedContent = useMemo(() => {
-    if (!allContentData.length) return { movies: [], series: [], nostalgia: [], tvChannels: [], featured: [], topRated: [] };
+    if (!allContentData.length) return { movies: [], series: [], nostalgia: [], tvChannels: [], featured: [], topRated: [], actionAdventure: [], comedyHorror: [] };
 
     const data = allContentData;
 
@@ -298,6 +305,29 @@ const Index = () => {
         c.rating >= 7.0
       );
 
+      // New Sections Logic
+      const isActionOrAdventure = (c: Content) => {
+        const genres = c.genre || []; // Assuming c.genre is string[] based on interface
+        const lowerKeywords = ['ação', 'aventura', 'action', 'adventure'];
+        // Check genre array
+        if (genres.some(g => lowerKeywords.includes(g.toLowerCase()))) return true;
+        // Check description/title fallback
+        const text = (c.title + ' ' + (c.description || '')).toLowerCase();
+        return lowerKeywords.some(k => text.includes(k));
+      };
+
+      const isComedyOrHorror = (c: Content) => {
+        const genres = c.genre || [];
+        const lowerKeywords = ['comédia', 'terror', 'comedy', 'horror'];
+        if (genres.some(g => lowerKeywords.includes(g.toLowerCase()))) return true;
+        const text = (c.title + ' ' + (c.description || '')).toLowerCase();
+        return lowerKeywords.some(k => text.includes(k));
+      };
+
+      const actionAdventureList = data.filter(c => (c.category === 'movie' || c.category === 'series') && isActionOrAdventure(c));
+      const comedyHorrorList = data.filter(c => (c.category === 'movie' || c.category === 'series') && isComedyOrHorror(c));
+
+
       return {
         movies: shuffle(movies),
         series: shuffle(series),
@@ -305,6 +335,8 @@ const Index = () => {
         tvChannels: shuffle(tv),
         featured: randomContent, // Already shuffled
         topRated: shuffle(topRated).slice(0, 15),
+        actionAdventure: shuffle(actionAdventureList),
+        comedyHorror: shuffle(comedyHorrorList)
       };
     }
 
@@ -685,6 +717,30 @@ const Index = () => {
               <ContentRow
                 title="Nostalgia"
                 contents={categorizedContent.nostalgia}
+                onPlayContent={handlePlayContent}
+                onInfoContent={handleInfoContent}
+                onDetailsContent={handleDetailsContent}
+                onDownloadContent={handleDownloadContent}
+                hideDownloadIcon={true}
+              />
+            )}
+
+            {categorizedContent.actionAdventure && categorizedContent.actionAdventure.length > 0 && (
+              <ContentRow
+                title="Ação e Aventura"
+                contents={categorizedContent.actionAdventure}
+                onPlayContent={handlePlayContent}
+                onInfoContent={handleInfoContent}
+                onDetailsContent={handleDetailsContent}
+                onDownloadContent={handleDownloadContent}
+                hideDownloadIcon={true}
+              />
+            )}
+
+            {categorizedContent.comedyHorror && categorizedContent.comedyHorror.length > 0 && (
+              <ContentRow
+                title="Comédia e Terror"
+                contents={categorizedContent.comedyHorror}
                 onPlayContent={handlePlayContent}
                 onInfoContent={handleInfoContent}
                 onDetailsContent={handleDetailsContent}

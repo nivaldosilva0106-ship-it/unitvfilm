@@ -604,7 +604,7 @@ const Player = () => {
                     )}
 
                     {/* Header Controls (Close, Title, etc) */}
-                    <div className="absolute top-0 left-0 right-0 p-3 sm:p-6 flex justify-between items-start z-50 pointer-events-none transition-opacity duration-300 opacity-0 group-hover:opacity-100">
+                    <div className="absolute top-0 left-0 right-0 p-2 sm:p-6 flex justify-between items-start z-50 pointer-events-none transition-opacity duration-300 opacity-0 group-hover:opacity-100">
                         <div className="pointer-events-auto flex items-center gap-2 sm:gap-4 max-w-[70%] sm:max-w-none">
                             <Button
                                 variant="ghost"
@@ -706,10 +706,10 @@ const Player = () => {
                                 onClick={handleNextEpisode}
                                 variant="ghost"
                                 size="icon"
-                                className="w-10 h-10 sm:w-16 sm:h-16 rounded-full bg-black/60 hover:bg-primary text-white backdrop-blur-md border border-white/20 shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center"
+                                className="w-8 h-8 sm:w-16 sm:h-16 rounded-full bg-black/60 hover:bg-primary text-white backdrop-blur-md border border-white/20 shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center"
                                 title={`Próximo: ${nextEpisode.title}`}
                             >
-                                <ChevronRight className="w-5 h-5 sm:w-8 sm:h-8 ml-0.5" />
+                                <ChevronRight className="w-4 h-4 sm:w-8 sm:h-8 ml-0.5" />
                             </Button>
                             <div className="bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block">
                                 <span className="text-[9px] text-white uppercase font-bold tracking-wider">Próximo Episódio</span>
