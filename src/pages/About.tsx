@@ -1,5 +1,6 @@
 import React from 'react';
 import Header from '../components/Header';
+import { Footer } from '@/components/Footer';
 import { Shield, Server, FileText, Youtube } from 'lucide-react';
 
 export default function About() {
@@ -63,10 +64,8 @@ export default function About() {
 
                 </div>
 
-                <div className="mt-12 text-center text-sm text-gray-500">
-                    <p>&copy; {new Date().getFullYear()} UniTvFilm. Todos os direitos reservados.</p>
-                </div>
             </main>
+            <Footer />
         </div>
     );
 }

@@ -38,6 +38,8 @@ import NostalgiaTube from "./pages/NostalgiaTube";
 const VerifyCode = React.lazy(() => import("./pages/VerifyCode"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 const About = React.lazy(() => import("./pages/About"));
+const TermsOfUse = React.lazy(() => import("./pages/TermsOfUse"));
+const PrivacyPolicy = React.lazy(() => import("./pages/PrivacyPolicy"));
 
 // Lazy load admin components
 const AdminUsers = React.lazy(() => import("@/components/admin/AdminUsers").then(module => ({ default: module.AdminUsers })));
@@ -82,6 +84,8 @@ const App = () => (
                 <Route path="/nostalgia" element={<NostalgiaTube />} />
                 <Route path="/nostalgia/:id" element={<NostalgiaTube />} />
                 <Route path="/about" element={<About />} />
+                <Route path="/terms" element={<TermsOfUse />} />
+                <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/verify-code" element={<VerifyCode />} />
 
                 <Route path="/admin/users" element={

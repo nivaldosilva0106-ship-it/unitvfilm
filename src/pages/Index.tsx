@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { Volume2, VolumeX, Play, Info, Plus, Check, Star } from "lucide-react";
 import { ContentRow } from "@/components/ContentRow";
@@ -130,8 +131,8 @@ const Index = () => {
           const sliderSettings = await getSliderSettings();
           let filtered: Content[] = [];
 
-          if (sliderSettings.mode === 'manual' && sliderSettings.selectedContentIds.length > 0) {
-            // Manual mode: only show selected content
+          if (sliderSettings.mode === 'manual') {
+            // Manual mode: strictly show selected content
             filtered = allContentData.filter(c =>
               c.trailer_url &&
               getYouTubeId(c.trailer_url) &&
@@ -727,6 +728,8 @@ const Index = () => {
 
       {/* Mobile Bottom Ad */}
       <AdManager placement="mobile-bottom" className="md:hidden fixed bottom-0 left-0 right-0 z-40" />
+
+      <Footer />
 
       {/* Episode Selector Modal */}
       {selectedSeries && (
