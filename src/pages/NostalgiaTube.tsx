@@ -522,19 +522,26 @@ export default function NostalgiaTube(): JSX.Element {
     const changeQuality = (quality: string) => {
         if (player && playerReady) {
             try {
+                // Note: YouTube's IFrame API deprecated setPlaybackQuality for embeds
+                // It may not work reliably. We try but also show a fallback message.
                 player.setPlaybackQuality(quality);
                 setCurrentQuality(quality);
                 setShowQualityMenu(false);
 
-                // Force quality update feedback if possible
-                const actualQuality = player.getPlaybackQuality();
-                if (actualQuality !== quality && quality !== 'default') {
-                    console.log(`Requested ${quality}, got ${actualQuality}`);
-                }
-
-                toast.success(`Qualidade alterada para ${qualityLabels[quality] || quality}`);
+                // Verify the quality change
+                setTimeout(() => {
+                    const actualQuality = player.getPlaybackQuality();
+                    if (actualQuality && actualQuality !== quality && quality !== 'auto') {
+                        // Quality change may not have worked - YouTube restricts this in embeds
+                        toast.info(`Qualidade solicitada: ${qualityLabels[quality] || quality}. O YouTube pode limitar alterações de qualidade em players embutidos.`);
+                    } else {
+                        toast.success(`Qualidade: ${qualityLabels[quality] || quality}`);
+                    }
+                    setCurrentQuality(actualQuality || quality);
+                }, 500);
             } catch (e) {
                 console.error("Error changing quality:", e);
+                toast.error("Erro ao alterar qualidade");
             }
         }
     };
@@ -554,15 +561,17 @@ export default function NostalgiaTube(): JSX.Element {
         if (countdownIntervalRef.current) {
             clearInterval(countdownIntervalRef.current);
         }
+        
+        // First reset episode index to -1 BEFORE setting new content
+        // This ensures clicking episode 0 will trigger a state change
+        setCurrentEpisodeIndex(-1);
         setCurrentContent(content);
-        setCurrentEpisodeIndex(0);
 
-        // UX: Stop playing, show prompt - reset episode to -1 to ensure click on 0 works
+        // UX: Stop playing, show prompt
         setHasStartedPlaying(false);
         setIsLoadingVideo(false);
         setVideoEnded(false);
         setWaitingForSelection(true);
-        setCurrentEpisodeIndex(-1); // Reset to -1 so clicking episode 0 triggers change
 
         navigate(`/nostalgia/${content.id}`);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -579,20 +588,21 @@ export default function NostalgiaTube(): JSX.Element {
             clearInterval(countdownIntervalRef.current);
         }
         setWaitingForSelection(false); // Clear prompt, start loading
-        setHasStartedPlaying(false); // Will trigger load
+        setIsLoadingVideo(true); // Show loading immediately
         
-        // Fix: If clicking the same episode (e.g., first episode when index is already 0),
-        // we need to force a player reload by destroying and recreating it
+        // Always set the episode index - since we reset to -1 on post click,
+        // clicking episode 0 will now trigger a proper state change
+        // For same episode click (re-click), force player to restart
         if (index === currentEpisodeIndex && player && playerReady) {
             try {
                 player.seekTo(0, true);
                 player.playVideo();
-                setIsLoadingVideo(true);
             } catch (e) {
                 console.error("Error restarting episode:", e);
             }
         } else {
             setCurrentEpisodeIndex(index);
+            setHasStartedPlaying(false); // Reset to trigger new player load
         }
     };
 

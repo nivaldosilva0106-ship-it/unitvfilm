@@ -129,24 +129,29 @@ const Index = () => {
       if (allContentData.length > 0) {
         try {
           const sliderSettings = await getSliderSettings();
+          console.log('Raw slider settings from Firebase:', JSON.stringify(sliderSettings));
           let filtered: Content[] = [];
 
-          if (sliderSettings.mode === 'manual' && sliderSettings.selectedContentIds && sliderSettings.selectedContentIds.length > 0) {
+          // Check if mode is strictly 'manual' (not undefined or random)
+          const isManualMode = sliderSettings.mode === 'manual';
+          const hasSelectedIds = Array.isArray(sliderSettings.selectedContentIds) && sliderSettings.selectedContentIds.length > 0;
+
+          if (isManualMode && hasSelectedIds) {
             // Manual mode: strictly show only selected content
             filtered = allContentData.filter(c =>
               c.trailer_url &&
               getYouTubeId(c.trailer_url) &&
               sliderSettings.selectedContentIds.includes(c.id)
             );
-            console.log('Slider mode: manual, selected IDs:', sliderSettings.selectedContentIds, 'filtered:', filtered.length);
-          } else if (sliderSettings.mode === 'manual' && (!sliderSettings.selectedContentIds || sliderSettings.selectedContentIds.length === 0)) {
+            console.log('Slider mode: MANUAL, selected IDs:', sliderSettings.selectedContentIds, 'filtered count:', filtered.length);
+          } else if (isManualMode && !hasSelectedIds) {
             // Manual mode but no content selected - show nothing
             filtered = [];
-            console.log('Slider mode: manual, but no content selected');
+            console.log('Slider mode: MANUAL, but NO content selected - showing empty');
           } else {
-            // Random mode: show all content with trailers
+            // Random mode OR mode not set: show all content with trailers
             filtered = allContentData.filter(c => c.trailer_url && getYouTubeId(c.trailer_url));
-            console.log('Slider mode: random, showing all trailers:', filtered.length);
+            console.log('Slider mode: RANDOM, showing all trailers:', filtered.length);
           }
 
           if (filtered.length > 0) {
