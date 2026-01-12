@@ -11,7 +11,6 @@ export const Landing = () => {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [allContent, setAllContent] = useState<Content[]>([]);
-    const [allContent, setAllContent] = useState<Content[]>([]);
     const [heroContent, setHeroContent] = useState<Content | null>(null);
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
 
