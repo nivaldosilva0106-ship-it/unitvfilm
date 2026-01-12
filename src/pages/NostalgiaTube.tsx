@@ -557,11 +557,12 @@ export default function NostalgiaTube(): JSX.Element {
         setCurrentContent(content);
         setCurrentEpisodeIndex(0);
 
-        // UX: Stop playing, show prompt
+        // UX: Stop playing, show prompt - reset episode to -1 to ensure click on 0 works
         setHasStartedPlaying(false);
         setIsLoadingVideo(false);
         setVideoEnded(false);
         setWaitingForSelection(true);
+        setCurrentEpisodeIndex(-1); // Reset to -1 so clicking episode 0 triggers change
 
         navigate(`/nostalgia/${content.id}`);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -577,9 +578,22 @@ export default function NostalgiaTube(): JSX.Element {
         if (countdownIntervalRef.current) {
             clearInterval(countdownIntervalRef.current);
         }
-        setCurrentEpisodeIndex(index);
         setWaitingForSelection(false); // Clear prompt, start loading
         setHasStartedPlaying(false); // Will trigger load
+        
+        // Fix: If clicking the same episode (e.g., first episode when index is already 0),
+        // we need to force a player reload by destroying and recreating it
+        if (index === currentEpisodeIndex && player && playerReady) {
+            try {
+                player.seekTo(0, true);
+                player.playVideo();
+                setIsLoadingVideo(true);
+            } catch (e) {
+                console.error("Error restarting episode:", e);
+            }
+        } else {
+            setCurrentEpisodeIndex(index);
+        }
     };
 
     const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {

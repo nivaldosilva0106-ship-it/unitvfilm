@@ -131,16 +131,22 @@ const Index = () => {
           const sliderSettings = await getSliderSettings();
           let filtered: Content[] = [];
 
-          if (sliderSettings.mode === 'manual') {
-            // Manual mode: strictly show selected content
+          if (sliderSettings.mode === 'manual' && sliderSettings.selectedContentIds && sliderSettings.selectedContentIds.length > 0) {
+            // Manual mode: strictly show only selected content
             filtered = allContentData.filter(c =>
               c.trailer_url &&
               getYouTubeId(c.trailer_url) &&
               sliderSettings.selectedContentIds.includes(c.id)
             );
+            console.log('Slider mode: manual, selected IDs:', sliderSettings.selectedContentIds, 'filtered:', filtered.length);
+          } else if (sliderSettings.mode === 'manual' && (!sliderSettings.selectedContentIds || sliderSettings.selectedContentIds.length === 0)) {
+            // Manual mode but no content selected - show nothing
+            filtered = [];
+            console.log('Slider mode: manual, but no content selected');
           } else {
             // Random mode: show all content with trailers
             filtered = allContentData.filter(c => c.trailer_url && getYouTubeId(c.trailer_url));
+            console.log('Slider mode: random, showing all trailers:', filtered.length);
           }
 
           if (filtered.length > 0) {
