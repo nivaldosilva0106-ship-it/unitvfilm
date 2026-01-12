@@ -44,10 +44,11 @@ const Index = () => {
   const [showCinemaModal, setShowCinemaModal] = useState(false);
   const [pendingPlayerState, setPendingPlayerState] = useState<any>(null);
 
-  /* New State for Video Slider */
+  /* New State  /* Slider State */
   const [trailerContents, setTrailerContents] = useState<Content[]>([]);
   const [currentTrailerIndex, setCurrentTrailerIndex] = useState(0);
-  const [isMuted, setIsMuted] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false); // For smooth fade
+  const [isMuted, setIsMuted] = useState(true);
   const [heroTextVisible, setHeroTextVisible] = useState(true);
   const [showVideo, setShowVideo] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -195,9 +196,22 @@ const Index = () => {
   /* Video Slider Interval (90s) - Only run if player modal is CLOSED */
   useEffect(() => {
     if (trailerContents.length > 0 && !playerModal.open) {
+      // Logic: Fade out at 89s, switch at 90s, fade in at 90.5s
       const interval = setInterval(() => {
-        setCurrentTrailerIndex((prev) => (prev + 1) % trailerContents.length);
-      }, 90000); // 90 seconds
+        // 1. Start Fade Out
+        setIsTransitioning(true);
+
+        // 2. Switch Content after fade (1s delay matches duration-1000)
+        setTimeout(() => {
+          setCurrentTrailerIndex((prev) => (prev + 1) % trailerContents.length);
+
+          // 3. Fade In (small delay to allow rendering new iframe)
+          setTimeout(() => {
+            setIsTransitioning(false);
+          }, 500);
+        }, 1000);
+
+      }, 90000); // 90 seconds cycle
 
       return () => clearInterval(interval);
     }
@@ -506,7 +520,7 @@ const Index = () => {
               <iframe
                 ref={iframeRef}
                 key={currentTrailer.id}
-                className="absolute top-[35%] left-1/2 w-[300%] h-[300%] md:top-1/2 md:w-[150%] md:h-[150%] -translate-x-1/2 -translate-y-1/2 opacity-60 transition-opacity duration-1000"
+                className={`absolute top-[35%] left-1/2 w-[300%] h-[300%] md:top-1/2 md:w-[150%] md:h-[150%] -translate-x-1/2 -translate-y-1/2 transition-opacity duration-1000 ${isTransitioning ? 'opacity-0' : 'opacity-60'}`}
                 src={`https://www.youtube.com/embed/${getYouTubeId(currentTrailer.trailer_url)}?autoplay=1&mute=0&controls=0&enablejsapi=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&end=90&loop=1&playlist=${getYouTubeId(currentTrailer.trailer_url)}`}
                 title="Hero Video"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

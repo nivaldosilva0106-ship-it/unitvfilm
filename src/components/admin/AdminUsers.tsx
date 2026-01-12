@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { getAllUsers, getAccountProfiles, updateUserProfile, deleteUserProfile, getAllAdmins, setUserAsAdmin, removeUserAdmin } from '@/lib/firebase';
-import { UserProfile, Profile } from '@/types/user';
+import { getAllUsers, getAccountProfiles, updateUserProfile, deleteUserProfile, getAllAdmins, setUserAsAdmin, removeUserAdmin, getPlans, createAccountProfile } from '@/lib/firebase';
+import { UserProfile, Profile, Plan } from '@/types/user';
 import {
     Users,
     Search,
@@ -17,10 +17,19 @@ import {
     Lock,
     Save,
     Shield,
-    ShieldOff
+    ShieldOff,
+    CreditCard
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
     Select,
     SelectContent,
@@ -37,12 +46,23 @@ export const AdminUsers = () => {
     const [filterType, setFilterType] = useState<'all' | 'premium' | 'free'>('all');
     const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
     const [userProfiles, setUserProfiles] = useState<Profile[]>([]);
+    const [userProfiles, setUserProfiles] = useState<Profile[]>([]);
     const [loadingProfiles, setLoadingProfiles] = useState(false);
+    const [plans, setPlans] = useState<Plan[]>([]);
+
+    // Change Plan State
+    const [selectedUserForPlan, setSelectedUserForPlan] = useState<UserProfile | null>(null);
+    const [newPlanId, setNewPlanId] = useState<string>("");
+    const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+
+    // Create Profile State (Admin Override)
+    const [isCreateProfileOpen, setIsCreateProfileOpen] = useState(false);
+    const [newProfileName, setNewProfileName] = useState("");
 
     // New state for profile limit editing
     const [savingLimit, setSavingLimit] = useState(false);
     const [limitOverride, setLimitOverride] = useState<string>('');
-    
+
     // Admin management state
     const [adminUserIds, setAdminUserIds] = useState<string[]>([]);
     const [togglingAdmin, setTogglingAdmin] = useState<string | null>(null);
@@ -50,7 +70,17 @@ export const AdminUsers = () => {
     useEffect(() => {
         loadUsers();
         loadAdmins();
+        loadPlans();
     }, []);
+
+    const loadPlans = async () => {
+        try {
+            const data = await getPlans();
+            setPlans(data);
+        } catch (e) {
+            console.error("Erro ao carregar planos", e);
+        }
+    };
 
     const loadUsers = async () => {
         try {
@@ -142,6 +172,64 @@ export const AdminUsers = () => {
         }
     };
 
+    const handleUpdatePlan = async () => {
+        if (!selectedUserForPlan || !newPlanId) return;
+
+        try {
+            const selectedPlan = plans.find(p => p.id === newPlanId);
+            const updates: any = {
+                planId: newPlanId,
+                isPremium: newPlanId !== 'free' && (selectedPlan?.price || 0) > 0,
+                // Update limits based on plan, or keep existing override if present? 
+                // Usually changing plan resets limits to that plan's defaults, unless manually overridden later.
+                // We'll reset override to null so new plan limits apply, unless admin deliberately sets override again.
+                profilesLimitOverride: null
+            };
+
+            // Calculate expiration if needed (optional, logic depends on plan duration)
+            if (selectedPlan && selectedPlan.durationDays) {
+                const date = new Date();
+                date.setDate(date.getDate() + selectedPlan.durationDays);
+                updates.subscriptionExpiresAt = date.toISOString();
+            }
+
+            await updateUserProfile(selectedUserForPlan.id, updates);
+            toast.success(`Plano de ${selectedUserForPlan.email} atualizado para ${selectedPlan?.name}`);
+            setIsPlanModalOpen(false);
+            loadUsers();
+
+            // If expanded, reload profiles/details
+            if (expandedUserId === selectedUserForPlan.id) {
+                const updatedUser = { ...selectedUserForPlan, ...updates };
+                // Force re-render details if needed or just let loadUsers handle it
+            }
+        } catch (error) {
+            toast.error("Erro ao atualizar plano");
+        }
+    };
+
+    const handleCreateProfile = async () => {
+        if (!expandedUserId || !newProfileName.trim()) return;
+        try {
+            await createAccountProfile(expandedUserId, {
+                name: newProfileName,
+                avatar: '/placeholder-user.jpg', // Default
+                isKids: false,
+                language: 'pt',
+                myList: []
+            });
+            toast.success("Perfil criado com sucesso!");
+            setNewProfileName("");
+            setIsCreateProfileOpen(false);
+
+            // Reload profiles
+            const profiles = await getAccountProfiles(expandedUserId);
+            setUserProfiles(profiles);
+        } catch (e) {
+            toast.error("Erro ao criar perfil");
+        }
+    };
+
     const filteredUsers = useMemo(() => {
         return users.filter(user => {
             const matchesSearch = user.email.toLowerCase().includes(search.toLowerCase()) ||
@@ -194,10 +282,7 @@ export const AdminUsers = () => {
                 <div className="bg-amber-500/10 border border-amber-500/20 p-5 rounded-2xl">
                     <div className="text-amber-500/80 text-sm font-medium mb-1">Total de Visitantes</div>
                     <div className="text-3xl font-bold text-amber-500">
-                        {users.length > 0 ? 'Carregando...' : '---'}
-                        {/* We don't have direct access to all guest profiles easily without a query, 
-                            but we can show a placeholder or perform a specific query if needed. 
-                            For now, let's focus on registered users. */}
+                        {loading ? '...' : stats.total}
                     </div>
                 </div>
             </div>
@@ -349,6 +434,20 @@ export const AdminUsers = () => {
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>
+
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setSelectedUserForPlan(user);
+                                                        setNewPlanId(user.planId || 'free');
+                                                        setIsPlanModalOpen(true);
+                                                    }}
+                                                    className="h-8 px-2 text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                                                    title="Mudar Plano"
+                                                >
+                                                    <CreditCard className="w-4 h-4" />
+                                                </Button>
                                             </div>
                                         </td>
                                     </tr>
@@ -359,9 +458,36 @@ export const AdminUsers = () => {
 
                                                     {/* Profiles Section */}
                                                     <div className="space-y-4">
-                                                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-2">
-                                                            Perfis Cadastrados
-                                                            {loadingProfiles && <span className="animate-pulse">...</span>}
+                                                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider flex items-center justify-between gap-2">
+                                                            <div className="flex items-center gap-2">
+                                                                Perfis Cadastrados
+                                                                {loadingProfiles && <span className="animate-pulse">...</span>}
+                                                            </div>
+                                                            <Dialog open={isCreateProfileOpen} onOpenChange={setIsCreateProfileOpen}>
+                                                                <DialogTrigger asChild>
+                                                                    <Button size="sm" variant="outline" className="h-7 text-xs border-white/10 hover:bg-white/5">
+                                                                        <Plus className="w-3 h-3 mr-1" /> Criar Perfil
+                                                                    </Button>
+                                                                </DialogTrigger>
+                                                                <DialogContent className="bg-zinc-900 border-white/10 text-white">
+                                                                    <DialogHeader>
+                                                                        <DialogTitle>Criar Novo Perfil</DialogTitle>
+                                                                    </DialogHeader>
+                                                                    <div className="space-y-4 py-4">
+                                                                        <div className="space-y-2">
+                                                                            <Label>Nome do Perfil</Label>
+                                                                            <Input
+                                                                                value={newProfileName}
+                                                                                onChange={e => setNewProfileName(e.target.value)}
+                                                                                className="bg-black/40 border-white/10"
+                                                                            />
+                                                                        </div>
+                                                                        <Button onClick={handleCreateProfile} className="w-full bg-primary hover:bg-primary/90">
+                                                                            Criar
+                                                                        </Button>
+                                                                    </div>
+                                                                </DialogContent>
+                                                            </Dialog>
                                                         </h3>
 
                                                         {!loadingProfiles && userProfiles.length === 0 && (
@@ -492,6 +618,40 @@ export const AdminUsers = () => {
                     </table>
                 </div>
             </div>
+            {/* Plan Change Dialog */}
+            <Dialog open={isPlanModalOpen} onOpenChange={setIsPlanModalOpen}>
+                <DialogContent className="bg-zinc-900 border-white/10 text-white">
+                    <DialogHeader>
+                        <DialogTitle>Alterar Plano de Usuário</DialogTitle>
+                    </DialogHeader>
+                    {selectedUserForPlan && (
+                        <div className="space-y-4 py-4">
+                            <p className="text-sm text-muted-foreground">
+                                Alterando plano para: <span className="text-white font-bold">{selectedUserForPlan.email}</span>
+                            </p>
+                            <div className="space-y-2">
+                                <Label>Selecione o Novo Plano</Label>
+                                <Select value={newPlanId} onValueChange={setNewPlanId}>
+                                    <SelectTrigger className="bg-black/40 border-white/10">
+                                        <SelectValue placeholder="Selecione..." />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-zinc-900 border-white/10">
+                                        <SelectItem value="free">Grátis (Free)</SelectItem>
+                                        {plans.filter(p => p.id !== 'free').map(plan => (
+                                            <SelectItem key={plan.id} value={plan.id}>
+                                                {plan.name} ({plan.price > 0 ? `${plan.price} KZ` : 'Grátis'})
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                            <Button onClick={handleUpdatePlan} className="w-full bg-primary hover:bg-primary/90">
+                                Salvar Alteração
+                            </Button>
+                        </div>
+                    )}
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };
