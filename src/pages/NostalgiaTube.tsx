@@ -104,7 +104,9 @@ export default function NostalgiaTube(): JSX.Element {
             try {
                 const all = await getAllContents();
                 const nostalgiaItems = all.filter(c => c.category === 'nostalgia');
-                setContents(nostalgiaItems);
+                // Randomize content
+                const shuffled = [...nostalgiaItems].sort(() => 0.5 - Math.random());
+                setContents(shuffled);
 
                 if (id) {
                     const found = nostalgiaItems.find(c => c.id === id);
@@ -1012,7 +1014,7 @@ export default function NostalgiaTube(): JSX.Element {
                             <span className="text-primary">NOSTALGIA</span>
                         </h2>
 
-                        <div className="flex gap-4 overflow-x-auto pb-4 custom-scrollbar snap-x">
+                        <div className="flex gap-4 overflow-x-auto pb-4 modern-scrollbar snap-x">
                             {contents.map((content) => (
                                 <div
                                     key={content.id}
