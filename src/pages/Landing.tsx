@@ -11,7 +11,42 @@ export const Landing = () => {
     const navigate = useNavigate();
     const [email, setEmail] = useState('');
     const [allContent, setAllContent] = useState<Content[]>([]);
+    const [allContent, setAllContent] = useState<Content[]>([]);
     const [heroContent, setHeroContent] = useState<Content | null>(null);
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+
+    useEffect(() => {
+        const handler = (e: any) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handler);
+        return () => window.removeEventListener('beforeinstallprompt', handler);
+    }, []);
+
+    const handleInstallClick = async (platform: 'android' | 'ios' | 'pc') => {
+        if (platform === 'ios') {
+            // iOS instructions or deep link if app existed
+            alert("Para instalar no iOS: Toque no botão de compartilhamento e selecione 'Adicionar à Tela de Início'.");
+            return;
+        }
+
+        if (!deferredPrompt) {
+            // Fallback or message if already installed/not supported
+            if (platform === 'pc') {
+                alert("Para instalar no PC, clique no ícone de instalação na barra de endereço do navegador (Chrome/Edge).");
+            } else {
+                alert("App já instalado ou não suportado neste navegador. Tente pelo Chrome.");
+            }
+            return;
+        }
+
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setDeferredPrompt(null);
+        }
+    };
 
     useEffect(() => {
         const loadContent = async () => {
@@ -248,6 +283,51 @@ export const Landing = () => {
                     </div>
                     <div>
                         UniTvFilm © {new Date().getFullYear()}. Todos os direitos reservados.
+                    </div>
+                </div>
+
+                {/* App Stores Links */}
+                <div className="max-w-7xl mx-auto mt-12 border-t border-white/5 pt-8 flex flex-col items-center">
+                    <p className="text-gray-400 mb-6 font-medium">Baixe nosso App para a melhor experiência</p>
+                    <div className="flex flex-wrap items-center justify-center gap-4">
+                        <Button
+                            variant="outline"
+                            className="bg-black/40 border-gray-700 hover:bg-white/10 hover:border-white h-14 px-6 gap-3 group transition-all"
+                            onClick={() => handleInstallClick('android')}
+                        >
+                            <Play className="w-6 h-6 fill-current text-[#0aff7a] group-hover:text-white transition-colors" />
+                            <div className="text-left">
+                                <div className="text-[10px] uppercase font-bold text-gray-400">Disponível no</div>
+                                <div className="text-sm font-bold text-white group-hover:text-[#0aff7a] transition-colors leading-none">Google Play</div>
+                            </div>
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            className="bg-black/40 border-gray-700 hover:bg-white/10 hover:border-white h-14 px-6 gap-3 group transition-all"
+                            onClick={() => handleInstallClick('ios')}
+                        >
+                            {/* Apple Icon Mock using a simple shape or Lucide doesn't have proper Apple logo, sticking to text or generic Smartphone if needed. Using Smartphone as close proxy or just SVG */}
+                            <svg viewBox="0 0 384 512" fill="currentColor" className="w-6 h-6 text-white group-hover:text-[#0aff7a] transition-colors">
+                                <path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 49.5-25.2 80.7 30.6 2.1 48.2-12.8 69.1-43.1z" />
+                            </svg>
+                            <div className="text-left">
+                                <div className="text-[10px] uppercase font-bold text-gray-400">Baixar na</div>
+                                <div className="text-sm font-bold text-white group-hover:text-[#0aff7a] transition-colors leading-none">App Store</div>
+                            </div>
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            className="bg-black/40 border-gray-700 hover:bg-white/10 hover:border-white h-14 px-6 gap-3 group transition-all"
+                            onClick={() => handleInstallClick('pc')}
+                        >
+                            <Monitor className="w-6 h-6 text-[#0aff7a] group-hover:text-white transition-colors" />
+                            <div className="text-left">
+                                <div className="text-[10px] uppercase font-bold text-gray-400">Instalar no</div>
+                                <div className="text-sm font-bold text-white group-hover:text-[#0aff7a] transition-colors leading-none">Computador</div>
+                            </div>
+                        </Button>
                     </div>
                 </div>
             </footer>
