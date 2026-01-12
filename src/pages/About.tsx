@@ -1,7 +1,7 @@
 import React from 'react';
-import Header from '../components/Header';
+import { Header } from '../components/Header';
 import { Footer } from '@/components/Footer';
-import { Shield, Server, FileText, Youtube } from 'lucide-react';
+import { Shield, Server, FileText, Youtube, Mail, ExternalLink } from 'lucide-react';
 
 export default function About() {
     return (
@@ -60,6 +60,25 @@ export default function About() {
                         <p className="text-gray-300 leading-relaxed">
                             Nosso objetivo é fornecer uma interface organizada e moderna para facilitar o acesso à cultura e entretenimento, atuando meramente como um catálogo virtual de conteúdos disponíveis na web.
                         </p>
+                    </div>
+
+                    {/* Card 5: Contato */}
+                    <div className="bg-zinc-900/50 border border-white/10 p-6 md:p-8 rounded-2xl backdrop-blur-sm">
+                        <div className="flex items-center gap-3 mb-4">
+                            <Mail className="w-8 h-8 text-purple-500" />
+                            <h2 className="text-xl md:text-2xl font-semibold">Contato</h2>
+                        </div>
+                        <p className="text-gray-300 leading-relaxed mb-4">
+                            Para questões relacionadas com direitos autorais, solicitações de remoção (DMCA), ou qualquer outra dúvida, entre em contato conosco através do email abaixo.
+                        </p>
+                        <a
+                            href="mailto:contato@unitvfilm.com"
+                            className="inline-flex items-center gap-2 text-primary hover:underline"
+                        >
+                            <Mail className="w-4 h-4" />
+                            contato@unitvfilm.com
+                            <ExternalLink className="w-3 h-3" />
+                        </a>
                     </div>
 
                 </div>
