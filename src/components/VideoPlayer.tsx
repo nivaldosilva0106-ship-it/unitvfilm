@@ -98,6 +98,26 @@ export const VideoPlayer = ({
 
     const videoUrl = getVideoUrl();
 
+    // Ensure video is not muted on initialization
+    video.muted = false;
+    video.volume = volume;
+
+    const attemptPlay = async () => {
+      try {
+        await video.play();
+      } catch (err) {
+        // If autoplay with sound fails, try muted autoplay then unmute
+        console.log('Autoplay with sound blocked, trying muted...', err);
+        video.muted = true;
+        setIsMuted(true);
+        try {
+          await video.play();
+        } catch (e) {
+          console.log('Autoplay completely blocked', e);
+        }
+      }
+    };
+
     if (isHLS && Hls.isSupported()) {
       const hls = new Hls({
         enableWorker: true,
@@ -115,7 +135,7 @@ export const VideoPlayer = ({
         setQualities(levelsWithHeight);
 
         if (autoPlay) {
-          video.play().catch(() => { });
+          attemptPlay();
         }
       });
 
@@ -133,16 +153,16 @@ export const VideoPlayer = ({
       // Safari native HLS
       video.src = videoUrl;
       if (autoPlay) {
-        video.play().catch(() => { });
+        attemptPlay();
       }
     } else {
       // Regular video (mp4, ts, etc.)
       video.src = videoUrl;
       if (autoPlay) {
-        video.play().catch(() => { });
+        attemptPlay();
       }
     }
-  }, [url, isHLS, autoPlay, getVideoUrl]);
+  }, [url, isHLS, autoPlay, getVideoUrl, volume]);
 
   // Set start time
   useEffect(() => {
@@ -233,6 +253,12 @@ export const VideoPlayer = ({
     if (isPlaying) {
       video.pause();
     } else {
+      // User interaction - unmute if was muted due to autoplay policy
+      if (video.muted && isMuted) {
+        video.muted = false;
+        video.volume = volume || 1;
+        setIsMuted(false);
+      }
       video.play();
     }
   };
