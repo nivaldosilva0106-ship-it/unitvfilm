@@ -3,7 +3,6 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import { componentTagger } from "lovable-tagger";
 
-// Cache bust: v9-force-rebuild
 export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
@@ -20,13 +19,6 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-    },
-    dedupe: ["react", "react-dom", "react-router-dom"],
-  },
-  optimizeDeps: {
-    force: true,
-    esbuildOptions: {
-      target: "esnext",
     },
   },
 }));
