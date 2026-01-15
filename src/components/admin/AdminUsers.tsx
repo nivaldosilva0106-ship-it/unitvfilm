@@ -18,7 +18,8 @@ import {
     Save,
     Shield,
     ShieldOff,
-    CreditCard
+    CreditCard,
+    Plus
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,7 +46,6 @@ export const AdminUsers = () => {
     const [search, setSearch] = useState('');
     const [filterType, setFilterType] = useState<'all' | 'premium' | 'free'>('all');
     const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
-    const [userProfiles, setUserProfiles] = useState<Profile[]>([]);
     const [userProfiles, setUserProfiles] = useState<Profile[]>([]);
     const [loadingProfiles, setLoadingProfiles] = useState(false);
     const [plans, setPlans] = useState<Plan[]>([]);
@@ -213,10 +213,8 @@ export const AdminUsers = () => {
         try {
             await createAccountProfile(expandedUserId, {
                 name: newProfileName,
-                avatar: '/placeholder-user.jpg', // Default
-                isKids: false,
-                language: 'pt',
-                myList: []
+                avatar: '/placeholder-user.jpg',
+                isKids: false
             });
             toast.success("Perfil criado com sucesso!");
             setNewProfileName("");
