@@ -1,9 +1,18 @@
 import React from "react";
-import { createRoot } from "react-dom/client";
+import ReactDOM from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-const root = createRoot(document.getElementById("root")!);
+// Ensure single React instance
+if (typeof window !== 'undefined') {
+  (window as any).__REACT__ = React;
+  (window as any).__REACT_DOM__ = ReactDOM;
+}
+
+const container = document.getElementById("root");
+if (!container) throw new Error("Root element not found");
+
+const root = ReactDOM.createRoot(container);
 root.render(
   <React.StrictMode>
     <App />
