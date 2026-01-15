@@ -187,6 +187,14 @@ export const VideoPlayer = ({
     };
   }, [onEnded]);
 
+  // Sync volume with video element on mount and when volume/muted changes
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.volume = volume;
+    video.muted = isMuted;
+  }, [volume, isMuted]);
+
   // Fullscreen change listener
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -241,6 +249,7 @@ export const VideoPlayer = ({
     if (!video) return;
     const newVolume = value[0];
     video.volume = newVolume;
+    video.muted = newVolume === 0;
     setVolume(newVolume);
     setIsMuted(newVolume === 0);
   };
@@ -321,6 +330,7 @@ export const VideoPlayer = ({
         className="w-full h-full object-contain"
         playsInline
         crossOrigin="anonymous"
+        muted={isMuted}
       >
         {subtitles && showSubtitles && (
           <track
