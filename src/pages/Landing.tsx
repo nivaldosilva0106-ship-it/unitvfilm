@@ -3,8 +3,9 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Film, Play, Monitor, Smartphone, Tv, Check, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getAllContents } from '@/lib/firebase';
+import { getAllContents, getPlans } from '@/lib/firebase';
 import { Content } from '@/types/content';
+import { Plan } from '@/types/user';
 import { ContentRow } from '@/components/ContentRow';
 
 export const Landing = () => {
@@ -13,37 +14,85 @@ export const Landing = () => {
     const [allContent, setAllContent] = useState<Content[]>([]);
     const [heroContent, setHeroContent] = useState<Content | null>(null);
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+    const [plans, setPlans] = useState<Plan[]>([]);
 
+    const [showIosInstructions, setShowIosInstructions] = useState(false);
+
+    // ... (PWA useEffect) ...
+
+    // Combined Data Loading
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                const [fetchedContent, fetchedPlans] = await Promise.all([
+                    getAllContents(),
+                    getPlans()
+                ]);
+
+                setAllContent(fetchedContent);
+                if (fetchedContent.length > 0) {
+                    setHeroContent(fetchedContent[Math.floor(Math.random() * fetchedContent.length)]);
+                }
+
+                // Filter active paid plans and sort by price
+                const activePlans = fetchedPlans
+                    .filter(p => p.isActive && p.price > 0 && p.requiresVerification)
+                    .sort((a, b) => a.price - b.price)
+                    .slice(0, 2); // Top 2
+
+                setPlans(activePlans);
+            } catch (error) {
+                console.error("Error loading data", error);
+            }
+        };
+        loadData();
+    }, []);
+    // PWA Install Event Listener
     useEffect(() => {
         const handler = (e: any) => {
             e.preventDefault();
             setDeferredPrompt(e);
+            // Store globally in case component unmounts
+            (window as any).deferredPrompt = e;
         };
+
+        // Check if event already happened
+        if ((window as any).deferredPrompt) {
+            setDeferredPrompt((window as any).deferredPrompt);
+        }
+
         window.addEventListener('beforeinstallprompt', handler);
         return () => window.removeEventListener('beforeinstallprompt', handler);
     }, []);
 
     const handleInstallClick = async (platform: 'android' | 'ios' | 'pc') => {
         if (platform === 'ios') {
-            // iOS instructions or deep link if app existed
-            alert("Para instalar no iOS: Toque no botão de compartilhamento e selecione 'Adicionar à Tela de Início'.");
+            setShowIosInstructions(true);
             return;
         }
 
-        if (!deferredPrompt) {
-            // Fallback or message if already installed/not supported
-            if (platform === 'pc') {
-                alert("Para instalar no PC, clique no ícone de instalação na barra de endereço do navegador (Chrome/Edge).");
+        const promptEvent = deferredPrompt || (window as any).deferredPrompt;
+
+        if (!promptEvent) {
+            // Check if already in standalone mode
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+            if (isStandalone) {
+                alert("O App já está instalado e aberto!");
             } else {
-                alert("App já instalado ou não suportado neste navegador. Tente pelo Chrome.");
+                if (platform === 'pc') {
+                    alert("Para instalar no PC:\n1. Olhe para a barra de endereços do navegador.\n2. Clique no ícone de 'Instalar' (computador com seta) ou (+).");
+                } else {
+                    alert("Instalação automática indisponível neste navegador.\n\nTente usar o Google Chrome e procure por 'Adicionar à Tela Inicial' no menu.");
+                }
             }
             return;
         }
 
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
+        promptEvent.prompt();
+        const { outcome } = await promptEvent.userChoice;
         if (outcome === 'accepted') {
             setDeferredPrompt(null);
+            (window as any).deferredPrompt = null;
         }
     };
 
@@ -156,34 +205,59 @@ export const Landing = () => {
                 </div>
             </header>
 
-            {/* Low Cost Plan Highlight */}
-            <section className="relative z-20 -mt-20 md:-mt-32 px-4 pb-20">
-                <div className="max-w-4xl mx-auto bg-[#062820] border border-[#0aff7a]/50 rounded-2xl p-6 md:p-8 shadow-[0_0_30px_rgba(10,255,122,0.1)] flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#0aff7a]/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
 
-                    <div className="flex-1 text-center md:text-left">
-                        <div className="inline-block px-3 py-1 bg-[#0aff7a]/20 text-[#0aff7a] text-xs font-bold rounded-full mb-3 uppercase tracking-wider">
-                            Mais Econômico
-                        </div>
-                        <h3 className="text-2xl md:text-3xl font-bold mb-2">Plano Essencial UniTvFilm</h3>
-                        <p className="text-gray-300 text-sm md:text-base">
-                            Tenha acesso a nossa biblioteca de filmes e séries selecionados com qualidade HD.
-                            Cancele quando quiser.
-                        </p>
-                    </div>
 
-                    <div className="flex flex-col items-center md:items-end gap-1">
-                        <div className="text-sm text-gray-400">A partir de</div>
-                        <div className="text-3xl md:text-4xl font-bold text-[#0aff7a]">999 KZ <span className="text-base font-normal text-white">/mês</span></div>
-                    </div>
+        // ... (in JSX, replacing "Low Cost Plan Highlight" section)
+            {/* Plans Section */}
+            {plans.length > 0 && (
+                <section className="relative z-20 -mt-20 md:-mt-32 px-4 pb-20">
+                    <div className="max-w-5xl mx-auto flex flex-col md:flex-row gap-6 justify-center">
+                        {plans.map((plan, index) => (
+                            <div key={plan.id} className={`flex-1 relative overflow-hidden rounded-2xl p-6 md:p-8 border ${index === 1 ? 'bg-[#0aff7a]/10 border-[#0aff7a] shadow-[0_0_30px_rgba(10,255,122,0.15)]' : 'bg-[#062820] border-[#0aff7a]/30 shadow-lg'} transition-all hover:scale-[1.02]`}>
+                                {index === 1 && (
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-[#0aff7a]/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
+                                )}
 
-                    <div className="w-full md:w-auto">
-                        <Button onClick={() => navigate('/signup')} className="w-full md:w-auto border border-[#0aff7a] bg-transparent hover:bg-[#0aff7a] text-[#0aff7a] hover:text-[#021b16] font-bold h-12">
-                            Ver Planos Completos
-                        </Button>
+                                <div className="flex flex-col h-full justify-between">
+                                    <div>
+                                        {index === 0 && <div className="inline-block px-3 py-1 bg-white/10 text-gray-300 text-xs font-bold rounded-full mb-4 uppercase tracking-wider">Econômico</div>}
+                                        {index === 1 && <div className="inline-block px-3 py-1 bg-[#0aff7a] text-[#021b16] text-xs font-bold rounded-full mb-4 uppercase tracking-wider">Mais Popular</div>}
+
+                                        <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
+                                        <p className="text-gray-300 text-sm mb-6 min-h-[40px]">{plan.description}</p>
+
+                                        <div className="space-y-3 mb-8">
+                                            <div className="flex items-center gap-2 text-sm text-gray-300">
+                                                <Check className="w-4 h-4 text-[#0aff7a]" />
+                                                Accesso completo a Filmes e Séries
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-gray-300">
+                                                <Check className="w-4 h-4 text-[#0aff7a]" />
+                                                {plan.limits.moviesPerDay === -1 ? 'Filmes Ilimitados' : `${plan.limits.moviesPerDay} Filmes/dia`}
+                                            </div>
+                                            <div className="flex items-center gap-2 text-sm text-gray-300">
+                                                <Check className="w-4 h-4 text-[#0aff7a]" />
+                                                {plan.limits.maxProfiles} Perfis de usuário
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <div className="flex items-end gap-1 mb-6">
+                                            <div className="text-3xl font-bold text-white">{plan.price} KZ</div>
+                                            <div className="text-sm text-gray-400 mb-1.5">/{plan.durationDays === 365 ? 'ano' : 'mês'}</div>
+                                        </div>
+
+                                        <Button onClick={() => navigate('/signup')} className={`w-full font-bold h-12 ${index === 1 ? 'bg-[#0aff7a] text-[#021b16] hover:bg-[#0aff7a]/90' : 'bg-transparent border border-gray-600 hover:border-white hover:bg-white/5'}`}>
+                                            Escolher Plano
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                </div>
-            </section>
+                </section>
+            )}
 
             {/* Content Rows */}
             <section className="pb-16 space-y-8 pl-4 md:pl-8">
@@ -330,6 +404,37 @@ export const Landing = () => {
                     </div>
                 </div>
             </footer>
+
+            {/* iOS Instructions Modal */}
+            {showIosInstructions && (
+                <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center pointer-events-none p-4 pb-8">
+                    <div className="absolute inset-0 bg-black/80 backdrop-blur-sm pointer-events-auto" onClick={() => setShowIosInstructions(false)} />
+                    <div className="relative bg-[#1a1a1a] border border-gray-700 p-6 rounded-2xl shadow-2xl w-full max-w-sm pointer-events-auto animate-in slide-in-from-bottom duration-300">
+                        <button
+                            onClick={() => setShowIosInstructions(false)}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-white"
+                        >
+                            <span className="sr-only">Fechar</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg>
+                        </button>
+
+                        <div className="text-center space-y-4">
+                            <div className="w-12 h-12 bg-[#0aff7a]/10 rounded-full flex items-center justify-center mx-auto text-[#0aff7a]">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" x2="12" y1="2" y2="15" /></svg>
+                            </div>
+                            <h3 className="text-lg font-bold text-white">Instalar no iPhone</h3>
+                            <div className="text-sm text-gray-300 text-left space-y-3 font-medium">
+                                <p>1. Toque no botão <span className="inline-flex items-center justify-center w-6 h-6 bg-gray-700 rounded mx-1"><svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" /><polyline points="16 6 12 2 8 6" /><line x1="12" x2="12" y1="2" y2="15" /></svg></span> <strong>Compartilhar</strong> na barra inferior.</p>
+                                <p>2. Role para baixo e toque em <span className="inline-flex items-center gap-1 bg-gray-700 px-2 py-0.5 rounded text-white"><span className="text-lg leading-none">+</span> Adicionar à Tela de Início</span>.</p>
+                                <p>3. Toque em <strong>Adicionar</strong> no canto superior direito.</p>
+                            </div>
+                            <Button className="w-full bg-[#0aff7a] text-black hover:bg-[#0aff7a]/90 font-bold" onClick={() => setShowIosInstructions(false)}>
+                                Entendi
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
