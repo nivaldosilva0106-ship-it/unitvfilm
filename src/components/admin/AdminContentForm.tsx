@@ -42,6 +42,153 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
   const [playlistUrl, setPlaylistUrl] = useState("");
   const [isImportingPlaylist, setIsImportingPlaylist] = useState(false);
 
+  // --- Smart Import State ---
+  const [smartConfigText, setSmartConfigText] = useState("");
+
+  const handleSmartProcess = async () => {
+    if (!smartConfigText.trim()) {
+      toast.error("Cole o texto para processar");
+      return;
+    }
+
+    const lines = smartConfigText.split('\n').map(l => l.trim()).filter(l => l);
+    if (lines.length === 0) return;
+
+    // Detect if it is likely a series (looks for "1x1", "S01E01" patterns)
+    // The user example: "1x1", "1x2"
+    const seriesPattern = /(\d+)x(\d+)/;
+    const isSeriesText = lines.some(l => seriesPattern.test(l));
+
+    let extractedTitle = "";
+
+    // Extract Title (Usually 1st line, maybe cleaned)
+    // E.g. "Todo Todo Mundo Em Pânico 3 (2003)" -> "Todo Mundo Em Pânico 3" (heuristic)
+    // Or "The Last of Us"
+    const rawTitle = lines[0];
+    // Remove year parenthesis if present for better search
+    extractedTitle = rawTitle.replace(/\(\d{4}\)/, '').trim();
+    // Handle double words if copy-paste error like "Todo Todo" ? User said "Todo Todo..." might be example
+    // We will just use the line as is for now, maybe cleaning year.
+
+    if (isSeriesText) {
+      // --- SERIES PARSING ---
+      toast.info(`Detectado padrão de SÉRIE. Processando: ${extractedTitle}`);
+
+      // Update basic info
+      setEditingContent(prev => ({
+        ...prev,
+        title: extractedTitle,
+        category: 'series' // Auto-switch to series
+      }));
+
+      // Parse Episodes
+      // We need to group lines by episode header "1x1"
+      // We'll join lines back to text then match blocks
+      const fullText = smartConfigText;
+      const episodeRegex = /(\d+)x(\d+)([\s\S]*?)(?=(\d+x\d+)|$)/g;
+
+      const newEpisodes: Episode[] = [];
+      let match;
+
+      while ((match = episodeRegex.exec(fullText)) !== null) {
+        const season = parseInt(match[1]);
+        const episode = parseInt(match[2]);
+        const contentBlock = match[3];
+
+        // Extract URLs from block
+        const googleApiMatch = contentBlock.match(/https:\/\/(www\.)?googleapis\.com\/drive\/v3\/files\/[^?\s]+(\?alt=media&key=[^\s]*)?/);
+        const driveMatch = contentBlock.match(/https:\/\/drive\.google\.com\/file\/d\/([^\/]+)\/view/);
+
+        // Identify Internal Player URL (Google API preferred)
+        let internalUrl = "";
+        if (googleApiMatch) internalUrl = googleApiMatch[0];
+
+        // Identify Embed URL (Any other URL that is not the internal one)
+        // Actually user example shows drive view link + googleapis link.
+        // Usually drive view link isn't a direct embed unless modified.
+        // User said: "https://drive..." and "https://googleapis..."
+        // "URL do Player Interno (m3u8, mp4, ts), apenas lurl desta especie [googleapis]"
+
+        // Finding other urls
+        const urlRegex = /https?:\/\/[^\s]+/g;
+        let blockUrls = contentBlock.match(urlRegex) || [];
+
+        // Filter out the internal url to find "embed" url
+        let embedUrl = "";
+        const otherUrls = blockUrls.filter(u => u !== internalUrl);
+
+        // If we have remaining URLs, pick the first one as embed/download or just keep empty if it's just the drive view link corresponding to the api link
+        if (otherUrls.length > 0) {
+          embedUrl = otherUrls[0];
+        }
+
+        newEpisodes.push({
+          season,
+          episode,
+          title: `Episódio ${episode}`,
+          url: embedUrl, // Player Externo / Embed
+          internal_player_url: internalUrl,
+          download_url: ""
+        });
+      }
+
+      if (newEpisodes.length > 0) {
+        setEditingContent(prev => ({
+          ...prev,
+          episodes: newEpisodes
+        }));
+        toast.success(`${newEpisodes.length} episódios identificados! Buscando metadados...`);
+        setTmdbSearchQuery(extractedTitle);
+        handleTmdbSearch(); // Trigged search with extracted title
+      } else {
+        toast.warning("Nenhum episódio encontrado com o padrão '1x1'.");
+      }
+
+    } else {
+      // --- MOVIE PARSING ---
+      toast.info(`Detectado padrão de FILME. Processando: ${extractedTitle}`);
+
+      setEditingContent(prev => ({
+        ...prev,
+        title: extractedTitle,
+        category: 'movie'
+      }));
+
+      // Find URLs
+      const fullText = smartConfigText;
+
+      // 1. Google APIs (Internal)
+      const googleApiMatch = fullText.match(/https:\/\/(www\.)?googleapis\.com\/drive\/v3\/files\/[^?\s]+(\?alt=media&key=[^\s]*)?/);
+      let internalUrl = googleApiMatch ? googleApiMatch[0] : "";
+
+      // 2. External Players (embedder, brplayer, etc)
+      // Filter out the internal url
+      const allUrls = fullText.match(/https?:\/\/[^\s]+/g) || [];
+      const externalUrls = allUrls.filter(u => u !== internalUrl && !u.includes('drive.google.com/file'));
+      // Note: often drive view links are present but not useful as embeds directly without processing.
+      // User requested: "outros urls da especie https://embedder.net/..., https://watch.brplayer.cc/..." -> Video URLs
+
+      setEditingContent(prev => ({
+        ...prev,
+        internal_player_url: internalUrl,
+        video_urls: externalUrls.length > 0 ? externalUrls : undefined,
+        video_url: externalUrls[0] || ""
+      }));
+
+      toast.success("Links extraídos! Buscando metadados...");
+      setTmdbSearchQuery(extractedTitle);
+      // We can't easily auto-trigger search here because state update of 'tmdbSearchQuery' might not be flush yet? 
+      // Actually in React batching it might work or we pass the query explicitly.
+      // Let's modify handleTmdbSearch to accept an optional query arg
+      searchMovies(extractedTitle).then(results => {
+        setSearchResults(results);
+        if (results.length > 0) {
+          toast.success(`${results.length} resultados encontrados no TMDB.`);
+        }
+      });
+    }
+  };
+
   const isNostalgia = editingContent.category === 'nostalgia';
   const isTV = editingContent.category === 'tv';
   const isSeries = editingContent.category === 'series';
@@ -400,6 +547,27 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
 
   return (
     <Card className="p-6 bg-card border-border">
+      {/* Smart Import Section */}
+      <div className="mb-8 p-4 bg-primary/5 rounded-lg border border-primary/10">
+        <div className="flex items-center gap-2 mb-2 text-primary">
+          <Sparkles className="w-5 h-5" />
+          <h3 className="font-bold">Importação Inteligente (Texto/WhatsApp)</h3>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">
+          Cole o texto completo com Título e Links (Google Drive, APIs, Embeds).<br />
+          O sistema detectará automaticamente se é Filme ou Série (padrão 1x1, 1x2...) e preencherá tudo.
+        </p>
+        <Textarea
+          value={smartConfigText}
+          onChange={e => setSmartConfigText(e.target.value)}
+          placeholder={`Exemplo Filme:\nTodo Mundo Em Pânico 3\nhttps://googleapis...\nhttps://embedder...\n\nExemplo Série:\nThe Last of Us\n1x1\nhttps://...\n1x2\n...`}
+          className="min-h-[120px] bg-background font-mono text-xs mb-3"
+        />
+        <Button onClick={handleSmartProcess} className="w-full gap-2">
+          <Sparkles className="w-4 h-4" /> Processar e Preencher Automaticamente
+        </Button>
+      </div>
+
       <h2 className="text-xl font-semibold text-foreground mb-4">Adicionar/Editar Conteúdo</h2>
 
       <div className="space-y-4">
