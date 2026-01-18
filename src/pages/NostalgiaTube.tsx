@@ -67,6 +67,7 @@ export default function NostalgiaTube(): JSX.Element {
     const [hasStartedPlaying, setHasStartedPlaying] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false); // Track fullscreen state locally
     const [waitingForSelection, setWaitingForSelection] = useState(false); // New state for prompt
+    const [lastProgress, setLastProgress] = useState<any>(null); // Last watched episode progress
 
     // Quality labels mapping - MUST be before any conditional returns
     const qualityLabels: { [key: string]: string } = useMemo(() => ({
@@ -561,7 +562,7 @@ export default function NostalgiaTube(): JSX.Element {
         if (countdownIntervalRef.current) {
             clearInterval(countdownIntervalRef.current);
         }
-        
+
         // First reset episode index to -1 BEFORE setting new content
         // This ensures clicking episode 0 will trigger a state change
         setCurrentEpisodeIndex(-1);
@@ -576,494 +577,539 @@ export default function NostalgiaTube(): JSX.Element {
         navigate(`/nostalgia/${content.id}`);
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
-        toast("Que a diversão comece!", {
-            description: "Selecione um episódio ou filme abaixo para dar play.",
-            duration: 5000,
+    });
+
+    // Fetch progress for all episodes to find the last watched one
+    if (currentProfile) {
+        import("@/lib/firebase").then(({ getUserAllProgress }) => {
+            getUserAllProgress(currentProfile.id).then(allProgress => {
+                const contentProgress = allProgress
+                    .filter(p => p.contentId === content.id)
+                    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+                if (contentProgress.length > 0) {
+                    setLastProgress(contentProgress[0]);
+                } else {
+                    setLastProgress(null);
+                }
+            });
         });
-    };
-
-    const handleEpisodeClick = (index: number) => {
-        setUserInteracted(true);
-        if (countdownIntervalRef.current) {
-            clearInterval(countdownIntervalRef.current);
-        }
-        setWaitingForSelection(false); // Clear prompt, start loading
-        setIsLoadingVideo(true); // Show loading immediately
-        
-        // Always set the episode index - since we reset to -1 on post click,
-        // clicking episode 0 will now trigger a proper state change
-        // For same episode click (re-click), force player to restart
-        if (index === currentEpisodeIndex && player && playerReady) {
-            try {
-                player.seekTo(0, true);
-                player.playVideo();
-            } catch (e) {
-                console.error("Error restarting episode:", e);
-            }
-        } else {
-            setCurrentEpisodeIndex(index);
-            setHasStartedPlaying(false); // Reset to trigger new player load
-        }
-    };
-
-    const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!player || !playerReady || !duration) return;
-
-        const rect = e.currentTarget.getBoundingClientRect();
-        const pos = (e.clientX - rect.left) / rect.width;
-        const seekTime = pos * duration;
-
-        try {
-            player.seekTo(seekTime, true);
-            setCurrentTime(seekTime);
-        } catch (e) {
-            console.error("Error seeking:", e);
-        }
-    };
-
-    // Idle Controls Logic - MUST be before any conditional returns
-    useEffect(() => {
-        let timeout: NodeJS.Timeout;
-
-        const resetTimer = () => {
-            setShowControls(true);
-            if (timeout) clearTimeout(timeout);
-            if (isPlaying) {
-                timeout = setTimeout(() => setShowControls(false), 3000);
-            }
-        };
-
-        const onMouseMove = () => resetTimer();
-        const onTouchStart = () => resetTimer();
-
-        // Initial set
-        resetTimer();
-
-        window.addEventListener('mousemove', onMouseMove);
-        window.addEventListener('touchstart', onTouchStart);
-        window.addEventListener('click', resetTimer);
-
-        return () => {
-            if (timeout) clearTimeout(timeout);
-            window.removeEventListener('mousemove', onMouseMove);
-            window.removeEventListener('touchstart', onTouchStart);
-            window.removeEventListener('click', resetTimer);
-        };
-    }, [isPlaying]);
-
-    // Initial Resume Logic when entering content
-    useEffect(() => {
-        const checkSavedProgress = async () => {
-            // Ideally check last watched episode here if API supported it
-        };
-        checkSavedProgress();
-    }, [currentContent, user, currentProfile]);
-
-    if (loading) {
-        return (
-            <div className="min-h-screen bg-[#141414] text-white">
-                <Header />
-                <div className="flex items-center justify-center h-[calc(100vh-80px)]">
-                    <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div>
-                </div>
-            </div>
-        )
     }
+};
 
-    const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
+const handleEpisodeClick = (index: number) => {
+    setUserInteracted(true);
+    if (countdownIntervalRef.current) {
+        clearInterval(countdownIntervalRef.current);
+    }
+    setWaitingForSelection(false); // Clear prompt, start loading
+    setIsLoadingVideo(true); // Show loading immediately
 
+    // Always set the episode index - since we reset to -1 on post click,
+    // clicking episode 0 will now trigger a proper state change
+    // For same episode click (re-click), force player to restart
+    if (index === currentEpisodeIndex && player && playerReady) {
+        try {
+            player.seekTo(0, true);
+            player.playVideo();
+        } catch (e) {
+            console.error("Error restarting episode:", e);
+        }
+    } else {
+        setCurrentEpisodeIndex(index);
+        setHasStartedPlaying(false); // Reset to trigger new player load
+    }
+};
+
+const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!player || !playerReady || !duration) return;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const pos = (e.clientX - rect.left) / rect.width;
+    const seekTime = pos * duration;
+
+    try {
+        player.seekTo(seekTime, true);
+        setCurrentTime(seekTime);
+    } catch (e) {
+        console.error("Error seeking:", e);
+    }
+};
+
+// Idle Controls Logic - MUST be before any conditional returns
+useEffect(() => {
+    let timeout: NodeJS.Timeout;
+
+    const resetTimer = () => {
+        setShowControls(true);
+        if (timeout) clearTimeout(timeout);
+        if (isPlaying) {
+            timeout = setTimeout(() => setShowControls(false), 3000);
+        }
+    };
+
+    const onMouseMove = () => resetTimer();
+    const onTouchStart = () => resetTimer();
+
+    // Initial set
+    resetTimer();
+
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('touchstart', onTouchStart);
+    window.addEventListener('click', resetTimer);
+
+    return () => {
+        if (timeout) clearTimeout(timeout);
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('touchstart', onTouchStart);
+        window.removeEventListener('click', resetTimer);
+    };
+}, [isPlaying]);
+
+// Initial Resume Logic when entering content
+useEffect(() => {
+    const checkSavedProgress = async () => {
+        if (currentProfile && currentContent) {
+            const { getUserAllProgress } = await import("@/lib/firebase");
+            const allProgress = await getUserAllProgress(currentProfile.id);
+            const contentProgress = allProgress
+                .filter(p => p.contentId === currentContent.id)
+                .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+
+            if (contentProgress.length > 0) {
+                setLastProgress(contentProgress[0]);
+            }
+        }
+    };
+    checkSavedProgress();
+}, [currentContent, currentProfile]);
+
+if (loading) {
     return (
-        <div className="min-h-screen bg-[#141414] text-white font-sans">
+        <div className="min-h-screen bg-[#141414] text-white">
             <Header />
+            <div className="flex items-center justify-center h-[calc(100vh-80px)]">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-primary"></div>
+            </div>
+        </div>
+    )
+}
 
-            <main className="pt-16 pb-10">
-                <div
-                    className="w-full bg-black mb-6 group relative"
-                    ref={playerContainerRef}
-                >
-                    <div className={`relative w-full flex items-center justify-center ${isFullscreen ? 'h-full bg-black' : 'pb-[56.25%] md:pb-[42%] lg:pb-[40%]'}`}>
-                        {youtubeId ? (
-                            <>
-                                {/* Scaled YouTube Player */}
-                                <div className={`absolute inset-0 w-full h-full overflow-hidden pointer-events-none ${isFullscreen ? 'z-0' : ''}`}>
-                                    <div
-                                        id="youtube-player"
-                                        className="absolute w-full h-full"
-                                        style={{
-                                            transform: isFullscreen ? 'none' : 'scale(1.35)', // Remove scale in fullscreen to fit correctly
-                                            transformOrigin: 'center'
-                                        }}
-                                    ></div>
-                                </div>
+const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-                                {/* Poster / Loading / Ended Overlay - PERSISTENT until playing */}
-                                <div className={`absolute inset-0 w-full h-full z-30 flex items-center justify-center bg-black transition-opacity duration-500 ${(!hasStartedPlaying || isLoadingVideo || videoEnded || waitingForSelection) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                                    <div className="absolute inset-0 w-full h-full overflow-hidden">
-                                        <img
-                                            src={getPosterImage()}
-                                            alt="Poster"
-                                            className="absolute w-full h-full object-cover grayscale opacity-60"
-                                        />
-                                    </div>
-                                    <div className="absolute inset-0 bg-black/60"></div>
-                                    <div className="relative z-10 flex flex-col items-center p-4 text-center">
+return (
+    <div className="min-h-screen bg-[#141414] text-white font-sans">
+        <Header />
 
-                                        {/* Prompt State */}
-                                        {waitingForSelection && (
-                                            <div className="animate-in fade-in zoom-in duration-300">
-                                                <p className="text-xl md:text-3xl font-bold text-white mb-2">Quase lá!</p>
-                                                <p className="text-gray-300 text-sm md:text-lg animate-pulse">Clica em um episódio para começares assistindo</p>
-                                                <div className="mt-8 flex justify-center">
-                                                    <ChevronDown className="w-8 h-8 text-white animate-bounce" />
-                                                </div>
-                                            </div>
-                                        )}
-
-                                        {/* Only show spinner if specifically loading OR if we are waiting for start but not ended AND NOT waiting for selection */}
-                                        {(isLoadingVideo && !videoEnded && !waitingForSelection) && (
-                                            <div className="flex flex-col items-center gap-4">
-                                                <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-primary shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
-                                                <p className="text-white text-base font-medium tracking-wide">Carregando...</p>
-                                            </div>
-                                        )}
-                                        {videoEnded && (
-                                            <div className="text-center animate-in fade-in zoom-in duration-300">
-                                                <p className="text-2xl font-bold mb-2 text-white">Episódio Finalizado</p>
-                                                <Button
-                                                    onClick={() => {
-                                                        setCurrentEpisodeIndex(0);
-                                                        setVideoEnded(false);
-                                                        setWaitingForSelection(false);
-                                                    }}
-                                                    variant="outline"
-                                                    className="border-white/20 hover:bg-white/10"
-                                                >
-                                                    Reiniciar Série
-                                                </Button>
-                                            </div>
-                                        )}
-                                        {/* Initial Start Button if needed, though we auto-play */}
-                                        {!hasStartedPlaying && !isLoadingVideo && !videoEnded && !waitingForSelection && (
-                                            <div className="animate-pulse">
-                                                <Play className="w-16 h-16 text-white/80" />
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Center Play/Pause Feedback */}
+        <main className="pt-16 pb-10">
+            <div
+                className="w-full bg-black mb-6 group relative"
+                ref={playerContainerRef}
+            >
+                <div className={`relative w-full flex items-center justify-center ${isFullscreen ? 'h-full bg-black' : 'pb-[56.25%] md:pb-[42%] lg:pb-[40%]'}`}>
+                    {youtubeId ? (
+                        <>
+                            {/* Scaled YouTube Player */}
+                            <div className={`absolute inset-0 w-full h-full overflow-hidden pointer-events-none ${isFullscreen ? 'z-0' : ''}`}>
                                 <div
-                                    className={`absolute inset-0 flex items-center justify-center z-[16] pointer-events-none transition-all duration-300 ${showCenterPlay ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
-                                >
-                                    <div className="bg-black/60 backdrop-blur-sm rounded-full p-4 md:p-6 shadow-2xl">
-                                        {isPlaying ? (
-                                            <Pause className="w-8 h-8 md:w-12 md:h-12 text-white fill-current" />
-                                        ) : (
-                                            <Play className="w-8 h-8 md:w-12 md:h-12 text-white fill-current ml-1" />
-                                        )}
-                                    </div>
-                                </div>
-
-                                {/* Interaction Layer - Handles clicks */}
-                                <div className="absolute inset-0 w-full h-full z-[15] pointer-events-auto"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        togglePlay();
-                                    }}
-                                    onDoubleClick={(e) => {
-                                        e.preventDefault();
-                                        toggleFullscreen();
+                                    id="youtube-player"
+                                    className="absolute w-full h-full"
+                                    style={{
+                                        transform: isFullscreen ? 'none' : 'scale(1.35)', // Remove scale in fullscreen to fit correctly
+                                        transformOrigin: 'center'
                                     }}
                                 ></div>
+                            </div>
 
-                                {/* Controls Overlay */}
-                                <div className={`absolute bottom-0 left-0 right-0 px-2 md:px-4 pb-2 md:pb-4 pt-12 md:pt-20 bg-gradient-to-t from-black/90 via-black/60 to-transparent transition-opacity duration-300 z-40 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                                    <div className="flex flex-col gap-2 w-full max-w-6xl mx-auto pointer-events-auto">
+                            {/* Poster / Loading / Ended Overlay - PERSISTENT until playing */}
+                            <div className={`absolute inset-0 w-full h-full z-30 flex items-center justify-center bg-black transition-opacity duration-500 ${(!hasStartedPlaying || isLoadingVideo || videoEnded || waitingForSelection) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                                <div className="absolute inset-0 w-full h-full overflow-hidden">
+                                    <img
+                                        src={getPosterImage()}
+                                        alt="Poster"
+                                        className="absolute w-full h-full object-cover grayscale opacity-60"
+                                    />
+                                </div>
+                                <div className="absolute inset-0 bg-black/60"></div>
+                                <div className="relative z-10 flex flex-col items-center p-4 text-center">
 
-                                        {/* Progress Bar */}
-                                        <div
-                                            className="group relative h-1.5 w-full bg-white/20 rounded-full cursor-pointer hover:h-2 transition-all"
-                                            onClick={handleSeek}
-                                        >
-                                            <div
-                                                className="absolute left-0 top-0 bottom-0 bg-primary rounded-full transition-all duration-100 relative"
-                                                style={{ width: `${progressPercentage}%` }}
-                                            >
-                                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow scale-0 group-hover:scale-100 transition-transform"></div>
+                                    {/* Prompt State */}
+                                    {waitingForSelection && (
+                                        <div className="animate-in fade-in zoom-in duration-300">
+                                            <p className="text-xl md:text-3xl font-bold text-white mb-2">Quase lá!</p>
+                                            <p className="text-gray-300 text-sm md:text-lg mb-6">Clica em um episódio para começares assistindo</p>
+
+                                            {lastProgress && (
+                                                <Button
+                                                    onClick={() => {
+                                                        const epIndex = currentContent?.episodes?.findIndex(
+                                                            e => e.season === lastProgress.season && e.episode === lastProgress.episode
+                                                        );
+                                                        if (epIndex !== undefined && epIndex !== -1) {
+                                                            handleEpisodeClick(epIndex);
+                                                        } else if (!currentContent?.episodes) {
+                                                            // Movie case
+                                                            handleEpisodeClick(0);
+                                                        }
+                                                    }}
+                                                    className="bg-primary hover:bg-primary/90 text-white gap-2 px-6 py-6 text-lg rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.6)] transition-all animate-bounce"
+                                                >
+                                                    <RotateCw className="w-5 h-5" />
+                                                    Continuar Assistindo
+                                                </Button>
+                                            )}
+
+                                            <div className="mt-8 flex justify-center">
+                                                <ChevronDown className="w-8 h-8 text-white animate-bounce" />
                                             </div>
                                         </div>
+                                    )}
 
-                                        {/* Buttons Row */}
-                                        <div className="flex items-center justify-between mt-1">
-                                            <div className="flex items-center gap-1 md:gap-3">
+                                    {/* Only show spinner if specifically loading OR if we are waiting for start but not ended AND NOT waiting for selection */}
+                                    {(isLoadingVideo && !videoEnded && !waitingForSelection) && (
+                                        <div className="flex flex-col items-center gap-4">
+                                            <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-primary shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
+                                            <p className="text-white text-base font-medium tracking-wide">Carregando...</p>
+                                        </div>
+                                    )}
+                                    {videoEnded && (
+                                        <div className="text-center animate-in fade-in zoom-in duration-300">
+                                            <p className="text-2xl font-bold mb-2 text-white">Episódio Finalizado</p>
+                                            <Button
+                                                onClick={() => {
+                                                    setCurrentEpisodeIndex(0);
+                                                    setVideoEnded(false);
+                                                    setWaitingForSelection(false);
+                                                }}
+                                                variant="outline"
+                                                className="border-white/20 hover:bg-white/10"
+                                            >
+                                                Reiniciar Série
+                                            </Button>
+                                        </div>
+                                    )}
+                                    {/* Initial Start Button if needed, though we auto-play */}
+                                    {!hasStartedPlaying && !isLoadingVideo && !videoEnded && !waitingForSelection && (
+                                        <div className="animate-pulse">
+                                            <Play className="w-16 h-16 text-white/80" />
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Center Play/Pause Feedback */}
+                            <div
+                                className={`absolute inset-0 flex items-center justify-center z-[16] pointer-events-none transition-all duration-300 ${showCenterPlay ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
+                            >
+                                <div className="bg-black/60 backdrop-blur-sm rounded-full p-4 md:p-6 shadow-2xl">
+                                    {isPlaying ? (
+                                        <Pause className="w-8 h-8 md:w-12 md:h-12 text-white fill-current" />
+                                    ) : (
+                                        <Play className="w-8 h-8 md:w-12 md:h-12 text-white fill-current ml-1" />
+                                    )}
+                                </div>
+                            </div>
+
+                            {/* Interaction Layer - Handles clicks */}
+                            <div className="absolute inset-0 w-full h-full z-[15] pointer-events-auto"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    togglePlay();
+                                }}
+                                onDoubleClick={(e) => {
+                                    e.preventDefault();
+                                    toggleFullscreen();
+                                }}
+                            ></div>
+
+                            {/* Controls Overlay */}
+                            <div className={`absolute bottom-0 left-0 right-0 px-2 md:px-4 pb-2 md:pb-4 pt-12 md:pt-20 bg-gradient-to-t from-black/90 via-black/60 to-transparent transition-opacity duration-300 z-40 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                                <div className="flex flex-col gap-2 w-full max-w-6xl mx-auto pointer-events-auto">
+
+                                    {/* Progress Bar */}
+                                    <div
+                                        className="group relative h-1.5 w-full bg-white/20 rounded-full cursor-pointer hover:h-2 transition-all"
+                                        onClick={handleSeek}
+                                    >
+                                        <div
+                                            className="absolute left-0 top-0 bottom-0 bg-primary rounded-full transition-all duration-100 relative"
+                                            style={{ width: `${progressPercentage}%` }}
+                                        >
+                                            <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow scale-0 group-hover:scale-100 transition-transform"></div>
+                                        </div>
+                                    </div>
+
+                                    {/* Buttons Row */}
+                                    <div className="flex items-center justify-between mt-1">
+                                        <div className="flex items-center gap-1 md:gap-3">
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full"
+                                                onClick={togglePlay}
+                                            >
+                                                {isPlaying ? (
+                                                    <Pause className="w-4 h-4 md:w-5 md:h-5 fill-current" />
+                                                ) : (
+                                                    <Play className="w-4 h-4 md:w-5 md:h-5 fill-current" />
+                                                )}
+                                            </Button>
+
+                                            {/* Live Badge */}
+                                            <div className="hidden sm:flex items-center gap-2 px-2 py-1 bg-red-600/10 border border-red-600/20 rounded-md">
+                                                <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+                                                <span className="text-[10px] font-bold text-red-500 tracking-wider">LIVE</span>
+                                            </div>
+
+                                            {/* Volume (Hidden on mobile landscape to save space) */}
+                                            <div className="hidden md:block group relative">
                                                 <Button
                                                     size="icon"
                                                     variant="ghost"
                                                     className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full"
-                                                    onClick={togglePlay}
+                                                    onClick={toggleMute}
                                                 >
-                                                    {isPlaying ? (
-                                                        <Pause className="w-4 h-4 md:w-5 md:h-5 fill-current" />
-                                                    ) : (
-                                                        <Play className="w-4 h-4 md:w-5 md:h-5 fill-current" />
-                                                    )}
+                                                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                                                 </Button>
-
-                                                {/* Live Badge */}
-                                                <div className="hidden sm:flex items-center gap-2 px-2 py-1 bg-red-600/10 border border-red-600/20 rounded-md">
-                                                    <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
-                                                    <span className="text-[10px] font-bold text-red-500 tracking-wider">LIVE</span>
-                                                </div>
-
-                                                {/* Volume (Hidden on mobile landscape to save space) */}
-                                                <div className="hidden md:block group relative">
-                                                    <Button
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full"
-                                                        onClick={toggleMute}
-                                                    >
-                                                        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                                                    </Button>
-                                                </div>
-
-                                                <span className="text-xs text-gray-300 font-mono ml-2">
-                                                    {formatTime(currentTime)} / {formatTime(duration)}
-                                                </span>
                                             </div>
 
-                                            <div className="flex items-center gap-1 md:gap-2">
-                                                {/* Quality */}
-                                                <div className="relative">
-                                                    <Button
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full"
-                                                        onClick={() => setShowQualityMenu(!showQualityMenu)}
-                                                    >
-                                                        <Settings className="w-4 h-4 md:w-5 md:h-5" />
-                                                    </Button>
-                                                    {showQualityMenu && (
-                                                        <div className="absolute bottom-full right-0 mb-3 bg-[#111] border border-white/10 rounded-xl overflow-hidden min-w-[140px] shadow-2xl animate-in fade-in slide-in-from-bottom-2">
-                                                            <div className="p-3 border-b border-white/5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Qualidade</div>
-                                                            <div className="max-h-[250px] overflow-y-auto py-1">
-                                                                {availableQualities.map((quality) => (
-                                                                    <button
-                                                                        key={quality}
-                                                                        onClick={() => changeQuality(quality)}
-                                                                        className={`w-full text-left px-4 py-2.5 text-xs font-medium hover:bg-white/10 transition-colors flex items-center justify-between ${currentQuality === quality ? 'text-primary bg-primary/10' : 'text-gray-200'}`}
-                                                                    >
-                                                                        {qualityLabels[quality] || quality}
-                                                                        {currentQuality === quality && <Check className="w-3 h-3" />}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
+                                            <span className="text-xs text-gray-300 font-mono ml-2">
+                                                {formatTime(currentTime)} / {formatTime(duration)}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex items-center gap-1 md:gap-2">
+                                            {/* Quality */}
+                                            <div className="relative">
+                                                <Button
+                                                    size="icon"
+                                                    variant="ghost"
+                                                    className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full"
+                                                    onClick={() => setShowQualityMenu(!showQualityMenu)}
+                                                >
+                                                    <Settings className="w-4 h-4 md:w-5 md:h-5" />
+                                                </Button>
+                                                {showQualityMenu && (
+                                                    <div className="absolute bottom-full right-0 mb-3 bg-[#111] border border-white/10 rounded-xl overflow-hidden min-w-[140px] shadow-2xl animate-in fade-in slide-in-from-bottom-2">
+                                                        <div className="p-3 border-b border-white/5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Qualidade</div>
+                                                        <div className="max-h-[250px] overflow-y-auto py-1">
+                                                            {availableQualities.map((quality) => (
+                                                                <button
+                                                                    key={quality}
+                                                                    onClick={() => changeQuality(quality)}
+                                                                    className={`w-full text-left px-4 py-2.5 text-xs font-medium hover:bg-white/10 transition-colors flex items-center justify-between ${currentQuality === quality ? 'text-primary bg-primary/10' : 'text-gray-200'}`}
+                                                                >
+                                                                    {qualityLabels[quality] || quality}
+                                                                    {currentQuality === quality && <Check className="w-3 h-3" />}
+                                                                </button>
+                                                            ))}
                                                         </div>
-                                                    )}
-                                                </div>
-
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full"
-                                                    onClick={toggleFullscreen}
-                                                >
-                                                    <Maximize className="w-4 h-4 md:w-5 md:h-5" />
-                                                </Button>
+                                                    </div>
+                                                )}
                                             </div>
+
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full"
+                                                onClick={toggleFullscreen}
+                                            >
+                                                <Maximize className="w-4 h-4 md:w-5 md:h-5" />
+                                            </Button>
                                         </div>
                                     </div>
                                 </div>
-                            </>
-                        ) : (
-                            <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/80 backdrop-blur-sm">
-                                <div className="text-center p-6 max-w-md animate-in fade-in zoom-in duration-500">
-                                    <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl border border-primary/20">
-                                        <Film className="w-10 h-10 text-primary" />
+                            </div>
+                        </>
+                    ) : (
+                        <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/80 backdrop-blur-sm">
+                            <div className="text-center p-6 max-w-md animate-in fade-in zoom-in duration-500">
+                                <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl border border-primary/20">
+                                    <Film className="w-10 h-10 text-primary" />
+                                </div>
+                                <h3 className="text-white font-bold text-xl mb-3 tracking-tight">NostalgiaTube</h3>
+                                <p className="text-gray-300 text-sm leading-relaxed mb-4">
+                                    {currentContent ? (
+                                        <>Clica em um <span className="text-primary font-semibold">episódio</span> abaixo para começares a assistir.</>
+                                    ) : (
+                                        <>Selecione um conteúdo da secção <span className="text-primary font-semibold">Nostalgia</span> abaixo para começar.</>
+                                    )}
+                                </p>
+                                <div className="flex items-center justify-center gap-2 text-gray-500 text-xs">
+                                    <ChevronDown className="w-4 h-4 animate-bounce" />
+                                    <span>Role para ver os episódios</span>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <div className="container mx-auto px-4">
+                {/* Info Section */}
+                {currentContent && (
+                    <div className="mb-8 p-4 md:p-6 bg-[#1a1a1a] rounded-xl border border-white/5">
+                        <h2 className="text-xl md:text-3xl font-bold mb-2 text-primary">{currentContent.title}</h2>
+                        {currentEpisode && (
+                            <h3 className="text-lg md:text-xl text-gray-300 mb-4">{currentEpisode.title}</h3>
+                        )}
+
+                        <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm text-gray-400 mb-4 items-center">
+                            {currentContent.year && <span>{currentContent.year}</span>}
+                            {currentContent.duration && <span>{currentContent.duration}</span>}
+                            {currentContent.genre && currentContent.genre.map((g, i) => (
+                                <span key={i} className="px-2 py-0.5 bg-white/10 rounded-full text-xs">{g}</span>
+                            ))}
+
+                            {/* Interaction Buttons */}
+                            <div className="flex items-center gap-3 ml-auto">
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleVote('like')}
+                                    className={`flex items-center gap-1.5 hover:bg-white/10 ${userVote === 'like' ? 'text-primary' : 'text-gray-400'}`}
+                                >
+                                    <ThumbsUp className={`w-4 h-4 ${userVote === 'like' ? 'fill-current' : ''}`} />
+                                    <span>{currentContent.likes || 0}</span>
+                                </Button>
+
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleVote('dislike')}
+                                    className={`flex items-center gap-1.5 hover:bg-white/10 ${userVote === 'dislike' ? 'text-red-500' : 'text-gray-400'}`}
+                                >
+                                    <ThumbsDown className={`w-4 h-4 ${userVote === 'dislike' ? 'fill-current' : ''}`} />
+                                    <span>{currentContent.dislikes || 0}</span>
+                                </Button>
+
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setShowDownloadModal(true)}
+                                    className="flex items-center gap-2 border-white/20 bg-white/5 hover:bg-white/10 text-gray-200"
+                                >
+                                    <Download className="w-4 h-4" />
+                                    <span className="hidden sm:inline">Download</span>
+                                </Button>
+                            </div>
+                        </div>
+
+                        {/* Download Modal - Pass correct Data */}
+                        <DownloadModal
+                            open={showDownloadModal}
+                            onClose={() => setShowDownloadModal(false)}
+                            title={currentContent.title}
+                            thumbnail={currentContent.thumbnail_url}
+                            downloadUrl={currentEpisode?.download_url || currentContent.download_url || ''}
+                            downloads={currentEpisode?.downloads || currentContent.downloads}
+                            downloadMode={currentEpisode?.download_mode || currentContent.download_mode || 'direct'}
+                        />
+
+                        <p className="text-sm md:text-base text-gray-300 leading-relaxed mb-6">
+                            {currentContent.description}
+                        </p>
+
+                        {currentContent.episodes && currentContent.episodes.length > 1 && (
+                            <div className="space-y-2">
+                                <h3 className="font-semibold text-white mb-2">Episódios</h3>
+                                <div className="relative">
+                                    {canScrollLeft && (
+                                        <button
+                                            onClick={() => scrollEpisodes('left')}
+                                            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-black/80 hover:bg-black/90 text-white p-1.5 md:p-2 rounded-full transition-all"
+                                        >
+                                            <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
+                                        </button>
+                                    )}
+
+                                    <div
+                                        ref={episodesScrollRef}
+                                        className="flex overflow-x-auto gap-3 md:gap-4 pb-4 scrollbar-none"
+                                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                    >
+                                        {currentContent.episodes.map((ep, idx) => {
+                                            const epVideoId = getYoutubeId(ep.url);
+                                            const epThumb = epVideoId
+                                                ? `https://img.youtube.com/vi/${epVideoId}/mqdefault.jpg`
+                                                : currentContent.thumbnail_url;
+
+                                            return (
+                                                <button
+                                                    key={idx}
+                                                    onClick={() => handleEpisodeClick(idx)}
+                                                    className={`flex-none w-48 md:w-60 group relative rounded-lg overflow-hidden border transition-all ${currentEpisodeIndex === idx
+                                                        ? 'border-primary ring-1 ring-primary'
+                                                        : 'border-white/10 hover:border-white/30'
+                                                        }`}
+                                                >
+                                                    <div className="aspect-video w-full relative bg-zinc-900">
+                                                        <img
+                                                            src={epThumb}
+                                                            alt={ep.title}
+                                                            className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                                                        />
+                                                        <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <Play className="w-6 h-6 md:w-8 md:h-8 text-white fill-current drop-shadow-lg" />
+                                                        </div>
+                                                        <div className="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-mono text-white">
+                                                            Ep {idx + 1}
+                                                        </div>
+                                                    </div>
+                                                    <div className={`p-2 text-left w-full truncate text-xs md:text-sm font-medium ${currentEpisodeIndex === idx ? 'bg-primary/10 text-primary' : 'bg-[#222] text-gray-300'}`}>
+                                                        {ep.title || `Episódio ${idx + 1}`}
+                                                    </div>
+                                                </button>
+                                            );
+                                        })}
                                     </div>
-                                    <h3 className="text-white font-bold text-xl mb-3 tracking-tight">NostalgiaTube</h3>
-                                    <p className="text-gray-300 text-sm leading-relaxed mb-4">
-                                        {currentContent ? (
-                                            <>Clica em um <span className="text-primary font-semibold">episódio</span> abaixo para começares a assistir.</>
-                                        ) : (
-                                            <>Selecione um conteúdo da secção <span className="text-primary font-semibold">Nostalgia</span> abaixo para começar.</>
-                                        )}
-                                    </p>
-                                    <div className="flex items-center justify-center gap-2 text-gray-500 text-xs">
-                                        <ChevronDown className="w-4 h-4 animate-bounce" />
-                                        <span>Role para ver os episódios</span>
-                                    </div>
+
+                                    {canScrollRight && (
+                                        <button
+                                            onClick={() => scrollEpisodes('right')}
+                                            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-black/80 hover:bg-black/90 text-white p-1.5 md:p-2 rounded-full transition-all"
+                                        >
+                                            <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         )}
                     </div>
-                </div>
+                )}
 
-                <div className="container mx-auto px-4">
-                    {/* Info Section */}
-                    {currentContent && (
-                        <div className="mb-8 p-4 md:p-6 bg-[#1a1a1a] rounded-xl border border-white/5">
-                            <h2 className="text-xl md:text-3xl font-bold mb-2 text-primary">{currentContent.title}</h2>
-                            {currentEpisode && (
-                                <h3 className="text-lg md:text-xl text-gray-300 mb-4">{currentEpisode.title}</h3>
-                            )}
+                {/* "Nostalgia" Section - Posts */}
+                <div className="mt-12">
+                    <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 flex items-center gap-2">
+                        <span className="text-primary">NOSTALGIA</span>
+                    </h2>
 
-                            <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm text-gray-400 mb-4 items-center">
-                                {currentContent.year && <span>{currentContent.year}</span>}
-                                {currentContent.duration && <span>{currentContent.duration}</span>}
-                                {currentContent.genre && currentContent.genre.map((g, i) => (
-                                    <span key={i} className="px-2 py-0.5 bg-white/10 rounded-full text-xs">{g}</span>
-                                ))}
-
-                                {/* Interaction Buttons */}
-                                <div className="flex items-center gap-3 ml-auto">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleVote('like')}
-                                        className={`flex items-center gap-1.5 hover:bg-white/10 ${userVote === 'like' ? 'text-primary' : 'text-gray-400'}`}
-                                    >
-                                        <ThumbsUp className={`w-4 h-4 ${userVote === 'like' ? 'fill-current' : ''}`} />
-                                        <span>{currentContent.likes || 0}</span>
-                                    </Button>
-
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleVote('dislike')}
-                                        className={`flex items-center gap-1.5 hover:bg-white/10 ${userVote === 'dislike' ? 'text-red-500' : 'text-gray-400'}`}
-                                    >
-                                        <ThumbsDown className={`w-4 h-4 ${userVote === 'dislike' ? 'fill-current' : ''}`} />
-                                        <span>{currentContent.dislikes || 0}</span>
-                                    </Button>
-
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={() => setShowDownloadModal(true)}
-                                        className="flex items-center gap-2 border-white/20 bg-white/5 hover:bg-white/10 text-gray-200"
-                                    >
-                                        <Download className="w-4 h-4" />
-                                        <span className="hidden sm:inline">Download</span>
-                                    </Button>
+                    <div className="flex gap-4 overflow-x-auto pb-4 modern-scrollbar snap-x">
+                        {contents.map((content) => (
+                            <div
+                                key={content.id}
+                                className="bg-zinc-900/50 rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-300 border border-white/5 hover:border-primary/50 group/card min-w-[200px] md:min-w-[260px] snap-start"
+                                onClick={() => handlePostClick(content)}
+                            >
+                                <div className="aspect-[2/3] rounded-lg overflow-hidden border border-white/5 transition-transform duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-primary/20">
+                                    <img
+                                        src={content.thumbnail_url}
+                                        alt={content.title}
+                                        className="w-full h-full object-cover"
+                                    />
+                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <Play className="w-10 h-10 md:w-12 md:h-12 text-white fill-current drop-shadow-lg scale-0 group-hover:scale-100 transition-transform duration-300 delay-75" />
+                                    </div>
                                 </div>
+                                <h3 className="mt-2 md:mt-3 text-xs md:text-sm font-medium leading-tight text-white group-hover:text-primary transition-colors line-clamp-2 p-2">
+                                    {content.title}
+                                </h3>
                             </div>
-
-                            {/* Download Modal - Pass correct Data */}
-                            <DownloadModal
-                                open={showDownloadModal}
-                                onClose={() => setShowDownloadModal(false)}
-                                title={currentContent.title}
-                                thumbnail={currentContent.thumbnail_url}
-                                downloadUrl={currentEpisode?.download_url || currentContent.download_url || ''}
-                                downloads={currentEpisode?.downloads || currentContent.downloads}
-                                downloadMode={currentEpisode?.download_mode || currentContent.download_mode || 'direct'}
-                            />
-
-                            <p className="text-sm md:text-base text-gray-300 leading-relaxed mb-6">
-                                {currentContent.description}
-                            </p>
-
-                            {currentContent.episodes && currentContent.episodes.length > 1 && (
-                                <div className="space-y-2">
-                                    <h3 className="font-semibold text-white mb-2">Episódios</h3>
-                                    <div className="relative">
-                                        {canScrollLeft && (
-                                            <button
-                                                onClick={() => scrollEpisodes('left')}
-                                                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-black/80 hover:bg-black/90 text-white p-1.5 md:p-2 rounded-full transition-all"
-                                            >
-                                                <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
-                                            </button>
-                                        )}
-
-                                        <div
-                                            ref={episodesScrollRef}
-                                            className="flex overflow-x-auto gap-3 md:gap-4 pb-4 scrollbar-none"
-                                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                                        >
-                                            {currentContent.episodes.map((ep, idx) => {
-                                                const epVideoId = getYoutubeId(ep.url);
-                                                const epThumb = epVideoId
-                                                    ? `https://img.youtube.com/vi/${epVideoId}/mqdefault.jpg`
-                                                    : currentContent.thumbnail_url;
-
-                                                return (
-                                                    <button
-                                                        key={idx}
-                                                        onClick={() => handleEpisodeClick(idx)}
-                                                        className={`flex-none w-48 md:w-60 group relative rounded-lg overflow-hidden border transition-all ${currentEpisodeIndex === idx
-                                                            ? 'border-primary ring-1 ring-primary'
-                                                            : 'border-white/10 hover:border-white/30'
-                                                            }`}
-                                                    >
-                                                        <div className="aspect-video w-full relative bg-zinc-900">
-                                                            <img
-                                                                src={epThumb}
-                                                                alt={ep.title}
-                                                                className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
-                                                            />
-                                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                                <Play className="w-6 h-6 md:w-8 md:h-8 text-white fill-current drop-shadow-lg" />
-                                                            </div>
-                                                            <div className="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-mono text-white">
-                                                                Ep {idx + 1}
-                                                            </div>
-                                                        </div>
-                                                        <div className={`p-2 text-left w-full truncate text-xs md:text-sm font-medium ${currentEpisodeIndex === idx ? 'bg-primary/10 text-primary' : 'bg-[#222] text-gray-300'}`}>
-                                                            {ep.title || `Episódio ${idx + 1}`}
-                                                        </div>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
-
-                                        {canScrollRight && (
-                                            <button
-                                                onClick={() => scrollEpisodes('right')}
-                                                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-black/80 hover:bg-black/90 text-white p-1.5 md:p-2 rounded-full transition-all"
-                                            >
-                                                <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {/* "Nostalgia" Section - Posts */}
-                    <div className="mt-12">
-                        <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 flex items-center gap-2">
-                            <span className="text-primary">NOSTALGIA</span>
-                        </h2>
-
-                        <div className="flex gap-4 overflow-x-auto pb-4 modern-scrollbar snap-x">
-                            {contents.map((content) => (
-                                <div
-                                    key={content.id}
-                                    className="bg-zinc-900/50 rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-300 border border-white/5 hover:border-primary/50 group/card min-w-[200px] md:min-w-[260px] snap-start"
-                                    onClick={() => handlePostClick(content)}
-                                >
-                                    <div className="aspect-[2/3] rounded-lg overflow-hidden border border-white/5 transition-transform duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-primary/20">
-                                        <img
-                                            src={content.thumbnail_url}
-                                            alt={content.title}
-                                            className="w-full h-full object-cover"
-                                        />
-                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                            <Play className="w-10 h-10 md:w-12 md:h-12 text-white fill-current drop-shadow-lg scale-0 group-hover:scale-100 transition-transform duration-300 delay-75" />
-                                        </div>
-                                    </div>
-                                    <h3 className="mt-2 md:mt-3 text-xs md:text-sm font-medium leading-tight text-white group-hover:text-primary transition-colors line-clamp-2 p-2">
-                                        {content.title}
-                                    </h3>
-                                </div>
-                            ))}
-                        </div>
+                        ))}
                     </div>
                 </div>
-            </main>
-        </div>
-    );
+            </div>
+        </main>
+    </div>
+);
 }
