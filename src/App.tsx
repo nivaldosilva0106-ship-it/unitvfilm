@@ -35,7 +35,7 @@ const MyList = React.lazy(() => import("./pages/MyList"));
 const Profile = React.lazy(() => import("./pages/Profile"));
 const ProfileSelection = React.lazy(() => import("./pages/profiles/ProfileSelection"));
 const Categories = React.lazy(() => import("./pages/Categories"));
-import NostalgiaTube from "./pages/NostalgiaTube";
+const NostalgiaTube = React.lazy(() => import("./pages/NostalgiaTube"));
 const VerifyCode = React.lazy(() => import("./pages/VerifyCode"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 const About = React.lazy(() => import("./pages/About"));

@@ -168,7 +168,7 @@ export const Landing = () => {
                     <div className="grid grid-cols-3 md:grid-cols-6 gap-2 transform -rotate-6 scale-110">
                         {allContent.slice(0, 18).map((c, i) => (
                             <div key={i} className="aspect-[2/3] bg-zinc-800 rounded-lg overflow-hidden relative">
-                                <img src={c.thumbnail_url} alt="" className="w-full h-full object-cover grayscale-[30%] hover:grayscale-0 transition-all duration-700" />
+                                <img src={c.thumbnail_url} alt="" className="w-full h-full object-cover grayscale-[30%] hover:grayscale-0 transition-all duration-700" loading="lazy" />
                             </div>
                         ))}
                     </div>
