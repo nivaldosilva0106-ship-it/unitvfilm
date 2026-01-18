@@ -213,13 +213,6 @@ export const Header = () => {
                       Categorias
                     </button>
                     <button
-                      onClick={() => { window.open("https://unitvfbox.vercel.app/", "_blank"); }}
-                      className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
-                    >
-                      <Tv className="w-5 h-5 text-primary" />
-                      UniTvBox
-                    </button>
-                    <button
                       onClick={() => { navigate("/nostalgia"); }}
                       className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
                     >
@@ -234,6 +227,13 @@ export const Header = () => {
                           <span className="text-[10px] font-semibold text-red-500 uppercase tracking-wider">Live</span>
                         </div>
                       )}
+                    </button>
+                    <button
+                      onClick={() => { window.open("https://unitvfbox.vercel.app/", "_blank"); }}
+                      className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
+                    >
+                      <Tv className="w-5 h-5 text-primary" />
+                      UniTvBox
                     </button>
                     <button
                       onClick={() => { navigate("/about"); }}
