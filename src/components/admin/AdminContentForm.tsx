@@ -128,6 +128,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           title: `Episódio ${episode}`,
           url: embedUrl, // Player Externo / Embed
           internal_player_url: internalUrl,
+          google_drive_url: driveMatch ? driveMatch[0] : "",
           download_url: ""
         });
       }
@@ -168,11 +169,16 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       // Note: often drive view links are present but not useful as embeds directly without processing.
       // User requested: "outros urls da especie https://embedder.net/..., https://watch.brplayer.cc/..." -> Video URLs
 
+      // 3. Google Drive URL
+      const driveMatch = fullText.match(/https:\/\/drive\.google\.com\/file\/d\/([^\/]+)\/view/);
+      const googleDriveUrl = driveMatch ? driveMatch[0] : "";
+
       setEditingContent(prev => ({
         ...prev,
         internal_player_url: internalUrl,
         video_urls: externalUrls.length > 0 ? externalUrls : undefined,
-        video_url: externalUrls[0] || ""
+        video_url: externalUrls[0] || "",
+        google_drive_url: googleDriveUrl
       }));
 
       toast.success("Links extraídos! Buscando metadados...");
@@ -1241,7 +1247,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           </div >
         )}
 
-        {isNostalgia && (
+        {(isNostalgia || isSeries || isMovie) && (
           <div>
             <Label>URL Google Drive (Player Alternativo)</Label>
             <Input
