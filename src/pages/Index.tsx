@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { MyListItem } from "@/types/user";
+import { IndexHero } from "@/components/IndexHero";
 
 // Lazy load heavy components
 const EpisodeSelector = React.lazy(() => import("@/components/EpisodeSelector").then(module => ({ default: module.EpisodeSelector })));
@@ -24,15 +25,16 @@ const AdManager = React.lazy(() => import("@/components/AdManager").then(module 
 
 const ALL_CATEGORIES = ['Todos', 'Filmes', 'Séries', 'TV ao Vivo', 'Lançamentos', 'Ação', 'Terror'];
 
+const getYouTubeId = (url: string | undefined | null) => {
+  if (!url) return null;
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = url.match(regExp);
+  return (match && match[2].length === 11) ? match[2] : null;
+};
+
 const Index = () => {
   const navigate = useNavigate();
   const { user, currentProfile, loading: authLoading } = useAuth();
-
-  useEffect(() => {
-    if (!authLoading && user && !currentProfile) {
-      navigate('/profiles');
-    }
-  }, [user, currentProfile, authLoading, navigate]);
 
   const [allContentData, setAllContentData] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,361 +42,433 @@ const Index = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedSeries, setSelectedSeries] = useState<Content | null>(null);
   const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string, internalUrl?: string, nextEpisode?: any }>({ open: false, url: '', title: '', isPremium: false });
-  const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, downloads?: { label: string; url: string; type?: 'direct' | 'torrent' }[], downloadMode?: 'direct' | 'torrent' | 'mixed', title: string, thumbnail: string }>({ open: false, url: '', title: '', thumbnail: '' });
+  const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, downloads?: { label: string; url: string; type?: 'direct' | 'torrent' }[], download_mode?: 'direct' | 'torrent' | 'mixed', title: string, thumbnail: string }>({ open: false, url: '', title: '', thumbnail: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
-  /* New State for Quick View */
   const [quickViewContent, setQuickViewContent] = useState<Content | null>(null);
   const [showCinemaModal, setShowCinemaModal] = useState(false);
   const [pendingPlayerState, setPendingPlayerState] = useState<any>(null);
 
-  /* New State  /* Slider State */
   const [trailerContents, setTrailerContents] = useState<Content[]>([]);
   const [currentTrailerIndex, setCurrentTrailerIndex] = useState(0);
-  const [isTransitioning, setIsTransitioning] = useState(false); // For smooth fade
-  import { IndexHero } from "@/components/IndexHero";
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [isMuted, setIsMuted] = useState(true);
+  const [heroTextVisible, setHeroTextVisible] = useState(true);
+  const [showVideo, setShowVideo] = useState(false);
+  const [myList, setMyList] = useState<MyListItem[]>([]);
 
-  // ... (existing imports and lazy loads)
+  useEffect(() => {
+    if (!authLoading && user && !currentProfile) {
+      navigate('/profiles');
+    }
+  }, [user, currentProfile, authLoading, navigate]);
 
-  const Index = () => {
-    // ... (existing state)
-    const [isMuted, setIsMuted] = useState(true);
-    const [heroTextVisible, setHeroTextVisible] = useState(true);
-    const [showVideo, setShowVideo] = useState(false);
-    // iframeRef removed as it's now in IndexHero
+  useEffect(() => {
+    loadContent();
+    if (user && currentProfile) {
+      loadMyList();
+    }
+  }, [user, currentProfile]);
 
-    // ... (existing effects up to line 220)
+  const loadContent = async () => {
+    try {
+      setLoading(true);
+      const data = await getAllContents();
+      setAllContentData(data);
 
-    /* AGGRESSIVE UNMUTE Logic */
-    useEffect(() => {
-      /* Always set muted to FALSE when invalidating index or mounting */
-      setIsMuted(false);
-    }, [currentTrailerIndex, playerModal.open]);
-
-    /* Auto-advance slider when returning from player modal */
-    useEffect(() => {
-      if (!playerModal.open && trailerContents.length > 0) {
-        /* When modal closes, advance to next trailer */
-        setCurrentTrailerIndex((prev) => (prev + 1) % trailerContents.length);
+      const settings = await getSliderSettings();
+      if (settings.mode === 'manual' && settings.selectedContentIds?.length > 0) {
+        const selected = data.filter(c => settings.selectedContentIds.includes(c.id));
+        setTrailerContents(selected.length > 0 ? selected : data.slice(0, 5));
+      } else {
+        setTrailerContents(data.slice(0, 10).sort(() => 0.5 - Math.random()));
       }
-    }, [playerModal.open]);
 
-    const loadContent = async () => {
-      // ... (existing loadContent)
-    };
-
-    const toggleAudio = () => {
-      setIsMuted(!isMuted);
-    };
-
-    // ... (existing handlers)
-
-    // ... (JSX start)
-    return (
-      <div className="min-h-screen bg-background text-foreground">
-        <Header />
-
-        {/* Header Ad */}
-        <AdManager placement="header" className="container mx-auto px-4 pt-20" />
-
-        {/* Hero Section */}
-        <IndexHero
-          currentTrailer={currentTrailer}
-          showVideo={showVideo}
-          getYouTubeId={getYouTubeId}
-          isTransitioning={isTransitioning}
-          isMuted={isMuted}
-          heroTextVisible={heroTextVisible}
-          activeContent={activeContent}
-          allContentData={allContentData}
-          currentImageIndex={currentImageIndex}
-          playerModalOpen={playerModal.open}
-          quickViewContentOpen={!!quickViewContent}
-          selectedSeriesOpen={!!selectedSeries}
-          isInList={isInList}
-          toggleAudio={toggleAudio}
-          handlePlayContent={handlePlayContent}
-          handleInfoContent={handleInfoContent}
-          handleToggleMyList={handleToggleMyList}
-        />
-
-        {/* Content Sections */}
-        <div className="pt-4 pb-16">
-          {showAllRows && (
-            <>
-              {/* Featured Random Content - Always First */}
-              {categorizedContent.featured.length > 0 && (
-                <MarqueeContentRow
-                  title="Em Destaque"
-                  contents={categorizedContent.featured}
-                  onPlayContent={handlePlayContent}
-                  onInfoContent={handleInfoContent}
-                  onDetailsContent={handleDetailsContent}
-                  onDownloadContent={handleDownloadContent}
-                  showNumbers={true}
-                  hideDownloadIcon={true}
-                />
-              )}
-
-              {/* Top Rated Content - Static Row */}
-              {categorizedContent.topRated && categorizedContent.topRated.length > 0 && (
-                <ContentRow
-                  title="Mais Assistidos"
-                  contents={categorizedContent.topRated}
-                  onPlayContent={handlePlayContent}
-                  onInfoContent={handleInfoContent} // For QuickView
-                  onDetailsContent={handleDetailsContent}
-                  onDownloadContent={handleDownloadContent}
-                  hideDownloadIcon={true}
-                // @ts-ignore - ContentRow needs update for onDetails prop, but passing it wont hurt if ignored for now, 
-                // we need to update ContentRow to pass it to Card. 
-                // Better approach: verify ContentRow passes props.
-                />
-              )}
-
-              {categorizedContent.movies.length > 0 && (
-                <ContentRow
-                  title="Filmes"
-                  contents={categorizedContent.movies}
-                  onPlayContent={handlePlayContent}
-                  onInfoContent={handleInfoContent}
-                  onDetailsContent={handleDetailsContent}
-                  onDownloadContent={handleDownloadContent}
-                  hideDownloadIcon={true}
-                />
-              )}
-
-              {/* Between Content Ad */}
-              <AdManager placement="between-content" className="container mx-auto px-4" />
-
-              {categorizedContent.series.length > 0 && (
-                <ContentRow
-                  title="Séries"
-                  contents={categorizedContent.series}
-                  onPlayContent={handlePlayContent}
-                  onInfoContent={handleInfoContent}
-                  onDetailsContent={handleDetailsContent}
-                  onDownloadContent={handleDownloadContent}
-                  hideDownloadIcon={true}
-                />
-              )}
-
-              {categorizedContent.nostalgia && categorizedContent.nostalgia.length > 0 && (
-                <ContentRow
-                  title="Nostalgia"
-                  contents={categorizedContent.nostalgia}
-                  onPlayContent={handlePlayContent}
-                  onInfoContent={handleInfoContent}
-                  onDetailsContent={handleDetailsContent}
-                  onDownloadContent={handleDownloadContent}
-                  hideDownloadIcon={true}
-                />
-              )}
-
-              {categorizedContent.actionAdventure && categorizedContent.actionAdventure.length > 0 && (
-                <ContentRow
-                  title="Ação e Aventura"
-                  contents={categorizedContent.actionAdventure}
-                  onPlayContent={handlePlayContent}
-                  onInfoContent={handleInfoContent}
-                  onDetailsContent={handleDetailsContent}
-                  onDownloadContent={handleDownloadContent}
-                  hideDownloadIcon={true}
-                />
-              )}
-
-              {categorizedContent.comedyHorror && categorizedContent.comedyHorror.length > 0 && (
-                <ContentRow
-                  title="Comédia e Terror"
-                  contents={categorizedContent.comedyHorror}
-                  onPlayContent={handlePlayContent}
-                  onInfoContent={handleInfoContent}
-                  onDetailsContent={handleDetailsContent}
-                  onDownloadContent={handleDownloadContent}
-                  hideDownloadIcon={true}
-                />
-              )}
-
-              {categorizedContent.tvChannels.length > 0 && (
-                <ContentRow
-                  title="TV ao Vivo"
-                  contents={categorizedContent.tvChannels}
-                  onPlayContent={handlePlayContent}
-                  onInfoContent={handleInfoContent}
-                  onDetailsContent={handleDetailsContent}
-                  onDownloadContent={handleDownloadContent}
-                  hideDownloadIcon={true}
-                />
-              )}
-            </>
-          )}
-
-          {showSingleRow && (
-            <MarqueeContentRow
-              title={categorizedContent.singleRowTitle || 'Conteúdo Filtrado'}
-              contents={categorizedContent.singleRow || []}
-              onPlayContent={handlePlayContent}
-              onInfoContent={handleInfoContent}
-              onDownloadContent={handleDownloadContent}
-            />
-          )}
-
-          {!showAllRows && categorizedContent.singleRow && categorizedContent.singleRow.length === 0 && (
-            <div className="text-center py-16 px-4">
-              <p className="text-xl text-muted-foreground">
-                Nenhum conteúdo encontrado na categoria "{selectedCategory}".
-              </p>
-            </div>
-          )}
-
-          {allContentData.length === 0 && (
-            <div className="text-center py-16 px-4">
-              <p className="text-xl text-muted-foreground">
-                Nenhum conteúdo disponível ainda. Acesse o painel admin para adicionar!
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Footer Ad */}
-        <AdManager placement="footer" className="container mx-auto px-4 pb-8" />
-
-        {/* Mobile Bottom Ad */}
-        <AdManager placement="mobile-bottom" className="md:hidden fixed bottom-0 left-0 right-0 z-40" />
-
-        <Footer />
-
-        {/* Episode Selector Modal */}
-        {selectedSeries && (
-          <EpisodeSelector
-            open={!!selectedSeries}
-            onClose={() => setSelectedSeries(null)}
-            episodes={selectedSeries.episodes || []}
-            title={selectedSeries.title}
-            trailerUrl={selectedSeries.trailer_url}
-            onPlayEpisode={(url, episodeTitle) => {
-              const foundEp = selectedSeries.episodes?.find(e => e.url === url);
-              if (foundEp) {
-                const watchUrl = `/watch/${selectedSeries.id}?season=${foundEp.season}&episode=${foundEp.episode}`;
-
-                if (selectedSeries.is_cinema_mode) {
-                  setPendingPlayerState({
-                    contentId: selectedSeries.id,
-                    season: foundEp.season,
-                    episode: foundEp.episode
-                  });
-                  setShowCinemaModal(true);
-                } else {
-                  navigate(watchUrl);
-                }
-              }
-            }}
-          />
-        )}
-
-        {/* Main Player Modal */}
-        <ContentPlayerModal
-          open={playerModal.open}
-          onClose={() => setPlayerModal({ open: false, url: '', title: '', isPremium: false })}
-          videoUrl={playerModal.url}
-          videoUrls={playerModal.urls}
-          title={playerModal.title}
-          isPremium={playerModal.isPremium}
-          image={playerModal.image}
-          description={playerModal.description}
-          rating={playerModal.rating}
-          episodeTitle={playerModal.episodeTitle}
-          internalPlayerUrl={playerModal.internalUrl}
-          suggestions={randomContent}
-          nextEpisode={playerModal.nextEpisode}
-          isLastEpisode={selectedSeries?.category === 'series' && !playerModal.nextEpisode}
-          onPlayNext={() => {
-            if (playerModal.nextEpisode && selectedSeries) {
-              const playerState = {
-                open: true,
-                url: playerModal.nextEpisode.url,
-                title: selectedSeries.title,
-                isPremium: selectedSeries.isPremium,
-                image: selectedSeries.thumbnail_url,
-                description: selectedSeries.description,
-                rating: selectedSeries.rating,
-                episodeTitle: `T${playerModal.nextEpisode.season}E${playerModal.nextEpisode.episode} - ${playerModal.nextEpisode.title}`,
-                nextEpisode: getNextEpisode(selectedSeries, playerModal.nextEpisode.season, playerModal.nextEpisode.episode)
-              };
-
-              setPlayerModal(playerState);
-            }
-          }}
-          onPlayContent={(content) => {
-            if (content.video_url || content.internal_player_url) {
-              const playerState = {
-                open: true,
-                url: content.video_url || '',
-                urls: content.video_urls,
-                title: content.title,
-                isPremium: content.isPremium,
-                image: content.thumbnail_url,
-                internalUrl: content.internal_player_url,
-                description: content.description,
-                rating: content.rating
-              };
-
-              if (content.is_cinema_mode) {
-                setPendingPlayerState(playerState);
-                setShowCinemaModal(true);
-              } else {
-                setPlayerModal(playerState);
-              }
-            }
-          }}
-          onAddToMyList={handleToggleMyList}
-        />
-
-        {/* Download Modal */}
-        <DownloadModal
-          open={downloadModal.open}
-          onClose={() => setDownloadModal(prev => ({ ...prev, open: false }))}
-          downloadUrl={downloadModal.url}
-          downloads={downloadModal.downloads}
-          downloadMode={downloadModal.downloadMode}
-          title={downloadModal.title}
-          thumbnail={downloadModal.thumbnail}
-        />
-
-        {/* Quick View Modal */}
-        <QuickViewModal
-          open={!!quickViewContent}
-          content={quickViewContent}
-          onClose={() => setQuickViewContent(null)}
-          onPlay={handlePlayContent}
-        />
-
-        <CinemaWarningModal
-          open={showCinemaModal}
-          onClose={() => setShowCinemaModal(false)}
-          onConfirm={() => {
-            if (pendingPlayerState) {
-              let watchUrl = '';
-              if (pendingPlayerState.season && pendingPlayerState.episode) {
-                // Series episode
-                watchUrl = `/watch/${pendingPlayerState.contentId}?season=${pendingPlayerState.season}&episode=${pendingPlayerState.episode}`;
-              } else if (pendingPlayerState.contentId) {
-                // Movie
-                watchUrl = `/watch/${pendingPlayerState.contentId}`;
-              } else {
-                // Fallback to old modal behavior for TV channels
-                setPlayerModal(pendingPlayerState);
-                setPendingPlayerState(null);
-                setShowCinemaModal(false);
-                return;
-              }
-              navigate(watchUrl);
-              setPendingPlayerState(null);
-              setShowCinemaModal(false);
-            }
-          }}
-        />
-      </div>
-    );
+      setRandomContent([...data].sort(() => 0.5 - Math.random()));
+    } catch (error) {
+      console.error("Error loading content:", error);
+      toast.error("Erro ao carregar conteúdo");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  export default Index;
+  const loadMyList = async () => {
+    if (!currentProfile) return;
+    try {
+      const list = await getMyList(currentProfile.id);
+      setMyList(list);
+    } catch (error) {
+      console.error("Error loading My List:", error);
+    }
+  };
+
+  const categorizedContent = useMemo(() => {
+    const featured = allContentData.filter(c => c.is_new).slice(0, 10);
+    const topRated = allContentData.filter(c => c.rating && c.rating >= 8).sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 10);
+    const movies = allContentData.filter(c => c.category === 'movie');
+    const series = allContentData.filter(c => c.category === 'series');
+    const tvChannels = allContentData.filter(c => c.category === 'tv');
+    const nostalgia = allContentData.filter(c => c.category === 'nostalgia');
+
+    // Additional filtered categories for the UI
+    const actionAdventure = allContentData.filter(c => c.genre?.some(g => g.toLowerCase().includes('ação') || g.toLowerCase().includes('aventura')));
+    const comedyHorror = allContentData.filter(c => c.genre?.some(g => g.toLowerCase().includes('comédia') || g.toLowerCase().includes('terror')));
+
+    let singleRow: Content[] | null = null;
+    let singleRowTitle = '';
+
+    if (selectedCategory !== 'Todos') {
+      if (selectedCategory === 'Filmes') {
+        singleRow = movies;
+        singleRowTitle = 'Filmes';
+      } else if (selectedCategory === 'Séries') {
+        singleRow = series;
+        singleRowTitle = 'Séries';
+      } else if (selectedCategory === 'TV ao Vivo') {
+        singleRow = tvChannels;
+        singleRowTitle = 'Canais de TV';
+      } else {
+        singleRow = allContentData.filter(c => c.genre?.includes(selectedCategory) || c.category === selectedCategory);
+        singleRowTitle = selectedCategory;
+      }
+    }
+
+    return { featured, topRated, movies, series, tvChannels, nostalgia, actionAdventure, comedyHorror, singleRow, singleRowTitle };
+  }, [allContentData, selectedCategory]);
+
+  const currentTrailer = trailerContents[currentTrailerIndex] || null;
+
+  /* AGGRESSIVE UNMUTE Logic */
+  useEffect(() => {
+    setIsMuted(false);
+  }, [currentTrailerIndex, playerModal.open]);
+
+  useEffect(() => {
+    if (trailerContents.length > 0 && !playerModal.open) {
+      const interval = setInterval(() => {
+        setIsTransitioning(true);
+        setTimeout(() => {
+          setCurrentTrailerIndex((prev) => (prev + 1) % trailerContents.length);
+          setTimeout(() => {
+            setIsTransitioning(false);
+          }, 500);
+        }, 1000);
+      }, 90000);
+      return () => clearInterval(interval);
+    }
+  }, [trailerContents, playerModal.open]);
+
+  const toggleAudio = () => setIsMuted(!isMuted);
+
+  const handlePlayContent = (content: Content) => {
+    const playerState = {
+      open: true,
+      url: content.video_url || '',
+      urls: content.video_urls,
+      title: content.title,
+      isPremium: content.isPremium,
+      image: content.thumbnail_url,
+      internalUrl: content.internal_player_url,
+      description: content.description,
+      rating: content.rating
+    };
+
+    if (content.is_cinema_mode) {
+      setPendingPlayerState(playerState);
+      setShowCinemaModal(true);
+    } else {
+      setPlayerModal(playerState);
+    }
+  };
+
+  const handleInfoContent = (content: Content) => {
+    setQuickViewContent(content);
+  };
+
+  const handleDetailsContent = (content: Content) => {
+    navigate(`/content/${content.id}`);
+  };
+
+  const handleDownloadContent = (content: Content) => {
+    setDownloadModal({
+      open: true,
+      url: content.video_url || '',
+      downloads: content.downloads,
+      download_mode: content.download_mode,
+      title: content.title,
+      thumbnail: content.thumbnail_url
+    });
+  };
+
+  const handleToggleMyList = async (content: Content) => {
+    if (!currentProfile) {
+      toast.error("Faça login para salvar na lista");
+      return;
+    }
+
+    const itemInList = myList.find(item => item.contentId === content.id);
+    try {
+      if (itemInList) {
+        await removeFromMyList(currentProfile.id, itemInList.id);
+        setMyList(prev => prev.filter(i => i.id !== itemInList.id));
+        toast.success("Removido da Minha Lista");
+      } else {
+        const newItem = await addToMyList(currentProfile.id, content);
+        setMyList(prev => [...prev, newItem]);
+        toast.success("Adicionado à Minha Lista");
+      }
+    } catch (error) {
+      toast.error("Erro ao atualizar lista");
+    }
+  };
+
+  const getNextEpisode = (series: Content, currentSeason: number, currentEpisodeNum: number) => {
+    if (!series.episodes) return null;
+    const episodes = series.episodes;
+
+    // Try next episode in same season
+    let next = episodes.find(e => e.season === currentSeason && e.episode === currentEpisodeNum + 1);
+    if (next) return next;
+
+    // Try first episode of next season
+    next = episodes.find(e => e.season === currentSeason + 1 && e.episode === 1);
+    return next || null;
+  };
+
+  const isInList = (contentId: string) => myList.some(item => item.contentId === contentId);
+
+  if (loading) return <LoadingScreen />;
+
+  const showAllRows = selectedCategory === 'Todos';
+  const showSingleRow = !showAllRows && categorizedContent.singleRow;
+
+  return (
+    <div className="min-h-screen bg-background text-foreground">
+      <Header />
+      <AdManager placement="header" className="container mx-auto px-4 pt-20" />
+
+      <IndexHero
+        currentTrailer={currentTrailer}
+        showVideo={true}
+        getYouTubeId={getYouTubeId}
+        isTransitioning={isTransitioning}
+        isMuted={isMuted}
+        heroTextVisible={heroTextVisible}
+        activeContent={currentTrailer}
+        allContentData={allContentData}
+        currentImageIndex={currentImageIndex}
+        playerModalOpen={playerModal.open}
+        quickViewContentOpen={!!quickViewContent}
+        selectedSeriesOpen={!!selectedSeries}
+        isInList={currentTrailer ? isInList(currentTrailer.id) : false}
+        toggleAudio={toggleAudio}
+        handlePlayContent={handlePlayContent}
+        handleInfoContent={handleInfoContent}
+        handleToggleMyList={currentTrailer ? () => handleToggleMyList(currentTrailer) : () => { }}
+      />
+
+      <div className="pt-4 pb-16">
+        {showAllRows && (
+          <>
+            {categorizedContent.featured.length > 0 && (
+              <MarqueeContentRow
+                title="Em Destaque"
+                contents={categorizedContent.featured}
+                onPlayContent={handlePlayContent}
+                onInfoContent={handleInfoContent}
+                onDetailsContent={handleDetailsContent}
+                onDownloadContent={handleDownloadContent}
+                showNumbers={true}
+                hideDownloadIcon={true}
+              />
+            )}
+
+            {categorizedContent.topRated.length > 0 && (
+              <ContentRow
+                title="Mais Assistidos"
+                contents={categorizedContent.topRated}
+                onPlayContent={handlePlayContent}
+                onInfoContent={handleInfoContent}
+                onDetailsContent={handleDetailsContent}
+                onDownloadContent={handleDownloadContent}
+                hideDownloadIcon={true}
+              />
+            )}
+
+            {categorizedContent.movies.length > 0 && (
+              <ContentRow
+                title="Filmes"
+                contents={categorizedContent.movies}
+                onPlayContent={handlePlayContent}
+                onInfoContent={handleInfoContent}
+                onDetailsContent={handleDetailsContent}
+                onDownloadContent={handleDownloadContent}
+                hideDownloadIcon={true}
+              />
+            )}
+
+            <AdManager placement="between-content" className="container mx-auto px-4" />
+
+            {categorizedContent.series.length > 0 && (
+              <ContentRow
+                title="Séries"
+                contents={categorizedContent.series}
+                onPlayContent={handlePlayContent}
+                onInfoContent={handleInfoContent}
+                onDetailsContent={handleDetailsContent}
+                onDownloadContent={handleDownloadContent}
+                hideDownloadIcon={true}
+              />
+            )}
+
+            {categorizedContent.nostalgia.length > 0 && (
+              <ContentRow
+                title="Nostalgia"
+                contents={categorizedContent.nostalgia}
+                onPlayContent={handlePlayContent}
+                onInfoContent={handleInfoContent}
+                onDetailsContent={handleDetailsContent}
+                onDownloadContent={handleDownloadContent}
+                hideDownloadIcon={true}
+              />
+            )}
+
+            {categorizedContent.actionAdventure.length > 0 && (
+              <ContentRow
+                title="Ação e Aventura"
+                contents={categorizedContent.actionAdventure}
+                onPlayContent={handlePlayContent}
+                onInfoContent={handleInfoContent}
+                onDetailsContent={handleDetailsContent}
+                onDownloadContent={handleDownloadContent}
+                hideDownloadIcon={true}
+              />
+            )}
+
+            {categorizedContent.comedyHorror.length > 0 && (
+              <ContentRow
+                title="Comédia e Terror"
+                contents={categorizedContent.comedyHorror}
+                onPlayContent={handlePlayContent}
+                onInfoContent={handleInfoContent}
+                onDetailsContent={handleDetailsContent}
+                onDownloadContent={handleDownloadContent}
+                hideDownloadIcon={true}
+              />
+            )}
+
+            {categorizedContent.tvChannels.length > 0 && (
+              <ContentRow
+                title="TV ao Vivo"
+                contents={categorizedContent.tvChannels}
+                onPlayContent={handlePlayContent}
+                onInfoContent={handleInfoContent}
+                onDetailsContent={handleDetailsContent}
+                onDownloadContent={handleDownloadContent}
+                hideDownloadIcon={true}
+              />
+            )}
+          </>
+        )}
+
+        {showSingleRow && (
+          <MarqueeContentRow
+            title={categorizedContent.singleRowTitle || 'Conteúdo Filtrado'}
+            contents={categorizedContent.singleRow || []}
+            onPlayContent={handlePlayContent}
+            onInfoContent={handleInfoContent}
+            onDownloadContent={handleDownloadContent}
+          />
+        )}
+      </div>
+
+      <AdManager placement="footer" className="container mx-auto px-4 pb-8" />
+      <AdManager placement="mobile-bottom" className="md:hidden fixed bottom-0 left-0 right-0 z-40" />
+      <Footer />
+
+      {selectedSeries && (
+        <EpisodeSelector
+          open={!!selectedSeries}
+          onClose={() => setSelectedSeries(null)}
+          episodes={selectedSeries.episodes || []}
+          title={selectedSeries.title}
+          trailerUrl={selectedSeries.trailer_url}
+          onPlayEpisode={(url, episodeTitle) => {
+            const foundEp = selectedSeries.episodes?.find(e => e.url === url);
+            if (foundEp) {
+              const watchUrl = `/watch/${selectedSeries.id}?season=${foundEp.season}&episode=${foundEp.episode}`;
+              if (selectedSeries.is_cinema_mode) {
+                setPendingPlayerState({ contentId: selectedSeries.id, season: foundEp.season, episode: foundEp.episode });
+                setShowCinemaModal(true);
+              } else {
+                navigate(watchUrl);
+              }
+            }
+          }}
+        />
+      )}
+
+      <ContentPlayerModal
+        open={playerModal.open}
+        onClose={() => setPlayerModal({ open: false, url: '', title: '', isPremium: false })}
+        videoUrl={playerModal.url}
+        videoUrls={playerModal.urls}
+        title={playerModal.title}
+        isPremium={playerModal.isPremium}
+        image={playerModal.image}
+        description={playerModal.description}
+        rating={playerModal.rating}
+        episodeTitle={playerModal.episodeTitle}
+        internalPlayerUrl={playerModal.internalUrl}
+        suggestions={randomContent}
+        nextEpisode={playerModal.nextEpisode}
+        isLastEpisode={false}
+        onPlayNext={() => { }}
+        onPlayContent={handlePlayContent}
+        onAddToMyList={handleToggleMyList}
+      />
+
+      <DownloadModal
+        open={downloadModal.open}
+        onClose={() => setDownloadModal(prev => ({ ...prev, open: false }))}
+        downloadUrl={downloadModal.url}
+        downloads={downloadModal.downloads}
+        download_mode={downloadModal.download_mode}
+        title={downloadModal.title}
+        thumbnail={downloadModal.thumbnail}
+      />
+
+      <QuickViewModal
+        open={!!quickViewContent}
+        content={quickViewContent}
+        onClose={() => setQuickViewContent(null)}
+        onPlay={handlePlayContent}
+      />
+
+      <CinemaWarningModal
+        open={showCinemaModal}
+        onClose={() => setShowCinemaModal(false)}
+        onConfirm={() => {
+          if (pendingPlayerState) {
+            let watchUrl = '';
+            if (pendingPlayerState.season && pendingPlayerState.episode) {
+              watchUrl = `/watch/${pendingPlayerState.contentId}?season=${pendingPlayerState.season}&episode=${pendingPlayerState.episode}`;
+            } else if (pendingPlayerState.contentId) {
+              watchUrl = `/watch/${pendingPlayerState.contentId}`;
+            } else {
+              setPlayerModal(pendingPlayerState);
+              setPendingPlayerState(null);
+              setShowCinemaModal(false);
+              return;
+            }
+            navigate(watchUrl);
+            setPendingPlayerState(null);
+            setShowCinemaModal(false);
+          }
+        }}
+      />
+    </div>
+  );
+};
+
+export default Index;

@@ -7,12 +7,12 @@ interface DownloadModalProps {
     onClose: () => void;
     downloadUrl: string; // Legacy support
     downloads?: { label: string; url: string; type?: 'direct' | 'torrent' }[];
-    downloadMode?: 'direct' | 'torrent' | 'mixed';
+    download_mode?: 'direct' | 'torrent' | 'mixed';
     title: string;
     thumbnail?: string;
 }
 
-export const DownloadModal = ({ open, onClose, downloadUrl, downloads, downloadMode = 'direct', title, thumbnail }: DownloadModalProps) => {
+export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_mode = 'direct', title, thumbnail }: DownloadModalProps) => {
     const handleDownload = (url: string) => {
         window.open(url, '_blank');
         // onClose(); // Keep open for multiple downloads? Or close. Better keep open if mixed.
@@ -21,10 +21,10 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, downloadM
     // Determine effective links. If no new 'downloads', use legacy 'downloadUrl' as single link.
     const effectiveLinks = (downloads && downloads.length > 0)
         ? downloads
-        : (downloadUrl ? [{ label: 'Download Principal', url: downloadUrl, type: downloadMode === 'torrent' ? 'torrent' : 'direct' }] : []);
+        : (downloadUrl ? [{ label: 'Download Principal', url: downloadUrl, type: download_mode === 'torrent' ? 'torrent' : 'direct' }] : []);
 
     // Determine if we should show Torrent Warning
-    const showTorrentWarning = downloadMode === 'torrent' || (downloadMode === 'mixed' && effectiveLinks.some(l => l.type === 'torrent'));
+    const showTorrentWarning = download_mode === 'torrent' || (download_mode === 'mixed' && effectiveLinks.some(l => l.type === 'torrent'));
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
@@ -52,7 +52,7 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, downloadM
                                 <AlertTriangle className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
                                 <div className="space-y-1">
                                     <p className="text-sm text-yellow-500 font-medium">
-                                        {downloadMode === 'mixed' ? 'Alguns arquivos requerem cliente Torrent.' : 'Atenção: Arquivo Torrent.'}
+                                        {download_mode === 'mixed' ? 'Alguns arquivos requerem cliente Torrent.' : 'Atenção: Arquivo Torrent.'}
                                     </p>
                                 </div>
                             </div>
@@ -62,7 +62,7 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, downloadM
                         </div>
                     )}
 
-                    {!showTorrentWarning && downloadMode === 'direct' && (
+                    {!showTorrentWarning && download_mode === 'direct' && (
                         <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 flex gap-3 items-center">
                             <Info className="w-5 h-5 text-green-500 shrink-0" />
                             <p className="text-sm text-green-200">Download direto disponível. Clique para baixar.</p>
@@ -78,7 +78,7 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, downloadM
                             >
                                 <div className="flex flex-col items-start">
                                     <span className="font-medium group-hover:text-[#22c55e] transition-colors">{link.label || 'Download'}</span>
-                                    <span className="text-[10px] text-gray-500 uppercase">{link.type || (downloadMode === 'torrent' ? 'Torrent' : 'Direto')}</span>
+                                    <span className="text-[10px] text-gray-500 uppercase">{link.type || (download_mode === 'torrent' ? 'Torrent' : 'Direto')}</span>
                                 </div>
                                 <Download className="w-4 h-4 text-gray-400 group-hover:text-white" />
                             </Button>
