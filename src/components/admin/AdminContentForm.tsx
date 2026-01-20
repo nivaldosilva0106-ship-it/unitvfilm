@@ -1052,6 +1052,12 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                       onChange={(e) => updateEpisode(index, 'url', e.target.value)}
                       className="bg-input border-border text-sm"
                     />
+                    <Input
+                      placeholder="URL Google Drive (Player Alternativo)"
+                      value={episode.google_drive_url || ''}
+                      onChange={(e) => updateEpisode(index, 'google_drive_url', e.target.value)}
+                      className="bg-input border-border text-sm"
+                    />
 
 
                     {!isNostalgia && (

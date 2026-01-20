@@ -12,6 +12,7 @@ export interface Episode {
     url: string;
     type?: 'direct' | 'torrent';
   }[];
+  google_drive_url?: string;
 }
 
 export interface Content {

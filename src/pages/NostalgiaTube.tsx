@@ -235,13 +235,13 @@ export default function NostalgiaTube(): JSX.Element {
     const currentEpisode = currentContent?.episodes?.[currentEpisodeIndex];
     const videoUrl = currentEpisode?.url || currentContent?.video_url;
     const youtubeId = getYoutubeId(videoUrl);
-    const googleDriveUrl = currentContent?.google_drive_url;
+    const googleDriveUrl = currentEpisode?.google_drive_url || currentContent?.google_drive_url;
     const googleDriveId = getGoogleDriveId(googleDriveUrl);
     const isGoogleDrive = !!googleDriveId;
 
     // Get poster image
     const getPosterImage = () => {
-        return currentContent?.thumbnail_url || '';
+        return currentContent?.backdrop_url || currentContent?.thumbnail_url || '';
     };
 
     // Save progress periodically
@@ -719,7 +719,7 @@ export default function NostalgiaTube(): JSX.Element {
                             <div className={`absolute inset-0 w-full h-full overflow-hidden ${isFullscreen ? 'z-0' : ''}`}>
                                 <iframe
                                     src={`https://docs.google.com/file/d/${googleDriveId}/preview`}
-                                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100%] h-[120%]"
+                                    className="absolute inset-0 w-full h-full"
                                     allow="autoplay"
                                     style={{ border: 'none' }}
                                     onLoad={() => {
@@ -832,16 +832,18 @@ export default function NostalgiaTube(): JSX.Element {
                                 </div>
 
                                 {/* Interaction Layer - Handles clicks */}
-                                <div className="absolute inset-0 w-full h-full z-[15] pointer-events-auto"
-                                    onClick={(e) => {
-                                        e.preventDefault();
-                                        togglePlay();
-                                    }}
-                                    onDoubleClick={(e) => {
-                                        e.preventDefault();
-                                        toggleFullscreen();
-                                    }}
-                                ></div>
+                                {!isGoogleDrive && (
+                                    <div className="absolute inset-0 w-full h-full z-[15] pointer-events-auto"
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            togglePlay();
+                                        }}
+                                        onDoubleClick={(e) => {
+                                            e.preventDefault();
+                                            toggleFullscreen();
+                                        }}
+                                    ></div>
+                                )}
 
                                 {/* Controls Overlay */}
                                 <div className={`absolute bottom-0 left-0 right-0 px-2 md:px-4 pb-2 md:pb-4 pt-12 md:pt-20 bg-gradient-to-t from-black/90 via-black/60 to-transparent transition-opacity duration-300 z-40 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
