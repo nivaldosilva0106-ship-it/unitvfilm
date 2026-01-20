@@ -55,5 +55,6 @@ export interface Content {
     type?: 'direct' | 'torrent';
   }[];
   is_cinema_mode?: boolean;
+  google_drive_url?: string;
   cast_members?: { name: string; character: string; profile_path: string | null }[];
 }

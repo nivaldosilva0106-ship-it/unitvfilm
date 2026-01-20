@@ -1235,6 +1235,18 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           </div >
         )}
 
+        {isNostalgia && (
+          <div>
+            <Label>URL Google Drive (Player Alternativo)</Label>
+            <Input
+              value={editingContent.google_drive_url || ''}
+              onChange={(e) => setEditingContent(prev => ({ ...prev, google_drive_url: e.target.value }))}
+              className="bg-input border-border"
+              placeholder="https://drive.google.com/file/d/ID/view?usp=sharing"
+            />
+          </div>
+        )}
+
         {
           !isTV && (
             <div>

@@ -226,9 +226,18 @@ export default function NostalgiaTube(): JSX.Element {
         return (match && match[2].length === 11) ? match[2] : null;
     };
 
+    const getGoogleDriveId = (url?: string) => {
+        if (!url) return null;
+        const match = url.match(/[-\w]{25,}/);
+        return match ? match[0] : null;
+    };
+
     const currentEpisode = currentContent?.episodes?.[currentEpisodeIndex];
     const videoUrl = currentEpisode?.url || currentContent?.video_url;
     const youtubeId = getYoutubeId(videoUrl);
+    const googleDriveUrl = currentContent?.google_drive_url;
+    const googleDriveId = getGoogleDriveId(googleDriveUrl);
+    const isGoogleDrive = !!googleDriveId;
 
     // Get poster image
     const getPosterImage = () => {
@@ -706,7 +715,20 @@ export default function NostalgiaTube(): JSX.Element {
                     ref={playerContainerRef}
                 >
                     <div className={`relative w-full flex items-center justify-center ${isFullscreen ? 'h-full bg-black' : 'pb-[56.25%] md:pb-[42%] lg:pb-[40%]'}`}>
-                        {youtubeId ? (
+                        {isGoogleDrive ? (
+                            <div className={`absolute inset-0 w-full h-full overflow-hidden ${isFullscreen ? 'z-0' : ''}`}>
+                                <iframe
+                                    src={`https://docs.google.com/file/d/${googleDriveId}/preview`}
+                                    className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100%] h-[120%]"
+                                    allow="autoplay"
+                                    style={{ border: 'none' }}
+                                    onLoad={() => {
+                                        setIsLoadingVideo(false);
+                                        setHasStartedPlaying(true);
+                                    }}
+                                ></iframe>
+                            </div>
+                        ) : youtubeId ? (
                             <>
                                 {/* Scaled YouTube Player */}
                                 <div className={`absolute inset-0 w-full h-full overflow-hidden pointer-events-none ${isFullscreen ? 'z-0' : ''}`}>
