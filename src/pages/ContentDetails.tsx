@@ -485,7 +485,7 @@ const ContentDetails = () => {
           onClose={() => setShowDownloadModal(false)}
           downloadUrl={content.download_url || ''}
           downloads={content.downloads}
-          downloadMode={content.download_mode}
+          download_mode={content.download_mode}
           title={content.title}
           thumbnail={content.thumbnail_url}
         />

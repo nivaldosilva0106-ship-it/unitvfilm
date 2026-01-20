@@ -1024,7 +1024,7 @@ export default function NostalgiaTube(): JSX.Element {
                                 thumbnail={currentContent.thumbnail_url}
                                 downloadUrl={currentEpisode?.download_url || currentContent.download_url || ''}
                                 downloads={currentEpisode?.downloads || currentContent.downloads}
-                                downloadMode={currentEpisode?.download_mode || currentContent.download_mode || 'direct'}
+                                download_mode={currentEpisode?.download_mode || currentContent.download_mode || 'direct'}
                             />
 
                             <p className="text-sm md:text-base text-gray-300 leading-relaxed mb-6">

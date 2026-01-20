@@ -238,7 +238,7 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
           onClose={() => setSelectedDownloadEpisode(null)}
           downloadUrl={selectedDownloadEpisode.download_url || ''}
           downloads={selectedDownloadEpisode.downloads}
-          downloadMode={selectedDownloadEpisode.download_mode}
+          download_mode={selectedDownloadEpisode.download_mode}
           title={`${title} - S${selectedDownloadEpisode.season}E${selectedDownloadEpisode.episode}: ${selectedDownloadEpisode.title}`}
           thumbnail="" // Could pass series thumbnail if available
         />
