@@ -332,7 +332,7 @@ export default function NostalgiaTube(): JSX.Element {
         // Detect 403 or loading failure which often indicates quota
         setHasQuotaError(true);
         setIsLoadingVideo(false);
-        toast.error("Erro ao carregar vídeo do Google Drive");
+        toast.error("Erro ao carregar vídeo");
     };
 
     // Initialize or update YouTube Player
@@ -573,7 +573,7 @@ export default function NostalgiaTube(): JSX.Element {
     const changeQuality = (quality: string) => {
         if (isGoogleDriveApi) {
             // Google Drive API URL is a single file, quality change is not supported directly
-            toast.info("A qualidade é gerenciada automaticamente pelo Google Drive.");
+            toast.info("A qualidade é gerenciada automaticamente.");
             setShowQualityMenu(false);
             return;
         }
@@ -591,7 +591,7 @@ export default function NostalgiaTube(): JSX.Element {
                     const actualQuality = player.getPlaybackQuality();
                     if (actualQuality && actualQuality !== quality && quality !== 'auto') {
                         // Quality change may not have worked - YouTube restricts this in embeds
-                        toast.info(`Qualidade solicitada: ${qualityLabels[quality] || quality}. O YouTube pode limitar alterações de qualidade em players embutidos.`);
+                        toast.info(`Qualidade solicitada: ${qualityLabels[quality] || quality}. Podem existir limitações na alteração de qualidade.`);
                     } else {
                         toast.success(`Qualidade: ${qualityLabels[quality] || quality}`);
                     }
@@ -990,7 +990,7 @@ export default function NostalgiaTube(): JSX.Element {
                                     <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(239,68,68,0.2)] border border-red-500/20">
                                         <Settings className="w-10 h-10 text-red-500 animate-spin-slow" />
                                     </div>
-                                    <h3 className="text-white font-bold text-xl mb-3 tracking-tight">Limite do Google Drive Excedido</h3>
+                                    <h3 className="text-white font-bold text-xl mb-3 tracking-tight">Limite Excedido</h3>
                                     <p className="text-gray-300 text-sm leading-relaxed mb-6">
                                         O vídeo está com uma <span className="text-red-400 font-semibold">demanda enorme de usuários</span> assistindo e está temporariamente bloqueado para ti.
                                         <br /><br />
