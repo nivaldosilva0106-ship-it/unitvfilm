@@ -710,35 +710,25 @@ export default function NostalgiaTube(): JSX.Element {
             <Header />
 
             <main className="pt-16 pb-10">
+                {/* Player Container - Isolated from post clicks */}
                 <div
                     className="w-full bg-black mb-6 group relative"
                     ref={playerContainerRef}
-                    onClick={(e) => {
-                        // Prevent post change when clicking the player area
-                        if (isGoogleDrive) {
-                            e.stopPropagation();
-                        }
-                    }}
                 >
                     <div className={`relative w-full flex items-center justify-center ${isFullscreen ? 'h-full bg-black' : 'pb-[56.25%] md:pb-[42%] lg:pb-[40%]'}`}>
                         {isGoogleDrive ? (
-                            <div
-                                className={`absolute inset-0 w-full h-full overflow-hidden ${isFullscreen ? 'z-0' : ''}`}
-                                onClick={(e) => e.stopPropagation()}
-                                onMouseDown={(e) => e.stopPropagation()}
-                            >
-                                <iframe
-                                    src={`https://docs.google.com/file/d/${googleDriveId}/preview`}
-                                    className="absolute inset-0 w-full h-full pointer-events-auto"
-                                    allow="autoplay; fullscreen"
-                                    allowFullScreen
-                                    style={{ border: 'none' }}
-                                    onLoad={() => {
-                                        setIsLoadingVideo(false);
-                                        setHasStartedPlaying(true);
-                                    }}
-                                ></iframe>
-                            </div>
+                            /* Google Drive Player - Simple iframe embed with no overlays */
+                            <iframe
+                                src={`https://drive.google.com/file/d/${googleDriveId}/preview`}
+                                className="absolute inset-0 w-full h-full"
+                                allow="autoplay; fullscreen"
+                                allowFullScreen
+                                style={{ border: 'none' }}
+                                onLoad={() => {
+                                    setIsLoadingVideo(false);
+                                    setHasStartedPlaying(true);
+                                }}
+                            />
                         ) : youtubeId ? (
                             <>
                                 {/* Scaled YouTube Player */}
