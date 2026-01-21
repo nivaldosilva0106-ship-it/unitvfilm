@@ -54,31 +54,37 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     const lines = smartConfigText.split('\n').map(l => l.trim()).filter(l => l);
     if (lines.length === 0) return;
 
+    // Save current selection to avoid losing context
+    const initialCategory = editingContent.category;
+    const isNostalgiaSelected = initialCategory === 'nostalgia';
+    const isSeriesSelected = initialCategory === 'series';
+
     // --- DETECT CATEGORY & CONTEXT ---
-    // Look for "temporada X" pattern anywhere
     const seasonHeaderPattern = /^temporada\s+(\d+)/i;
     const seriesPattern = /(\d+)x(\d+)/;
-    const isSeriesText = lines.some(l => seriesPattern.test(l) || seasonHeaderPattern.test(l));
+    const hierarchicalPattern = /^(\d+\.\s*)?(.+?)\s*[-:]\s*(https?:\/\/[^\s]+)/i;
+
+    // It's a series if it matches patterns OR if the user already selected a serial category
+    const isSeriesText = lines.some(l => seriesPattern.test(l) || seasonHeaderPattern.test(l) || hierarchicalPattern.test(l));
+    const shouldHandleAsMultiple = isSeriesText || isSeriesSelected || isNostalgiaSelected;
 
     let extractedTitle = "";
-    // If first line isn't a season or episode, it might be the title
-    if (!seasonHeaderPattern.test(lines[0]) && !seriesPattern.test(lines[0])) {
+    // If first line isn't a pattern, it's likely the title
+    if (!seasonHeaderPattern.test(lines[0]) && !seriesPattern.test(lines[0]) && !hierarchicalPattern.test(lines[0])) {
       extractedTitle = lines[0].replace(/\(\d{4}\)/, '').trim();
     }
 
-    if (isSeriesText) {
-      toast.info(`Detectado padrão de SÉRIE. Processando...`);
+    if (shouldHandleAsMultiple) {
+      toast.info(`Processando como lista de episódios...`);
 
-      const isNostalgia = editingContent.category === 'nostalgia';
+      const finalCategory = isNostalgiaSelected ? 'nostalgia' : (isSeriesSelected ? 'series' : 'series');
 
-      // Basic update
-      if (extractedTitle) {
-        setEditingContent(prev => ({
-          ...prev,
-          title: extractedTitle,
-          category: isNostalgia ? 'nostalgia' : 'series'
-        }));
-      }
+      // Update basic info if title found, or just ensure category
+      setEditingContent(prev => ({
+        ...prev,
+        title: extractedTitle || prev.title,
+        category: finalCategory
+      }));
 
       const newEpisodes: Episode[] = [];
       let currentSeason = 1;
@@ -100,60 +106,72 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
 
           const urlMatch = remaining.match(/https?:\/\/[^\s]+/);
           const title = remaining.replace(/https?:\/\/[^\s]+/, '').trim() || `Episódio ${episode}`;
+          const url = urlMatch ? urlMatch[0] : "";
+          const isGoogle = url.includes('googleapis.com');
 
           newEpisodes.push({
             season,
             episode,
             title: title || `Episódio ${episode}`,
-            url: urlMatch ? urlMatch[0] : "",
-            google_drive_url: urlMatch && urlMatch[0].includes('googleapis.com') ? urlMatch[0] : "",
-            internal_player_url: urlMatch && urlMatch[0].includes('googleapis.com') ? urlMatch[0] : "",
+            url: isGoogle ? "" : url, // If it's a direct API link, we use the specialized fields
+            google_drive_url: isGoogle && isNostalgiaSelected ? url : "",
+            internal_player_url: isGoogle && !isNostalgiaSelected ? url : "",
             downloads: []
           });
           return;
         }
 
-        // New requested pattern: "1. 01 - URL" or "2. Title - URL"
-        // Also captures just "01 - URL"
-        const hierarchicalMatch = line.match(/^(\d+\.\s*)?(.+?)\s*[-:]\s*(https?:\/\/[^\s]+)/i);
+        // Hierarchical pattern: "1. 01 - URL" or "2. Title - URL"
+        const hierarchicalMatch = line.match(hierarchicalPattern);
         if (hierarchicalMatch) {
           const rawTitle = hierarchicalMatch[2].trim();
           const url = hierarchicalMatch[3].trim();
+          const isGoogle = url.includes('googleapis.com');
 
-          // Try to extract episode number from title if it's just a number
-          const epNumMatch = rawTitle.match(/^(\d+)$/);
-          const episodeNumber = epNumMatch ? parseInt(epNumMatch[1]) : (newEpisodes.filter(e => e.season === currentSeason).length + 1);
-          const finalTitle = epNumMatch ? `Episódio ${episodeNumber}` : rawTitle;
+          // Use the rawTitle directly as the user requested ("01", "Ep X", "Nome")
+          const episodeNumber = newEpisodes.filter(e => e.season === currentSeason).length + 1;
 
           newEpisodes.push({
             season: currentSeason,
             episode: episodeNumber,
-            title: finalTitle,
-            url: url,
-            google_drive_url: url.includes('googleapis.com') ? url : "",
-            internal_player_url: url.includes('googleapis.com') ? url : "",
+            title: rawTitle,
+            url: isGoogle ? "" : url,
+            google_drive_url: isGoogle && isNostalgiaSelected ? url : "",
+            internal_player_url: isGoogle && !isNostalgiaSelected ? url : "",
             downloads: []
           });
         }
       });
 
       if (newEpisodes.length > 0) {
-        setEditingContent(prev => ({
-          ...prev,
-          episodes: [...(prev.episodes || []), ...newEpisodes]
-        }));
+        setEditingContent(prev => {
+          const updatedEpisodes = [...(prev.episodes || []), ...newEpisodes];
+
+          // Also fill top-level google_drive_url for Nostalgia if none exists
+          let topGoogleDriveUrl = prev.google_drive_url;
+          if (isNostalgiaSelected && !topGoogleDriveUrl) {
+            topGoogleDriveUrl = newEpisodes.find(e => e.google_drive_url)?.google_drive_url || "";
+          }
+
+          return {
+            ...prev,
+            episodes: updatedEpisodes,
+            google_drive_url: topGoogleDriveUrl
+          };
+        });
+
         toast.success(`${newEpisodes.length} episódios identificados!`);
         if (extractedTitle) {
           setTmdbSearchQuery(extractedTitle);
           handleTmdbSearch();
         }
-      } else {
-        toast.warning("Nenhum episódio encontrado nos padrões suportados.");
+      } else if (!extractedTitle) {
+        toast.warning("Nenhum episódio ou título identificado no texto.");
       }
 
     } else {
       // --- MOVIE PARSING ---
-      toast.info(`Detectado padrão de FILME. Processando: ${extractedTitle}`);
+      toast.info(`Detectado padrão de FILME. Processando...`);
 
       const urls = lines.flatMap(l => l.match(/https?:\/\/[^\s]+/g) || []);
       const googleApiUrl = urls.find(u => u.includes('googleapis.com')) || "";
@@ -162,7 +180,8 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       setEditingContent(prev => ({
         ...prev,
         title: extractedTitle || prev.title,
-        category: 'movie',
+        category: initialCategory || 'movie', // Respect current or default to movie
+        google_drive_url: googleApiUrl || prev.google_drive_url,
         internal_player_url: googleApiUrl || prev.internal_player_url,
         video_url: otherUrls[0] || prev.video_url,
         video_urls: otherUrls.length > 0 ? otherUrls : prev.video_urls
