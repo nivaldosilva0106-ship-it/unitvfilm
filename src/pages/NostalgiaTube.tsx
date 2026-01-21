@@ -1032,179 +1032,182 @@ export default function NostalgiaTube(): JSX.Element {
                     </div>
                 </div>
 
-                <div className="container mx-auto px-4 relative z-50">
-                    {/* Info Section */}
-                    {currentContent && (
-                        <div className="mb-8 p-4 md:p-6 bg-[#1a1a1a] rounded-xl border border-white/5 relative z-10">
-                            <h2 className="text-xl md:text-3xl font-bold mb-2 text-primary">{currentContent.title}</h2>
-                            {currentEpisode && (
-                                <h3 className="text-lg md:text-xl text-gray-300 mb-4">{currentEpisode.title}</h3>
-                            )}
+                <div className="relative z-50">
+                    <div className="container mx-auto px-4">
+                        {/* Info Section */}
+                        {currentContent && (
+                            <div className="mb-8 p-4 md:p-6 bg-[#1a1a1a] rounded-xl border border-white/5 relative z-50 shadow-2xl">
+                                <h2 className="text-xl md:text-3xl font-bold mb-2 text-primary">{currentContent.title}</h2>
+                                {currentEpisode && (
+                                    <h3 className="text-lg md:text-xl text-gray-300 mb-4">{currentEpisode.title}</h3>
+                                )}
 
-                            <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm text-gray-400 mb-4 items-center">
-                                {currentContent.year && <span>{currentContent.year}</span>}
-                                {currentContent.duration && <span>{currentContent.duration}</span>}
-                                {currentContent.genre && currentContent.genre.map((g, i) => (
-                                    <span key={i} className="px-2 py-0.5 bg-white/10 rounded-full text-xs">{g}</span>
-                                ))}
+                                <div className="flex flex-wrap gap-2 md:gap-4 text-xs md:text-sm text-gray-400 mb-4 items-center">
+                                    {currentContent.year && <span>{currentContent.year}</span>}
+                                    {currentContent.duration && <span>{currentContent.duration}</span>}
+                                    {currentContent.genre && currentContent.genre.map((g, i) => (
+                                        <span key={i} className="px-2 py-0.5 bg-white/10 rounded-full text-xs">{g}</span>
+                                    ))}
 
-                                {/* Interaction Buttons */}
-                                <div className="flex items-center gap-3 ml-auto">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={(e) => handleVote(e, 'like')}
-                                        className={`flex items-center gap-1.5 hover:bg-white/10 relative z-10 ${userVote === 'like' ? 'text-primary' : 'text-gray-400'}`}
-                                    >
-                                        <ThumbsUp className={`w-4 h-4 pointer-events-none ${userVote === 'like' ? 'fill-current' : ''}`} />
-                                        <span className="pointer-events-none">{currentContent.likes || 0}</span>
-                                    </Button>
-
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={(e) => handleVote(e, 'dislike')}
-                                        className={`flex items-center gap-1.5 hover:bg-white/10 relative z-10 ${userVote === 'dislike' ? 'text-red-500' : 'text-gray-400'}`}
-                                    >
-                                        <ThumbsDown className={`w-4 h-4 pointer-events-none ${userVote === 'dislike' ? 'fill-current' : ''}`} />
-                                        <span className="pointer-events-none">{currentContent.dislikes || 0}</span>
-                                    </Button>
-
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        onClick={(e) => {
-                                            if (e) {
-                                                e.preventDefault();
-                                                e.stopPropagation();
-                                            }
-                                            setShowDownloadModal(true);
-                                        }}
-                                        className="flex items-center gap-2 border-white/20 bg-white/5 hover:bg-white/10 text-gray-200 relative z-10"
-                                    >
-                                        <Download className="w-4 h-4 pointer-events-none" />
-                                        <span className="hidden sm:inline pointer-events-none">Download</span>
-                                    </Button>
-                                </div>
-                            </div>
-
-
-                            <p className="text-sm md:text-base text-gray-300 leading-relaxed mb-6">
-                                {currentContent.description}
-                            </p>
-
-                            {currentContent.episodes && currentContent.episodes.length > 1 && (
-                                <div className="space-y-2">
-                                    <h3 className="font-semibold text-white mb-2">Episódios</h3>
-                                    <div className="relative">
-                                        {canScrollLeft && (
-                                            <button
-                                                onClick={() => scrollEpisodes('left')}
-                                                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-black/80 hover:bg-black/90 text-white p-1.5 md:p-2 rounded-full transition-all"
-                                            >
-                                                <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
-                                            </button>
-                                        )}
-
-                                        <div
-                                            ref={episodesScrollRef}
-                                            className="flex overflow-x-auto gap-3 md:gap-4 pb-4 scrollbar-none"
-                                            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                                    {/* Interaction Buttons */}
+                                    <div className="flex items-center gap-3 ml-auto">
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={(e) => handleVote(e, 'like')}
+                                            className={`flex items-center gap-1.5 hover:bg-white/10 relative z-10 ${userVote === 'like' ? 'text-primary' : 'text-gray-400'}`}
                                         >
-                                            {currentContent.episodes.map((ep, idx) => {
-                                                const epVideoId = getYoutubeId(ep.url);
-                                                const epThumb = epVideoId
-                                                    ? `https://img.youtube.com/vi/${epVideoId}/mqdefault.jpg`
-                                                    : currentContent.thumbnail_url;
+                                            <ThumbsUp className={`w-4 h-4 pointer-events-none ${userVote === 'like' ? 'fill-current' : ''}`} />
+                                            <span className="pointer-events-none">{currentContent.likes || 0}</span>
+                                        </Button>
 
-                                                return (
-                                                    <button
-                                                        key={idx}
-                                                        onClick={(e) => handleEpisodeClick(e, idx)}
-                                                        className={`flex-none w-48 md:w-60 group relative rounded-lg overflow-hidden border transition-all ${currentEpisodeIndex === idx
-                                                            ? 'border-primary ring-1 ring-primary'
-                                                            : 'border-white/10 hover:border-white/30'
-                                                            }`}
-                                                    >
-                                                        <div className="aspect-video w-full relative bg-zinc-900 pointer-events-none">
-                                                            <img
-                                                                src={epThumb}
-                                                                alt={ep.title}
-                                                                className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none"
-                                                            />
-                                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                                                <Play className="w-6 h-6 md:w-8 md:h-8 text-white fill-current drop-shadow-lg" />
-                                                            </div>
-                                                            <div className="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-mono text-white pointer-events-none">
-                                                                Ep {idx + 1}
-                                                            </div>
-                                                        </div>
-                                                        <div className={`p-2 text-left w-full truncate text-xs md:text-sm font-medium pointer-events-none ${currentEpisodeIndex === idx ? 'bg-primary/10 text-primary' : 'bg-[#222] text-gray-300'}`}>
-                                                            {ep.title || `Episódio ${idx + 1}`}
-                                                        </div>
-                                                    </button>
-                                                );
-                                            })}
-                                        </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={(e) => handleVote(e, 'dislike')}
+                                            className={`flex items-center gap-1.5 hover:bg-white/10 relative z-10 ${userVote === 'dislike' ? 'text-red-500' : 'text-gray-400'}`}
+                                        >
+                                            <ThumbsDown className={`w-4 h-4 pointer-events-none ${userVote === 'dislike' ? 'fill-current' : ''}`} />
+                                            <span className="pointer-events-none">{currentContent.dislikes || 0}</span>
+                                        </Button>
 
-                                        {canScrollRight && (
-                                            <button
-                                                onClick={() => scrollEpisodes('right')}
-                                                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-black/80 hover:bg-black/90 text-white p-1.5 md:p-2 rounded-full transition-all"
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={(e) => {
+                                                if (e) {
+                                                    e.preventDefault();
+                                                    e.stopPropagation();
+                                                }
+                                                setShowDownloadModal(true);
+                                            }}
+                                            className="flex items-center gap-2 border-white/20 bg-white/5 hover:bg-white/10 text-gray-200 relative z-10"
+                                        >
+                                            <Download className="w-4 h-4 pointer-events-none" />
+                                            <span className="hidden sm:inline pointer-events-none">Download</span>
+                                        </Button>
+                                    </div>
+                                </div>
+
+
+                                <p className="text-sm md:text-base text-gray-300 leading-relaxed mb-6">
+                                    {currentContent.description}
+                                </p>
+
+                                {currentContent.episodes && currentContent.episodes.length > 1 && (
+                                    <div className="space-y-2">
+                                        <h3 className="font-semibold text-white mb-2">Episódios</h3>
+                                        <div className="relative">
+                                            {canScrollLeft && (
+                                                <button
+                                                    onClick={() => scrollEpisodes('left')}
+                                                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-black/80 hover:bg-black/90 text-white p-1.5 md:p-2 rounded-full transition-all"
+                                                >
+                                                    <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
+                                                </button>
+                                            )}
+
+                                            <div
+                                                ref={episodesScrollRef}
+                                                className="flex overflow-x-auto gap-3 md:gap-4 pb-4 scrollbar-none"
+                                                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                                             >
-                                                <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
-                                            </button>
-                                        )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
+                                                {currentContent.episodes.map((ep, idx) => {
+                                                    const epVideoId = getYoutubeId(ep.url);
+                                                    const epThumb = epVideoId
+                                                        ? `https://img.youtube.com/vi/${epVideoId}/mqdefault.jpg`
+                                                        : currentContent.thumbnail_url;
 
-                    {/* "Nostalgia" Section - Posts */}
-                    <div className="mt-16 md:mt-20 relative z-40">
-                        <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 flex items-center gap-2">
-                            <span className="text-primary">NOSTALGIA</span>
-                        </h2>
+                                                    return (
+                                                        <button
+                                                            key={`${currentContent.id}-ep-${idx}`}
+                                                            onClick={(e) => handleEpisodeClick(e, idx)}
+                                                            className={`flex-none w-48 md:w-60 group relative rounded-lg overflow-hidden border transition-all active:scale-95 touch-none z-50 ${currentEpisodeIndex === idx
+                                                                ? 'border-primary ring-1 ring-primary bg-primary/20'
+                                                                : 'border-white/10 hover:border-white/30 bg-[#222]'
+                                                                }`}
+                                                        >
+                                                            <div className="aspect-video w-full relative bg-zinc-900 pointer-events-none">
+                                                                <img
+                                                                    src={epThumb}
+                                                                    alt={ep.title}
+                                                                    className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none"
+                                                                />
+                                                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                                                    <Play className="w-6 h-6 md:w-8 md:h-8 text-white fill-current drop-shadow-lg" />
+                                                                </div>
+                                                                <div className="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-mono text-white pointer-events-none">
+                                                                    Ep {idx + 1}
+                                                                </div>
+                                                            </div>
+                                                            <div className={`p-2 text-left w-full truncate text-xs md:text-sm font-medium pointer-events-none ${currentEpisodeIndex === idx ? 'bg-primary/10 text-primary' : 'bg-[#222] text-gray-300'}`}>
+                                                                {ep.title || `Episódio ${idx + 1}`}
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
 
-                        <div className="flex gap-4 overflow-x-auto pb-4 modern-scrollbar snap-x">
-                            {contents.map((content) => (
-                                <div
-                                    key={content.id}
-                                    className="bg-zinc-900/50 rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-300 border border-white/5 hover:border-primary/50 group/card min-w-[200px] md:min-w-[260px] snap-start"
-                                    onClick={(e) => handlePostClick(e, content)}
-                                >
-                                    <div className="aspect-[2/3] rounded-lg overflow-hidden border border-white/5 transition-transform duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-primary/20 pointer-events-none">
-                                        <img
-                                            src={content.thumbnail_url}
-                                            alt={content.title}
-                                            className="w-full h-full object-cover pointer-events-none"
-                                        />
-                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                                            <Play className="w-10 h-10 md:w-12 md:h-12 text-white fill-current drop-shadow-lg scale-0 group-hover:scale-100 transition-transform duration-300 delay-75" />
+                                            {canScrollRight && (
+                                                <button
+                                                    onClick={() => scrollEpisodes('right')}
+                                                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-black/80 hover:bg-black/90 text-white p-1.5 md:p-2 rounded-full transition-all"
+                                                >
+                                                    <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
-                                    <h3 className="mt-2 md:mt-3 text-xs md:text-sm font-medium leading-tight text-white group-hover:text-primary transition-colors line-clamp-2 p-2 pointer-events-none">
-                                        {content.title}
-                                    </h3>
-                                </div>
-                            ))}
+                                )}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="relative z-10 mt-16 md:mt-24">
+                        <div className="container mx-auto px-4">
+                            {/* "Nostalgia" Section - Posts */}
+                            <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 flex items-center gap-2">
+                                <span className="text-primary uppercase tracking-wider">Nostalgia</span>
+                            </h2>
+
+                            <div className="flex gap-4 overflow-x-auto pb-4 modern-scrollbar snap-x">
+                                {contents.map((content) => (
+                                    <div
+                                        key={content.id}
+                                        className="bg-zinc-900/50 rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-300 border border-white/5 hover:border-primary/50 group/card min-w-[200px] md:min-w-[260px] snap-start relative z-10"
+                                        onClick={(e) => handlePostClick(e, content)}
+                                    >
+                                        <div className="aspect-[2/3] rounded-lg overflow-hidden border border-white/5 transition-transform duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-primary/20 pointer-events-none">
+                                            <img
+                                                src={content.thumbnail_url}
+                                                alt={content.title}
+                                                className="w-full h-full object-cover pointer-events-none"
+                                            />
+                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                                <Play className="w-10 h-10 md:w-12 md:h-12 text-white fill-current drop-shadow-lg scale-0 group-hover:scale-100 transition-transform duration-300 delay-75" />
+                                            </div>
+                                        </div>
+                                        <h3 className="mt-2 md:mt-3 text-xs md:text-sm font-medium leading-tight text-white group-hover:text-primary transition-colors line-clamp-2 p-2 pointer-events-none">
+                                            {content.title}
+                                        </h3>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                {/* Download Modal - Relocated to end for better layering */}
-                {currentContent && (
-                    <DownloadModal
-                        open={showDownloadModal}
-                        onClose={() => setShowDownloadModal(false)}
-                        title={currentContent.title}
-                        thumbnail={currentContent.thumbnail_url}
-                        downloadUrl={currentEpisode?.download_url || currentContent.download_url || ''}
-                        downloads={currentEpisode?.downloads || currentContent.downloads}
-                        download_mode={currentEpisode?.download_mode || currentContent.download_mode || 'direct'}
-                    />
-                )}
+                    {/* Download Modal - Relocated to end for better layering */}
+                    {currentContent && (
+                        <DownloadModal
+                            open={showDownloadModal}
+                            onClose={() => setShowDownloadModal(false)}
+                            title={currentContent.title}
+                            thumbnail={currentContent.thumbnail_url}
+                            downloadUrl={currentEpisode?.download_url || currentContent.download_url || ''}
+                            downloads={currentEpisode?.downloads || currentContent.downloads}
+                            download_mode={currentEpisode?.download_mode || currentContent.download_mode || 'direct'}
+                        />
+                    )}
             </main>
         </div>
     );
