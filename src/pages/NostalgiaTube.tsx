@@ -713,14 +713,25 @@ export default function NostalgiaTube(): JSX.Element {
                 <div
                     className="w-full bg-black mb-6 group relative"
                     ref={playerContainerRef}
+                    onClick={(e) => {
+                        // Prevent post change when clicking the player area
+                        if (isGoogleDrive) {
+                            e.stopPropagation();
+                        }
+                    }}
                 >
                     <div className={`relative w-full flex items-center justify-center ${isFullscreen ? 'h-full bg-black' : 'pb-[56.25%] md:pb-[42%] lg:pb-[40%]'}`}>
                         {isGoogleDrive ? (
-                            <div className={`absolute inset-0 w-full h-full overflow-hidden ${isFullscreen ? 'z-0' : ''}`}>
+                            <div 
+                                className={`absolute inset-0 w-full h-full overflow-hidden ${isFullscreen ? 'z-0' : ''}`}
+                                onClick={(e) => e.stopPropagation()}
+                                onMouseDown={(e) => e.stopPropagation()}
+                            >
                                 <iframe
                                     src={`https://docs.google.com/file/d/${googleDriveId}/preview`}
-                                    className="absolute inset-0 w-full h-full"
-                                    allow="autoplay"
+                                    className="absolute inset-0 w-full h-full pointer-events-auto"
+                                    allow="autoplay; fullscreen"
+                                    allowFullScreen
                                     style={{ border: 'none' }}
                                     onLoad={() => {
                                         setIsLoadingVideo(false);
@@ -845,7 +856,8 @@ export default function NostalgiaTube(): JSX.Element {
                                     ></div>
                                 )}
 
-                                {/* Controls Overlay */}
+                                {/* Controls Overlay - Only for YouTube */}
+                                {!isGoogleDrive && (
                                 <div className={`absolute bottom-0 left-0 right-0 px-2 md:px-4 pb-2 md:pb-4 pt-12 md:pt-20 bg-gradient-to-t from-black/90 via-black/60 to-transparent transition-opacity duration-300 z-40 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                                     <div className="flex flex-col gap-2 w-full max-w-6xl mx-auto pointer-events-auto">
 
@@ -943,6 +955,7 @@ export default function NostalgiaTube(): JSX.Element {
                                         </div>
                                     </div>
                                 </div>
+                                )}
                             </>
                         ) : (
                             <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/80 backdrop-blur-sm">
@@ -1053,9 +1066,11 @@ export default function NostalgiaTube(): JSX.Element {
                                         >
                                             {currentContent.episodes.map((ep, idx) => {
                                                 const epVideoId = getYoutubeId(ep.url);
+                                                const epDriveId = getGoogleDriveId(ep.google_drive_url);
+                                                // Use backdrop as thumb for Google Drive episodes, otherwise YouTube thumb
                                                 const epThumb = epVideoId
                                                     ? `https://img.youtube.com/vi/${epVideoId}/mqdefault.jpg`
-                                                    : currentContent.thumbnail_url;
+                                                    : (currentContent.backdrop_url || currentContent.thumbnail_url);
 
                                                 return (
                                                     <button
@@ -1075,7 +1090,8 @@ export default function NostalgiaTube(): JSX.Element {
                                                             <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                                                                 <Play className="w-6 h-6 md:w-8 md:h-8 text-white fill-current drop-shadow-lg" />
                                                             </div>
-                                                            <div className="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-mono text-white">
+                                                            <div className="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-mono text-white flex items-center gap-1">
+                                                                {epDriveId && <Film className="w-3 h-3" />}
                                                                 Ep {idx + 1}
                                                             </div>
                                                         </div>
