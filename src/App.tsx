@@ -38,7 +38,10 @@ const Categories = React.lazy(() => import("./pages/Categories"));
 const NostalgiaTube = React.lazy(() => import("./pages/NostalgiaTube"));
 const VerifyCode = React.lazy(() => import("./pages/VerifyCode"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
-import About from "./pages/About";
+const About = React.lazy(() => import("./pages/About").catch(() => {
+  window.location.reload();
+  return { default: () => null };
+}));
 const TermsOfUse = React.lazy(() => import("./pages/TermsOfUse"));
 const PrivacyPolicy = React.lazy(() => import("./pages/PrivacyPolicy"));
 
