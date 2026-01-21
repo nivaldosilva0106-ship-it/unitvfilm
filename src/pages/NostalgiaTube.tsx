@@ -185,7 +185,11 @@ export default function NostalgiaTube(): JSX.Element {
         }
     }, [currentContent, user, checkAccess]);
 
-    const handleVote = async (vote: 'like' | 'dislike') => {
+    const handleVote = async (e: React.MouseEvent | null, vote: 'like' | 'dislike') => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
         if (!user || !currentContent) return;
 
         const newVote = userVote === vote ? null : vote;
@@ -1028,10 +1032,10 @@ export default function NostalgiaTube(): JSX.Element {
                     </div>
                 </div>
 
-                <div className="container mx-auto px-4">
+                <div className="container mx-auto px-4 relative z-50">
                     {/* Info Section */}
                     {currentContent && (
-                        <div className="mb-8 p-4 md:p-6 bg-[#1a1a1a] rounded-xl border border-white/5">
+                        <div className="mb-8 p-4 md:p-6 bg-[#1a1a1a] rounded-xl border border-white/5 relative z-10">
                             <h2 className="text-xl md:text-3xl font-bold mb-2 text-primary">{currentContent.title}</h2>
                             {currentEpisode && (
                                 <h3 className="text-lg md:text-xl text-gray-300 mb-4">{currentEpisode.title}</h3>
@@ -1049,45 +1053,41 @@ export default function NostalgiaTube(): JSX.Element {
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => handleVote('like')}
-                                        className={`flex items-center gap-1.5 hover:bg-white/10 ${userVote === 'like' ? 'text-primary' : 'text-gray-400'}`}
+                                        onClick={(e) => handleVote(e, 'like')}
+                                        className={`flex items-center gap-1.5 hover:bg-white/10 relative z-10 ${userVote === 'like' ? 'text-primary' : 'text-gray-400'}`}
                                     >
-                                        <ThumbsUp className={`w-4 h-4 ${userVote === 'like' ? 'fill-current' : ''}`} />
-                                        <span>{currentContent.likes || 0}</span>
+                                        <ThumbsUp className={`w-4 h-4 pointer-events-none ${userVote === 'like' ? 'fill-current' : ''}`} />
+                                        <span className="pointer-events-none">{currentContent.likes || 0}</span>
                                     </Button>
 
                                     <Button
                                         variant="ghost"
                                         size="sm"
-                                        onClick={() => handleVote('dislike')}
-                                        className={`flex items-center gap-1.5 hover:bg-white/10 ${userVote === 'dislike' ? 'text-red-500' : 'text-gray-400'}`}
+                                        onClick={(e) => handleVote(e, 'dislike')}
+                                        className={`flex items-center gap-1.5 hover:bg-white/10 relative z-10 ${userVote === 'dislike' ? 'text-red-500' : 'text-gray-400'}`}
                                     >
-                                        <ThumbsDown className={`w-4 h-4 ${userVote === 'dislike' ? 'fill-current' : ''}`} />
-                                        <span>{currentContent.dislikes || 0}</span>
+                                        <ThumbsDown className={`w-4 h-4 pointer-events-none ${userVote === 'dislike' ? 'fill-current' : ''}`} />
+                                        <span className="pointer-events-none">{currentContent.dislikes || 0}</span>
                                     </Button>
 
                                     <Button
                                         variant="outline"
                                         size="sm"
-                                        onClick={() => setShowDownloadModal(true)}
-                                        className="flex items-center gap-2 border-white/20 bg-white/5 hover:bg-white/10 text-gray-200"
+                                        onClick={(e) => {
+                                            if (e) {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                            }
+                                            setShowDownloadModal(true);
+                                        }}
+                                        className="flex items-center gap-2 border-white/20 bg-white/5 hover:bg-white/10 text-gray-200 relative z-10"
                                     >
-                                        <Download className="w-4 h-4" />
-                                        <span className="hidden sm:inline">Download</span>
+                                        <Download className="w-4 h-4 pointer-events-none" />
+                                        <span className="hidden sm:inline pointer-events-none">Download</span>
                                     </Button>
                                 </div>
                             </div>
 
-                            {/* Download Modal - Pass correct Data */}
-                            <DownloadModal
-                                open={showDownloadModal}
-                                onClose={() => setShowDownloadModal(false)}
-                                title={currentContent.title}
-                                thumbnail={currentContent.thumbnail_url}
-                                downloadUrl={currentEpisode?.download_url || currentContent.download_url || ''}
-                                downloads={currentEpisode?.downloads || currentContent.downloads}
-                                download_mode={currentEpisode?.download_mode || currentContent.download_mode || 'direct'}
-                            />
 
                             <p className="text-sm md:text-base text-gray-300 leading-relaxed mb-6">
                                 {currentContent.description}
@@ -1126,20 +1126,20 @@ export default function NostalgiaTube(): JSX.Element {
                                                             : 'border-white/10 hover:border-white/30'
                                                             }`}
                                                     >
-                                                        <div className="aspect-video w-full relative bg-zinc-900">
+                                                        <div className="aspect-video w-full relative bg-zinc-900 pointer-events-none">
                                                             <img
                                                                 src={epThumb}
                                                                 alt={ep.title}
-                                                                className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"
+                                                                className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity pointer-events-none"
                                                             />
-                                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                                            <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                                                                 <Play className="w-6 h-6 md:w-8 md:h-8 text-white fill-current drop-shadow-lg" />
                                                             </div>
-                                                            <div className="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-mono text-white">
+                                                            <div className="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-mono text-white pointer-events-none">
                                                                 Ep {idx + 1}
                                                             </div>
                                                         </div>
-                                                        <div className={`p-2 text-left w-full truncate text-xs md:text-sm font-medium ${currentEpisodeIndex === idx ? 'bg-primary/10 text-primary' : 'bg-[#222] text-gray-300'}`}>
+                                                        <div className={`p-2 text-left w-full truncate text-xs md:text-sm font-medium pointer-events-none ${currentEpisodeIndex === idx ? 'bg-primary/10 text-primary' : 'bg-[#222] text-gray-300'}`}>
                                                             {ep.title || `Episódio ${idx + 1}`}
                                                         </div>
                                                     </button>
@@ -1162,7 +1162,7 @@ export default function NostalgiaTube(): JSX.Element {
                     )}
 
                     {/* "Nostalgia" Section - Posts */}
-                    <div className="mt-16 md:mt-20">
+                    <div className="mt-16 md:mt-20 relative z-40">
                         <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 flex items-center gap-2">
                             <span className="text-primary">NOSTALGIA</span>
                         </h2>
@@ -1174,17 +1174,17 @@ export default function NostalgiaTube(): JSX.Element {
                                     className="bg-zinc-900/50 rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-300 border border-white/5 hover:border-primary/50 group/card min-w-[200px] md:min-w-[260px] snap-start"
                                     onClick={(e) => handlePostClick(e, content)}
                                 >
-                                    <div className="aspect-[2/3] rounded-lg overflow-hidden border border-white/5 transition-transform duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-primary/20">
+                                    <div className="aspect-[2/3] rounded-lg overflow-hidden border border-white/5 transition-transform duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-primary/20 pointer-events-none">
                                         <img
                                             src={content.thumbnail_url}
                                             alt={content.title}
-                                            className="w-full h-full object-cover"
+                                            className="w-full h-full object-cover pointer-events-none"
                                         />
-                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                                             <Play className="w-10 h-10 md:w-12 md:h-12 text-white fill-current drop-shadow-lg scale-0 group-hover:scale-100 transition-transform duration-300 delay-75" />
                                         </div>
                                     </div>
-                                    <h3 className="mt-2 md:mt-3 text-xs md:text-sm font-medium leading-tight text-white group-hover:text-primary transition-colors line-clamp-2 p-2">
+                                    <h3 className="mt-2 md:mt-3 text-xs md:text-sm font-medium leading-tight text-white group-hover:text-primary transition-colors line-clamp-2 p-2 pointer-events-none">
                                         {content.title}
                                     </h3>
                                 </div>
@@ -1192,6 +1192,19 @@ export default function NostalgiaTube(): JSX.Element {
                         </div>
                     </div>
                 </div>
+
+                {/* Download Modal - Relocated to end for better layering */}
+                {currentContent && (
+                    <DownloadModal
+                        open={showDownloadModal}
+                        onClose={() => setShowDownloadModal(false)}
+                        title={currentContent.title}
+                        thumbnail={currentContent.thumbnail_url}
+                        downloadUrl={currentEpisode?.download_url || currentContent.download_url || ''}
+                        downloads={currentEpisode?.downloads || currentContent.downloads}
+                        download_mode={currentEpisode?.download_mode || currentContent.download_mode || 'direct'}
+                    />
+                )}
             </main>
         </div>
     );
