@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { DownloadModal } from "@/components/DownloadModal";
 import { voteContent, getUserVote } from "@/lib/firebase";
+import { VideoPlayer } from "@/components/VideoPlayer";
 
 const formatTime = (seconds: number) => {
     if (!seconds) return "0:00";
@@ -717,18 +718,18 @@ export default function NostalgiaTube(): JSX.Element {
                 >
                     <div className={`relative w-full flex items-center justify-center ${isFullscreen ? 'h-full bg-black' : 'pb-[56.25%] md:pb-[42%] lg:pb-[40%]'}`}>
                         {isGoogleDrive ? (
-                            /* Google Drive Player - Simple iframe embed with no overlays */
-                            <iframe
-                                src={`https://drive.google.com/file/d/${googleDriveId}/preview`}
-                                className="absolute inset-0 w-full h-full"
-                                allow="autoplay; fullscreen"
-                                allowFullScreen
-                                style={{ border: 'none' }}
-                                onLoad={() => {
-                                    setIsLoadingVideo(false);
-                                    setHasStartedPlaying(true);
-                                }}
-                            />
+                            <div className={`absolute inset-0 w-full h-full ${isFullscreen ? 'z-0' : ''}`}>
+                                <VideoPlayer
+                                    url={googleDriveUrl}
+                                    poster={getPosterImage()}
+                                    title={currentContent?.title}
+                                    autoPlay={true}
+                                    onEnded={() => {
+                                        setVideoEnded(true);
+                                        playNextEpisode();
+                                    }}
+                                />
+                            </div>
                         ) : youtubeId ? (
                             <>
                                 {/* Scaled YouTube Player */}

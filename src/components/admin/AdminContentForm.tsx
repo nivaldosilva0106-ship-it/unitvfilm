@@ -96,7 +96,8 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
         const contentBlock = match[3];
 
         // Extract URLs from block
-        const googleApiMatch = contentBlock.match(/https:\/\/(www\.)?googleapis\.com\/drive\/v3\/files\/[^?\s]+(\?alt=media&key=[^\s]*)?/);
+        // Capture full Google API URL (preventing strict param ordering issues)
+        const googleApiMatch = contentBlock.match(/https:\/\/(www\.)?googleapis\.com\/drive\/v3\/files\/[^\s]+/);
         const driveMatch = contentBlock.match(/https:\/\/drive\.google\.com\/file\/d\/([^\/]+)\/view/);
 
         // Identify Internal Player URL (Google API preferred)
@@ -104,20 +105,14 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
         if (googleApiMatch) internalUrl = googleApiMatch[0];
 
         // Identify Embed URL (Any other URL that is not the internal one)
-        // Actually user example shows drive view link + googleapis link.
-        // Usually drive view link isn't a direct embed unless modified.
-        // User said: "https://drive..." and "https://googleapis..."
-        // "URL do Player Interno (m3u8, mp4, ts), apenas lurl desta especie [googleapis]"
-
-        // Finding other urls
+        // finding other urls
         const urlRegex = /https?:\/\/[^\s]+/g;
         let blockUrls = contentBlock.match(urlRegex) || [];
 
         // Filter out the internal url to find "embed" url
         let embedUrl = "";
-        const otherUrls = blockUrls.filter(u => u !== internalUrl);
+        const otherUrls = blockUrls.filter(u => u !== internalUrl && !u.includes('drive.google.com/file'));
 
-        // If we have remaining URLs, pick the first one as embed/download or just keep empty if it's just the drive view link corresponding to the api link
         if (otherUrls.length > 0) {
           embedUrl = otherUrls[0];
         }
@@ -128,7 +123,8 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           title: `Episódio ${episode}`,
           url: embedUrl, // Player Externo / Embed
           internal_player_url: internalUrl,
-          google_drive_url: driveMatch ? driveMatch[0] : "",
+          // Prefer Google API URL for Custom Player, fallback to View Link
+          google_drive_url: googleApiMatch ? googleApiMatch[0] : (driveMatch ? driveMatch[0] : ""),
           download_url: ""
         });
       }
@@ -159,7 +155,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       const fullText = smartConfigText;
 
       // 1. Google APIs (Internal)
-      const googleApiMatch = fullText.match(/https:\/\/(www\.)?googleapis\.com\/drive\/v3\/files\/[^?\s]+(\?alt=media&key=[^\s]*)?/);
+      const googleApiMatch = fullText.match(/https:\/\/(www\.)?googleapis\.com\/drive\/v3\/files\/[^\s]+/);
       let internalUrl = googleApiMatch ? googleApiMatch[0] : "";
 
       // 2. External Players (embedder, brplayer, etc)
@@ -171,7 +167,8 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
 
       // 3. Google Drive URL
       const driveMatch = fullText.match(/https:\/\/drive\.google\.com\/file\/d\/([^\/]+)\/view/);
-      const googleDriveUrl = driveMatch ? driveMatch[0] : "";
+      // Prefer API URL
+      const googleDriveUrl = googleApiMatch ? googleApiMatch[0] : (driveMatch ? driveMatch[0] : "");
 
       setEditingContent(prev => ({
         ...prev,
@@ -1277,7 +1274,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                 Adicionar Episódio
               </Button>
             </div>
-            
+
             <p className="text-xs text-muted-foreground">
               Adicione URLs do Google Drive para cada episódio. A imagem de fundo (Backdrop) será usada como capa.
             </p>
