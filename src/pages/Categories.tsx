@@ -81,6 +81,11 @@ export default function Categories() {
 
     // Handlers
     const handlePlayContent = (content: Content) => {
+        if (content.category === 'nostalgia') {
+            navigate(`/nostalgia/${content.id}`);
+            return;
+        }
+
         if (content.category === 'series') {
             setSelectedSeries(content);
             return;

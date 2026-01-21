@@ -128,8 +128,15 @@ export const Header = () => {
     onArrowUp: () => setFocusedResultIndex(prev => Math.max(prev - 1, 0)),
     onArrowDown: () => setFocusedResultIndex(prev => Math.min(prev + 1, searchResults.length - 1)),
     onEnter: () => {
-      if (searchResults[focusedResultIndex]) {
-        navigate(`/content/${searchResults[focusedResultIndex].id}`);
+      const selected = searchResults[focusedResultIndex];
+      if (selected) {
+        if (selected.category === 'nostalgia') {
+          navigate(`/nostalgia/${selected.id}`);
+        } else if (selected.category === 'series') {
+          navigate(`/content/${selected.id}?showEpisodes=true`);
+        } else {
+          navigate(`/watch/${selected.id}`);
+        }
         setSearchOpen(false);
         setSearchQuery("");
         setSearchResults([]);
@@ -360,7 +367,13 @@ export const Header = () => {
                           key={content.id}
                           onClick={() => {
                             playNavigationSound('select');
-                            navigate(`/content/${content.id}`);
+                            if (content.category === 'nostalgia') {
+                              navigate(`/nostalgia/${content.id}`);
+                            } else if (content.category === 'series') {
+                              navigate(`/content/${content.id}?showEpisodes=true`);
+                            } else {
+                              navigate(`/watch/${content.id}`);
+                            }
                             setSearchOpen(false);
                             setSearchQuery("");
                             setSearchResults([]);

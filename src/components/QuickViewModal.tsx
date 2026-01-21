@@ -49,10 +49,12 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
 
         if (onPlay) {
             onPlay(content);
-        } else if (content.category === 'movie' || content.category === 'series') {
-            navigate(`/watch/${content.id}`);
-        } else {
+        } else if (content.category === 'nostalgia') {
+            navigate(`/nostalgia/${content.id}`);
+        } else if (content.category === 'series') {
             navigate(`/content/${content.id}`);
+        } else {
+            navigate(`/watch/${content.id}`);
         }
         onClose();
     };

@@ -75,14 +75,11 @@ const ContentDetails = () => {
       const contents = await getAllContents();
       const found = contents.find((c) => c.id === id);
       if (found) {
+        if (found.category === 'nostalgia') {
+          navigate(`/nostalgia/${found.id}`);
+          return;
+        }
         setContent(found);
-
-        // Filter related content (same category, shuffle, take 10)
-        const related = contents
-          .filter(c => c.id !== found.id && c.category === found.category)
-          .sort(() => 0.5 - Math.random())
-          .slice(0, 10);
-        setRelatedContents(related);
       } else {
         toast.error("Conteúdo não encontrado");
         navigate("/");
@@ -136,6 +133,11 @@ const ContentDetails = () => {
 
   const handlePlay = (url?: string) => {
     const videoUrl = url || content?.video_url;
+
+    if (content?.category === 'nostalgia') {
+      navigate(`/nostalgia/${content.id}`);
+      return;
+    }
 
     if (content?.category === 'series' && content.episodes && content.episodes.length > 0) {
       setShowEpisodes(true);

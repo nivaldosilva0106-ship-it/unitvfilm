@@ -85,6 +85,11 @@ const MyList = () => {
 
   const handlePlayContent = (item: MyListItem) => {
     const content = item.content;
+    if (content.category === 'nostalgia') {
+      navigate(`/nostalgia/${content.id}`);
+      return;
+    }
+
     if (content.category === 'series') {
       setSelectedSeries(content);
       return;
