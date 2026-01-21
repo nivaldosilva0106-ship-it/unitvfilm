@@ -722,7 +722,7 @@ export default function NostalgiaTube(): JSX.Element {
                 >
                     <div className={`relative w-full flex items-center justify-center ${isFullscreen ? 'h-full bg-black' : 'pb-[56.25%] md:pb-[42%] lg:pb-[40%]'}`}>
                         {isGoogleDrive ? (
-                            <div 
+                            <div
                                 className={`absolute inset-0 w-full h-full overflow-hidden ${isFullscreen ? 'z-0' : ''}`}
                                 onClick={(e) => e.stopPropagation()}
                                 onMouseDown={(e) => e.stopPropagation()}
@@ -754,7 +754,7 @@ export default function NostalgiaTube(): JSX.Element {
                                 </div>
 
                                 {/* Poster / Loading / Ended Overlay - PERSISTENT until playing */}
-                                <div className={`absolute inset-0 w-full h-full z-30 flex items-center justify-center bg-black transition-opacity duration-500 ${(!hasStartedPlaying || isLoadingVideo || videoEnded || waitingForSelection) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                                <div className={`absolute inset-0 w-full h-full z-30 flex items-center justify-center bg-black transition-opacity duration-500 ${(!hasStartedPlaying || isLoadingVideo || videoEnded || (waitingForSelection && !isGoogleDrive)) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                                     <div className="absolute inset-0 w-full h-full overflow-hidden">
                                         <img
                                             src={getPosterImage()}
@@ -766,7 +766,7 @@ export default function NostalgiaTube(): JSX.Element {
                                     <div className="relative z-10 flex flex-col items-center p-4 text-center">
 
                                         {/* Prompt State */}
-                                        {waitingForSelection && (
+                                        {waitingForSelection && !isGoogleDrive && (
                                             <div className="animate-in fade-in zoom-in duration-300">
                                                 <p className="text-xl md:text-3xl font-bold text-white mb-2">Quase lá!</p>
                                                 <p className="text-gray-300 text-sm md:text-lg mb-6">Clica em um episódio para começares assistindo</p>
@@ -858,103 +858,103 @@ export default function NostalgiaTube(): JSX.Element {
 
                                 {/* Controls Overlay - Only for YouTube */}
                                 {!isGoogleDrive && (
-                                <div className={`absolute bottom-0 left-0 right-0 px-2 md:px-4 pb-2 md:pb-4 pt-12 md:pt-20 bg-gradient-to-t from-black/90 via-black/60 to-transparent transition-opacity duration-300 z-40 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                                    <div className="flex flex-col gap-2 w-full max-w-6xl mx-auto pointer-events-auto">
+                                    <div className={`absolute bottom-0 left-0 right-0 px-2 md:px-4 pb-2 md:pb-4 pt-12 md:pt-20 bg-gradient-to-t from-black/90 via-black/60 to-transparent transition-opacity duration-300 z-40 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                                        <div className="flex flex-col gap-2 w-full max-w-6xl mx-auto pointer-events-auto">
 
-                                        {/* Progress Bar */}
-                                        <div
-                                            className="group relative h-1.5 w-full bg-white/20 rounded-full cursor-pointer hover:h-2 transition-all"
-                                            onClick={handleSeek}
-                                        >
+                                            {/* Progress Bar */}
                                             <div
-                                                className="absolute left-0 top-0 bottom-0 bg-primary rounded-full transition-all duration-100 relative"
-                                                style={{ width: `${progressPercentage}%` }}
+                                                className="group relative h-1.5 w-full bg-white/20 rounded-full cursor-pointer hover:h-2 transition-all"
+                                                onClick={handleSeek}
                                             >
-                                                <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow scale-0 group-hover:scale-100 transition-transform"></div>
-                                            </div>
-                                        </div>
-
-                                        {/* Buttons Row */}
-                                        <div className="flex items-center justify-between mt-1">
-                                            <div className="flex items-center gap-1 md:gap-3">
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full"
-                                                    onClick={togglePlay}
+                                                <div
+                                                    className="absolute left-0 top-0 bottom-0 bg-primary rounded-full transition-all duration-100 relative"
+                                                    style={{ width: `${progressPercentage}%` }}
                                                 >
-                                                    {isPlaying ? (
-                                                        <Pause className="w-4 h-4 md:w-5 md:h-5 fill-current" />
-                                                    ) : (
-                                                        <Play className="w-4 h-4 md:w-5 md:h-5 fill-current" />
-                                                    )}
-                                                </Button>
-
-                                                {/* Live Badge */}
-                                                <div className="hidden sm:flex items-center gap-2 px-2 py-1 bg-red-600/10 border border-red-600/20 rounded-md">
-                                                    <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
-                                                    <span className="text-[10px] font-bold text-red-500 tracking-wider">LIVE</span>
+                                                    <div className="absolute right-0 top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow scale-0 group-hover:scale-100 transition-transform"></div>
                                                 </div>
-
-                                                {/* Volume (Hidden on mobile landscape to save space) */}
-                                                <div className="hidden md:block group relative">
-                                                    <Button
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full"
-                                                        onClick={toggleMute}
-                                                    >
-                                                        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                                                    </Button>
-                                                </div>
-
-                                                <span className="text-xs text-gray-300 font-mono ml-2">
-                                                    {formatTime(currentTime)} / {formatTime(duration)}
-                                                </span>
                                             </div>
 
-                                            <div className="flex items-center gap-1 md:gap-2">
-                                                {/* Quality */}
-                                                <div className="relative">
+                                            {/* Buttons Row */}
+                                            <div className="flex items-center justify-between mt-1">
+                                                <div className="flex items-center gap-1 md:gap-3">
                                                     <Button
                                                         size="icon"
                                                         variant="ghost"
                                                         className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full"
-                                                        onClick={() => setShowQualityMenu(!showQualityMenu)}
+                                                        onClick={togglePlay}
                                                     >
-                                                        <Settings className="w-4 h-4 md:w-5 md:h-5" />
+                                                        {isPlaying ? (
+                                                            <Pause className="w-4 h-4 md:w-5 md:h-5 fill-current" />
+                                                        ) : (
+                                                            <Play className="w-4 h-4 md:w-5 md:h-5 fill-current" />
+                                                        )}
                                                     </Button>
-                                                    {showQualityMenu && (
-                                                        <div className="absolute bottom-full right-0 mb-3 bg-[#111] border border-white/10 rounded-xl overflow-hidden min-w-[140px] shadow-2xl animate-in fade-in slide-in-from-bottom-2">
-                                                            <div className="p-3 border-b border-white/5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Qualidade</div>
-                                                            <div className="max-h-[250px] overflow-y-auto py-1">
-                                                                {availableQualities.map((quality) => (
-                                                                    <button
-                                                                        key={quality}
-                                                                        onClick={() => changeQuality(quality)}
-                                                                        className={`w-full text-left px-4 py-2.5 text-xs font-medium hover:bg-white/10 transition-colors flex items-center justify-between ${currentQuality === quality ? 'text-primary bg-primary/10' : 'text-gray-200'}`}
-                                                                    >
-                                                                        {qualityLabels[quality] || quality}
-                                                                        {currentQuality === quality && <Check className="w-3 h-3" />}
-                                                                    </button>
-                                                                ))}
+
+                                                    {/* Live Badge */}
+                                                    <div className="hidden sm:flex items-center gap-2 px-2 py-1 bg-red-600/10 border border-red-600/20 rounded-md">
+                                                        <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+                                                        <span className="text-[10px] font-bold text-red-500 tracking-wider">LIVE</span>
+                                                    </div>
+
+                                                    {/* Volume (Hidden on mobile landscape to save space) */}
+                                                    <div className="hidden md:block group relative">
+                                                        <Button
+                                                            size="icon"
+                                                            variant="ghost"
+                                                            className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full"
+                                                            onClick={toggleMute}
+                                                        >
+                                                            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                                                        </Button>
+                                                    </div>
+
+                                                    <span className="text-xs text-gray-300 font-mono ml-2">
+                                                        {formatTime(currentTime)} / {formatTime(duration)}
+                                                    </span>
+                                                </div>
+
+                                                <div className="flex items-center gap-1 md:gap-2">
+                                                    {/* Quality */}
+                                                    <div className="relative">
+                                                        <Button
+                                                            size="icon"
+                                                            variant="ghost"
+                                                            className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full"
+                                                            onClick={() => setShowQualityMenu(!showQualityMenu)}
+                                                        >
+                                                            <Settings className="w-4 h-4 md:w-5 md:h-5" />
+                                                        </Button>
+                                                        {showQualityMenu && (
+                                                            <div className="absolute bottom-full right-0 mb-3 bg-[#111] border border-white/10 rounded-xl overflow-hidden min-w-[140px] shadow-2xl animate-in fade-in slide-in-from-bottom-2">
+                                                                <div className="p-3 border-b border-white/5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Qualidade</div>
+                                                                <div className="max-h-[250px] overflow-y-auto py-1">
+                                                                    {availableQualities.map((quality) => (
+                                                                        <button
+                                                                            key={quality}
+                                                                            onClick={() => changeQuality(quality)}
+                                                                            className={`w-full text-left px-4 py-2.5 text-xs font-medium hover:bg-white/10 transition-colors flex items-center justify-between ${currentQuality === quality ? 'text-primary bg-primary/10' : 'text-gray-200'}`}
+                                                                        >
+                                                                            {qualityLabels[quality] || quality}
+                                                                            {currentQuality === quality && <Check className="w-3 h-3" />}
+                                                                        </button>
+                                                                    ))}
+                                                                </div>
                                                             </div>
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                        )}
+                                                    </div>
 
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full"
-                                                    onClick={toggleFullscreen}
-                                                >
-                                                    <Maximize className="w-4 h-4 md:w-5 md:h-5" />
-                                                </Button>
+                                                    <Button
+                                                        size="icon"
+                                                        variant="ghost"
+                                                        className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full"
+                                                        onClick={toggleFullscreen}
+                                                    >
+                                                        <Maximize className="w-4 h-4 md:w-5 md:h-5" />
+                                                    </Button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
                                 )}
                             </>
                         ) : (
