@@ -754,80 +754,82 @@ export default function NostalgiaTube(): JSX.Element {
                                 </div>
 
                                 {/* Poster / Loading / Ended Overlay - PERSISTENT until playing */}
-                                <div className={`absolute inset-0 w-full h-full z-30 flex items-center justify-center bg-black transition-opacity duration-500 ${(!hasStartedPlaying || isLoadingVideo || videoEnded || (waitingForSelection && !isGoogleDrive)) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
-                                    <div className="absolute inset-0 w-full h-full overflow-hidden">
-                                        <img
-                                            src={getPosterImage()}
-                                            alt="Poster"
-                                            className="absolute w-full h-full object-cover grayscale opacity-60"
-                                        />
-                                    </div>
-                                    <div className="absolute inset-0 bg-black/60"></div>
-                                    <div className="relative z-10 flex flex-col items-center p-4 text-center">
+                                {!isGoogleDrive && (
+                                    <div className={`absolute inset-0 w-full h-full z-30 flex items-center justify-center bg-black transition-opacity duration-500 ${(!hasStartedPlaying || isLoadingVideo || videoEnded || waitingForSelection) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                                        <div className="absolute inset-0 w-full h-full overflow-hidden">
+                                            <img
+                                                src={getPosterImage()}
+                                                alt="Poster"
+                                                className="absolute w-full h-full object-cover grayscale opacity-60"
+                                            />
+                                        </div>
+                                        <div className="absolute inset-0 bg-black/60"></div>
+                                        <div className="relative z-10 flex flex-col items-center p-4 text-center">
 
-                                        {/* Prompt State */}
-                                        {waitingForSelection && !isGoogleDrive && (
-                                            <div className="animate-in fade-in zoom-in duration-300">
-                                                <p className="text-xl md:text-3xl font-bold text-white mb-2">Quase lá!</p>
-                                                <p className="text-gray-300 text-sm md:text-lg mb-6">Clica em um episódio para começares assistindo</p>
+                                            {/* Prompt State */}
+                                            {waitingForSelection && !isGoogleDrive && (
+                                                <div className="animate-in fade-in zoom-in duration-300">
+                                                    <p className="text-xl md:text-3xl font-bold text-white mb-2">Quase lá!</p>
+                                                    <p className="text-gray-300 text-sm md:text-lg mb-6">Clica em um episódio para começares assistindo</p>
 
-                                                {lastProgress && (
+                                                    {lastProgress && (
+                                                        <Button
+                                                            onClick={() => {
+                                                                const epIndex = currentContent?.episodes?.findIndex(
+                                                                    e => e.season === lastProgress.season && e.episode === lastProgress.episode
+                                                                );
+                                                                if (epIndex !== undefined && epIndex !== -1) {
+                                                                    handleEpisodeClick(epIndex);
+                                                                } else if (!currentContent?.episodes) {
+                                                                    // Movie case
+                                                                    handleEpisodeClick(0);
+                                                                }
+                                                            }}
+                                                            className="bg-primary hover:bg-primary/90 text-white gap-2 px-6 py-6 text-lg rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.6)] transition-all animate-bounce"
+                                                        >
+                                                            <RotateCw className="w-5 h-5" />
+                                                            Continuar Assistindo
+                                                        </Button>
+                                                    )}
+
+                                                    <div className="mt-8 flex justify-center">
+                                                        <ChevronDown className="w-8 h-8 text-white animate-bounce" />
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Only show spinner if specifically loading OR if we are waiting for start but not ended AND NOT waiting for selection */}
+                                            {(isLoadingVideo && !videoEnded && !waitingForSelection) && (
+                                                <div className="flex flex-col items-center gap-4">
+                                                    <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-primary shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
+                                                    <p className="text-white text-base font-medium tracking-wide">Carregando...</p>
+                                                </div>
+                                            )}
+                                            {videoEnded && (
+                                                <div className="text-center animate-in fade-in zoom-in duration-300">
+                                                    <p className="text-2xl font-bold mb-2 text-white">Episódio Finalizado</p>
                                                     <Button
                                                         onClick={() => {
-                                                            const epIndex = currentContent?.episodes?.findIndex(
-                                                                e => e.season === lastProgress.season && e.episode === lastProgress.episode
-                                                            );
-                                                            if (epIndex !== undefined && epIndex !== -1) {
-                                                                handleEpisodeClick(epIndex);
-                                                            } else if (!currentContent?.episodes) {
-                                                                // Movie case
-                                                                handleEpisodeClick(0);
-                                                            }
+                                                            setCurrentEpisodeIndex(0);
+                                                            setVideoEnded(false);
+                                                            setWaitingForSelection(false);
                                                         }}
-                                                        className="bg-primary hover:bg-primary/90 text-white gap-2 px-6 py-6 text-lg rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.6)] transition-all animate-bounce"
+                                                        variant="outline"
+                                                        className="border-white/20 hover:bg-white/10"
                                                     >
-                                                        <RotateCw className="w-5 h-5" />
-                                                        Continuar Assistindo
+                                                        Reiniciar Série
                                                     </Button>
-                                                )}
-
-                                                <div className="mt-8 flex justify-center">
-                                                    <ChevronDown className="w-8 h-8 text-white animate-bounce" />
                                                 </div>
-                                            </div>
-                                        )}
-
-                                        {/* Only show spinner if specifically loading OR if we are waiting for start but not ended AND NOT waiting for selection */}
-                                        {(isLoadingVideo && !videoEnded && !waitingForSelection) && (
-                                            <div className="flex flex-col items-center gap-4">
-                                                <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-primary shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
-                                                <p className="text-white text-base font-medium tracking-wide">Carregando...</p>
-                                            </div>
-                                        )}
-                                        {videoEnded && (
-                                            <div className="text-center animate-in fade-in zoom-in duration-300">
-                                                <p className="text-2xl font-bold mb-2 text-white">Episódio Finalizado</p>
-                                                <Button
-                                                    onClick={() => {
-                                                        setCurrentEpisodeIndex(0);
-                                                        setVideoEnded(false);
-                                                        setWaitingForSelection(false);
-                                                    }}
-                                                    variant="outline"
-                                                    className="border-white/20 hover:bg-white/10"
-                                                >
-                                                    Reiniciar Série
-                                                </Button>
-                                            </div>
-                                        )}
-                                        {/* Initial Start Button if needed, though we auto-play */}
-                                        {!hasStartedPlaying && !isLoadingVideo && !videoEnded && !waitingForSelection && (
-                                            <div className="animate-pulse">
-                                                <Play className="w-16 h-16 text-white/80" />
-                                            </div>
-                                        )}
+                                            )}
+                                            {/* Initial Start Button if needed, though we auto-play */}
+                                            {!hasStartedPlaying && !isLoadingVideo && !videoEnded && !waitingForSelection && (
+                                                <div className="animate-pulse">
+                                                    <Play className="w-16 h-16 text-white/80" />
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
                                 {/* Center Play/Pause Feedback */}
                                 <div
