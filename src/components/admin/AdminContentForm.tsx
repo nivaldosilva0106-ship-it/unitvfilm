@@ -54,141 +54,138 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     const lines = smartConfigText.split('\n').map(l => l.trim()).filter(l => l);
     if (lines.length === 0) return;
 
-    // Detect if valid list
-    const firstLine = lines[0];
-    let extractedTitle = firstLine.replace(/\(\d{4}\)/, '').trim();
+    // Detect if it is likely a series (looks for "1x1", "S01E01" patterns)
+    // The user example: "1x1", "1x2"
+    const seriesPattern = /(\d+)x(\d+)/;
+    const isSeriesText = lines.some(l => seriesPattern.test(l));
 
-    // Regex strategies
-    // 1. "Temporada X" detection
-    const seasonHeaderRegex = /Temporada\s+(\d+)/i;
-    // 2. "1. 01 - URL" or just "01 - URL"
-    // Captures: 1=IgnoredPrefix, 2=EpisodeNum, 3=URL
-    // We look for: (optional prefix like "1. ") then (EpNum) then separator then (URL)
-    const whatsappListRegex = /(?:^\d+\.\s+)?(\d+)\s+-\s+(https?:\/\/[^\s]+)/;
+    let extractedTitle = "";
 
-    // Check if it's a Series List (has "Temporada" or matches line pattern)
-    const hasSeasonHeader = lines.some(l => seasonHeaderRegex.test(l));
-    const isSeriesList = hasSeasonHeader || lines.some(l => whatsappListRegex.test(l));
+    // Extract Title (Usually 1st line, maybe cleaned)
+    // E.g. "Todo Todo Mundo Em Pânico 3 (2003)" -> "Todo Mundo Em Pânico 3" (heuristic)
+    // Or "The Last of Us"
+    const rawTitle = lines[0];
+    // Remove year parenthesis if present for better search
+    extractedTitle = rawTitle.replace(/\(\d{4}\)/, '').trim();
+    // Handle double words if copy-paste error like "Todo Todo" ? User said "Todo Todo..." might be example
+    // We will just use the line as is for now, maybe cleaning year.
 
-    if (isSeriesList) {
-      toast.info(`Processando Lista de Série...`);
+    if (isSeriesText) {
+      // --- SERIES PARSING ---
+      toast.info(`Detectado padrão de SÉRIE. Processando: ${extractedTitle}`);
 
-      // Assume title is still first line if not "Temporada X"
-      // If first line IS "Temporada X", title might be missing or user just pasted the season list.
-      // We keep current title if lines[0] is season header.
-      if (seasonHeaderRegex.test(firstLine)) {
-        // User pasted just the list?
-        // We won't update title.
-      } else {
-        setEditingContent(prev => ({ ...prev, title: extractedTitle, category: 'series' }));
-      }
+      // Update basic info
+      setEditingContent(prev => ({
+        ...prev,
+        title: extractedTitle,
+        category: 'series' // Auto-switch to series
+      }));
 
-      const category = editingContent.category || 'series';
+      // Parse Episodes
+      // We need to group lines by episode header "1x1"
+      // We'll join lines back to text then match blocks
+      const fullText = smartConfigText;
+      const episodeRegex = /(\d+)x(\d+)([\s\S]*?)(?=(\d+x\d+)|$)/g;
+
       const newEpisodes: Episode[] = [];
-      let currentSeason = 1;
+      let match;
 
-      for (const line of lines) {
-        // Check for Season Header
-        const seasonMatch = line.match(seasonHeaderRegex);
-        if (seasonMatch) {
-          currentSeason = parseInt(seasonMatch[1]);
-          continue;
+      while ((match = episodeRegex.exec(fullText)) !== null) {
+        const season = parseInt(match[1]);
+        const episode = parseInt(match[2]);
+        const contentBlock = match[3];
+
+        // Extract URLs from block
+        const googleApiMatch = contentBlock.match(/https:\/\/(www\.)?googleapis\.com\/drive\/v3\/files\/[^?\s]+(\?alt=media&key=[^\s]*)?/);
+        const driveMatch = contentBlock.match(/https:\/\/drive\.google\.com\/file\/d\/([^\/]+)\/view/);
+
+        // Identify Internal Player URL (Google API preferred)
+        let internalUrl = "";
+        if (googleApiMatch) internalUrl = googleApiMatch[0];
+
+        // Identify Embed URL (Any other URL that is not the internal one)
+        // Actually user example shows drive view link + googleapis link.
+        // Usually drive view link isn't a direct embed unless modified.
+        // User said: "https://drive..." and "https://googleapis..."
+        // "URL do Player Interno (m3u8, mp4, ts), apenas lurl desta especie [googleapis]"
+
+        // Finding other urls
+        const urlRegex = /https?:\/\/[^\s]+/g;
+        let blockUrls = contentBlock.match(urlRegex) || [];
+
+        // Filter out the internal url to find "embed" url
+        let embedUrl = "";
+        const otherUrls = blockUrls.filter(u => u !== internalUrl);
+
+        // If we have remaining URLs, pick the first one as embed/download or just keep empty if it's just the drive view link corresponding to the api link
+        if (otherUrls.length > 0) {
+          embedUrl = otherUrls[0];
         }
 
-        // Check for Episode Line
-        const epMatch = line.match(whatsappListRegex);
-        if (epMatch) {
-          const episodeNum = parseInt(epMatch[1]); // e.g. "01" -> 1
-          const url = epMatch[2]; // e.g. "https://..."
-
-          // Extract Google API / Drive logic
-          const googleApiMatch = url.match(/https:\/\/(www\.)?googleapis\.com\/drive\/v3\/files\/[^\s]+/);
-          const driveMatch = url.match(/https:\/\/drive\.google\.com\/file\/d\/([^\/]+)\/view/);
-
-          let finalGoogleUrl = "";
-          if (googleApiMatch) finalGoogleUrl = googleApiMatch[0];
-          else if (driveMatch) finalGoogleUrl = driveMatch[0];
-
-          let embedUrl = "";
-          if (!finalGoogleUrl) embedUrl = url;
-
-          const episode: Episode = {
-            season: currentSeason,
-            episode: episodeNum,
-            title: `Episódio ${episodeNum}`,
-            url: embedUrl,
-            internal_player_url: "",
-            google_drive_url: "",
-            download_url: ""
-          };
-
-          // Logic based on requested categories:
-          // Series: Google API URL goes to internal_player_url
-          // Nostalgia: Google API URL goes to google_drive_url
-          if (finalGoogleUrl) {
-            if (category === 'series') {
-              episode.internal_player_url = finalGoogleUrl;
-            } else if (category === 'nostalgia') {
-              episode.google_drive_url = finalGoogleUrl;
-            } else {
-              // Fallback for others (movies, etc if they use episodes?)
-              episode.google_drive_url = finalGoogleUrl;
-            }
-          }
-
-          newEpisodes.push(episode);
-        }
+        newEpisodes.push({
+          season,
+          episode,
+          title: `Episódio ${episode}`,
+          url: embedUrl, // Player Externo / Embed
+          internal_player_url: internalUrl,
+          download_url: ""
+        });
       }
 
       if (newEpisodes.length > 0) {
-        setEditingContent(prev => ({ ...prev, episodes: newEpisodes }));
-        toast.success(`${newEpisodes.length} episódios importados!`);
+        setEditingContent(prev => ({
+          ...prev,
+          episodes: newEpisodes
+        }));
+        toast.success(`${newEpisodes.length} episódios identificados! Buscando metadados...`);
+        setTmdbSearchQuery(extractedTitle);
+        handleTmdbSearch(); // Trigged search with extracted title
       } else {
-        toast.warning("Nenhum episódio identificado.");
+        toast.warning("Nenhum episódio encontrado com o padrão '1x1'.");
       }
 
     } else {
-      // --- MOVIE PARSING (Existing logic + improvement) ---
-      toast.info(`Processando Filme: ${extractedTitle}`);
-      const category = editingContent.category || 'movie';
-      const fullText = smartConfigText;
-      // 1. Google APIs
-      const googleApiMatch = fullText.match(/https:\/\/(www\.)?googleapis\.com\/drive\/v3\/files\/[^\s]+/);
-      // 2. Drive View
-      const driveMatch = fullText.match(/https:\/\/drive\.google\.com\/file\/d\/([^\/]+)\/view/);
-
-      const finalGoogleUrl = googleApiMatch ? googleApiMatch[0] : (driveMatch ? driveMatch[0] : "");
-
-      // 3. Search other URLs
-      const allUrls = fullText.match(/https?:\/\/[^\s]+/g) || [];
-      const externalUrls = allUrls.filter(u => u !== finalGoogleUrl);
-
-      const updateData: Partial<Content> = {
-        title: extractedTitle,
-        category: category,
-        video_url: externalUrls[0] || "",
-        video_urls: externalUrls.length > 0 ? externalUrls : undefined,
-      };
-
-      if (finalGoogleUrl) {
-        if (category === 'nostalgia') {
-          updateData.google_drive_url = finalGoogleUrl;
-        } else if (category === 'series') {
-          // Movies are rarely series, but if it's series category, use internal
-          updateData.internal_player_url = finalGoogleUrl;
-        } else {
-          updateData.google_drive_url = finalGoogleUrl;
-        }
-      }
+      // --- MOVIE PARSING ---
+      toast.info(`Detectado padrão de FILME. Processando: ${extractedTitle}`);
 
       setEditingContent(prev => ({
         ...prev,
-        ...updateData
+        title: extractedTitle,
+        category: 'movie'
       }));
 
-      // Trigger Search
-      searchMovies(extractedTitle).then(res => setSearchResults(res));
-      toast.success("Dados de filme extraídos!");
+      // Find URLs
+      const fullText = smartConfigText;
+
+      // 1. Google APIs (Internal)
+      const googleApiMatch = fullText.match(/https:\/\/(www\.)?googleapis\.com\/drive\/v3\/files\/[^?\s]+(\?alt=media&key=[^\s]*)?/);
+      let internalUrl = googleApiMatch ? googleApiMatch[0] : "";
+
+      // 2. External Players (embedder, brplayer, etc)
+      // Filter out the internal url
+      const allUrls = fullText.match(/https?:\/\/[^\s]+/g) || [];
+      const externalUrls = allUrls.filter(u => u !== internalUrl && !u.includes('drive.google.com/file'));
+      // Note: often drive view links are present but not useful as embeds directly without processing.
+      // User requested: "outros urls da especie https://embedder.net/..., https://watch.brplayer.cc/..." -> Video URLs
+
+      setEditingContent(prev => ({
+        ...prev,
+        internal_player_url: internalUrl,
+        video_urls: externalUrls.length > 0 ? externalUrls : undefined,
+        video_url: externalUrls[0] || ""
+      }));
+
+      toast.success("Links extraídos! Buscando metadados...");
+      setTmdbSearchQuery(extractedTitle);
+      // We can't easily auto-trigger search here because state update of 'tmdbSearchQuery' might not be flush yet? 
+      // Actually in React batching it might work or we pass the query explicitly.
+      // Let's modify handleTmdbSearch to accept an optional query arg
+      searchMovies(extractedTitle).then(results => {
+        setSearchResults(results);
+        if (results.length > 0) {
+          toast.success(`${results.length} resultados encontrados no TMDB.`);
+        }
+      });
     }
   };
 
@@ -550,6 +547,26 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
 
   return (
     <Card className="p-6 bg-card border-border">
+      {/* Smart Import Section */}
+      <div className="mb-8 p-4 bg-primary/5 rounded-lg border border-primary/10">
+        <div className="flex items-center gap-2 mb-2 text-primary">
+          <Sparkles className="w-5 h-5" />
+          <h3 className="font-bold">Importação Inteligente (Texto/WhatsApp)</h3>
+        </div>
+        <p className="text-xs text-muted-foreground mb-3">
+          Cole o texto completo com Título e Links (Google Drive, APIs, Embeds).<br />
+          O sistema detectará automaticamente se é Filme ou Série (padrão 1x1, 1x2...) e preencherá tudo.
+        </p>
+        <Textarea
+          value={smartConfigText}
+          onChange={e => setSmartConfigText(e.target.value)}
+          placeholder={`Exemplo Filme:\nTodo Mundo Em Pânico 3\nhttps://googleapis...\nhttps://embedder...\n\nExemplo Série:\nThe Last of Us\n1x1\nhttps://...\n1x2\n...`}
+          className="min-h-[120px] bg-background font-mono text-xs mb-3"
+        />
+        <Button onClick={handleSmartProcess} className="w-full gap-2">
+          <Sparkles className="w-4 h-4" /> Processar e Preencher Automaticamente
+        </Button>
+      </div>
 
       <h2 className="text-xl font-semibold text-foreground mb-4">Adicionar/Editar Conteúdo</h2>
 
@@ -1035,12 +1052,6 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                       onChange={(e) => updateEpisode(index, 'url', e.target.value)}
                       className="bg-input border-border text-sm"
                     />
-                    <Input
-                      placeholder="URL Google Drive (Player Alternativo)"
-                      value={episode.google_drive_url || ''}
-                      onChange={(e) => updateEpisode(index, 'google_drive_url', e.target.value)}
-                      className="bg-input border-border text-sm"
-                    />
 
 
                     {!isNostalgia && (
@@ -1224,118 +1235,6 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           </div >
         )}
 
-        {isNostalgia && (
-          <div className="space-y-4 p-4 border border-white/10 rounded-lg bg-black/20">
-            <div className="flex items-center justify-between">
-              <Label className="flex items-center gap-2">
-                <Film className="w-4 h-4" />
-                Episódios Google Drive (NostalgiaTube)
-              </Label>
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => {
-                  const currentEpisodes = editingContent.episodes || [];
-                  const newEpisode: Episode = {
-                    season: 1,
-                    episode: currentEpisodes.length + 1,
-                    title: `Episódio ${currentEpisodes.length + 1}`,
-                    url: '',
-                    google_drive_url: ''
-                  };
-                  setEditingContent(prev => ({
-                    ...prev,
-                    episodes: [...currentEpisodes, newEpisode]
-                  }));
-                }}
-                className="bg-primary hover:bg-primary/90"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                Adicionar Episódio
-              </Button>
-            </div>
-
-            <p className="text-xs text-muted-foreground">
-              Adicione URLs do Google Drive para cada episódio. A imagem de fundo (Backdrop) será usada como capa.
-            </p>
-
-            {editingContent.episodes && editingContent.episodes.length > 0 ? (
-              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
-                {editingContent.episodes.map((ep, idx) => (
-                  <div key={idx} className="flex items-center gap-2 p-3 bg-black/30 rounded-lg border border-white/5">
-                    <div className="flex-shrink-0 w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center text-primary text-sm font-bold">
-                      {idx + 1}
-                    </div>
-                    <div className="flex-1 space-y-2">
-                      <Input
-                        value={ep.title || ''}
-                        onChange={(e) => {
-                          const updated = [...(editingContent.episodes || [])];
-                          updated[idx] = { ...updated[idx], title: e.target.value };
-                          setEditingContent(prev => ({ ...prev, episodes: updated }));
-                        }}
-                        className="bg-input border-border h-8 text-sm"
-                        placeholder="Título do episódio"
-                      />
-                      <Input
-                        value={ep.google_drive_url || ''}
-                        onChange={(e) => {
-                          const updated = [...(editingContent.episodes || [])];
-                          updated[idx] = { ...updated[idx], google_drive_url: e.target.value };
-                          setEditingContent(prev => ({ ...prev, episodes: updated }));
-                        }}
-                        className="bg-input border-border h-8 text-sm"
-                        placeholder="https://drive.google.com/file/d/ID/view"
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => {
-                        const updated = editingContent.episodes?.filter((_, i) => i !== idx) || [];
-                        // Renumber episodes
-                        const renumbered = updated.map((e, i) => ({ ...e, episode: i + 1 }));
-                        setEditingContent(prev => ({ ...prev, episodes: renumbered }));
-                      }}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 w-8"
-                    >
-                      <X className="w-4 h-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-4 border border-dashed border-white/10 rounded-lg">
-                Nenhum episódio adicionado. Clique em "Adicionar Episódio" para começar.
-              </p>
-            )}
-
-            {/* Fallback single URL for simple content */}
-            <div className="pt-3 border-t border-white/10">
-              <Label className="text-xs text-muted-foreground">URL Google Drive (Principal/Único)</Label>
-              <Input
-                value={editingContent.google_drive_url || ''}
-                onChange={(e) => setEditingContent(prev => ({ ...prev, google_drive_url: e.target.value }))}
-                className="bg-input border-border mt-1"
-                placeholder="https://drive.google.com/file/d/ID/view (para conteúdo único)"
-              />
-            </div>
-          </div>
-        )}
-
-        {(isSeries || isMovie) && (
-          <div>
-            <Label>URL Google Drive (Player Alternativo)</Label>
-            <Input
-              value={editingContent.google_drive_url || ''}
-              onChange={(e) => setEditingContent(prev => ({ ...prev, google_drive_url: e.target.value }))}
-              className="bg-input border-border"
-              placeholder="https://drive.google.com/file/d/ID/view?usp=sharing"
-            />
-          </div>
-        )}
-
         {
           !isTV && (
             <div>
@@ -1455,67 +1354,6 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
             </div>
           )
         }
-
-        {/* --- Moved Import Sections --- */}
-        <div className="space-y-6 border-t border-border/50 pt-8 mt-8">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" /> Ferramentas de Importação
-            </h3>
-            <a
-              href="https://ferramentas-lake.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs text-primary hover:underline flex items-center gap-1"
-            >
-              Ferramentas Tools (Gerador de Links) <img src="https://www.google.com/s2/favicons?domain=ferramentas-lake.vercel.app" className="w-4 h-4 rounded-full" />
-            </a>
-          </div>
-
-          {/* 1. Smart Import (Text) */}
-          <div className="p-4 bg-primary/5 rounded-lg border border-primary/10">
-            <div className="flex items-center gap-2 mb-2 text-primary">
-              <Sparkles className="w-4 h-4" />
-              <h4 className="font-bold text-sm">Importação Inteligente (Texto/WhatsApp)</h4>
-            </div>
-            <p className="text-xs text-muted-foreground mb-3">
-              Cole o texto formatado (ex: "Temporada 1\n1. 01 - Link") para preencher automaticamente.<br />
-              Suporta Filmes e Séries.
-            </p>
-            <Textarea
-              value={smartConfigText}
-              onChange={e => setSmartConfigText(e.target.value)}
-              placeholder={`Exemplo:\nTemporada 1\n1. 01 - https://googleapis...\n2. 02 - https://googleapis...`}
-              className="min-h-[120px] bg-background font-mono text-xs mb-3"
-            />
-            <Button onClick={handleSmartProcess} className="w-full gap-2" variant="secondary">
-              <Sparkles className="w-4 h-4" /> Processar Texto
-            </Button>
-          </div>
-
-          {/* 2. ComandoPlay Import */}
-          <div className="p-4 bg-secondary/20 rounded-lg border border-border">
-            <div className="flex items-center gap-2 mb-2">
-              <DownloadIcon className="w-4 h-4" />
-              <h4 className="font-bold text-sm">Importador ComandoPlay</h4>
-            </div>
-            <div className="flex gap-2">
-              <Input
-                value={comandoPlayUrl}
-                onChange={(e) => setComandoPlayUrl(e.target.value)}
-                placeholder="URL do ComandoPlay..."
-                className="bg-background"
-              />
-              <Button
-                onClick={handleComandoPlayImport}
-                disabled={isImportingComando}
-                variant="outline"
-              >
-                {isImportingComando ? <Loader2 className="w-4 h-4 animate-spin" /> : "Importar"}
-              </Button>
-            </div>
-          </div>
-        </div>
 
         <div className="grid grid-cols-2 gap-4">
           <div>

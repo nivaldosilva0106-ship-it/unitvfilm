@@ -12,7 +12,6 @@ export interface Episode {
     url: string;
     type?: 'direct' | 'torrent';
   }[];
-  google_drive_url?: string;
 }
 
 export interface Content {
@@ -56,6 +55,5 @@ export interface Content {
     type?: 'direct' | 'torrent';
   }[];
   is_cinema_mode?: boolean;
-  google_drive_url?: string;
   cast_members?: { name: string; character: string; profile_path: string | null }[];
 }

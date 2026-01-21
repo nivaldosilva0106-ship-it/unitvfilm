@@ -59,7 +59,6 @@ export const VideoPlayer = ({
   const [currentQuality, setCurrentQuality] = useState<number>(-1);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSubtitles, setShowSubtitles] = useState(false);
-  const [errorType, setErrorType] = useState<'quota' | 'generic' | null>(null);
 
   // Detect stream type
   const isHLS = url.includes('.m3u8') || url.includes('m3u8');
@@ -346,8 +345,6 @@ export const VideoPlayer = ({
       onMouseMove={resetHideTimer}
       onMouseLeave={() => isPlaying && setShowControls(false)}
       onClick={(e) => {
-        e.stopPropagation(); // Prevent bubbling to parent handlers
-        resetHideTimer(); // Ensure controls show on click
         if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === 'VIDEO') {
           togglePlay();
         }
@@ -360,23 +357,6 @@ export const VideoPlayer = ({
         playsInline
         crossOrigin="anonymous"
         muted={isMuted}
-        onError={async () => {
-          if (isGoogleDrive) {
-            try {
-              // Check specifically for 403 Forbidden / Quota limits
-              const response = await fetch(getVideoUrl(), { method: 'HEAD' });
-              if (response.status === 403) {
-                // You could check response body for "usageLimits" but correct CORS might be needed.
-                // For now, assume 403 on Google Drive media is likely quota/permissions.
-                setErrorType('quota');
-                return;
-              }
-            } catch (e) {
-              console.error("Error checking video status:", e);
-            }
-          }
-          setErrorType('generic');
-        }}
       >
         {subtitles && showSubtitles && (
           <track
@@ -389,42 +369,15 @@ export const VideoPlayer = ({
         )}
       </video>
 
-      {/* Error Overlay */}
-      {errorType && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/90 z-40 p-6 text-center">
-          <div className="max-w-md animate-in fade-in zoom-in duration-300">
-            {errorType === 'quota' ? (
-              <>
-                <div className="bg-red-500/20 p-4 rounded-full w-20 h-20 mx-auto mb-6 flex items-center justify-center border border-red-500/50">
-                  <span className="text-4xl">⚠️</span>
-                </div>
-                <h3 className="text-2xl font-bold text-white mb-4">Vídeo Temporariamente Indisponível</h3>
-                <p className="text-gray-300 mb-6 leading-relaxed">
-                  Este vídeo está com uma demanda enorme de usuários assistindo e foi temporariamente bloqueado pelo Google Drive (cota excedida).
-                </p>
-                <p className="text-sm text-gray-400 border-t border-white/10 pt-4">
-                  Por favor, tente clicar em outro episódio, ou tente novamente mais tarde.
-                </p>
-              </>
-            ) : (
-              <>
-                <h3 className="text-xl font-bold text-white mb-2">Erro ao reproduzir</h3>
-                <p className="text-gray-400">Não foi possível carregar o vídeo.</p>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-
       {/* Buffering Indicator */}
-      {isBuffering && !errorType && (
+      {isBuffering && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/30 z-20">
           <Loader2 className="w-16 h-16 text-primary animate-spin" />
         </div>
       )}
 
       {/* Center Play Button (when paused) */}
-      {!isPlaying && !isBuffering && !errorType && (
+      {!isPlaying && !isBuffering && (
         <div className="absolute inset-0 flex items-center justify-center z-10">
           <button
             onClick={togglePlay}
@@ -436,172 +389,170 @@ export const VideoPlayer = ({
       )}
 
       {/* Controls Overlay */}
-      {!errorType && (
-        <div
-          className={`absolute inset-0 flex flex-col justify-end transition-opacity duration-300 z-30 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}
-        >
-          {/* Gradient Background */}
-          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
+      <div
+        className={`absolute inset-0 flex flex-col justify-end transition-opacity duration-300 z-30 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+      >
+        {/* Gradient Background */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
 
-          {/* Title */}
-          {title && (
-            <div className="absolute top-4 left-4 right-4">
-              <h2 className="text-white font-bold text-sm md:text-lg drop-shadow-lg line-clamp-1">{title}</h2>
+        {/* Title */}
+        {title && (
+          <div className="absolute top-4 left-4 right-4">
+            <h2 className="text-white font-bold text-sm md:text-lg drop-shadow-lg line-clamp-1">{title}</h2>
+          </div>
+        )}
+
+        {/* Controls Container */}
+        <div className="relative p-3 md:p-4 space-y-2 md:space-y-3">
+          {/* Progress Bar */}
+          <div className="flex items-center gap-2 md:gap-3">
+            <span className="text-white text-[10px] md:text-xs font-mono min-w-[35px] md:min-w-[45px]">
+              {formatTime(currentTime)}
+            </span>
+            <div className="flex-1 group/progress">
+              <Slider
+                value={[currentTime]}
+                min={0}
+                max={duration || 100}
+                step={0.1}
+                onValueChange={handleSeek}
+                className="cursor-pointer [&_[data-radix-slider-track]]:h-1 [&_[data-radix-slider-track]]:bg-white/30 [&_[data-radix-slider-range]]:bg-primary [&_[data-radix-slider-thumb]]:w-3 [&_[data-radix-slider-thumb]]:h-3 md:[&_[data-radix-slider-thumb]]:w-4 md:[&_[data-radix-slider-thumb]]:h-4 [&_[data-radix-slider-thumb]]:bg-primary [&_[data-radix-slider-thumb]]:border-2 [&_[data-radix-slider-thumb]]:border-white [&_[data-radix-slider-thumb]]:opacity-0 group-hover/progress:[&_[data-radix-slider-thumb]]:opacity-100 [&_[data-radix-slider-thumb]]:transition-opacity"
+              />
             </div>
-          )}
+            <span className="text-white text-[10px] md:text-xs font-mono min-w-[35px] md:min-w-[45px] text-right">
+              {formatTime(duration)}
+            </span>
+          </div>
 
-          {/* Controls Container */}
-          <div className="relative p-3 md:p-4 space-y-2 md:space-y-3">
-            {/* Progress Bar */}
-            <div className="flex items-center gap-2 md:gap-3">
-              <span className="text-white text-[10px] md:text-xs font-mono min-w-[35px] md:min-w-[45px]">
-                {formatTime(currentTime)}
-              </span>
-              <div className="flex-1 group/progress">
-                <Slider
-                  value={[currentTime]}
-                  min={0}
-                  max={duration || 100}
-                  step={0.1}
-                  onValueChange={handleSeek}
-                  className="cursor-pointer [&_[data-radix-slider-track]]:h-1 [&_[data-radix-slider-track]]:bg-white/30 [&_[data-radix-slider-range]]:bg-primary [&_[data-radix-slider-thumb]]:w-3 [&_[data-radix-slider-thumb]]:h-3 md:[&_[data-radix-slider-thumb]]:w-4 md:[&_[data-radix-slider-thumb]]:h-4 [&_[data-radix-slider-thumb]]:bg-primary [&_[data-radix-slider-thumb]]:border-2 [&_[data-radix-slider-thumb]]:border-white [&_[data-radix-slider-thumb]]:opacity-0 group-hover/progress:[&_[data-radix-slider-thumb]]:opacity-100 [&_[data-radix-slider-thumb]]:transition-opacity"
-                />
-              </div>
-              <span className="text-white text-[10px] md:text-xs font-mono min-w-[35px] md:min-w-[45px] text-right">
-                {formatTime(duration)}
-              </span>
-            </div>
+          {/* Bottom Controls */}
+          <div className="flex items-center justify-between">
+            {/* Left Controls */}
+            <div className="flex items-center gap-1 md:gap-2">
+              <button
+                onClick={togglePlay}
+                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+              >
+                {isPlaying ? (
+                  <Pause className="w-4 h-4 md:w-6 md:h-6 text-white fill-white" />
+                ) : (
+                  <Play className="w-4 h-4 md:w-6 md:h-6 text-white fill-white ml-0.5" />
+                )}
+              </button>
 
-            {/* Bottom Controls */}
-            <div className="flex items-center justify-between">
-              {/* Left Controls */}
-              <div className="flex items-center gap-1 md:gap-2">
+              <button
+                onClick={() => skip(-10)}
+                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+              >
+                <SkipBack className="w-4 h-4 md:w-5 md:h-5 text-white" />
+              </button>
+
+              <button
+                onClick={() => skip(10)}
+                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+              >
+                <SkipForward className="w-4 h-4 md:w-5 md:h-5 text-white" />
+              </button>
+
+              {/* Volume */}
+              <div className="flex items-center gap-1 md:gap-2 group/volume">
                 <button
-                  onClick={togglePlay}
+                  onClick={toggleMute}
                   className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
                 >
-                  {isPlaying ? (
-                    <Pause className="w-4 h-4 md:w-6 md:h-6 text-white fill-white" />
+                  {isMuted || volume === 0 ? (
+                    <VolumeX className="w-4 h-4 md:w-5 md:h-5 text-white" />
                   ) : (
-                    <Play className="w-4 h-4 md:w-6 md:h-6 text-white fill-white ml-0.5" />
+                    <Volume2 className="w-4 h-4 md:w-5 md:h-5 text-white" />
                   )}
                 </button>
-
-                <button
-                  onClick={() => skip(-10)}
-                  className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
-                >
-                  <SkipBack className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                </button>
-
-                <button
-                  onClick={() => skip(10)}
-                  className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
-                >
-                  <SkipForward className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                </button>
-
-                {/* Volume */}
-                <div className="flex items-center gap-1 md:gap-2 group/volume">
-                  <button
-                    onClick={toggleMute}
-                    className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
-                  >
-                    {isMuted || volume === 0 ? (
-                      <VolumeX className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                    ) : (
-                      <Volume2 className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                    )}
-                  </button>
-                  <div className="w-0 overflow-hidden group-hover/volume:w-16 md:group-hover/volume:w-20 transition-all duration-300">
-                    <Slider
-                      value={[isMuted ? 0 : volume]}
-                      min={0}
-                      max={1}
-                      step={0.01}
-                      onValueChange={handleVolumeChange}
-                      className="cursor-pointer [&_[data-radix-slider-track]]:h-1 [&_[data-radix-slider-track]]:bg-white/30 [&_[data-radix-slider-range]]:bg-primary [&_[data-radix-slider-thumb]]:w-3 [&_[data-radix-slider-thumb]]:h-3 [&_[data-radix-slider-thumb]]:bg-white"
-                    />
-                  </div>
+                <div className="w-0 overflow-hidden group-hover/volume:w-16 md:group-hover/volume:w-20 transition-all duration-300">
+                  <Slider
+                    value={[isMuted ? 0 : volume]}
+                    min={0}
+                    max={1}
+                    step={0.01}
+                    onValueChange={handleVolumeChange}
+                    className="cursor-pointer [&_[data-radix-slider-track]]:h-1 [&_[data-radix-slider-track]]:bg-white/30 [&_[data-radix-slider-range]]:bg-primary [&_[data-radix-slider-thumb]]:w-3 [&_[data-radix-slider-thumb]]:h-3 [&_[data-radix-slider-thumb]]:bg-white"
+                  />
                 </div>
               </div>
+            </div>
 
-              {/* Right Controls */}
-              <div className="flex items-center gap-1 md:gap-2">
-                <button
-                  onClick={() => setShowSubtitles(!showSubtitles)}
-                  className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors ${showSubtitles ? 'text-primary' : 'text-white'}`}
-                  title="Legendas"
-                  disabled={!subtitles}
+            {/* Right Controls */}
+            <div className="flex items-center gap-1 md:gap-2">
+              <button
+                onClick={() => setShowSubtitles(!showSubtitles)}
+                className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors ${showSubtitles ? 'text-primary' : 'text-white'}`}
+                title="Legendas"
+                disabled={!subtitles}
+              >
+                {showSubtitles ? <Captions className="w-4 h-4 md:w-5 md:h-5" /> : <CaptionsOff className="w-4 h-4 md:w-5 md:h-5" />}
+              </button>
+
+              {/* Settings Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
+                    <Settings className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="bg-black/95 border-white/20 backdrop-blur-xl min-w-[150px] md:min-w-[180px]"
                 >
-                  {showSubtitles ? <Captions className="w-4 h-4 md:w-5 md:h-5" /> : <CaptionsOff className="w-4 h-4 md:w-5 md:h-5" />}
-                </button>
-
-                {/* Settings Menu */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <button className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
-                      <Settings className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className="bg-black/95 border-white/20 backdrop-blur-xl min-w-[150px] md:min-w-[180px]"
-                  >
-                    {/* Quality */}
-                    {qualities.length > 0 && (
-                      <>
-                        <div className="px-2 py-1.5 text-[10px] md:text-xs text-gray-400 font-semibold">Qualidade</div>
-                        <DropdownMenuItem
-                          onClick={() => changeQuality(-1)}
-                          className={`text-white hover:bg-white/10 cursor-pointer text-xs md:text-sm ${currentQuality === -1 ? 'bg-primary/20' : ''}`}
-                        >
-                          Auto
-                        </DropdownMenuItem>
-                        {qualities.map(q => (
-                          <DropdownMenuItem
-                            key={q.level}
-                            onClick={() => changeQuality(q.level)}
-                            className={`text-white hover:bg-white/10 cursor-pointer text-xs md:text-sm ${currentQuality === q.level ? 'bg-primary/20' : ''}`}
-                          >
-                            {getQualityLabel(q.height)}
-                          </DropdownMenuItem>
-                        ))}
-                        <div className="h-px bg-white/10 my-1" />
-                      </>
-                    )}
-
-                    {/* Playback Speed */}
-                    <div className="px-2 py-1.5 text-[10px] md:text-xs text-gray-400 font-semibold">Velocidade</div>
-                    {[0.5, 0.75, 1, 1.25, 1.5, 2].map(rate => (
+                  {/* Quality */}
+                  {qualities.length > 0 && (
+                    <>
+                      <div className="px-2 py-1.5 text-[10px] md:text-xs text-gray-400 font-semibold">Qualidade</div>
                       <DropdownMenuItem
-                        key={rate}
-                        onClick={() => changePlaybackRate(rate)}
-                        className={`text-white hover:bg-white/10 cursor-pointer text-xs md:text-sm ${playbackRate === rate ? 'bg-primary/20' : ''}`}
+                        onClick={() => changeQuality(-1)}
+                        className={`text-white hover:bg-white/10 cursor-pointer text-xs md:text-sm ${currentQuality === -1 ? 'bg-primary/20' : ''}`}
                       >
-                        {rate === 1 ? 'Normal' : `${rate}x`}
+                        Auto
                       </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-
-                {/* Fullscreen */}
-                <button
-                  onClick={toggleFullscreen}
-                  className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
-                >
-                  {isFullscreen ? (
-                    <Minimize className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                  ) : (
-                    <Maximize className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                      {qualities.map(q => (
+                        <DropdownMenuItem
+                          key={q.level}
+                          onClick={() => changeQuality(q.level)}
+                          className={`text-white hover:bg-white/10 cursor-pointer text-xs md:text-sm ${currentQuality === q.level ? 'bg-primary/20' : ''}`}
+                        >
+                          {getQualityLabel(q.height)}
+                        </DropdownMenuItem>
+                      ))}
+                      <div className="h-px bg-white/10 my-1" />
+                    </>
                   )}
-                </button>
-              </div>
+
+                  {/* Playback Speed */}
+                  <div className="px-2 py-1.5 text-[10px] md:text-xs text-gray-400 font-semibold">Velocidade</div>
+                  {[0.5, 0.75, 1, 1.25, 1.5, 2].map(rate => (
+                    <DropdownMenuItem
+                      key={rate}
+                      onClick={() => changePlaybackRate(rate)}
+                      className={`text-white hover:bg-white/10 cursor-pointer text-xs md:text-sm ${playbackRate === rate ? 'bg-primary/20' : ''}`}
+                    >
+                      {rate === 1 ? 'Normal' : `${rate}x`}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Fullscreen */}
+              <button
+                onClick={toggleFullscreen}
+                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+              >
+                {isFullscreen ? (
+                  <Minimize className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                ) : (
+                  <Maximize className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                )}
+              </button>
             </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   );
 };

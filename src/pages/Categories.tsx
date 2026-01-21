@@ -32,7 +32,7 @@ export default function Categories() {
     // Modal State
     const [selectedSeries, setSelectedSeries] = useState<Content | null>(null);
     const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], internalUrl?: string, title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string }>({ open: false, url: '', title: '', isPremium: false });
-    const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, title: string, thumbnail: string }>({ open: false, url: '', title: '', thumbnail: '' });
+    const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, title: string, thumbnail: string, download_mode?: 'direct' | 'torrent' | 'mixed', downloads?: any[] }>({ open: false, url: '', title: '', thumbnail: '' });
     const [quickViewContent, setQuickViewContent] = useState<Content | null>(null);
 
     useEffect(() => {
@@ -111,10 +111,12 @@ export default function Categories() {
     };
 
     const handleDownloadContent = (content: Content) => {
-        if (content.download_url) {
+        if (content.download_url || (content.downloads && content.downloads.length > 0)) {
             setDownloadModal({
                 open: true,
-                url: content.download_url,
+                url: content.download_url || '',
+                downloads: content.downloads,
+                download_mode: content.download_mode,
                 title: content.title,
                 thumbnail: content.thumbnail_url
             });
@@ -371,6 +373,8 @@ export default function Categories() {
                 open={downloadModal.open}
                 onClose={() => setDownloadModal({ open: false, url: '', title: '', thumbnail: '' })}
                 downloadUrl={downloadModal.url}
+                downloads={downloadModal.downloads}
+                download_mode={downloadModal.download_mode}
                 title={downloadModal.title}
                 thumbnail={downloadModal.thumbnail}
             />
