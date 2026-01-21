@@ -1,4 +1,4 @@
-// NostalgiaTube page - cache bust 2026-01-10
+// NostalgiaTube page - cache bust 2026-01-22-v2
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { getAllContents, saveUserProgress, getUserProgress } from "@/lib/firebase";
@@ -1098,12 +1098,12 @@ export default function NostalgiaTube(): JSX.Element {
                                     <div className="space-y-2">
                                         <h3 className="font-semibold text-white mb-2">Episódios</h3>
                                         <div className="relative">
-                                            {canScrollLeft && (
+                                            {(canScrollLeft || true) && (
                                                 <button
                                                     onClick={() => scrollEpisodes('left')}
-                                                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10 bg-black/80 hover:bg-black/90 text-white p-1.5 md:p-2 rounded-full transition-all"
+                                                    className={`absolute left-0 top-1/2 -translate-y-1/2 z-50 bg-black/80 hover:bg-black/90 text-white p-2 rounded-full transition-all border border-white/10 shadow-lg ${!canScrollLeft ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
                                                 >
-                                                    <ChevronLeft className="w-5 h-5 md:w-6 md:h-6" />
+                                                    <ChevronLeft className="w-6 h-6" />
                                                 </button>
                                             )}
 
@@ -1122,7 +1122,7 @@ export default function NostalgiaTube(): JSX.Element {
                                                         <button
                                                             key={`${currentContent.id}-ep-${idx}`}
                                                             onClick={(e) => handleEpisodeClick(e, idx)}
-                                                            className={`flex-none w-48 md:w-60 group relative rounded-lg overflow-hidden border transition-all active:scale-95 touch-none z-50 ${currentEpisodeIndex === idx
+                                                            className={`flex-none w-48 md:w-60 group relative rounded-lg overflow-hidden border transition-all active:scale-95 touch-manipulation z-50 ${currentEpisodeIndex === idx
                                                                 ? 'border-primary ring-1 ring-primary bg-primary/20'
                                                                 : 'border-white/10 hover:border-white/30 bg-[#222]'
                                                                 }`}
@@ -1148,12 +1148,12 @@ export default function NostalgiaTube(): JSX.Element {
                                                 })}
                                             </div>
 
-                                            {canScrollRight && (
+                                            {(canScrollRight || true) && (
                                                 <button
                                                     onClick={() => scrollEpisodes('right')}
-                                                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10 bg-black/80 hover:bg-black/90 text-white p-1.5 md:p-2 rounded-full transition-all"
+                                                    className={`absolute right-0 top-1/2 -translate-y-1/2 z-50 bg-black/80 hover:bg-black/90 text-white p-2 rounded-full transition-all border border-white/10 shadow-lg ${!canScrollRight ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
                                                 >
-                                                    <ChevronRight className="w-5 h-5 md:w-6 md:h-6" />
+                                                    <ChevronRight className="w-6 h-6" />
                                                 </button>
                                             )}
                                         </div>
