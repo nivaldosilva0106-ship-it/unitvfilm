@@ -37,11 +37,13 @@ export default function NostalgiaTube(): JSX.Element {
 
     // YouTube Player State
     const playerContainerRef = useRef<HTMLDivElement>(null);
+    const customVideoRef = useRef<HTMLVideoElement>(null);
     const episodesScrollRef = useRef<HTMLDivElement>(null);
     const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const centerPlayTimeoutRef = useRef<NodeJS.Timeout | null>(null);
     const countdownIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const [player, setPlayer] = useState<any>(null);
+    const [hasQuotaError, setHasQuotaError] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [apiReady, setApiReady] = useState(false);
@@ -229,6 +231,9 @@ export default function NostalgiaTube(): JSX.Element {
     const currentEpisode = currentContent?.episodes?.[currentEpisodeIndex];
     const videoUrl = currentEpisode?.url || currentContent?.video_url;
     const googleDriveUrl = currentEpisode?.google_drive_url || currentContent?.google_drive_url;
+
+    // Safety check for Google Drive API URL
+    const isGoogleDriveApi = googleDriveUrl?.includes('googleapis.com/drive/v3/files');
     const youtubeId = getYoutubeId(videoUrl);
 
     // Get poster image
@@ -291,9 +296,34 @@ export default function NostalgiaTube(): JSX.Element {
         if (currentContent?.episodes && currentEpisodeIndex < currentContent.episodes.length - 1) {
             setCurrentEpisodeIndex(prev => prev + 1);
             setVideoEnded(false);
+            setHasQuotaError(false); // Reset error on change
         } else {
             setVideoEnded(true);
         }
+    };
+
+    // Custom Video Sync Methods
+    const handleVideoPlay = () => setIsPlaying(true);
+    const handleVideoPause = () => setIsPlaying(false);
+    const handleVideoEnded = () => playNextEpisode();
+    const handleVideoTimeUpdate = () => {
+        if (customVideoRef.current) {
+            setCurrentTime(customVideoRef.current.currentTime);
+        }
+    };
+    const handleVideoMetadata = () => {
+        if (customVideoRef.current) {
+            setDuration(customVideoRef.current.duration);
+            setIsLoadingVideo(false);
+            setHasStartedPlaying(true);
+        }
+    };
+    const handleVideoError = (e: any) => {
+        console.error("Custom Video Error:", e);
+        // Detect 403 or loading failure which often indicates quota
+        setHasQuotaError(true);
+        setIsLoadingVideo(false);
+        toast.error("Erro ao carregar vídeo do Google Drive");
     };
 
     // Initialize or update YouTube Player
@@ -389,6 +419,7 @@ export default function NostalgiaTube(): JSX.Element {
                     if (playing) {
                         setIsLoadingVideo(false);
                         setHasStartedPlaying(true); // Poster logic
+                        setHasQuotaError(false);
                         startProgressTracking();
                     } else if (progressIntervalRef.current) {
                         clearInterval(progressIntervalRef.current);
@@ -431,7 +462,13 @@ export default function NostalgiaTube(): JSX.Element {
     }, [player, playerReady, isPlaying]);
 
     const togglePlay = () => {
-        if (player && playerReady) {
+        if (isGoogleDriveApi && customVideoRef.current) {
+            if (isPlaying) {
+                customVideoRef.current.pause();
+            } else {
+                customVideoRef.current.play();
+            }
+        } else if (player && playerReady) {
             try {
                 if (isPlaying) {
                     player.pauseVideo();
@@ -453,7 +490,10 @@ export default function NostalgiaTube(): JSX.Element {
     };
 
     const toggleMute = () => {
-        if (player && playerReady) {
+        if (isGoogleDriveApi && customVideoRef.current) {
+            customVideoRef.current.muted = !isMuted;
+            setIsMuted(!isMuted);
+        } else if (player && playerReady) {
             try {
                 if (isMuted) {
                     player.unMute();
@@ -522,6 +562,13 @@ export default function NostalgiaTube(): JSX.Element {
     };
 
     const changeQuality = (quality: string) => {
+        if (isGoogleDriveApi) {
+            // Google Drive API URL is a single file, quality change is not supported directly
+            toast.info("A qualidade é gerenciada automaticamente pelo Google Drive.");
+            setShowQualityMenu(false);
+            return;
+        }
+
         if (player && playerReady) {
             try {
                 // Note: YouTube's IFrame API deprecated setPlaybackQuality for embeds
@@ -622,17 +669,22 @@ export default function NostalgiaTube(): JSX.Element {
     };
 
     const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!player || !playerReady || !duration) return;
+        if (!duration) return;
 
         const rect = e.currentTarget.getBoundingClientRect();
         const pos = (e.clientX - rect.left) / rect.width;
         const seekTime = pos * duration;
 
-        try {
-            player.seekTo(seekTime, true);
+        if (isGoogleDriveApi && customVideoRef.current) {
+            customVideoRef.current.currentTime = seekTime;
             setCurrentTime(seekTime);
-        } catch (e) {
-            console.error("Error seeking:", e);
+        } else if (player && playerReady) {
+            try {
+                player.seekTo(seekTime, true);
+                setCurrentTime(seekTime);
+            } catch (e) {
+                console.error("Error seeking:", e);
+            }
         }
     };
 
@@ -707,17 +759,59 @@ export default function NostalgiaTube(): JSX.Element {
                     ref={playerContainerRef}
                 >
                     <div className={`relative w-full flex items-center justify-center ${isFullscreen ? 'h-full bg-black' : 'pb-[56.25%] md:pb-[42%] lg:pb-[40%]'}`}>
-                        {googleDriveUrl ? (
-                            <div className="absolute inset-0 w-full h-full z-10 bg-black">
-                                <iframe
-                                    src={googleDriveUrl}
-                                    className="w-full h-full border-none shadow-2xl"
-                                    allow="autoplay; encrypted-media"
-                                    allowFullScreen
-                                    title="Google Drive Player"
-                                ></iframe>
-                                {/* Overlay for a premium look */}
-                                <div className="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/80 to-transparent pointer-events-none z-20"></div>
+                        {isGoogleDriveApi ? (
+                            <div className="absolute inset-0 w-full h-full z-10 bg-black flex items-center justify-center">
+                                {hasQuotaError ? (
+                                    <div className="text-center p-6 max-w-md animate-in fade-in zoom-in duration-500 bg-zinc-900/90 backdrop-blur-md rounded-2xl border border-red-500/20 shadow-2xl">
+                                        <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(239,68,68,0.2)] border border-red-500/20">
+                                            <Settings className="w-10 h-10 text-red-500 animate-spin-slow" />
+                                        </div>
+                                        <h3 className="text-white font-bold text-xl mb-3 tracking-tight">Limite do Google Drive Excedido</h3>
+                                        <p className="text-gray-300 text-sm leading-relaxed mb-6">
+                                            O vídeo está com uma <span className="text-red-400 font-semibold">demanda enorme de usuários</span> assistindo e está temporariamente bloqueado para ti.
+                                            <br /><br />
+                                            Clica em outro episódio e se continuar tenta voltar mais tarde ou amanhã.
+                                        </p>
+                                        <Button
+                                            onClick={() => playNextEpisode()}
+                                            className="bg-red-500 hover:bg-red-600 text-white w-full py-6 rounded-xl font-bold gap-2 transition-all shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+                                        >
+                                            <RotateCw className="w-5 h-5" />
+                                            Tentar Outro Episódio
+                                        </Button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <video
+                                            ref={customVideoRef}
+                                            src={googleDriveUrl}
+                                            className="w-full h-full object-contain"
+                                            onPlay={handleVideoPlay}
+                                            onPause={handleVideoPause}
+                                            onEnded={handleVideoEnded}
+                                            onTimeUpdate={handleVideoTimeUpdate}
+                                            onLoadedMetadata={handleVideoMetadata}
+                                            onError={handleVideoError}
+                                            autoPlay
+                                            playsInline
+                                        />
+                                        {/* Overlay for a premium look */}
+                                        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/80 to-transparent pointer-events-none z-20"></div>
+
+                                        {/* Center Play/Pause Feedback for Custom Video */}
+                                        <div
+                                            className={`absolute inset-0 flex items-center justify-center z-[16] pointer-events-none transition-all duration-300 ${showCenterPlay ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
+                                        >
+                                            <div className="bg-black/60 backdrop-blur-sm rounded-full p-4 md:p-6 shadow-2xl">
+                                                {isPlaying ? (
+                                                    <Pause className="w-8 h-8 md:w-12 md:h-12 text-white fill-current" />
+                                                ) : (
+                                                    <Play className="w-8 h-8 md:w-12 md:h-12 text-white fill-current ml-1" />
+                                                )}
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
                             </div>
                         ) : youtubeId ? (
                             <>

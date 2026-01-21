@@ -1055,7 +1055,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
 
                     {isNostalgia && (
                       <Input
-                        placeholder="URL Google Drive (Iframe)"
+                        placeholder="URL API Google Drive (ex: https://www.googleapis.com/drive/v3/files/ID?alt=media&key=KEY)"
                         value={episode.google_drive_url || ''}
                         onChange={(e) => updateEpisode(index, 'google_drive_url', e.target.value)}
                         className="bg-input border-border text-sm border-blue-500/30"
@@ -1259,15 +1259,16 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
 
               {isNostalgia && (
                 <div className="mt-4">
-                  <Label className="text-blue-400">URL Google Drive (Player Iframe)</Label>
+                  <Label className="text-blue-400 font-bold">URL Google Drive (API Direct Link)</Label>
                   <Input
                     value={editingContent.google_drive_url || ''}
                     onChange={(e) => setEditingContent(prev => ({ ...prev, google_drive_url: e.target.value }))}
-                    className="bg-input border-blue-500/30 text-blue-100"
-                    placeholder="https://drive.google.com/file/d/ID/preview"
+                    className="bg-input border-blue-500/30 text-blue-100 placeholder:text-blue-300/30"
+                    placeholder="https://www.googleapis.com/drive/v3/files/ID?alt=media&key=KEY"
                   />
-                  <p className="text-[10px] text-muted-foreground mt-1 italic">
-                    Este player secundário será usado na página NostalgiaTube se o vídeo for carregado do Drive.
+                  <p className="text-[10px] text-muted-foreground mt-1 italic leading-relaxed">
+                    Use o formato da API do Google Drive para evitar bloqueios de iframe. <br />
+                    <span className="text-blue-400">Ex:</span> https://www.googleapis.com/drive/v3/files/<span className="underline">FILE_ID</span>?alt=media&key=<span className="underline">API_KEY</span>
                   </p>
                 </div>
               )}
