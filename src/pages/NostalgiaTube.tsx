@@ -103,13 +103,18 @@ export default function NostalgiaTube(): JSX.Element {
 
     useEffect(() => {
         const fetchContent = async () => {
+            if (contents.length > 0 && !id) return; // Already loaded root
+
             setLoading(true);
             try {
                 const all = await getAllContents();
                 const nostalgiaItems = all.filter(c => c.category === 'nostalgia');
-                // Randomize content
-                const shuffled = [...nostalgiaItems].sort(() => 0.5 - Math.random());
-                setContents(shuffled);
+
+                // Randomize content only if not already loaded or searching for specific id
+                if (contents.length === 0) {
+                    const shuffled = [...nostalgiaItems].sort(() => 0.5 - Math.random());
+                    setContents(shuffled);
+                }
 
                 if (id) {
                     const found = nostalgiaItems.find(c => c.id === id);
@@ -126,7 +131,7 @@ export default function NostalgiaTube(): JSX.Element {
             }
         };
         fetchContent();
-    }, [id, navigate]);
+    }, [id]); // Remove navigate from deps if not strictly needed for fetch
 
     // Check scroll position for arrows
     const checkScroll = () => {
@@ -595,7 +600,12 @@ export default function NostalgiaTube(): JSX.Element {
         }
     };
 
-    const handlePostClick = (content: Content) => {
+    const handlePostClick = (e: React.MouseEvent, content: Content) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
         const access = checkAccess({
             isPremium: content.isPremium,
             category: 'nostalgia'
@@ -622,7 +632,6 @@ export default function NostalgiaTube(): JSX.Element {
         setVideoEnded(false);
         setWaitingForSelection(true);
 
-
         navigate(`/nostalgia/${content.id}`);
         window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -644,7 +653,12 @@ export default function NostalgiaTube(): JSX.Element {
         }
     };
 
-    const handleEpisodeClick = (index: number) => {
+    const handleEpisodeClick = (e: React.MouseEvent, index: number) => {
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
         setUserInteracted(true);
         if (countdownIntervalRef.current) {
             clearInterval(countdownIntervalRef.current);
@@ -758,7 +772,10 @@ export default function NostalgiaTube(): JSX.Element {
                     className="w-full bg-black mb-6 group relative"
                     ref={playerContainerRef}
                 >
-                    <div className={`relative w-full flex items-center justify-center ${isFullscreen ? 'h-full bg-black' : 'pb-[56.25%] md:pb-[42%] lg:pb-[40%]'}`}>
+                    <div
+                        key={`${currentContent?.id || 'none'}-${currentEpisodeIndex}`}
+                        className={`relative w-full flex items-center justify-center ${isFullscreen ? 'h-full bg-black' : 'pb-[56.25%] md:pb-[42%] lg:pb-[40%]'}`}
+                    >
                         {/* 1. Video Engines */}
                         {isGoogleDriveApi && !hasQuotaError && (
                             <div className="absolute inset-0 w-full h-full z-10 bg-black flex items-center justify-center">
@@ -821,10 +838,10 @@ export default function NostalgiaTube(): JSX.Element {
                                                                 e => e.season === lastProgress.season && e.episode === lastProgress.episode
                                                             );
                                                             if (epIndex !== undefined && epIndex !== -1) {
-                                                                handleEpisodeClick(epIndex);
+                                                                handleEpisodeClick(e as any, epIndex);
                                                             } else if (!currentContent?.episodes) {
                                                                 // Movie case
-                                                                handleEpisodeClick(0);
+                                                                handleEpisodeClick(e as any, 0);
                                                             }
                                                         }}
                                                         className="bg-primary hover:bg-primary/90 text-white gap-2 px-6 py-6 text-lg rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.6)] transition-all animate-bounce"
@@ -1103,7 +1120,7 @@ export default function NostalgiaTube(): JSX.Element {
                                                 return (
                                                     <button
                                                         key={idx}
-                                                        onClick={() => handleEpisodeClick(idx)}
+                                                        onClick={(e) => handleEpisodeClick(e, idx)}
                                                         className={`flex-none w-48 md:w-60 group relative rounded-lg overflow-hidden border transition-all ${currentEpisodeIndex === idx
                                                             ? 'border-primary ring-1 ring-primary'
                                                             : 'border-white/10 hover:border-white/30'
@@ -1145,7 +1162,7 @@ export default function NostalgiaTube(): JSX.Element {
                     )}
 
                     {/* "Nostalgia" Section - Posts */}
-                    <div className="mt-12">
+                    <div className="mt-16 md:mt-20">
                         <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 flex items-center gap-2">
                             <span className="text-primary">NOSTALGIA</span>
                         </h2>
@@ -1155,7 +1172,7 @@ export default function NostalgiaTube(): JSX.Element {
                                 <div
                                     key={content.id}
                                     className="bg-zinc-900/50 rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-300 border border-white/5 hover:border-primary/50 group/card min-w-[200px] md:min-w-[260px] snap-start"
-                                    onClick={() => handlePostClick(content)}
+                                    onClick={(e) => handlePostClick(e, content)}
                                 >
                                     <div className="aspect-[2/3] rounded-lg overflow-hidden border border-white/5 transition-transform duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-primary/20">
                                         <img
