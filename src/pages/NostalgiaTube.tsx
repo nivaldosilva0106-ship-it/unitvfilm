@@ -833,9 +833,9 @@ export default function NostalgiaTube(): JSX.Element {
 
                                                 {lastProgress && (
                                                     <Button
-                                                        onClick={() => {
+                                                        onClick={(e) => {
                                                             const epIndex = currentContent?.episodes?.findIndex(
-                                                                e => e.season === lastProgress.season && e.episode === lastProgress.episode
+                                                                e => (e as any).season === lastProgress.season && (e as any).episode === lastProgress.episode
                                                             );
                                                             if (epIndex !== undefined && epIndex !== -1) {
                                                                 handleEpisodeClick(e as any, epIndex);
