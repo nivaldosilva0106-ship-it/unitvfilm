@@ -8,6 +8,8 @@ import { AdminContentList } from "@/components/admin/AdminContentList";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminContentImporter } from "@/components/admin/AdminContentImporter";
 import { useAuth } from "@/contexts/AuthContext";
+import { Button } from "@/components/ui/button";
+import { Settings } from "lucide-react";
 
 interface AdminContentFormProps {
   editingContent: Partial<Content>;
