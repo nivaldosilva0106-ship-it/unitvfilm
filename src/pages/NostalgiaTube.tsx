@@ -228,6 +228,7 @@ export default function NostalgiaTube(): JSX.Element {
 
     const currentEpisode = currentContent?.episodes?.[currentEpisodeIndex];
     const videoUrl = currentEpisode?.url || currentContent?.video_url;
+    const googleDriveUrl = currentEpisode?.google_drive_url || currentContent?.google_drive_url;
     const youtubeId = getYoutubeId(videoUrl);
 
     // Get poster image
@@ -706,7 +707,19 @@ export default function NostalgiaTube(): JSX.Element {
                     ref={playerContainerRef}
                 >
                     <div className={`relative w-full flex items-center justify-center ${isFullscreen ? 'h-full bg-black' : 'pb-[56.25%] md:pb-[42%] lg:pb-[40%]'}`}>
-                        {youtubeId ? (
+                        {googleDriveUrl ? (
+                            <div className="absolute inset-0 w-full h-full z-10 bg-black">
+                                <iframe
+                                    src={googleDriveUrl}
+                                    className="w-full h-full border-none shadow-2xl"
+                                    allow="autoplay; encrypted-media"
+                                    allowFullScreen
+                                    title="Google Drive Player"
+                                ></iframe>
+                                {/* Overlay for a premium look */}
+                                <div className="absolute inset-x-0 top-0 h-14 bg-gradient-to-b from-black/80 to-transparent pointer-events-none z-20"></div>
+                            </div>
+                        ) : youtubeId ? (
                             <>
                                 {/* Scaled YouTube Player */}
                                 <div className={`absolute inset-0 w-full h-full overflow-hidden pointer-events-none ${isFullscreen ? 'z-0' : ''}`}>

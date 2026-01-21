@@ -1053,6 +1053,15 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                       className="bg-input border-border text-sm"
                     />
 
+                    {isNostalgia && (
+                      <Input
+                        placeholder="URL Google Drive (Iframe)"
+                        value={episode.google_drive_url || ''}
+                        onChange={(e) => updateEpisode(index, 'google_drive_url', e.target.value)}
+                        className="bg-input border-border text-sm border-blue-500/30"
+                      />
+                    )}
+
 
                     {!isNostalgia && (
                       <>
@@ -1246,7 +1255,22 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                 placeholder="https://youtube.com/... (preenchido automaticamente)"
               />
             </div>
-          )
+
+            {isNostalgia && (
+          <div className="mt-4">
+            <Label className="text-blue-400">URL Google Drive (Player Iframe)</Label>
+            <Input
+              value={editingContent.google_drive_url || ''}
+              onChange={(e) => setEditingContent(prev => ({ ...prev, google_drive_url: e.target.value }))}
+              className="bg-input border-blue-500/30 text-blue-100"
+              placeholder="https://drive.google.com/file/d/ID/preview"
+            />
+            <p className="text-[10px] text-muted-foreground mt-1 italic">
+              Este player secundário será usado na página NostalgiaTube se o vídeo for carregado do Drive.
+            </p>
+          </div>
+        )}
+        )
         }
 
         {
