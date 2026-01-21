@@ -759,75 +759,44 @@ export default function NostalgiaTube(): JSX.Element {
                     ref={playerContainerRef}
                 >
                     <div className={`relative w-full flex items-center justify-center ${isFullscreen ? 'h-full bg-black' : 'pb-[56.25%] md:pb-[42%] lg:pb-[40%]'}`}>
-                        {isGoogleDriveApi ? (
+                        {/* 1. Video Engines */}
+                        {isGoogleDriveApi && !hasQuotaError && (
                             <div className="absolute inset-0 w-full h-full z-10 bg-black flex items-center justify-center">
-                                {hasQuotaError ? (
-                                    <div className="text-center p-6 max-w-md animate-in fade-in zoom-in duration-500 bg-zinc-900/90 backdrop-blur-md rounded-2xl border border-red-500/20 shadow-2xl">
-                                        <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(239,68,68,0.2)] border border-red-500/20">
-                                            <Settings className="w-10 h-10 text-red-500 animate-spin-slow" />
-                                        </div>
-                                        <h3 className="text-white font-bold text-xl mb-3 tracking-tight">Limite do Google Drive Excedido</h3>
-                                        <p className="text-gray-300 text-sm leading-relaxed mb-6">
-                                            O vídeo está com uma <span className="text-red-400 font-semibold">demanda enorme de usuários</span> assistindo e está temporariamente bloqueado para ti.
-                                            <br /><br />
-                                            Clica em outro episódio e se continuar tenta voltar mais tarde ou amanhã.
-                                        </p>
-                                        <Button
-                                            onClick={() => playNextEpisode()}
-                                            className="bg-red-500 hover:bg-red-600 text-white w-full py-6 rounded-xl font-bold gap-2 transition-all shadow-[0_0_20px_rgba(239,68,68,0.3)]"
-                                        >
-                                            <RotateCw className="w-5 h-5" />
-                                            Tentar Outro Episódio
-                                        </Button>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <video
-                                            ref={customVideoRef}
-                                            src={googleDriveUrl}
-                                            className="w-full h-full object-contain"
-                                            onPlay={handleVideoPlay}
-                                            onPause={handleVideoPause}
-                                            onEnded={handleVideoEnded}
-                                            onTimeUpdate={handleVideoTimeUpdate}
-                                            onLoadedMetadata={handleVideoMetadata}
-                                            onError={handleVideoError}
-                                            autoPlay
-                                            playsInline
-                                        />
-                                        {/* Overlay for a premium look */}
-                                        <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/80 to-transparent pointer-events-none z-20"></div>
-
-                                        {/* Center Play/Pause Feedback for Custom Video */}
-                                        <div
-                                            className={`absolute inset-0 flex items-center justify-center z-[16] pointer-events-none transition-all duration-300 ${showCenterPlay ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
-                                        >
-                                            <div className="bg-black/60 backdrop-blur-sm rounded-full p-4 md:p-6 shadow-2xl">
-                                                {isPlaying ? (
-                                                    <Pause className="w-8 h-8 md:w-12 md:h-12 text-white fill-current" />
-                                                ) : (
-                                                    <Play className="w-8 h-8 md:w-12 md:h-12 text-white fill-current ml-1" />
-                                                )}
-                                            </div>
-                                        </div>
-                                    </>
-                                )}
+                                <video
+                                    ref={customVideoRef}
+                                    src={googleDriveUrl}
+                                    className="w-full h-full object-contain"
+                                    onPlay={handleVideoPlay}
+                                    onPause={handleVideoPause}
+                                    onEnded={handleVideoEnded}
+                                    onTimeUpdate={handleVideoTimeUpdate}
+                                    onLoadedMetadata={handleVideoMetadata}
+                                    onError={handleVideoError}
+                                    autoPlay
+                                    playsInline
+                                />
+                                {/* Overlay for a premium look */}
+                                <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/80 to-transparent pointer-events-none z-20"></div>
                             </div>
-                        ) : youtubeId ? (
-                            <>
-                                {/* Scaled YouTube Player */}
-                                <div className={`absolute inset-0 w-full h-full overflow-hidden pointer-events-none ${isFullscreen ? 'z-0' : ''}`}>
-                                    <div
-                                        id="youtube-player"
-                                        className="absolute w-full h-full"
-                                        style={{
-                                            transform: isFullscreen ? 'none' : 'scale(1.35)', // Remove scale in fullscreen to fit correctly
-                                            transformOrigin: 'center'
-                                        }}
-                                    ></div>
-                                </div>
+                        )}
 
-                                {/* Poster / Loading / Ended Overlay - PERSISTENT until playing */}
+                        {youtubeId && !isGoogleDriveApi && (
+                            <div className={`absolute inset-0 w-full h-full overflow-hidden pointer-events-none ${isFullscreen ? 'z-0' : ''}`}>
+                                <div
+                                    id="youtube-player"
+                                    className="absolute w-full h-full"
+                                    style={{
+                                        transform: isFullscreen ? 'none' : 'scale(1.35)', // Remove scale in fullscreen to fit correctly
+                                        transformOrigin: 'center'
+                                    }}
+                                ></div>
+                            </div>
+                        )}
+
+                        {/* 2. Common UI Layer (Poster, Interaction, Controls) */}
+                        {((youtubeId && !isGoogleDriveApi) || (isGoogleDriveApi && !hasQuotaError)) && (
+                            <>
+                                {/* Poster / Loading / Ended Overlay */}
                                 <div className={`absolute inset-0 w-full h-full z-30 flex items-center justify-center bg-black transition-opacity duration-500 ${(!hasStartedPlaying || isLoadingVideo || videoEnded || waitingForSelection) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                                     <div className="absolute inset-0 w-full h-full overflow-hidden">
                                         <img
@@ -871,13 +840,14 @@ export default function NostalgiaTube(): JSX.Element {
                                             </div>
                                         )}
 
-                                        {/* Only show spinner if specifically loading OR if we are waiting for start but not ended AND NOT waiting for selection */}
+                                        {/* Loading Spinner */}
                                         {(isLoadingVideo && !videoEnded && !waitingForSelection) && (
                                             <div className="flex flex-col items-center gap-4">
                                                 <div className="animate-spin rounded-full h-12 w-12 border-t-4 border-primary shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
                                                 <p className="text-white text-base font-medium tracking-wide">Carregando...</p>
                                             </div>
                                         )}
+
                                         {videoEnded && (
                                             <div className="text-center animate-in fade-in zoom-in duration-300">
                                                 <p className="text-2xl font-bold mb-2 text-white">Episódio Finalizado</p>
@@ -894,7 +864,6 @@ export default function NostalgiaTube(): JSX.Element {
                                                 </Button>
                                             </div>
                                         )}
-                                        {/* Initial Start Button if needed, though we auto-play */}
                                         {!hasStartedPlaying && !isLoadingVideo && !videoEnded && !waitingForSelection && (
                                             <div className="animate-pulse">
                                                 <Play className="w-16 h-16 text-white/80" />
@@ -905,7 +874,7 @@ export default function NostalgiaTube(): JSX.Element {
 
                                 {/* Center Play/Pause Feedback */}
                                 <div
-                                    className={`absolute inset-0 flex items-center justify-center z-[16] pointer-events-none transition-all duration-300 ${showCenterPlay ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
+                                    className={`absolute inset-0 flex items-center justify-center z-[35] pointer-events-none transition-all duration-300 ${showCenterPlay ? 'opacity-100 scale-100' : 'opacity-0 scale-90'}`}
                                 >
                                     <div className="bg-black/60 backdrop-blur-sm rounded-full p-4 md:p-6 shadow-2xl">
                                         {isPlaying ? (
@@ -916,8 +885,8 @@ export default function NostalgiaTube(): JSX.Element {
                                     </div>
                                 </div>
 
-                                {/* Interaction Layer - Handles clicks */}
-                                <div className="absolute inset-0 w-full h-full z-[15] pointer-events-auto"
+                                {/* Interaction Layer */}
+                                <div className="absolute inset-0 w-full h-full z-20 pointer-events-auto"
                                     onClick={(e) => {
                                         e.preventDefault();
                                         togglePlay();
@@ -931,8 +900,6 @@ export default function NostalgiaTube(): JSX.Element {
                                 {/* Controls Overlay */}
                                 <div className={`absolute bottom-0 left-0 right-0 px-2 md:px-4 pb-2 md:pb-4 pt-12 md:pt-20 bg-gradient-to-t from-black/90 via-black/60 to-transparent transition-opacity duration-300 z-40 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                                     <div className="flex flex-col gap-2 w-full max-w-6xl mx-auto pointer-events-auto">
-
-                                        {/* Progress Bar */}
                                         <div
                                             className="group relative h-1.5 w-full bg-white/20 rounded-full cursor-pointer hover:h-2 transition-all"
                                             onClick={handleSeek}
@@ -945,39 +912,20 @@ export default function NostalgiaTube(): JSX.Element {
                                             </div>
                                         </div>
 
-                                        {/* Buttons Row */}
                                         <div className="flex items-center justify-between mt-1">
                                             <div className="flex items-center gap-1 md:gap-3">
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full"
-                                                    onClick={togglePlay}
-                                                >
-                                                    {isPlaying ? (
-                                                        <Pause className="w-4 h-4 md:w-5 md:h-5 fill-current" />
-                                                    ) : (
-                                                        <Play className="w-4 h-4 md:w-5 md:h-5 fill-current" />
-                                                    )}
+                                                <Button size="icon" variant="ghost" className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full" onClick={togglePlay}>
+                                                    {isPlaying ? <Pause className="w-4 h-4 md:w-5 md:h-5 fill-current" /> : <Play className="w-4 h-4 md:w-5 md:h-5 fill-current" />}
                                                 </Button>
 
-                                                {/* Live Badge */}
                                                 <div className="hidden sm:flex items-center gap-2 px-2 py-1 bg-red-600/10 border border-red-600/20 rounded-md">
                                                     <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
                                                     <span className="text-[10px] font-bold text-red-500 tracking-wider">LIVE</span>
                                                 </div>
 
-                                                {/* Volume (Hidden on mobile landscape to save space) */}
-                                                <div className="hidden md:block group relative">
-                                                    <Button
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full"
-                                                        onClick={toggleMute}
-                                                    >
-                                                        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                                                    </Button>
-                                                </div>
+                                                <Button size="icon" variant="ghost" className="hidden md:flex text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full" onClick={toggleMute}>
+                                                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                                                </Button>
 
                                                 <span className="text-xs text-gray-300 font-mono ml-2">
                                                     {formatTime(currentTime)} / {formatTime(duration)}
@@ -985,14 +933,8 @@ export default function NostalgiaTube(): JSX.Element {
                                             </div>
 
                                             <div className="flex items-center gap-1 md:gap-2">
-                                                {/* Quality */}
                                                 <div className="relative">
-                                                    <Button
-                                                        size="icon"
-                                                        variant="ghost"
-                                                        className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full"
-                                                        onClick={() => setShowQualityMenu(!showQualityMenu)}
-                                                    >
+                                                    <Button size="icon" variant="ghost" className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full" onClick={() => setShowQualityMenu(!showQualityMenu)}>
                                                         <Settings className="w-4 h-4 md:w-5 md:h-5" />
                                                     </Button>
                                                     {showQualityMenu && (
@@ -1000,11 +942,7 @@ export default function NostalgiaTube(): JSX.Element {
                                                             <div className="p-3 border-b border-white/5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Qualidade</div>
                                                             <div className="max-h-[250px] overflow-y-auto py-1">
                                                                 {availableQualities.map((quality) => (
-                                                                    <button
-                                                                        key={quality}
-                                                                        onClick={() => changeQuality(quality)}
-                                                                        className={`w-full text-left px-4 py-2.5 text-xs font-medium hover:bg-white/10 transition-colors flex items-center justify-between ${currentQuality === quality ? 'text-primary bg-primary/10' : 'text-gray-200'}`}
-                                                                    >
+                                                                    <button key={quality} onClick={() => changeQuality(quality)} className={`w-full text-left px-4 py-2.5 text-xs font-medium hover:bg-white/10 transition-colors flex items-center justify-between ${currentQuality === quality ? 'text-primary bg-primary/10' : 'text-gray-200'}`}>
                                                                         {qualityLabels[quality] || quality}
                                                                         {currentQuality === quality && <Check className="w-3 h-3" />}
                                                                     </button>
@@ -1014,12 +952,7 @@ export default function NostalgiaTube(): JSX.Element {
                                                     )}
                                                 </div>
 
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full"
-                                                    onClick={toggleFullscreen}
-                                                >
+                                                <Button size="icon" variant="ghost" className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full" onClick={toggleFullscreen}>
                                                     <Maximize className="w-4 h-4 md:w-5 md:h-5" />
                                                 </Button>
                                             </div>
@@ -1027,7 +960,34 @@ export default function NostalgiaTube(): JSX.Element {
                                     </div>
                                 </div>
                             </>
-                        ) : (
+                        )}
+
+                        {/* 3. Error States */}
+                        {isGoogleDriveApi && hasQuotaError && (
+                            <div className="absolute inset-0 w-full h-full z-50 bg-black flex items-center justify-center">
+                                <div className="text-center p-6 max-w-md animate-in fade-in zoom-in duration-500 bg-zinc-900/90 backdrop-blur-md rounded-2xl border border-red-500/20 shadow-2xl">
+                                    <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_30px_rgba(239,68,68,0.2)] border border-red-500/20">
+                                        <Settings className="w-10 h-10 text-red-500 animate-spin-slow" />
+                                    </div>
+                                    <h3 className="text-white font-bold text-xl mb-3 tracking-tight">Limite do Google Drive Excedido</h3>
+                                    <p className="text-gray-300 text-sm leading-relaxed mb-6">
+                                        O vídeo está com uma <span className="text-red-400 font-semibold">demanda enorme de usuários</span> assistindo e está temporariamente bloqueado para ti.
+                                        <br /><br />
+                                        Clica em outro episódio e se continuar tenta voltar mais tarde ou amanhã.
+                                    </p>
+                                    <Button
+                                        onClick={() => playNextEpisode()}
+                                        className="bg-red-500 hover:bg-red-600 text-white w-full py-6 rounded-xl font-bold gap-2 transition-all shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+                                    >
+                                        <RotateCw className="w-5 h-5" />
+                                        Tentar Outro Episódio
+                                    </Button>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* 4. Initial/Fallback UI */}
+                        {!youtubeId && !isGoogleDriveApi && (
                             <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/80 backdrop-blur-sm">
                                 <div className="text-center p-6 max-w-md animate-in fade-in zoom-in duration-500">
                                     <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl border border-primary/20">
