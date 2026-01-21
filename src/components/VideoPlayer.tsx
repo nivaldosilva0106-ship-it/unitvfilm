@@ -346,6 +346,8 @@ export const VideoPlayer = ({
       onMouseMove={resetHideTimer}
       onMouseLeave={() => isPlaying && setShowControls(false)}
       onClick={(e) => {
+        e.stopPropagation(); // Prevent bubbling to parent handlers
+        resetHideTimer(); // Ensure controls show on click
         if (e.target === e.currentTarget || (e.target as HTMLElement).tagName === 'VIDEO') {
           togglePlay();
         }
