@@ -182,7 +182,27 @@ const Admin = () => {
   return (
     <AdminLayout title="Gerenciar Conteúdos">
       <div className="grid lg:grid-cols-2 gap-6 h-[calc(100vh-140px)]">
-        <div className="space-y-6 overflow-y-auto pr-2 pb-4">
+        <div className="space-y-6 overflow-y-auto pr-2 pb-4 text-white">
+          <div className="bg-secondary/20 border border-secondary/30 rounded-xl p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
+                <Settings className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="font-bold text-sm">Ferramentas de Apoio</h4>
+                <p className="text-[10px] text-muted-foreground">Gerador de Links Diretos Google Drive</p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
+              onClick={() => window.open('https://ferramentas-lake.vercel.app/', '_blank')}
+            >
+              Abrir Ferramentas Tools
+            </Button>
+          </div>
+
           <AdminContentImporter
             onImport={(importedData) => {
               setEditingContent(prev => ({ ...prev, ...importedData }));

@@ -54,138 +54,129 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     const lines = smartConfigText.split('\n').map(l => l.trim()).filter(l => l);
     if (lines.length === 0) return;
 
-    // Detect if it is likely a series (looks for "1x1", "S01E01" patterns)
-    // The user example: "1x1", "1x2"
+    // --- DETECT CATEGORY & CONTEXT ---
+    // Look for "temporada X" pattern anywhere
+    const seasonHeaderPattern = /^temporada\s+(\d+)/i;
     const seriesPattern = /(\d+)x(\d+)/;
-    const isSeriesText = lines.some(l => seriesPattern.test(l));
+    const isSeriesText = lines.some(l => seriesPattern.test(l) || seasonHeaderPattern.test(l));
 
     let extractedTitle = "";
-
-    // Extract Title (Usually 1st line, maybe cleaned)
-    // E.g. "Todo Todo Mundo Em Pânico 3 (2003)" -> "Todo Mundo Em Pânico 3" (heuristic)
-    // Or "The Last of Us"
-    const rawTitle = lines[0];
-    // Remove year parenthesis if present for better search
-    extractedTitle = rawTitle.replace(/\(\d{4}\)/, '').trim();
-    // Handle double words if copy-paste error like "Todo Todo" ? User said "Todo Todo..." might be example
-    // We will just use the line as is for now, maybe cleaning year.
+    // If first line isn't a season or episode, it might be the title
+    if (!seasonHeaderPattern.test(lines[0]) && !seriesPattern.test(lines[0])) {
+      extractedTitle = lines[0].replace(/\(\d{4}\)/, '').trim();
+    }
 
     if (isSeriesText) {
-      // --- SERIES PARSING ---
-      toast.info(`Detectado padrão de SÉRIE. Processando: ${extractedTitle}`);
+      toast.info(`Detectado padrão de SÉRIE. Processando...`);
 
-      // Update basic info
-      setEditingContent(prev => ({
-        ...prev,
-        title: extractedTitle,
-        category: 'series' // Auto-switch to series
-      }));
+      const isNostalgia = editingContent.category === 'nostalgia';
 
-      // Parse Episodes
-      // We need to group lines by episode header "1x1"
-      // We'll join lines back to text then match blocks
-      const fullText = smartConfigText;
-      const episodeRegex = /(\d+)x(\d+)([\s\S]*?)(?=(\d+x\d+)|$)/g;
+      // Basic update
+      if (extractedTitle) {
+        setEditingContent(prev => ({
+          ...prev,
+          title: extractedTitle,
+          category: isNostalgia ? 'nostalgia' : 'series'
+        }));
+      }
 
       const newEpisodes: Episode[] = [];
-      let match;
+      let currentSeason = 1;
 
-      while ((match = episodeRegex.exec(fullText)) !== null) {
-        const season = parseInt(match[1]);
-        const episode = parseInt(match[2]);
-        const contentBlock = match[3];
-
-        // Extract URLs from block
-        const googleApiMatch = contentBlock.match(/https:\/\/(www\.)?googleapis\.com\/drive\/v3\/files\/[^?\s]+(\?alt=media&key=[^\s]*)?/);
-        const driveMatch = contentBlock.match(/https:\/\/drive\.google\.com\/file\/d\/([^\/]+)\/view/);
-
-        // Identify Internal Player URL (Google API preferred)
-        let internalUrl = "";
-        if (googleApiMatch) internalUrl = googleApiMatch[0];
-
-        // Identify Embed URL (Any other URL that is not the internal one)
-        // Actually user example shows drive view link + googleapis link.
-        // Usually drive view link isn't a direct embed unless modified.
-        // User said: "https://drive..." and "https://googleapis..."
-        // "URL do Player Interno (m3u8, mp4, ts), apenas lurl desta especie [googleapis]"
-
-        // Finding other urls
-        const urlRegex = /https?:\/\/[^\s]+/g;
-        let blockUrls = contentBlock.match(urlRegex) || [];
-
-        // Filter out the internal url to find "embed" url
-        let embedUrl = "";
-        const otherUrls = blockUrls.filter(u => u !== internalUrl);
-
-        // If we have remaining URLs, pick the first one as embed/download or just keep empty if it's just the drive view link corresponding to the api link
-        if (otherUrls.length > 0) {
-          embedUrl = otherUrls[0];
+      lines.forEach(line => {
+        // Check for Season header
+        const seasonMatch = line.match(seasonHeaderPattern);
+        if (seasonMatch) {
+          currentSeason = parseInt(seasonMatch[1]);
+          return;
         }
 
-        newEpisodes.push({
-          season,
-          episode,
-          title: `Episódio ${episode}`,
-          url: embedUrl, // Player Externo / Embed
-          internal_player_url: internalUrl,
-          download_url: ""
-        });
-      }
+        // Standard 1x1 pattern
+        const epPatternMatch = line.match(/^(\d+)x(\d+)\s*(.*)/i);
+        if (epPatternMatch) {
+          const season = parseInt(epPatternMatch[1]);
+          const episode = parseInt(epPatternMatch[2]);
+          const remaining = epPatternMatch[3];
+
+          const urlMatch = remaining.match(/https?:\/\/[^\s]+/);
+          const title = remaining.replace(/https?:\/\/[^\s]+/, '').trim() || `Episódio ${episode}`;
+
+          newEpisodes.push({
+            season,
+            episode,
+            title: title || `Episódio ${episode}`,
+            url: urlMatch ? urlMatch[0] : "",
+            google_drive_url: urlMatch && urlMatch[0].includes('googleapis.com') ? urlMatch[0] : "",
+            internal_player_url: urlMatch && urlMatch[0].includes('googleapis.com') ? urlMatch[0] : "",
+            downloads: []
+          });
+          return;
+        }
+
+        // New requested pattern: "1. 01 - URL" or "2. Title - URL"
+        // Also captures just "01 - URL"
+        const hierarchicalMatch = line.match(/^(\d+\.\s*)?(.+?)\s*[-:]\s*(https?:\/\/[^\s]+)/i);
+        if (hierarchicalMatch) {
+          const rawTitle = hierarchicalMatch[2].trim();
+          const url = hierarchicalMatch[3].trim();
+
+          // Try to extract episode number from title if it's just a number
+          const epNumMatch = rawTitle.match(/^(\d+)$/);
+          const episodeNumber = epNumMatch ? parseInt(epNumMatch[1]) : (newEpisodes.filter(e => e.season === currentSeason).length + 1);
+          const finalTitle = epNumMatch ? `Episódio ${episodeNumber}` : rawTitle;
+
+          newEpisodes.push({
+            season: currentSeason,
+            episode: episodeNumber,
+            title: finalTitle,
+            url: url,
+            google_drive_url: url.includes('googleapis.com') ? url : "",
+            internal_player_url: url.includes('googleapis.com') ? url : "",
+            downloads: []
+          });
+        }
+      });
 
       if (newEpisodes.length > 0) {
         setEditingContent(prev => ({
           ...prev,
-          episodes: newEpisodes
+          episodes: [...(prev.episodes || []), ...newEpisodes]
         }));
-        toast.success(`${newEpisodes.length} episódios identificados! Buscando metadados...`);
-        setTmdbSearchQuery(extractedTitle);
-        handleTmdbSearch(); // Trigged search with extracted title
+        toast.success(`${newEpisodes.length} episódios identificados!`);
+        if (extractedTitle) {
+          setTmdbSearchQuery(extractedTitle);
+          handleTmdbSearch();
+        }
       } else {
-        toast.warning("Nenhum episódio encontrado com o padrão '1x1'.");
+        toast.warning("Nenhum episódio encontrado nos padrões suportados.");
       }
 
     } else {
       // --- MOVIE PARSING ---
       toast.info(`Detectado padrão de FILME. Processando: ${extractedTitle}`);
 
-      setEditingContent(prev => ({
-        ...prev,
-        title: extractedTitle,
-        category: 'movie'
-      }));
-
-      // Find URLs
-      const fullText = smartConfigText;
-
-      // 1. Google APIs (Internal)
-      const googleApiMatch = fullText.match(/https:\/\/(www\.)?googleapis\.com\/drive\/v3\/files\/[^?\s]+(\?alt=media&key=[^\s]*)?/);
-      let internalUrl = googleApiMatch ? googleApiMatch[0] : "";
-
-      // 2. External Players (embedder, brplayer, etc)
-      // Filter out the internal url
-      const allUrls = fullText.match(/https?:\/\/[^\s]+/g) || [];
-      const externalUrls = allUrls.filter(u => u !== internalUrl && !u.includes('drive.google.com/file'));
-      // Note: often drive view links are present but not useful as embeds directly without processing.
-      // User requested: "outros urls da especie https://embedder.net/..., https://watch.brplayer.cc/..." -> Video URLs
+      const urls = lines.flatMap(l => l.match(/https?:\/\/[^\s]+/g) || []);
+      const googleApiUrl = urls.find(u => u.includes('googleapis.com')) || "";
+      const otherUrls = urls.filter(u => u !== googleApiUrl);
 
       setEditingContent(prev => ({
         ...prev,
-        internal_player_url: internalUrl,
-        video_urls: externalUrls.length > 0 ? externalUrls : undefined,
-        video_url: externalUrls[0] || ""
+        title: extractedTitle || prev.title,
+        category: 'movie',
+        internal_player_url: googleApiUrl || prev.internal_player_url,
+        video_url: otherUrls[0] || prev.video_url,
+        video_urls: otherUrls.length > 0 ? otherUrls : prev.video_urls
       }));
 
-      toast.success("Links extraídos! Buscando metadados...");
-      setTmdbSearchQuery(extractedTitle);
-      // We can't easily auto-trigger search here because state update of 'tmdbSearchQuery' might not be flush yet? 
-      // Actually in React batching it might work or we pass the query explicitly.
-      // Let's modify handleTmdbSearch to accept an optional query arg
-      searchMovies(extractedTitle).then(results => {
-        setSearchResults(results);
-        if (results.length > 0) {
-          toast.success(`${results.length} resultados encontrados no TMDB.`);
-        }
-      });
+      if (extractedTitle) {
+        toast.success("Links extraídos! Buscando metadados...");
+        setTmdbSearchQuery(extractedTitle);
+        searchMovies(extractedTitle).then(results => {
+          setSearchResults(results);
+        });
+      } else {
+        toast.success("Links extraídos com sucesso!");
+      }
     }
   };
 
@@ -547,26 +538,6 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
 
   return (
     <Card className="p-6 bg-card border-border">
-      {/* Smart Import Section */}
-      <div className="mb-8 p-4 bg-primary/5 rounded-lg border border-primary/10">
-        <div className="flex items-center gap-2 mb-2 text-primary">
-          <Sparkles className="w-5 h-5" />
-          <h3 className="font-bold">Importação Inteligente (Texto/WhatsApp)</h3>
-        </div>
-        <p className="text-xs text-muted-foreground mb-3">
-          Cole o texto completo com Título e Links (Google Drive, APIs, Embeds).<br />
-          O sistema detectará automaticamente se é Filme ou Série (padrão 1x1, 1x2...) e preencherá tudo.
-        </p>
-        <Textarea
-          value={smartConfigText}
-          onChange={e => setSmartConfigText(e.target.value)}
-          placeholder={`Exemplo Filme:\nTodo Mundo Em Pânico 3\nhttps://googleapis...\nhttps://embedder...\n\nExemplo Série:\nThe Last of Us\n1x1\nhttps://...\n1x2\n...`}
-          className="min-h-[120px] bg-background font-mono text-xs mb-3"
-        />
-        <Button onClick={handleSmartProcess} className="w-full gap-2">
-          <Sparkles className="w-4 h-4" /> Processar e Preencher Automaticamente
-        </Button>
-      </div>
 
       <h2 className="text-xl font-semibold text-foreground mb-4">Adicionar/Editar Conteúdo</h2>
 
@@ -1382,50 +1353,88 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           )
         }
 
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label>Idioma</Label>
-            <Input
-              value={editingContent.language || ''}
-              onChange={(e) => setEditingContent(prev => ({ ...prev, language: e.target.value }))}
-              className="bg-input border-border"
-            />
-          </div>
-          <div>
-            <Label>Data de Lançamento</Label>
-            <Input
-              type="date"
-              value={editingContent.release_date || ''}
-              onChange={(e) => setEditingContent(prev => ({ ...prev, release_date: e.target.value }))}
-              className="bg-input border-border"
-            />
-          </div>
+      </div>
+
+      {/* Smart Import Section - MOVED HERE */}
+      <div className="mt-8 p-6 bg-[#1a1c23] rounded-xl border border-primary/20 shadow-lg shadow-primary/5">
+        <div className="flex items-center gap-2 mb-4 text-primary">
+          <Sparkles className="w-5 h-5" />
+          <h3 className="font-bold text-lg">Importação Inteligente (Texto/WhatsApp)</h3>
         </div>
 
-        {/* Notification Toggle */}
-        <div className="flex items-center justify-between p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-          <div className="flex items-center gap-2">
-            <div className={`p-2 rounded-full ${sendNotification ? 'bg-blue-500/20 text-blue-500' : 'bg-muted text-muted-foreground'}`}>
-              <Bell className={`w-5 h-5 ${sendNotification ? 'fill-current' : ''}`} />
-            </div>
-            <div className="flex flex-col">
-              <Label htmlFor="sendNotification" className="cursor-pointer font-medium text-base">Enviar Notificação aos Usuários</Label>
-              <span className="text-xs text-muted-foreground">Notificar todos os usuários sobre este conteúdo</span>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+          <div className="space-y-3">
+            <p className="text-sm text-gray-400">
+              Cole o texto completo com Título e Links (Google Drive, APIs, Embeds).
+              O sistema detectará automaticamente se é Filme ou Série e organizará os episódios.
+            </p>
+            <div className="bg-secondary/20 p-3 rounded-lg border border-border/50">
+              <p className="text-[11px] font-bold text-primary mb-2 uppercase tracking-wider">Formato Suportado:</p>
+              <div className="space-y-2 font-mono text-[10px] text-gray-500">
+                <p className="text-gray-300">Temporada 1</p>
+                <p>1. Nome do Episódio - URL</p>
+                <p>2. Outro Episódio - URL</p>
+              </div>
             </div>
           </div>
-          <Switch
-            id="sendNotification"
-            checked={sendNotification}
-            onCheckedChange={setSendNotification}
-            className="data-[state=checked]:bg-blue-600"
+
+          <Textarea
+            value={smartConfigText}
+            onChange={e => setSmartConfigText(e.target.value)}
+            placeholder={`Cole seu texto aqui...\n\nExemplo:\nTodo Mundo Em Pânico 3\nhttps://...\n\nOu:\nTemporada 1\n1. Piloto - https://...`}
+            className="min-h-[160px] bg-background border-border focus:border-primary/50 font-mono text-xs"
           />
         </div>
 
-        <Button onClick={() => handleSave(sendNotification)} className="w-full bg-primary hover:bg-primary/90 glow-effect-hover">
-          <Save className="w-4 h-4 mr-2" />
-          Salvar Conteúdo
+        <Button onClick={handleSmartProcess} className="w-full h-12 gap-2 bg-primary hover:bg-primary/90 text-white font-bold text-base shadow-[0_0_15px_rgba(16,185,129,0.3)]">
+          <Sparkles className="w-5 h-5" /> Processar e Preencher Agora
         </Button>
-      </div >
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Idioma</Label>
+          <Input
+            value={editingContent.language || ''}
+            onChange={(e) => setEditingContent(prev => ({ ...prev, language: e.target.value }))}
+            className="bg-input border-border"
+          />
+        </div>
+        <div>
+          <Label>Data de Lançamento</Label>
+          <Input
+            type="date"
+            value={editingContent.release_date || ''}
+            onChange={(e) => setEditingContent(prev => ({ ...prev, release_date: e.target.value }))}
+            className="bg-input border-border"
+          />
+        </div>
+      </div>
+
+      {/* Notification Toggle */}
+      <div className="flex items-center justify-between p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+        <div className="flex items-center gap-2">
+          <div className={`p-2 rounded-full ${sendNotification ? 'bg-blue-500/20 text-blue-500' : 'bg-muted text-muted-foreground'}`}>
+            <Bell className={`w-5 h-5 ${sendNotification ? 'fill-current' : ''}`} />
+          </div>
+          <div className="flex flex-col">
+            <Label htmlFor="sendNotification" className="cursor-pointer font-medium text-base">Enviar Notificação aos Usuários</Label>
+            <span className="text-xs text-muted-foreground">Notificar todos os usuários sobre este conteúdo</span>
+          </div>
+        </div>
+        <Switch
+          id="sendNotification"
+          checked={sendNotification}
+          onCheckedChange={setSendNotification}
+          className="data-[state=checked]:bg-blue-600"
+        />
+      </div>
+
+      <Button onClick={() => handleSave(sendNotification)} className="w-full bg-primary hover:bg-primary/90 glow-effect-hover">
+        <Save className="w-4 h-4 mr-2" />
+        Salvar Conteúdo
+      </Button>
+    </div >
     </Card >
   );
 };
