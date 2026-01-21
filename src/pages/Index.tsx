@@ -161,23 +161,16 @@ const Index = () => {
   const toggleAudio = () => setIsMuted(!isMuted);
 
   const handlePlayContent = (content: Content) => {
-    const playerState = {
-      open: true,
-      url: content.video_url || '',
-      urls: content.video_urls,
-      title: content.title,
-      isPremium: content.isPremium,
-      image: content.thumbnail_url,
-      internalUrl: content.internal_player_url,
-      description: content.description,
-      rating: content.rating
-    };
+    if (content.category === 'series') {
+      setSelectedSeries(content);
+      return;
+    }
 
     if (content.is_cinema_mode) {
-      setPendingPlayerState(playerState);
+      setPendingPlayerState({ ...content, contentId: content.id });
       setShowCinemaModal(true);
     } else {
-      setPlayerModal(playerState);
+      navigate(`/watch/${content.id}`);
     }
   };
 
@@ -186,7 +179,7 @@ const Index = () => {
   };
 
   const handleDetailsContent = (content: Content) => {
-    navigate(`/content/${content.id}`);
+    handlePlayContent(content);
   };
 
   const handleDownloadContent = (content: Content) => {

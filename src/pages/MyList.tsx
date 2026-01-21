@@ -8,6 +8,8 @@ import { getMyList, removeFromMyList, getAllContents, addToMyList } from '@/lib/
 import { QuickViewModal } from '@/components/QuickViewModal';
 import { toast } from 'sonner';
 import { Heart, Trash2 } from 'lucide-react';
+import { EpisodeSelector } from '@/components/EpisodeSelector';
+import { CinemaWarningModal } from '@/components/CinemaWarningModal';
 import type { MyListItem } from '@/types/user';
 import type { Content } from '@/types/content';
 
@@ -19,6 +21,9 @@ const MyList = () => {
   const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, internalUrl?: string }>({ open: false, url: '', title: '', isPremium: false });
   const [suggestions, setSuggestions] = useState<Content[]>([]);
   const [quickViewContent, setQuickViewContent] = useState<Content | null>(null);
+  const [selectedSeries, setSelectedSeries] = useState<Content | null>(null);
+  const [showCinemaModal, setShowCinemaModal] = useState(false);
+  const [pendingPlayerState, setPendingPlayerState] = useState<any>(null);
 
 
   useEffect(() => {
@@ -79,17 +84,17 @@ const MyList = () => {
   };
 
   const handlePlayContent = (item: MyListItem) => {
-    if (item.content.category === 'series') {
-      // If we had an episode selector here, we would use it. 
-      // For now, redirect to details page where they can pick an episode.
-      navigate(`/content/${item.content.id}`);
-    } else if (item.content.category === 'movie') {
-      navigate(`/watch/${item.content.id}`);
-    } else if (item.content.video_url) {
-      // TV Channels or others - keep modal
-      setPlayerModal({ open: true, url: item.content.video_url, urls: item.content.video_urls, title: item.content.title, isPremium: item.content.isPremium, image: item.content.thumbnail_url, description: item.content.description, rating: item.content.rating });
+    const content = item.content;
+    if (content.category === 'series') {
+      setSelectedSeries(content);
+      return;
+    }
+
+    if (content.is_cinema_mode) {
+      setPendingPlayerState({ ...content, contentId: content.id });
+      setShowCinemaModal(true);
     } else {
-      toast.error('Link de vídeo não disponível');
+      navigate(`/watch/${content.id}`);
     }
   };
 
@@ -98,7 +103,7 @@ const MyList = () => {
   };
 
   const handleDetailsContent = (item: MyListItem) => {
-    navigate(`/content/${item.content.id}`);
+    handlePlayContent(item);
   };
 
   if (authLoading || loading) {
@@ -169,64 +174,43 @@ const MyList = () => {
         )}
       </div>
 
-      {/* Main Player Modal */}
-      <ContentPlayerModal
-        open={playerModal.open}
-        onClose={() => setPlayerModal({ open: false, url: '', title: '', isPremium: false })}
-        videoUrl={playerModal.url}
-        videoUrls={playerModal.urls}
-        title={playerModal.title}
-        isPremium={playerModal.isPremium}
-        image={playerModal.image}
-        description={playerModal.description}
-        rating={playerModal.rating}
-        internalPlayerUrl={playerModal.internalUrl}
-        suggestions={suggestions}
-        onPlayContent={(c) => {
-          if (c.category === 'movie') {
-            navigate(`/watch/${c.id}`);
-          } else if (c.video_url || c.internal_player_url) {
-            setPlayerModal({
-              open: true,
-              url: c.video_url || '',
-              urls: c.video_urls,
-              title: c.title,
-              isPremium: c.isPremium,
-              image: c.thumbnail_url,
-              description: c.description,
-              rating: c.rating,
-              internalUrl: c.internal_player_url
-            });
-          }
-        }}
-        onAddToMyList={handleAddSuggestionToList}
-      />
+      {selectedSeries && (
+        <EpisodeSelector
+          open={!!selectedSeries}
+          onClose={() => setSelectedSeries(null)}
+          episodes={selectedSeries.episodes || []}
+          title={selectedSeries.title}
+          trailerUrl={selectedSeries.trailer_url}
+          onPlayEpisode={(url, episodeTitle) => {
+            const foundEp = selectedSeries.episodes?.find(e => e.url === url);
+            if (foundEp) {
+              const watchUrl = `/watch/${selectedSeries.id}?season=${foundEp.season}&episode=${foundEp.episode}`;
+              if (selectedSeries.is_cinema_mode) {
+                setPendingPlayerState({ contentId: selectedSeries.id, season: foundEp.season, episode: foundEp.episode });
+                setShowCinemaModal(true);
+              } else {
+                navigate(watchUrl);
+              }
+            }
+          }}
+        />
+      )}
 
-      {/* Quick View Modal */}
-      <QuickViewModal
-        open={!!quickViewContent}
-        content={quickViewContent}
-        onClose={() => setQuickViewContent(null)}
-        onPlay={(content) => {
-          // QuickViewModal internal logic now handles navigation for movies/series
-          // But if it falls back here (e.g. for TV or special cases), we handle it
-          if (content.category === 'series') {
-            navigate(`/content/${content.id}`);
-          } else if (content.category === 'movie') {
-            navigate(`/watch/${content.id}`);
-          } else if (content.video_url) {
-            setPlayerModal({
-              open: true,
-              url: content.video_url,
-              urls: content.video_urls,
-              title: content.title,
-              isPremium: content.isPremium,
-              image: content.thumbnail_url,
-              description: content.description,
-              rating: content.rating
-            });
+      <CinemaWarningModal
+        open={showCinemaModal}
+        onClose={() => setShowCinemaModal(false)}
+        onConfirm={() => {
+          if (pendingPlayerState) {
+            let watchUrl = '';
+            if (pendingPlayerState.season && pendingPlayerState.episode) {
+              watchUrl = `/watch/${pendingPlayerState.contentId}?season=${pendingPlayerState.season}&episode=${pendingPlayerState.episode}`;
+            } else if (pendingPlayerState.contentId) {
+              watchUrl = `/watch/${pendingPlayerState.contentId}`;
+            }
+            navigate(watchUrl);
+            setPendingPlayerState(null);
+            setShowCinemaModal(false);
           }
-          setQuickViewContent(null);
         }}
       />
     </div>

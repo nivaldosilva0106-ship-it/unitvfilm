@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { Film, MonitorPlay, Tv, Lock, Unlock, Filter, PlayCircle } from "lucide-react";
 import { AdManager } from "@/components/AdManager";
 import { useNavigate } from "react-router-dom";
+import { CinemaWarningModal } from "@/components/CinemaWarningModal";
 
 const GENRES = ['Ação', 'Aventura', 'Comédia', 'Drama', 'Terror', 'Romance', 'Ficção', 'Animação', 'Documentário', 'Infantil', 'Fantasia', 'Suspense'];
 
@@ -34,6 +35,8 @@ export default function Categories() {
     const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], internalUrl?: string, title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string }>({ open: false, url: '', title: '', isPremium: false });
     const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, title: string, thumbnail: string, download_mode?: 'direct' | 'torrent' | 'mixed', downloads?: any[] }>({ open: false, url: '', title: '', thumbnail: '' });
     const [quickViewContent, setQuickViewContent] = useState<Content | null>(null);
+    const [showCinemaModal, setShowCinemaModal] = useState(false);
+    const [pendingPlayerState, setPendingPlayerState] = useState<any>(null);
 
     useEffect(() => {
         loadData();
@@ -78,27 +81,16 @@ export default function Categories() {
 
     // Handlers
     const handlePlayContent = (content: Content) => {
-        if (content.category === 'series' && content.episodes && content.episodes.length > 0) {
+        if (content.category === 'series') {
             setSelectedSeries(content);
-        } else if (content.category === 'nostalgia') {
-            navigate(`/nostalgia/${content.id}`);
-        } else if (content.category === 'movie') {
-            navigate(`/watch/${content.id}`);
-        } else if (content.video_url || content.internal_player_url) {
-            // TV or others
-            setPlayerModal({
-                open: true,
-                url: content.video_url,
-                urls: content.video_urls,
-                internalUrl: content.internal_player_url,
-                title: content.title,
-                isPremium: content.isPremium,
-                image: content.thumbnail_url,
-                description: content.description,
-                rating: content.rating
-            });
+            return;
+        }
+
+        if (content.is_cinema_mode) {
+            setPendingPlayerState({ ...content, contentId: content.id });
+            setShowCinemaModal(true);
         } else {
-            toast.error("Conteúdo indisponível");
+            navigate(`/watch/${content.id}`);
         }
     };
 
@@ -107,7 +99,7 @@ export default function Categories() {
     };
 
     const handleDetailsContent = (content: Content) => {
-        navigate(`/content/${content.id}`);
+        handlePlayContent(content);
     };
 
     const handleDownloadContent = (content: Content) => {
@@ -379,12 +371,29 @@ export default function Categories() {
                 thumbnail={downloadModal.thumbnail}
             />
 
-            {/* Quick View Modal */}
             <QuickViewModal
                 open={!!quickViewContent}
                 content={quickViewContent}
                 onClose={() => setQuickViewContent(null)}
                 onPlay={handlePlayContent}
+            />
+
+            <CinemaWarningModal
+                open={showCinemaModal}
+                onClose={() => setShowCinemaModal(false)}
+                onConfirm={() => {
+                    if (pendingPlayerState) {
+                        let watchUrl = '';
+                        if (pendingPlayerState.season && pendingPlayerState.episode) {
+                            watchUrl = `/watch/${pendingPlayerState.contentId}?season=${pendingPlayerState.season}&episode=${pendingPlayerState.episode}`;
+                        } else if (pendingPlayerState.contentId) {
+                            watchUrl = `/watch/${pendingPlayerState.contentId}`;
+                        }
+                        navigate(watchUrl);
+                        setPendingPlayerState(null);
+                        setShowCinemaModal(false);
+                    }
+                }}
             />
         </div>
     );

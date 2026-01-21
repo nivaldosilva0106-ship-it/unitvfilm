@@ -133,12 +133,18 @@ export const IndexHero = ({
                 {activeContent && (
                     <div className="w-full max-w-3xl mx-auto z-50 relative animate-in fade-in zoom-in duration-700">
                         <div className="bg-black/70 backdrop-blur-xl border border-white/10 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5 shadow-2xl hover:bg-black/80 transition-all">
-                            <div className="relative group shrink-0 w-32 sm:w-auto">
+                            <div
+                                className="relative group shrink-0 w-32 sm:w-auto cursor-pointer"
+                                onClick={() => handlePlayContent(activeContent)}
+                            >
                                 <img
                                     src={activeContent.thumbnail_url}
                                     alt={activeContent.title}
                                     className="w-full sm:w-28 sm:h-42 object-cover rounded-lg shadow-xl group-hover:scale-105 transition-transform duration-300 ring-1 ring-white/10"
                                 />
+                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
+                                    <Play className="w-8 h-8 text-white fill-current" />
+                                </div>
                             </div>
                             <div className="flex-1 min-w-0 flex flex-col justify-between h-full w-full text-center sm:text-left">
                                 <div className="mb-4 sm:mb-0">
