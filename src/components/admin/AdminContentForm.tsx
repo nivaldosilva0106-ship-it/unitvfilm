@@ -1247,7 +1247,107 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           </div >
         )}
 
-        {(isNostalgia || isSeries || isMovie) && (
+        {isNostalgia && (
+          <div className="space-y-4 p-4 border border-white/10 rounded-lg bg-black/20">
+            <div className="flex items-center justify-between">
+              <Label className="flex items-center gap-2">
+                <Film className="w-4 h-4" />
+                Episódios Google Drive (NostalgiaTube)
+              </Label>
+              <Button
+                type="button"
+                size="sm"
+                onClick={() => {
+                  const currentEpisodes = editingContent.episodes || [];
+                  const newEpisode: Episode = {
+                    season: 1,
+                    episode: currentEpisodes.length + 1,
+                    title: `Episódio ${currentEpisodes.length + 1}`,
+                    url: '',
+                    google_drive_url: ''
+                  };
+                  setEditingContent(prev => ({
+                    ...prev,
+                    episodes: [...currentEpisodes, newEpisode]
+                  }));
+                }}
+                className="bg-primary hover:bg-primary/90"
+              >
+                <Plus className="w-4 h-4 mr-1" />
+                Adicionar Episódio
+              </Button>
+            </div>
+            
+            <p className="text-xs text-muted-foreground">
+              Adicione URLs do Google Drive para cada episódio. A imagem de fundo (Backdrop) será usada como capa.
+            </p>
+
+            {editingContent.episodes && editingContent.episodes.length > 0 ? (
+              <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                {editingContent.episodes.map((ep, idx) => (
+                  <div key={idx} className="flex items-center gap-2 p-3 bg-black/30 rounded-lg border border-white/5">
+                    <div className="flex-shrink-0 w-8 h-8 bg-primary/20 rounded-full flex items-center justify-center text-primary text-sm font-bold">
+                      {idx + 1}
+                    </div>
+                    <div className="flex-1 space-y-2">
+                      <Input
+                        value={ep.title || ''}
+                        onChange={(e) => {
+                          const updated = [...(editingContent.episodes || [])];
+                          updated[idx] = { ...updated[idx], title: e.target.value };
+                          setEditingContent(prev => ({ ...prev, episodes: updated }));
+                        }}
+                        className="bg-input border-border h-8 text-sm"
+                        placeholder="Título do episódio"
+                      />
+                      <Input
+                        value={ep.google_drive_url || ''}
+                        onChange={(e) => {
+                          const updated = [...(editingContent.episodes || [])];
+                          updated[idx] = { ...updated[idx], google_drive_url: e.target.value };
+                          setEditingContent(prev => ({ ...prev, episodes: updated }));
+                        }}
+                        className="bg-input border-border h-8 text-sm"
+                        placeholder="https://drive.google.com/file/d/ID/view"
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => {
+                        const updated = editingContent.episodes?.filter((_, i) => i !== idx) || [];
+                        // Renumber episodes
+                        const renumbered = updated.map((e, i) => ({ ...e, episode: i + 1 }));
+                        setEditingContent(prev => ({ ...prev, episodes: renumbered }));
+                      }}
+                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10 h-8 w-8"
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4 border border-dashed border-white/10 rounded-lg">
+                Nenhum episódio adicionado. Clique em "Adicionar Episódio" para começar.
+              </p>
+            )}
+
+            {/* Fallback single URL for simple content */}
+            <div className="pt-3 border-t border-white/10">
+              <Label className="text-xs text-muted-foreground">URL Google Drive (Principal/Único)</Label>
+              <Input
+                value={editingContent.google_drive_url || ''}
+                onChange={(e) => setEditingContent(prev => ({ ...prev, google_drive_url: e.target.value }))}
+                className="bg-input border-border mt-1"
+                placeholder="https://drive.google.com/file/d/ID/view (para conteúdo único)"
+              />
+            </div>
+          </div>
+        )}
+
+        {(isSeries || isMovie) && (
           <div>
             <Label>URL Google Drive (Player Alternativo)</Label>
             <Input
