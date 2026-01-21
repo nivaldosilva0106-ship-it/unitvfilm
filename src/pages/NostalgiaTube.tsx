@@ -1162,52 +1162,53 @@ export default function NostalgiaTube(): JSX.Element {
                             </div>
                         )}
                     </div>
+                </div>
 
-                    <div className="relative z-10 mt-16 md:mt-24">
-                        <div className="container mx-auto px-4">
-                            {/* "Nostalgia" Section - Posts */}
-                            <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 flex items-center gap-2">
-                                <span className="text-primary uppercase tracking-wider">Nostalgia</span>
-                            </h2>
+                <div className="relative z-10 mt-16 md:mt-24">
+                    <div className="container mx-auto px-4">
+                        {/* "Nostalgia" Section - Posts */}
+                        <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6 flex items-center gap-2">
+                            <span className="text-primary uppercase tracking-wider">Nostalgia</span>
+                        </h2>
 
-                            <div className="flex gap-4 overflow-x-auto pb-4 modern-scrollbar snap-x">
-                                {contents.map((content) => (
-                                    <div
-                                        key={content.id}
-                                        className="bg-zinc-900/50 rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-300 border border-white/5 hover:border-primary/50 group/card min-w-[200px] md:min-w-[260px] snap-start relative z-10"
-                                        onClick={(e) => handlePostClick(e, content)}
-                                    >
-                                        <div className="aspect-[2/3] rounded-lg overflow-hidden border border-white/5 transition-transform duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-primary/20 pointer-events-none">
-                                            <img
-                                                src={content.thumbnail_url}
-                                                alt={content.title}
-                                                className="w-full h-full object-cover pointer-events-none"
-                                            />
-                                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
-                                                <Play className="w-10 h-10 md:w-12 md:h-12 text-white fill-current drop-shadow-lg scale-0 group-hover:scale-100 transition-transform duration-300 delay-75" />
-                                            </div>
+                        <div className="flex gap-4 overflow-x-auto pb-4 modern-scrollbar snap-x">
+                            {contents.map((content) => (
+                                <div
+                                    key={content.id}
+                                    className="bg-zinc-900/50 rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-300 border border-white/5 hover:border-primary/50 group/card min-w-[200px] md:min-w-[260px] snap-start relative z-10"
+                                    onClick={(e) => handlePostClick(e, content)}
+                                >
+                                    <div className="aspect-[2/3] rounded-lg overflow-hidden border border-white/5 transition-transform duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-primary/20 pointer-events-none">
+                                        <img
+                                            src={content.thumbnail_url}
+                                            alt={content.title}
+                                            className="w-full h-full object-cover pointer-events-none"
+                                        />
+                                        <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                                            <Play className="w-10 h-10 md:w-12 md:h-12 text-white fill-current drop-shadow-lg scale-0 group-hover:scale-100 transition-transform duration-300 delay-75" />
                                         </div>
-                                        <h3 className="mt-2 md:mt-3 text-xs md:text-sm font-medium leading-tight text-white group-hover:text-primary transition-colors line-clamp-2 p-2 pointer-events-none">
-                                            {content.title}
-                                        </h3>
                                     </div>
-                                ))}
-                            </div>
+                                    <h3 className="mt-2 md:mt-3 text-xs md:text-sm font-medium leading-tight text-white group-hover:text-primary transition-colors line-clamp-2 p-2 pointer-events-none">
+                                        {content.title}
+                                    </h3>
+                                </div>
+                            ))}
                         </div>
                     </div>
+                </div>
 
-                    {/* Download Modal - Relocated to end for better layering */}
-                    {currentContent && (
-                        <DownloadModal
-                            open={showDownloadModal}
-                            onClose={() => setShowDownloadModal(false)}
-                            title={currentContent.title}
-                            thumbnail={currentContent.thumbnail_url}
-                            downloadUrl={currentEpisode?.download_url || currentContent.download_url || ''}
-                            downloads={currentEpisode?.downloads || currentContent.downloads}
-                            download_mode={currentEpisode?.download_mode || currentContent.download_mode || 'direct'}
-                        />
-                    )}
+                {/* Download Modal - Relocated to end for better layering */}
+                {currentContent && (
+                    <DownloadModal
+                        open={showDownloadModal}
+                        onClose={() => setShowDownloadModal(false)}
+                        title={currentContent.title}
+                        thumbnail={currentContent.thumbnail_url}
+                        downloadUrl={currentEpisode?.download_url || currentContent.download_url || ''}
+                        downloads={currentEpisode?.downloads || currentContent.downloads}
+                        download_mode={currentEpisode?.download_mode || currentContent.download_mode || 'direct'}
+                    />
+                )}
             </main>
         </div>
     );
