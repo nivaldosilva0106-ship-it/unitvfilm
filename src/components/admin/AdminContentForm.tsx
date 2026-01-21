@@ -83,6 +83,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
         setEditingContent(prev => ({ ...prev, title: extractedTitle, category: 'series' }));
       }
 
+      const category = editingContent.category || 'series';
       const newEpisodes: Episode[] = [];
       let currentSeason = 1;
 
@@ -104,12 +105,6 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           const googleApiMatch = url.match(/https:\/\/(www\.)?googleapis\.com\/drive\/v3\/files\/[^\s]+/);
           const driveMatch = url.match(/https:\/\/drive\.google\.com\/file\/d\/([^\/]+)\/view/);
 
-          // Logic: If url is API link, use it. If drive link, use it.
-          // If url is something else (embed), put in `url`.
-          let internalUrl = ""; // For M3U8/Native players usually, but we use it for API too? 
-          // Actually VideoPlayer uses google_drive_url. internal_player_url is often used for MP4/HLS.
-          // We can put API link in google_drive_url (priority) AND internal_player_url (backup).
-
           let finalGoogleUrl = "";
           if (googleApiMatch) finalGoogleUrl = googleApiMatch[0];
           else if (driveMatch) finalGoogleUrl = driveMatch[0];
@@ -117,24 +112,31 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           let embedUrl = "";
           if (!finalGoogleUrl) embedUrl = url;
 
-          newEpisodes.push({
+          const episode: Episode = {
             season: currentSeason,
             episode: episodeNum,
             title: `Episódio ${episodeNum}`,
             url: embedUrl,
             internal_player_url: "",
-            google_drive_url: finalGoogleUrl, // Prioritized API link
+            google_drive_url: "",
             download_url: ""
-          });
-        }
-        // Also support old "1x1" format check just in case
-        else {
-          const oldFormat = line.match(/(\d+)x(\d+)/);
-          if (oldFormat) {
-            // ... existing logic for 1x1 ...
-            // For now, let's focus on the requested format.
-            // If mixed, it might be tricky. The user requested specifically the new format.
+          };
+
+          // Logic based on requested categories:
+          // Series: Google API URL goes to internal_player_url
+          // Nostalgia: Google API URL goes to google_drive_url
+          if (finalGoogleUrl) {
+            if (category === 'series') {
+              episode.internal_player_url = finalGoogleUrl;
+            } else if (category === 'nostalgia') {
+              episode.google_drive_url = finalGoogleUrl;
+            } else {
+              // Fallback for others (movies, etc if they use episodes?)
+              episode.google_drive_url = finalGoogleUrl;
+            }
           }
+
+          newEpisodes.push(episode);
         }
       }
 
@@ -148,8 +150,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     } else {
       // --- MOVIE PARSING (Existing logic + improvement) ---
       toast.info(`Processando Filme: ${extractedTitle}`);
-      setEditingContent(prev => ({ ...prev, title: extractedTitle, category: 'movie' }));
-
+      const category = editingContent.category || 'movie';
       const fullText = smartConfigText;
       // 1. Google APIs
       const googleApiMatch = fullText.match(/https:\/\/(www\.)?googleapis\.com\/drive\/v3\/files\/[^\s]+/);
@@ -162,11 +163,27 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       const allUrls = fullText.match(/https?:\/\/[^\s]+/g) || [];
       const externalUrls = allUrls.filter(u => u !== finalGoogleUrl);
 
-      setEditingContent(prev => ({
-        ...prev,
+      const updateData: Partial<Content> = {
+        title: extractedTitle,
+        category: category,
         video_url: externalUrls[0] || "",
         video_urls: externalUrls.length > 0 ? externalUrls : undefined,
-        google_drive_url: finalGoogleUrl
+      };
+
+      if (finalGoogleUrl) {
+        if (category === 'nostalgia') {
+          updateData.google_drive_url = finalGoogleUrl;
+        } else if (category === 'series') {
+          // Movies are rarely series, but if it's series category, use internal
+          updateData.internal_player_url = finalGoogleUrl;
+        } else {
+          updateData.google_drive_url = finalGoogleUrl;
+        }
+      }
+
+      setEditingContent(prev => ({
+        ...prev,
+        ...updateData
       }));
 
       // Trigger Search

@@ -29,6 +29,7 @@ declare global {
 }
 
 export default function NostalgiaTube(): JSX.Element {
+    console.log("NostalgiaTube UI Version: Custom Google Drive Refactor Active");
     const { id } = useParams();
     const navigate = useNavigate();
     const { user, currentProfile, checkAccess } = useAuth(); // Added checkAccess
