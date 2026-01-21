@@ -1246,31 +1246,33 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
 
         {
           !isTV && (
-            <div>
-              <Label>URL do Trailer</Label>
-              <Input
-                value={editingContent.trailer_url || ''}
-                onChange={(e) => setEditingContent(prev => ({ ...prev, trailer_url: e.target.value }))}
-                className="bg-input border-border"
-                placeholder="https://youtube.com/... (preenchido automaticamente)"
-              />
-            </div>
+            <>
+              <div>
+                <Label>URL do Trailer</Label>
+                <Input
+                  value={editingContent.trailer_url || ''}
+                  onChange={(e) => setEditingContent(prev => ({ ...prev, trailer_url: e.target.value }))}
+                  className="bg-input border-border"
+                  placeholder="https://youtube.com/... (preenchido automaticamente)"
+                />
+              </div>
 
-            {isNostalgia && (
-          <div className="mt-4">
-            <Label className="text-blue-400">URL Google Drive (Player Iframe)</Label>
-            <Input
-              value={editingContent.google_drive_url || ''}
-              onChange={(e) => setEditingContent(prev => ({ ...prev, google_drive_url: e.target.value }))}
-              className="bg-input border-blue-500/30 text-blue-100"
-              placeholder="https://drive.google.com/file/d/ID/preview"
-            />
-            <p className="text-[10px] text-muted-foreground mt-1 italic">
-              Este player secundário será usado na página NostalgiaTube se o vídeo for carregado do Drive.
-            </p>
-          </div>
-        )}
-        )
+              {isNostalgia && (
+                <div className="mt-4">
+                  <Label className="text-blue-400">URL Google Drive (Player Iframe)</Label>
+                  <Input
+                    value={editingContent.google_drive_url || ''}
+                    onChange={(e) => setEditingContent(prev => ({ ...prev, google_drive_url: e.target.value }))}
+                    className="bg-input border-blue-500/30 text-blue-100"
+                    placeholder="https://drive.google.com/file/d/ID/preview"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1 italic">
+                    Este player secundário será usado na página NostalgiaTube se o vídeo for carregado do Drive.
+                  </p>
+                </div>
+              )}
+            </>
+          )
         }
 
         {
