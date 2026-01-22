@@ -114,6 +114,15 @@ const Index = () => {
     const actionAdventure = allContentData.filter(c => c.genre?.some(g => g.toLowerCase().includes('ação') || g.toLowerCase().includes('aventura')));
     const comedyHorror = allContentData.filter(c => c.genre?.some(g => g.toLowerCase().includes('comédia') || g.toLowerCase().includes('terror')));
 
+    const recentReleases = allContentData.filter(c => {
+      const releaseYear = c.year || (c.release_date ? new Date(c.release_date).getFullYear() : 0);
+      const currentYear = new Date().getFullYear();
+      return releaseYear === currentYear;
+    });
+
+    const dramaCrime = allContentData.filter(c => c.genre?.some(g => ['drama', 'crime'].includes(g.toLowerCase())));
+    const comedyRomance = allContentData.filter(c => c.genre?.some(g => ['comédia', 'romance'].includes(g.toLowerCase())));
+
     let singleRow: Content[] | null = null;
     let singleRowTitle = '';
 
@@ -133,24 +142,38 @@ const Index = () => {
       }
     }
 
-    return { featured, topRated, movies, series, tvChannels, nostalgia, actionAdventure, comedyHorror, singleRow, singleRowTitle };
+    return { featured, topRated, movies, series, tvChannels, nostalgia, actionAdventure, comedyHorror, recentReleases, dramaCrime, comedyRomance, singleRow, singleRowTitle };
   }, [allContentData, selectedCategory]);
 
   const randomSections = useMemo(() => {
     if (selectedCategory !== 'Todos') return [];
 
-    const sections = [
-      { id: 'featured', type: 'marquee', title: 'Em Destaque', data: [...categorizedContent.featured].sort(() => Math.random() - 0.5), showNumbers: true },
+    const featuredSection = {
+      id: 'featured',
+      type: 'marquee',
+      title: 'Em Destaque',
+      data: categorizedContent.featured,
+      showNumbers: true
+    };
+
+    const shufflableSections = [
+      { id: 'recent', type: 'row', title: 'Lançamentos Recentes', data: [...categorizedContent.recentReleases].sort(() => Math.random() - 0.5), showNumbers: false },
       { id: 'topRated', type: 'row', title: 'Mais Assistidos', data: [...categorizedContent.topRated].sort(() => Math.random() - 0.5), showNumbers: false },
       { id: 'movies', type: 'row', title: 'Filmes', data: [...categorizedContent.movies].sort(() => Math.random() - 0.5), showNumbers: false },
       { id: 'series', type: 'row', title: 'Séries', data: [...categorizedContent.series].sort(() => Math.random() - 0.5), showNumbers: false },
       { id: 'nostalgia', type: 'row', title: 'Nostalgia', data: [...categorizedContent.nostalgia].sort(() => Math.random() - 0.5), showNumbers: false },
       { id: 'action', type: 'row', title: 'Ação e Aventura', data: [...categorizedContent.actionAdventure].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'dramaCrime', type: 'row', title: 'Drama & Crime', data: [...categorizedContent.dramaCrime].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'comedyRomance', type: 'row', title: 'Comédia & Romance', data: [...categorizedContent.comedyRomance].sort(() => Math.random() - 0.5), showNumbers: false },
       { id: 'comedy', type: 'row', title: 'Comédia e Terror', data: [...categorizedContent.comedyHorror].sort(() => Math.random() - 0.5), showNumbers: false },
       { id: 'tv', type: 'row', title: 'TV ao Vivo', data: [...categorizedContent.tvChannels].sort(() => Math.random() - 0.5), showNumbers: false },
     ].filter(s => s.data.length > 0);
 
-    return sections.sort(() => Math.random() - 0.5);
+    // Shuffle only the non-featured sections
+    const shuffled = shufflableSections.sort(() => Math.random() - 0.5);
+
+    // Return Featured first + Shuffled sections
+    return [featuredSection, ...shuffled];
   }, [categorizedContent, selectedCategory]);
 
   const currentTrailer = trailerContents[currentTrailerIndex] || null;
