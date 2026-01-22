@@ -223,8 +223,13 @@ const Index = () => {
     setQuickViewContent(content);
   };
 
+  // When clicking the card itself (not the play button)
   const handleDetailsContent = (content: Content) => {
-    handlePlayContent(content);
+    if (content.category === 'nostalgia') {
+      navigate(`/nostalgia/${content.main_video_id || content.id}`);
+      return;
+    }
+    navigate(`/content/${content.id}`);
   };
 
   const handleDownloadContent = (content: Content) => {
