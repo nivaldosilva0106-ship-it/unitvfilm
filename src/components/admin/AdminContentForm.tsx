@@ -423,59 +423,81 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       const proxyPath = `/comandoplay${url.pathname}${url.search}`;
       const response = await fetch(proxyPath);
 
-      if (!response.ok) throw new Error("Falha ao acessar o site");
+      if (!response.ok) throw new Error("Falha ao acessar o site (Bloqueio ou 404)");
 
       const html = await response.text();
       const parser = new DOMParser();
       const doc = parser.parseFromString(html, 'text/html');
 
       const episodes: Episode[] = [];
-      const episodeElements = doc.querySelectorAll('.episodios li, .les-content li');
+
+      // Selectors for various Dooplay/Streaming themes
+      const episodeElements = doc.querySelectorAll('.episodios li, .les-content li, .se-a li, .se-v li, ul.lista-episodios > li');
+
+      console.log(`Encontrados ${episodeElements.length} elementos de lista.`);
 
       episodeElements.forEach((el) => {
-        const titleEl = el.querySelector('.ep-t, .title');
-        const numEl = el.querySelector('.ep-n, .num');
+        // Try multiple selectors for Title and Number
+        const titleEl = el.querySelector('.ep-t, .title, .episodiotitle a, .episodiotitle, h3, .nome');
+        const numEl = el.querySelector('.ep-n, .num, .numerando, .numero, .c-ep');
 
         let epTitle = titleEl?.textContent?.trim() || "";
         let epNumText = numEl?.textContent?.trim() || "";
 
-        if (epTitle) {
-          const match = epTitle.match(/Temporada\s*(\d+)\s*Episódio\s*(\d+)\s*:\s*(.*)/i);
-          if (match) {
-            episodes.push({
-              season: parseInt(match[1]),
-              episode: parseInt(match[2]),
-              title: match[3].trim(),
-              url: "",
-              download_url: ""
-            });
+        // Fallback: Check if title contains the number (e.g. "1x1 - Pilot")
+        if (!epNumText && epTitle.match(/^\d+x\d+/)) {
+          epNumText = epTitle.split('-')[0].trim();
+        }
+
+        let season = 1;
+        let episode = episodes.length + 1;
+        let finalTitle = epTitle;
+
+        // PARSING LOGIC
+        // 1. Try parsing "Season x Episode" from number element (Classic Dooplay: "1 x 1")
+        if (epNumText) {
+          const sxMatch = epNumText.match(/(\d+)\s*x\s*(\d+)/i);
+          if (sxMatch) {
+            season = parseInt(sxMatch[1]);
+            episode = parseInt(sxMatch[2]);
           } else {
-            const sMatch = epNumText.match(/(\d+)x(\d+)/i) || epTitle.match(/(\d+)x(\d+)/i);
-            if (sMatch) {
-              episodes.push({
-                season: parseInt(sMatch[1]),
-                episode: parseInt(sMatch[2]),
-                title: epTitle.includes(':') ? epTitle.split(':')[1].trim() : epTitle,
-                url: "",
-                download_url: ""
-              });
-            } else {
-              episodes.push({
-                season: 1,
-                episode: episodes.length + 1,
-                title: epTitle,
-                url: "",
-                download_url: ""
-              });
-            }
+            // Just an episode number?
+            const eMatch = epNumText.match(/(\d+)/);
+            if (eMatch) episode = parseInt(eMatch[1]);
           }
         }
+
+        // 2. Try parsing from Title if specific format "Temporada X Episódio Y : Nome"
+        const fullMatch = epTitle.match(/Temporada\s*(\d+)\s*Episódio\s*(\d+)\s*[:|-]?\s*(.*)/i);
+        if (fullMatch) {
+          season = parseInt(fullMatch[1]);
+          episode = parseInt(fullMatch[2]);
+          finalTitle = fullMatch[3].trim();
+        } else {
+          // Cleanup title if it starts with "1x1" or "Episódio 1"
+          finalTitle = finalTitle.replace(/^(\d+)\s*x\s*(\d+)\s*[-:]?\s*/i, '')
+            .replace(/^Episódio\s*\d+\s*[-:]?\s*/i, '')
+            .trim();
+        }
+
+        // If title ends up empty, make a generic one
+        if (!finalTitle) finalTitle = `Episódio ${episode}`;
+
+        episodes.push({
+          season,
+          episode,
+          title: finalTitle,
+          url: "",
+          download_url: ""
+        });
       });
 
       if (episodes.length === 0) {
+        // Fallback to Scripts (JSON-LD or internal JS vars)
         const scriptTags = Array.from(doc.querySelectorAll('script'));
         scriptTags.forEach(s => {
           if (s.innerHTML.includes('episodes')) {
+            // Common pattern in some themes
             const matches = s.innerHTML.matchAll(/"title":"Temporada\s*(\d+)\s*Episódio\s*(\d+)\s*:\s*([^"]+)"/gi);
             for (const match of matches) {
               episodes.push({
@@ -491,7 +513,14 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       }
 
       if (episodes.length > 0) {
+        // Deduplicate
         const uniqueEpisodes = episodes.filter((v, i, a) => a.findIndex(t => (t.season === v.season && t.episode === v.episode)) === i);
+
+        // Sort
+        uniqueEpisodes.sort((a, b) => {
+          if (a.season !== b.season) return a.season - b.season;
+          return a.episode - b.episode;
+        });
 
         setEditingContent(prev => ({
           ...prev,
@@ -499,11 +528,11 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
         }));
         toast.success(`Sucesso! ${uniqueEpisodes.length} episódios importados.`);
       } else {
-        toast.error("Não foram encontrados episódios no link. Verifique se a página contém a lista de episódios.");
+        toast.error("Não foram encontrados episódios. O layout do site pode ter mudado.");
       }
     } catch (error) {
       console.error("Erro na importação ComandoPlay:", error);
-      toast.error("Erro ao importar. Tente novamente mais tarde.");
+      toast.error("Erro ao importar. Verifique se o link está acessível.");
     } finally {
       setIsImportingComando(false);
       toast.dismiss(loadId);
