@@ -140,14 +140,14 @@ const Index = () => {
     if (selectedCategory !== 'Todos') return [];
 
     const sections = [
-      { id: 'featured', type: 'marquee', title: 'Em Destaque', data: categorizedContent.featured, showNumbers: true },
-      { id: 'topRated', type: 'row', title: 'Mais Assistidos', data: categorizedContent.topRated, showNumbers: false },
-      { id: 'movies', type: 'row', title: 'Filmes', data: categorizedContent.movies, showNumbers: false },
-      { id: 'series', type: 'row', title: 'Séries', data: categorizedContent.series, showNumbers: false },
-      { id: 'nostalgia', type: 'row', title: 'Nostalgia', data: categorizedContent.nostalgia, showNumbers: false },
-      { id: 'action', type: 'row', title: 'Ação e Aventura', data: categorizedContent.actionAdventure, showNumbers: false },
-      { id: 'comedy', type: 'row', title: 'Comédia e Terror', data: categorizedContent.comedyHorror, showNumbers: false },
-      { id: 'tv', type: 'row', title: 'TV ao Vivo', data: categorizedContent.tvChannels, showNumbers: false },
+      { id: 'featured', type: 'marquee', title: 'Em Destaque', data: [...categorizedContent.featured].sort(() => Math.random() - 0.5), showNumbers: true },
+      { id: 'topRated', type: 'row', title: 'Mais Assistidos', data: [...categorizedContent.topRated].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'movies', type: 'row', title: 'Filmes', data: [...categorizedContent.movies].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'series', type: 'row', title: 'Séries', data: [...categorizedContent.series].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'nostalgia', type: 'row', title: 'Nostalgia', data: [...categorizedContent.nostalgia].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'action', type: 'row', title: 'Ação e Aventura', data: [...categorizedContent.actionAdventure].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'comedy', type: 'row', title: 'Comédia e Terror', data: [...categorizedContent.comedyHorror].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'tv', type: 'row', title: 'TV ao Vivo', data: [...categorizedContent.tvChannels].sort(() => Math.random() - 0.5), showNumbers: false },
     ].filter(s => s.data.length > 0);
 
     return sections.sort(() => Math.random() - 0.5);
