@@ -136,6 +136,23 @@ const Index = () => {
     return { featured, topRated, movies, series, tvChannels, nostalgia, actionAdventure, comedyHorror, singleRow, singleRowTitle };
   }, [allContentData, selectedCategory]);
 
+  const randomSections = useMemo(() => {
+    if (selectedCategory !== 'Todos') return [];
+
+    const sections = [
+      { id: 'featured', type: 'marquee', title: 'Em Destaque', data: categorizedContent.featured, showNumbers: true },
+      { id: 'topRated', type: 'row', title: 'Mais Assistidos', data: categorizedContent.topRated, showNumbers: false },
+      { id: 'movies', type: 'row', title: 'Filmes', data: categorizedContent.movies, showNumbers: false },
+      { id: 'series', type: 'row', title: 'Séries', data: categorizedContent.series, showNumbers: false },
+      { id: 'nostalgia', type: 'row', title: 'Nostalgia', data: categorizedContent.nostalgia, showNumbers: false },
+      { id: 'action', type: 'row', title: 'Ação e Aventura', data: categorizedContent.actionAdventure, showNumbers: false },
+      { id: 'comedy', type: 'row', title: 'Comédia e Terror', data: categorizedContent.comedyHorror, showNumbers: false },
+      { id: 'tv', type: 'row', title: 'TV ao Vivo', data: categorizedContent.tvChannels, showNumbers: false },
+    ].filter(s => s.data.length > 0);
+
+    return sections.sort(() => Math.random() - 0.5);
+  }, [categorizedContent, selectedCategory]);
+
   const currentTrailer = trailerContents[currentTrailerIndex] || null;
 
   /* AGGRESSIVE UNMUTE Logic */
@@ -268,104 +285,36 @@ const Index = () => {
       <div className="pt-4 pb-16">
         {showAllRows && (
           <>
-            {categorizedContent.featured.length > 0 && (
-              <MarqueeContentRow
-                title="Em Destaque"
-                contents={categorizedContent.featured}
-                onPlayContent={handlePlayContent}
-                onInfoContent={handleInfoContent}
-                onDetailsContent={handleDetailsContent}
-                onDownloadContent={handleDownloadContent}
-                showNumbers={true}
-                hideDownloadIcon={true}
-              />
-            )}
-
-            {categorizedContent.topRated.length > 0 && (
-              <ContentRow
-                title="Mais Assistidos"
-                contents={categorizedContent.topRated}
-                onPlayContent={handlePlayContent}
-                onInfoContent={handleInfoContent}
-                onDetailsContent={handleDetailsContent}
-                onDownloadContent={handleDownloadContent}
-                hideDownloadIcon={true}
-              />
-            )}
-
-            {categorizedContent.movies.length > 0 && (
-              <ContentRow
-                title="Filmes"
-                contents={categorizedContent.movies}
-                onPlayContent={handlePlayContent}
-                onInfoContent={handleInfoContent}
-                onDetailsContent={handleDetailsContent}
-                onDownloadContent={handleDownloadContent}
-                hideDownloadIcon={true}
-              />
-            )}
-
-            <AdManager placement="between-content" className="container mx-auto px-4" />
-
-            {categorizedContent.series.length > 0 && (
-              <ContentRow
-                title="Séries"
-                contents={categorizedContent.series}
-                onPlayContent={handlePlayContent}
-                onInfoContent={handleInfoContent}
-                onDetailsContent={handleDetailsContent}
-                onDownloadContent={handleDownloadContent}
-                hideDownloadIcon={true}
-              />
-            )}
-
-            {categorizedContent.nostalgia.length > 0 && (
-              <ContentRow
-                title="Nostalgia"
-                contents={categorizedContent.nostalgia}
-                onPlayContent={handlePlayContent}
-                onInfoContent={handleInfoContent}
-                onDetailsContent={handleDetailsContent}
-                onDownloadContent={handleDownloadContent}
-                hideDownloadIcon={true}
-              />
-            )}
-
-            {categorizedContent.actionAdventure.length > 0 && (
-              <ContentRow
-                title="Ação e Aventura"
-                contents={categorizedContent.actionAdventure}
-                onPlayContent={handlePlayContent}
-                onInfoContent={handleInfoContent}
-                onDetailsContent={handleDetailsContent}
-                onDownloadContent={handleDownloadContent}
-                hideDownloadIcon={true}
-              />
-            )}
-
-            {categorizedContent.comedyHorror.length > 0 && (
-              <ContentRow
-                title="Comédia e Terror"
-                contents={categorizedContent.comedyHorror}
-                onPlayContent={handlePlayContent}
-                onInfoContent={handleInfoContent}
-                onDetailsContent={handleDetailsContent}
-                onDownloadContent={handleDownloadContent}
-                hideDownloadIcon={true}
-              />
-            )}
-
-            {categorizedContent.tvChannels.length > 0 && (
-              <ContentRow
-                title="TV ao Vivo"
-                contents={categorizedContent.tvChannels}
-                onPlayContent={handlePlayContent}
-                onInfoContent={handleInfoContent}
-                onDetailsContent={handleDetailsContent}
-                onDownloadContent={handleDownloadContent}
-                hideDownloadIcon={true}
-              />
-            )}
+            {randomSections.map((section, index) => (
+              <React.Fragment key={section.id}>
+                {section.type === 'marquee' ? (
+                  <MarqueeContentRow
+                    title={section.title}
+                    contents={section.data}
+                    onPlayContent={handlePlayContent}
+                    onInfoContent={handleInfoContent}
+                    onDetailsContent={handleDetailsContent}
+                    onDownloadContent={handleDownloadContent}
+                    showNumbers={section.showNumbers}
+                    hideDownloadIcon={true}
+                  />
+                ) : (
+                  <ContentRow
+                    title={section.title}
+                    contents={section.data}
+                    onPlayContent={handlePlayContent}
+                    onInfoContent={handleInfoContent}
+                    onDetailsContent={handleDetailsContent}
+                    onDownloadContent={handleDownloadContent}
+                    hideDownloadIcon={true}
+                  />
+                )}
+                {/* Insert Ad after the 2nd item (index 1) */}
+                {index === 1 && (
+                  <AdManager placement="between-content" className="container mx-auto px-4" />
+                )}
+              </React.Fragment>
+            ))}
           </>
         )}
 
