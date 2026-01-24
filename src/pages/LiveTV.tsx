@@ -6,6 +6,7 @@ import { ShieldCheck, Tv, Play, Search, WifiOff, X, ExternalLink, AlertTriangle 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
+import { useSearchParams } from 'react-router-dom';
 
 const LiveTV = () => {
     const [channels, setChannels] = useState<Content[]>([]);
@@ -16,13 +17,22 @@ const LiveTV = () => {
     const [iframeKey, setIframeKey] = useState(0); // Force re-render iframe on channel change
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
+    const [searchParams] = useSearchParams();
+    const channelIdParam = searchParams.get('channelId');
+
     useEffect(() => {
         const fetchChannels = async () => {
             try {
                 const allContent = await getAllContents();
                 const tvChannels = allContent.filter(c => c.category === 'tv');
                 setChannels(tvChannels);
-                if (tvChannels.length > 0) {
+
+                // Handle query param
+                if (channelIdParam) {
+                    const linkedChannel = tvChannels.find(c => c.id === channelIdParam);
+                    if (linkedChannel) setActiveChannel(linkedChannel);
+                    else if (tvChannels.length > 0) setActiveChannel(tvChannels[0]);
+                } else if (tvChannels.length > 0) {
                     setActiveChannel(tvChannels[0]);
                 }
             } catch (error) {
@@ -33,7 +43,7 @@ const LiveTV = () => {
             }
         };
         fetchChannels();
-    }, []);
+    }, [channelIdParam]);
 
     const filteredChannels = channels.filter(c =>
         c.title.toLowerCase().includes(searchTerm.toLowerCase())
@@ -205,14 +215,6 @@ const LiveTV = () => {
                                         </div>
                                     </div>
                                 </div>
-
-                                <Button
-                                    className="hidden md:flex bg-primary hover:bg-primary/90"
-                                    onClick={() => window.open(activeChannel.video_url, '_blank')}
-                                >
-                                    <ExternalLink className="w-4 h-4 mr-2" />
-                                    Abrir Original
-                                </Button>
                             </div>
                         </div>
                     ) : (

@@ -95,6 +95,11 @@ const MyList = () => {
       return;
     }
 
+    if (content.category === 'tv') {
+      navigate(`/tv?channelId=${content.id}`);
+      return;
+    }
+
     if (content.is_cinema_mode) {
       setPendingPlayerState({ ...content, contentId: content.id });
       setShowCinemaModal(true);

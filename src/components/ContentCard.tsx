@@ -57,11 +57,7 @@ export const ContentCard = ({
     e.stopPropagation();
     playNavigationSound('select');
 
-    // Redirect if TV category and redirect logic wasn't handled by parent
-    if (category === 'tv' && !onPlay && window.location.pathname !== '/tv') {
-      // Ideally specific handlers should be passed, but this is a fallback for direct cards
-      // We'll let the parent handle it via onDetails or onPlay usually.
-    }
+
 
     cb?.();
   };
