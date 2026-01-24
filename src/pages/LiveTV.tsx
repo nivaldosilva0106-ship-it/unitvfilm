@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from "@/contexts/AuthContext";
 
+// LiveTV Component - Updated Access Control
 const LiveTV = () => {
     const { user, plan } = useAuth();
     const navigate = useNavigate();
