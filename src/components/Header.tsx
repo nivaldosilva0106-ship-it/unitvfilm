@@ -220,6 +220,13 @@ export const Header = () => {
                       Categorias
                     </button>
                     <button
+                      onClick={() => { navigate("/tv"); }}
+                      className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
+                    >
+                      <Tv className="w-5 h-5" />
+                      TV Online
+                    </button>
+                    <button
                       onClick={() => { navigate("/nostalgia"); }}
                       className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
                     >
@@ -297,6 +304,10 @@ export const Header = () => {
               </button>
               <button onClick={() => navigate("/categories")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
                 Categorias
+              </button>
+              <button onClick={() => navigate("/tv")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors flex items-center gap-2">
+                TV Online
+                <span className="flex h-1.5 w-1.5 rounded-full bg-red-600 animate-pulse" />
               </button>
               <button onClick={() => navigate("/nostalgia")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors flex items-center gap-2">
                 NostalgiaTube
