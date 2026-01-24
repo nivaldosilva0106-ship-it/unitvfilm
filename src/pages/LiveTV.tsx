@@ -66,8 +66,8 @@ const LiveTV = () => {
     };
 
     // Access Check logic
-    const isPremium = plan?.name === 'Premium' || plan?.name === 'Família';
-    const canWatch = !activeChannel?.isPremium || isPremium;
+    const isUserPremium = plan?.name === 'Premium' || plan?.name === 'Família'; // Check user plan
+    const canWatch = !activeChannel?.isPremium || isUserPremium; // If channel is NOT premium OR user IS premium, allow watch
 
     return (
         <div className="h-screen bg-[#0a0a0a] flex flex-col overflow-hidden">
@@ -104,7 +104,7 @@ const LiveTV = () => {
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-1 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                    <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent hover:scrollbar-thumb-primary/50 transition-colors">
                         {loading ? (
                             Array.from({ length: 6 }).map((_, i) => (
                                 <div key={i} className="h-20 bg-white/5 rounded-xl animate-pulse mb-2" />
@@ -213,7 +213,7 @@ const LiveTV = () => {
                                         Este canal é exclusivo para assinantes Premium. Atualize seu plano para assistir a todos os canais ao vivo sem restrições.
                                     </p>
                                     <Button
-                                        onClick={() => navigate('/admin/plans')} // Should probably be user-facing plans page
+                                        onClick={() => navigate('/payment')}
                                         className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold h-12 text-lg shadow-lg"
                                     >
                                         <Crown className="w-5 h-5 mr-2" />
