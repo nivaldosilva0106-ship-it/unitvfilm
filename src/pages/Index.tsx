@@ -76,11 +76,27 @@ const Index = () => {
       setAllContentData(data);
 
       const settings = await getSliderSettings();
+
+      // Daily Random Seed
+      const today = new Date().toISOString().slice(0, 10);
+      let seed = 0;
+      for (let i = 0; i < today.length; i++) seed += today.charCodeAt(i);
+
+      const dailyShuffle = (array: Content[]) => {
+        return [...array].sort((a, b) => {
+          const valA = (a.id.charCodeAt(0) + seed) % 100;
+          const valB = (b.id.charCodeAt(0) + seed) % 100;
+          return valA - valB;
+        });
+      };
+
       if (settings.mode === 'manual' && settings.selectedContentIds?.length > 0) {
         const selected = data.filter(c => settings.selectedContentIds.includes(c.id));
         setTrailerContents(selected.length > 0 ? selected : data.slice(0, 5));
       } else {
-        setTrailerContents(data.slice(0, 10).sort(() => 0.5 - Math.random()));
+        // Daily random for Featured
+        const featuredCandidates = data.filter(c => c.backdrop_url && c.category !== 'tv'); // Prefer items with backdrops
+        setTrailerContents(dailyShuffle(featuredCandidates).slice(0, 10));
       }
 
       setRandomContent([...data].sort(() => 0.5 - Math.random()));
@@ -158,6 +174,7 @@ const Index = () => {
 
     const shufflableSections = [
       { id: 'recent', type: 'row', title: 'Lançamentos Recentes', data: [...categorizedContent.recentReleases].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'trending', type: 'row', title: 'Em Alta', data: [...categorizedContent.topRated].sort((a, b) => (b.rating || 0) - (a.rating || 0)), showNumbers: false },
       { id: 'topRated', type: 'row', title: 'Mais Assistidos', data: [...categorizedContent.topRated].sort(() => Math.random() - 0.5), showNumbers: false },
       { id: 'movies', type: 'row', title: 'Filmes', data: [...categorizedContent.movies].sort(() => Math.random() - 0.5), showNumbers: false },
       { id: 'series', type: 'row', title: 'Séries', data: [...categorizedContent.series].sort(() => Math.random() - 0.5), showNumbers: false },
@@ -211,6 +228,11 @@ const Index = () => {
       return;
     }
 
+    if (content.category === 'tv') {
+      navigate(`/tv?channelId=${content.id}`);
+      return;
+    }
+
     if (content.is_cinema_mode) {
       setPendingPlayerState({ ...content, contentId: content.id });
       setShowCinemaModal(true);
@@ -227,6 +249,10 @@ const Index = () => {
   const handleDetailsContent = (content: Content) => {
     if (content.category === 'nostalgia') {
       navigate(`/nostalgia/${content.main_video_id || content.id}`);
+      return;
+    }
+    if (content.category === 'tv') {
+      navigate(`/tv?channelId=${content.id}`);
       return;
     }
     navigate(`/content/${content.id}`);

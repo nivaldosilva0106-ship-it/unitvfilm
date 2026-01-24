@@ -56,6 +56,13 @@ export const ContentCard = ({
   const handleButtonClick = (cb?: () => void) => (e: React.MouseEvent) => {
     e.stopPropagation();
     playNavigationSound('select');
+
+    // Redirect if TV category and redirect logic wasn't handled by parent
+    if (category === 'tv' && !onPlay && window.location.pathname !== '/tv') {
+      // Ideally specific handlers should be passed, but this is a fallback for direct cards
+      // We'll let the parent handle it via onDetails or onPlay usually.
+    }
+
     cb?.();
   };
 
@@ -131,11 +138,11 @@ export const ContentCard = ({
                       onFocus={handleButtonFocus}
                       size="icon"
                       disabled={isRestricted}
-                                    className={`bg-primary hover:bg-primary/90 text-primary-foreground h-8 w-8 glow-effect-hover rounded-full ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''} ${internal_player_url ? 'animate-pulse ring-2 ring-primary/50' : ''}`}
-                                      tabIndex={0}
-                                    >
-                                      {isRestricted ? <ShieldCheck className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                                    </Button>
+                      className={`bg-primary hover:bg-primary/90 text-primary-foreground h-8 w-8 glow-effect-hover rounded-full ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''} ${internal_player_url ? 'animate-pulse ring-2 ring-primary/50' : ''}`}
+                      tabIndex={0}
+                    >
+                      {isRestricted ? <ShieldCheck className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                    </Button>
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>{isRestricted ? 'Bloqueado' : internal_player_url ? 'Player Interno Disponível' : 'Assistir'}</p>

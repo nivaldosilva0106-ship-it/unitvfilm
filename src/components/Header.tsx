@@ -382,6 +382,8 @@ export const Header = () => {
                               navigate(`/nostalgia/${content.id}`);
                             } else if (content.category === 'series') {
                               navigate(`/content/${content.id}?showEpisodes=true`);
+                            } else if (content.category === 'tv') {
+                              navigate(`/tv?channelId=${content.id}`);
                             } else {
                               navigate(`/watch/${content.id}`);
                             }
