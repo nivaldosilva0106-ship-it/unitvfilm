@@ -48,13 +48,32 @@ export const addContent = async (content: Omit<Content, 'id'>) => {
 };
 
 export const getAllContents = async (): Promise<Content[]> => {
-  const contentRef = ref(database, 'contents');
-  const snapshot = await get(contentRef);
-  if (snapshot.exists()) {
-    const data = snapshot.val();
-    return Object.values(data);
+  try {
+    const contentRef = ref(database, 'contents');
+    const snapshot = await get(contentRef);
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      const contents = Object.values(data) as Content[];
+      // Cache to localStorage
+      try {
+        localStorage.setItem('cached_contents', JSON.stringify(contents));
+      } catch (e) {
+        console.warn('Failed to cache contents:', e);
+      }
+      return contents;
+    }
+    return [];
+  } catch (error) {
+    // If offline, try to load from cache
+    console.warn("Network error fetching contents, trying cache...", error);
+    try {
+      const cached = localStorage.getItem('cached_contents');
+      if (cached) {
+        return JSON.parse(cached);
+      }
+    } catch (e) { }
+    return [];
   }
-  return [];
 };
 
 export const getContentsByCategory = async (category: string): Promise<Content[]> => {
@@ -195,11 +214,23 @@ export const addAd = async (ad: Omit<Ad, 'id'>) => {
 };
 
 export const getAllAds = async (): Promise<Ad[]> => {
-  const adRef = ref(database, 'ads');
-  const snapshot = await get(adRef);
-  if (snapshot.exists()) {
-    const data = snapshot.val();
-    return Object.values(data);
+  try {
+    const adRef = ref(database, 'ads');
+    const snapshot = await get(adRef);
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      const ads = Object.values(data) as Ad[];
+      try {
+        localStorage.setItem('cached_ads', JSON.stringify(ads));
+      } catch (e) { }
+      return ads;
+    }
+  } catch (error) {
+    // Offline fallback
+    try {
+      const cached = localStorage.getItem('cached_ads');
+      if (cached) return JSON.parse(cached);
+    } catch (e) { }
   }
   return [];
 };
@@ -365,10 +396,19 @@ export interface SiteSettings {
 }
 
 export const getSiteSettings = async (): Promise<SiteSettings> => {
-  const settingsRef = ref(database, 'settings');
-  const snapshot = await get(settingsRef);
-  if (snapshot.exists()) {
-    return snapshot.val();
+  try {
+    const settingsRef = ref(database, 'settings');
+    const snapshot = await get(settingsRef);
+    if (snapshot.exists()) {
+      const settings = snapshot.val();
+      try { localStorage.setItem('cached_settings', JSON.stringify(settings)); } catch (e) { }
+      return settings;
+    }
+  } catch (error) {
+    try {
+      const cached = localStorage.getItem('cached_settings');
+      if (cached) return JSON.parse(cached);
+    } catch (e) { }
   }
   return {};
 };

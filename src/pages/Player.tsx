@@ -4,7 +4,7 @@ import { getAllContents, incrementDailyUsage, saveUserProgress, getUserProgress,
 import { Content } from "@/types/content";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { X, ArrowLeft, Film, Maximize, Minimize, List, Star, ChevronRight, ChevronDown, Crown, Play, Plus, Check, ShieldCheck } from "lucide-react";
+import { X, ArrowLeft, Film, Maximize, Minimize, List, Star, ChevronRight, ChevronDown, Crown, Play, Plus, Check, ShieldCheck, WifiOff } from "lucide-react";
 import { AdManager } from "@/components/AdManager";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import { toast } from "sonner";
@@ -403,6 +403,26 @@ const Player = () => {
         }
     }, [loading, accessState.granted]);
 
+    // Optimize connection for external embeds
+    useEffect(() => {
+        if (secureVideoUrl) {
+            try {
+                const url = new URL(secureVideoUrl);
+                const link = document.createElement('link');
+                link.rel = 'preconnect';
+                link.href = url.origin;
+                link.crossOrigin = 'anonymous';
+                document.head.appendChild(link);
+
+                return () => {
+                    document.head.removeChild(link);
+                };
+            } catch (e) {
+                // Ignore invalid URLs
+            }
+        }
+    }, [secureVideoUrl]);
+
     // Fullscreen
     useEffect(() => {
         const handleFullscreenChange = () => {
@@ -545,6 +565,29 @@ const Player = () => {
                             <Play className="w-5 h-5 mr-2 fill-current" />
                             Entendi, ir para o vídeo
                         </Button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    const isOnline = navigator.onLine;
+
+    if (!isOnline && currentSource?.type === 'embed') {
+        return (
+            <div className="w-screen h-screen bg-black flex items-center justify-center">
+                <div className="text-center max-w-md px-8">
+                    <div className="inline-flex items-center justify-center w-24 h-24 rounded-full bg-red-900/20 border-2 border-red-600 mb-6">
+                        <WifiOff className="w-12 h-12 text-red-600" />
+                    </div>
+                    <h2 className="text-3xl font-bold text-white mb-4">
+                        Modo Offline
+                    </h2>
+                    <p className="text-gray-400 mb-8 text-lg">
+                        Você está sem internet. Este vídeo precisa de conexão para ser reproduzido.
+                    </p>
+                    <div className="flex flex-col gap-3">
+                        <Button size="lg" className="w-full" onClick={() => navigate('/')}>Voltar para o Início</Button>
                     </div>
                 </div>
             </div>
@@ -816,6 +859,9 @@ const Player = () => {
                             className="absolute inset-0 w-full h-full border-0"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                             allowFullScreen
+                            loading="eager"
+                            // @ts-ignore
+                            fetchPriority="high"
                             tabIndex={0}
                             sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
                         />
