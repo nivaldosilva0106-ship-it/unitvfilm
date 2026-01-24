@@ -94,9 +94,9 @@ const Index = () => {
         const selected = data.filter(c => settings.selectedContentIds.includes(c.id));
         setTrailerContents(selected.length > 0 ? selected : data.slice(0, 5));
       } else {
-        // Daily random for Featured
-        const featuredCandidates = data.filter(c => c.backdrop_url && c.category !== 'tv'); // Prefer items with backdrops
-        setTrailerContents(dailyShuffle(featuredCandidates).slice(0, 10));
+        // Pure random on every refresh
+        const featuredCandidates = data.filter(c => c.backdrop_url && c.category !== 'tv');
+        setTrailerContents([...featuredCandidates].sort(() => 0.5 - Math.random()).slice(0, 10));
       }
 
       setRandomContent([...data].sort(() => 0.5 - Math.random()));
