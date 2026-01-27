@@ -7,13 +7,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Search, Save, Plus, X, Lock, Sparkles, Clapperboard, Bell, Trash, Upload, Film, Tv, Download as DownloadIcon, ShieldCheck, PlusCircle, Play } from "lucide-react";
+import { Search, Save, Plus, X, Lock, Sparkles, Clapperboard, Bell, Trash, Upload, Film, Tv, Download as DownloadIcon, ShieldCheck, PlusCircle, Play, RefreshCw, Link as LinkIcon } from "lucide-react";
 import { toast } from "sonner";
 import { searchMovies, searchSeries, getImageUrl, getMovieTrailer, getSeriesTrailer, getMovieDetails, getSeriesDetails, getSeasonDetails } from "@/lib/tmdb";
-import { sendContentNotification } from "@/lib/firebase";
+import { sendContentNotification, getAllContents, updateContent } from "@/lib/firebase";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { Content, Episode } from "@/types/content";
 import type { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
+import { AdminBulkUpdate } from "./AdminBulkUpdate";
 
 interface AdminContentFormProps {
   editingContent: Partial<Content>;
@@ -1438,6 +1439,8 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           <Sparkles className="w-5 h-5" /> Processar e Preencher Agora
         </Button>
       </div>
+
+      <AdminBulkUpdate />
 
       <div className="grid grid-cols-2 gap-4">
         <div>
