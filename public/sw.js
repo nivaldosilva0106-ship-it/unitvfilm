@@ -1,4 +1,7 @@
-const CACHE_NAME = "unitvfilm-cache-v1";
+const CACHE_NAME = "unitvfilm-cache-v2";
+const CONTENT_CACHE = "unitvfilm-content-v2";
+const IMAGE_CACHE = "unitvfilm-images-v2";
+
 const APP_SHELL = [
   "/",
   "/index.html",
@@ -15,26 +18,70 @@ self.addEventListener("install", (event) => {
 });
 
 self.addEventListener("activate", (event) => {
+  const validCaches = [CACHE_NAME, CONTENT_CACHE, IMAGE_CACHE];
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.map((k) => (k !== CACHE_NAME ? caches.delete(k) : Promise.resolve())))
+      Promise.all(keys.map((k) => (!validCaches.includes(k) ? caches.delete(k) : Promise.resolve())))
     ).then(() => self.clients.claim())
   );
 });
 
-// Basic strategy:
-// - Navigation requests: network-first, fallback to cache
-// - Same-origin GET: cache-first, update in background
 self.addEventListener("fetch", (event) => {
-  const req = event.request;
-  const url = new URL(req.url);
+  const { request } = event;
+  const url = new URL(request.url);
 
-  if (req.method !== "GET") return;
+  // Skip non-GET or chrome-extension
+  if (request.method !== "GET" || url.protocol === "chrome-extension:") {
+    return;
+  }
 
-  // Navigation requests (HTML)
-  if (req.mode === "navigate") {
+  // Firebase Realtime Database: network-first, cache for offline
+  if (url.hostname.includes("firebasedatabase.app") || url.hostname.includes("firebaseio.com")) {
     event.respondWith(
-      fetch(req).then((res) => {
+      fetch(request)
+        .then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(CONTENT_CACHE).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // External video embeds: network-only (never cache)
+  if (
+    url.hostname.includes("youtube") ||
+    url.hostname.includes("vimeo") ||
+    url.hostname.includes("dailymotion") ||
+    url.pathname.includes("/embed")
+  ) {
+    return;
+  }
+
+  // Images: cache-first with network fallback
+  if (request.destination === "image" || /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(url.pathname)) {
+    event.respondWith(
+      caches.match(request).then((cached) => {
+        if (cached) return cached;
+        return fetch(request).then((response) => {
+          if (response && response.status === 200) {
+            const clone = response.clone();
+            caches.open(IMAGE_CACHE).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        }).catch(() => null);
+      })
+    );
+    return;
+  }
+
+  // Navigation requests: network-first with offline fallback
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request).then((res) => {
         const resClone = res.clone();
         caches.open(CACHE_NAME).then((cache) => cache.put("/", resClone)).catch(() => null);
         return res;
@@ -46,31 +93,13 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Stale-While-Revalidate for images
-  if (req.destination === "image") {
-    event.respondWith(
-      caches.match(req).then((cached) => {
-        const networkFetch = fetch(req).then((res) => {
-          // Cache valid image responses
-          if (res && res.status === 200 && res.type === 'basic') {
-            const resClone = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone)).catch(() => null);
-          }
-          return res;
-        }).catch(() => null); // Fail silently on network error for images
-        return cached || networkFetch;
-      })
-    );
-    return;
-  }
-
-  // Same-origin assets (JS/CSS): Cache First, Network Background Update
+  // Same-origin assets (JS/CSS): cache-first with background update
   if (url.origin === self.location.origin) {
     event.respondWith(
-      caches.match(req).then((cached) => {
-        const networkFetch = fetch(req).then((res) => {
+      caches.match(request).then((cached) => {
+        const networkFetch = fetch(request).then((res) => {
           const resClone = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(req, resClone)).catch(() => null);
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, resClone)).catch(() => null);
           return res;
         }).catch(() => cached);
         return cached || networkFetch;

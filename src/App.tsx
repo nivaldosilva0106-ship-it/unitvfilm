@@ -52,6 +52,7 @@ const AdminAvatars = React.lazy(() => import("@/components/admin/AdminAvatars").
 
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { NetworkStatus } from "@/components/NetworkStatus";
+import { OfflineIndicator } from "@/components/OfflineIndicator";
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -63,6 +64,7 @@ const App = () => (
           <FocusNavigator />
           <HolidayDecorations />
           <NetworkStatus />
+          <OfflineIndicator />
           <GlobalContentProtection />
           <AuthGuard>
             <GuestSessionManager />

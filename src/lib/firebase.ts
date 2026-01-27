@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, set, get, remove, update, push, onValue, off } from 'firebase/database';
+import { getDatabase, ref, set, get, remove, update, push, onValue, off, enableLogging } from 'firebase/database';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously as firebaseSignInAnonymously, User } from 'firebase/auth';
 
 import type { Content } from '@/types/content';
