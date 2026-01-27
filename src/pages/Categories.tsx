@@ -94,6 +94,55 @@ export default function Categories() {
         if (content.category === 'tv') {
             navigate(`/tv?channelId=${content.id}`);
             return;
+<<<<<<< HEAD
+=======
+        }
+
+        if (content.is_cinema_mode) {
+            setPendingPlayerState({ ...content, contentId: content.id });
+            setShowCinemaModal(true);
+        } else {
+            navigate(`/watch/${content.id}`);
+        }
+    };
+
+const handleInfoContent = (content: Content) => {
+    setQuickViewContent(content);
+};
+
+const handleDetailsContent = (content: Content) => {
+    handlePlayContent(content);
+};
+
+const handleDownloadContent = (content: Content) => {
+    if (content.download_url || (content.downloads && content.downloads.length > 0)) {
+        setDownloadModal({
+            open: true,
+            url: content.download_url || '',
+            downloads: content.downloads,
+            download_mode: content.download_mode,
+            title: content.title,
+            thumbnail: content.thumbnail_url
+        });
+    } else {
+        toast.error("Download indisponível");
+    }
+};
+
+const handleToggleMyList = async (content: Content) => {
+    if (!user) { toast.error("Faça login para salvar na lista"); return; }
+    const isSaved = myList.includes(content.id);
+
+    try {
+        if (isSaved) {
+            await removeFromMyList(user.uid, content.id);
+            setMyList(prev => prev.filter(id => id !== content.id));
+            toast.success("Removido da lista");
+        } else {
+            await addToMyList(user.uid, content);
+            setMyList(prev => [...prev, content.id]);
+            toast.success("Adicionado à lista");
+>>>>>>> 6152222375a74aac0162e56668868ad0fc2cee08
         }
 
         if (content.is_cinema_mode) {
