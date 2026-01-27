@@ -67,8 +67,11 @@ const LiveTV = () => {
     };
 
     // Access Check logic
-    const isUserPremium = plan?.name === 'Premium' || plan?.name === 'Família'; // Check user plan
-    const canWatch = !activeChannel?.isPremium || isUserPremium; // If channel is NOT premium OR user IS premium, allow watch
+    const isUserPremium = plan?.name === 'Premium' ||
+        plan?.name === 'Família' ||
+        plan?.name === 'VIP' ||
+        (user as any)?.isPremium === true;
+    const canWatch = !activeChannel?.isPremium || isUserPremium;
 
     return (
         <div className="h-screen bg-[#0a0a0a] flex flex-col overflow-hidden">
@@ -214,7 +217,7 @@ const LiveTV = () => {
                                         Este canal é exclusivo para assinantes Premium. Atualize seu plano para assistir a todos os canais ao vivo sem restrições.
                                     </p>
                                     <Button
-                                        onClick={() => navigate('/payment')}
+                                        onClick={() => navigate('/signup')}
                                         className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold h-12 text-lg shadow-lg"
                                     >
                                         <Crown className="w-5 h-5 mr-2" />
