@@ -92,7 +92,9 @@ const Index = () => {
 
       if (settings.mode === 'manual' && settings.selectedContentIds?.length > 0) {
         const selected = data.filter(c => settings.selectedContentIds.includes(c.id));
-        setTrailerContents(selected.length > 0 ? selected : data.slice(0, 5));
+        // Shuffle manual selection for variety as requested
+        const shuffledManual = [...selected].sort(() => 0.5 - Math.random());
+        setTrailerContents(shuffledManual.length > 0 ? shuffledManual : data.slice(0, 5));
       } else {
         // Pure random on every refresh
         const featuredCandidates = data.filter(c => c.backdrop_url && c.category !== 'tv');
@@ -119,7 +121,9 @@ const Index = () => {
   };
 
   const categorizedContent = useMemo(() => {
-    const featured = allContentData.filter(c => c.is_new).slice(0, 10);
+    // Featured section shows random mix of new or high rated content for variety
+    const featuredPool = allContentData.filter(c => c.is_new || (c.rating && c.rating >= 7));
+    const featured = [...featuredPool].sort(() => 0.5 - Math.random()).slice(0, 15);
     const topRated = allContentData.filter(c => c.rating && c.rating >= 8).sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 10);
     const movies = allContentData.filter(c => c.category === 'movie');
     const series = allContentData.filter(c => c.category === 'series');
@@ -183,14 +187,26 @@ const Index = () => {
       { id: 'dramaCrime', type: 'row', title: 'Drama & Crime', data: [...categorizedContent.dramaCrime].sort(() => Math.random() - 0.5), showNumbers: false },
       { id: 'comedyRomance', type: 'row', title: 'Comédia & Romance', data: [...categorizedContent.comedyRomance].sort(() => Math.random() - 0.5), showNumbers: false },
       { id: 'comedy', type: 'row', title: 'Comédia e Terror', data: [...categorizedContent.comedyHorror].sort(() => Math.random() - 0.5), showNumbers: false },
-      { id: 'tv', type: 'row', title: 'TV ao Vivo', data: [...categorizedContent.tvChannels].sort(() => Math.random() - 0.5), showNumbers: false },
     ].filter(s => s.data.length > 0);
 
     // Shuffle only the non-featured sections
     const shuffled = shufflableSections.sort(() => Math.random() - 0.5);
 
-    // Return Featured first + Shuffled sections
-    return [featuredSection, ...shuffled];
+    const tvSection = {
+      id: 'tv',
+      type: 'row',
+      title: 'TV ao Vivo',
+      data: [...categorizedContent.tvChannels].sort(() => Math.random() - 0.5),
+      showNumbers: false
+    };
+
+    // Return Featured first + Shuffled sections + TV ALWAYS LAST
+    const finalSections = [featuredSection, ...shuffled];
+    if (tvSection.data.length > 0) {
+      finalSections.push(tvSection);
+    }
+
+    return finalSections;
   }, [categorizedContent, selectedCategory]);
 
   const currentTrailer = trailerContents[currentTrailerIndex] || null;
