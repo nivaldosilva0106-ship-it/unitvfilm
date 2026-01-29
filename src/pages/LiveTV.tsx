@@ -11,7 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 // LiveTV Component - Updated Access Control - Deploy: 2026-01-24T17:19
 const LiveTV = () => {
-    const { user, plan } = useAuth();
+    const { user, plan, isAdmin } = useAuth();
     const navigate = useNavigate();
 
     const [channels, setChannels] = useState<Content[]>([]);
@@ -67,9 +67,8 @@ const LiveTV = () => {
     };
 
     // Access Check logic
-    const isUserPremium = plan?.name === 'Premium' ||
-        plan?.name === 'Família' ||
-        plan?.name === 'VIP' ||
+    const isUserPremium = isAdmin ||
+        (plan && plan.id !== 'free') ||
         (user as any)?.isPremium === true;
     const canWatch = !activeChannel?.isPremium || isUserPremium;
 
