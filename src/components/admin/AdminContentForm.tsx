@@ -15,7 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { Content, Episode } from "@/types/content";
 import type { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { AdminBulkUpdate } from "./AdminBulkUpdate";
-import { checkEmbedPlayerMovie, checkEmbedPlayerEpisode } from "@/lib/embedplayer";
+import { getAutoEmbedMovie, getAutoEmbedEpisode } from "@/lib/embedplayer";
 
 interface AdminContentFormProps {
   editingContent: Partial<Content>;
@@ -375,56 +375,32 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       }
     }
 
-    // --- Embed Player Integration ---
+    // --- AutoEmbed Integration ---
     let embedVideoUrl = "";
+
+    // --- MOVIE ---
     if (!isActuallySeries) {
-      toast.info("Verificando disponibilidade no EmbedPlayer...");
-      try {
-        const embedUrl = await checkEmbedPlayerMovie(item.id);
-        if (embedUrl) {
-          embedVideoUrl = embedUrl;
-          toast.success("Player encontrado e adicionado!");
-        } else {
-          console.log("[EmbedPlayer] Filme não disponível.");
-        }
-      } catch (e) {
-        console.error("[EmbedPlayer] Erro ao verificar filme:", e);
-      }
+      embedVideoUrl = getAutoEmbedMovie(item.id);
+      toast.success("Link AutoEmbed gerado!");
     }
 
     let finalEpisodes = fetchedEpisodes.length > 0 ? fetchedEpisodes : prev.episodes;
 
+    // --- TV / SERIES ---
     if (isActuallySeries && fetchedEpisodes.length > 0) {
-      toast.info(`Verificando players para ${fetchedEpisodes.length} episódios...`);
+      toast.info(`Gerando links AutoEmbed para ${fetchedEpisodes.length} episódios...`);
 
-      // Process in batches of 5 to avoid rate limiting
-      const BATCH_SIZE = 5;
-      const updatedEpisodes = [...fetchedEpisodes];
-
-      for (let i = 0; i < updatedEpisodes.length; i += BATCH_SIZE) {
-        // Run batch
-        try {
-          const batch = updatedEpisodes.slice(i, i + BATCH_SIZE);
-          await Promise.all(batch.map(async (ep, index) => {
-            const actualIndex = i + index;
-            const embedUrl = await checkEmbedPlayerEpisode(item.id, ep.season, ep.episode);
-            if (embedUrl) {
-              updatedEpisodes[actualIndex] = { ...ep, url: embedUrl, internal_player_url: embedUrl };
-            }
-          }));
-          // Provide feedback for long processes
-          if (i > 0 && i % 10 === 0) toast.loading(`Verificando episódios... ${i}/${updatedEpisodes.length}`);
-        } catch (e) {
-          console.error("[EmbedPlayer] Erro no lote de episódios:", e);
-        }
-      }
-      toast.dismiss();
+      const updatedEpisodes = fetchedEpisodes.map(ep => {
+        const autoUrl = getAutoEmbedEpisode(item.id, ep.season, ep.episode);
+        return {
+          ...ep,
+          url: autoUrl,
+          internal_player_url: autoUrl
+        };
+      });
 
       finalEpisodes = updatedEpisodes;
-      const foundCount = finalEpisodes.filter(e => e.url).length;
-      if (foundCount > 0) {
-        toast.success(`${foundCount} episódios com player encontrado!`);
-      }
+      toast.success(`${updatedEpisodes.length} episódios atualizados com links AutoEmbed!`);
     }
 
     setEditingContent(prev => ({
@@ -444,7 +420,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       year,
       genre: genres,
       backdrop_url: backdrop,
-      video_url: embedVideoUrl || prev.video_url, // Prefer EmbedPlayer if found
+      video_url: embedVideoUrl || prev.video_url,
       // Sync video_urls to ensure it shows up in the list if it's new
       video_urls: embedVideoUrl ? [embedVideoUrl] : prev.video_urls,
       episodes: finalEpisodes
