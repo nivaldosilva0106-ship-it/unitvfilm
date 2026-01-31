@@ -381,7 +381,10 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     // --- MOVIE ---
     if (!isActuallySeries) {
       embedVideoUrl = getAutoEmbedMovie(item.id);
-      toast.success("Link AutoEmbed gerado!");
+      if (embedVideoUrl) {
+        console.log("[AutoEmbed] Generated Movie URL:", embedVideoUrl);
+        toast.success("Link AutoEmbed gerado!");
+      }
     }
 
     let finalEpisodes = fetchedEpisodes.length > 0 ? fetchedEpisodes : prev.episodes;
@@ -403,6 +406,20 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       toast.success(`${updatedEpisodes.length} episódios atualizados com links AutoEmbed!`);
     }
 
+    // Determine final Video URLs for Movies
+    let finalVideoUrls = prev.video_urls || (prev.video_url ? [prev.video_url] : []);
+
+    // Logic: If AutoEmbed generates a link, we want to ensure it's in the list.
+    // Use Set to avoid duplicates if user clicks multiple times.
+    if (embedVideoUrl) {
+      const uniqueUrls = new Set(finalVideoUrls.filter(u => u.trim() !== ""));
+      uniqueUrls.add(embedVideoUrl);
+      finalVideoUrls = Array.from(uniqueUrls);
+
+      // If empty, just set it
+      if (finalVideoUrls.length === 0) finalVideoUrls = [embedVideoUrl];
+    }
+
     setEditingContent(prev => ({
       ...prev,
       title: !isActuallySeries ? (item as TMDBMovie).title : (item as TMDBSeries).name,
@@ -420,9 +437,9 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       year,
       genre: genres,
       backdrop_url: backdrop,
+      // Update both single and list fields for compatibility
       video_url: embedVideoUrl || prev.video_url,
-      // Sync video_urls to ensure it shows up in the list if it's new
-      video_urls: embedVideoUrl ? [embedVideoUrl] : prev.video_urls,
+      video_urls: finalVideoUrls.length > 0 ? finalVideoUrls : undefined,
       episodes: finalEpisodes
     }));
     setSearchResults([]);
