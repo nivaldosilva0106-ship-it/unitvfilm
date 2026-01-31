@@ -15,6 +15,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import type { Content, Episode } from "@/types/content";
 import type { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { AdminBulkUpdate } from "./AdminBulkUpdate";
+import { checkEmbedPlayerMovie, checkEmbedPlayerEpisode } from "@/lib/embedplayer";
 
 interface AdminContentFormProps {
   editingContent: Partial<Content>;
@@ -374,6 +375,44 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       }
     }
 
+    // --- Embed Player Integration ---
+    let embedVideoUrl = "";
+    if (!isActuallySeries) {
+      toast.info("Verificando disponibilidade no EmbedPlayer...");
+      const embedUrl = await checkEmbedPlayerMovie(item.id);
+      if (embedUrl) {
+        embedVideoUrl = embedUrl;
+        toast.success("Player encontrado e adicionado!");
+      }
+    }
+
+    let finalEpisodes = fetchedEpisodes.length > 0 ? fetchedEpisodes : prev.episodes;
+
+    if (isActuallySeries && fetchedEpisodes.length > 0) {
+      toast.info(`Verificando players para ${fetchedEpisodes.length} episódios...`);
+
+      // Process in batches of 5 to avoid rate limiting
+      const BATCH_SIZE = 5;
+      const updatedEpisodes = [...fetchedEpisodes];
+
+      for (let i = 0; i < updatedEpisodes.length; i += BATCH_SIZE) {
+        const batch = updatedEpisodes.slice(i, i + BATCH_SIZE);
+        await Promise.all(batch.map(async (ep, index) => {
+          const actualIndex = i + index;
+          const embedUrl = await checkEmbedPlayerEpisode(item.id, ep.season, ep.episode);
+          if (embedUrl) {
+            updatedEpisodes[actualIndex] = { ...ep, url: embedUrl, internal_player_url: embedUrl };
+          }
+        }));
+      }
+
+      finalEpisodes = updatedEpisodes;
+      const foundCount = finalEpisodes.filter(e => e.url).length;
+      if (foundCount > 0) {
+        toast.success(`${foundCount} episódios com player encontrado!`);
+      }
+    }
+
     setEditingContent(prev => ({
       ...prev,
       title: !isActuallySeries ? (item as TMDBMovie).title : (item as TMDBSeries).name,
@@ -391,7 +430,8 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       year,
       genre: genres,
       backdrop_url: backdrop,
-      episodes: fetchedEpisodes.length > 0 ? fetchedEpisodes : prev.episodes
+      video_url: embedVideoUrl || prev.video_url, // Prefer EmbedPlayer if found
+      episodes: finalEpisodes
     }));
     setSearchResults([]);
     toast.success("Dados preenchidos com sucesso!" +

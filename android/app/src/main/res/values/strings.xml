@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">UniTVFilm</string>
+    <string name="title_activity_main">UniTVFilm</string>
+    <string name="package_name">com.unitvfilm.app</string>
+    <string name="custom_url_scheme">com.unitvfilm.app</string>
+</resources>
