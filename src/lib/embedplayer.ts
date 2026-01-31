@@ -5,26 +5,64 @@ interface EmbedPlayerResponse {
     leg?: boolean; // Legendado
 }
 
-const CORS_PROXY = "https://api.allorigins.win/raw?url=";
 const BASE_URL = "https://embed.embedplayer.site";
+
+// List of proxies to try
+const PROXIES = [
+    (url: string) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    (url: string) => `https://corsproxy.io/?${encodeURIComponent(url)}` // corsproxy.io sometimes blocks free tier
+];
+
+// Simple fetch function with fallback
+async function fetchWithFallback(targetUrl: string): Promise<any> {
+    let lastError;
+
+    // First try allorigins (most generous)
+    try {
+        const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(targetUrl)}`;
+        console.log(`[EmbedPlayer] Trying proxy: ${proxyUrl}`);
+        const response = await fetch(proxyUrl);
+        if (response.ok) {
+            return await response.json();
+        }
+        console.warn(`[EmbedPlayer] Proxy 1 failed: Status ${response.status}`);
+    } catch (e) {
+        console.warn(`[EmbedPlayer] Proxy 1 error:`, e);
+        lastError = e;
+    }
+
+    // Try corsproxy.io as fallback
+    try {
+        const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(targetUrl)}`;
+        console.log(`[EmbedPlayer] Trying proxy: ${proxyUrl}`);
+        const response = await fetch(proxyUrl);
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (e) {
+        console.warn(`[EmbedPlayer] Proxy 2 error:`, e);
+        lastError = e;
+    }
+
+    throw lastError || new Error("All proxies failed");
+}
 
 export const checkEmbedPlayerMovie = async (tmdbId: number): Promise<string | null> => {
     try {
         const targetUrl = `${BASE_URL}/dooplay?movie=${tmdbId}`;
-        const response = await fetch(`${CORS_PROXY}${encodeURIComponent(targetUrl)}`);
-        if (!response.ok) return null;
+        console.log(`[EmbedPlayer] Checking Movie: ${targetUrl}`);
 
-        // The API might return JSON or just 200 OK.
-        // PHP code: $response = @json_decode(curl_exec($ch)); if($response->movie) ...
-        // So it returns JSON.
-        const data: EmbedPlayerResponse = await response.json();
+        // Attempt to fetch
+        const data: EmbedPlayerResponse = await fetchWithFallback(targetUrl);
+        console.log("[EmbedPlayer] Response:", data);
 
+        // PHP Logic: if($response->movie) ...
         if (data && data.movie) {
             return `${BASE_URL}/${tmdbId}`;
         }
         return null;
     } catch (error) {
-        console.error("Error checking EmbedPlayer movie:", error);
+        console.error("[EmbedPlayer] Error checking movie:", error);
         return null;
     }
 };
@@ -32,23 +70,21 @@ export const checkEmbedPlayerMovie = async (tmdbId: number): Promise<string | nu
 export const checkEmbedPlayerEpisode = async (tmdbId: number, season: number, episode: number): Promise<string | null> => {
     try {
         const targetUrl = `${BASE_URL}/tv/${tmdbId}/${season}/${episode}/lang`;
-        const response = await fetch(`${CORS_PROXY}${encodeURIComponent(targetUrl)}`);
-        if (!response.ok) return null;
+        console.log(`[EmbedPlayer] Checking Episode: ${targetUrl}`);
 
-        const data: EmbedPlayerResponse = await response.json();
+        const data: EmbedPlayerResponse = await fetchWithFallback(targetUrl);
+        console.log("[EmbedPlayer] Episode Response:", data);
 
-        // Prioritize Dubbed (pt-BR)
         if (data && data.dub) {
             return `${BASE_URL}/tv/${tmdbId}/${season}/${episode}/dub`;
         }
-        // Fallback to Subtitled
         if (data && data.leg) {
             return `${BASE_URL}/tv/${tmdbId}/${season}/${episode}/leg`;
         }
 
         return null;
     } catch (error) {
-        console.error("Error checking EmbedPlayer episode:", error);
+        console.error("[EmbedPlayer] Error checking episode:", error);
         return null;
     }
 };

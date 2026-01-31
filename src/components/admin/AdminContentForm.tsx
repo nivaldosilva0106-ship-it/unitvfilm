@@ -379,10 +379,16 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     let embedVideoUrl = "";
     if (!isActuallySeries) {
       toast.info("Verificando disponibilidade no EmbedPlayer...");
-      const embedUrl = await checkEmbedPlayerMovie(item.id);
-      if (embedUrl) {
-        embedVideoUrl = embedUrl;
-        toast.success("Player encontrado e adicionado!");
+      try {
+        const embedUrl = await checkEmbedPlayerMovie(item.id);
+        if (embedUrl) {
+          embedVideoUrl = embedUrl;
+          toast.success("Player encontrado e adicionado!");
+        } else {
+          console.log("[EmbedPlayer] Filme não disponível.");
+        }
+      } catch (e) {
+        console.error("[EmbedPlayer] Erro ao verificar filme:", e);
       }
     }
 
@@ -396,15 +402,23 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       const updatedEpisodes = [...fetchedEpisodes];
 
       for (let i = 0; i < updatedEpisodes.length; i += BATCH_SIZE) {
-        const batch = updatedEpisodes.slice(i, i + BATCH_SIZE);
-        await Promise.all(batch.map(async (ep, index) => {
-          const actualIndex = i + index;
-          const embedUrl = await checkEmbedPlayerEpisode(item.id, ep.season, ep.episode);
-          if (embedUrl) {
-            updatedEpisodes[actualIndex] = { ...ep, url: embedUrl, internal_player_url: embedUrl };
-          }
-        }));
+        // Run batch
+        try {
+          const batch = updatedEpisodes.slice(i, i + BATCH_SIZE);
+          await Promise.all(batch.map(async (ep, index) => {
+            const actualIndex = i + index;
+            const embedUrl = await checkEmbedPlayerEpisode(item.id, ep.season, ep.episode);
+            if (embedUrl) {
+              updatedEpisodes[actualIndex] = { ...ep, url: embedUrl, internal_player_url: embedUrl };
+            }
+          }));
+          // Provide feedback for long processes
+          if (i > 0 && i % 10 === 0) toast.loading(`Verificando episódios... ${i}/${updatedEpisodes.length}`);
+        } catch (e) {
+          console.error("[EmbedPlayer] Erro no lote de episódios:", e);
+        }
       }
+      toast.dismiss();
 
       finalEpisodes = updatedEpisodes;
       const foundCount = finalEpisodes.filter(e => e.url).length;
@@ -431,6 +445,8 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       genre: genres,
       backdrop_url: backdrop,
       video_url: embedVideoUrl || prev.video_url, // Prefer EmbedPlayer if found
+      // Sync video_urls to ensure it shows up in the list if it's new
+      video_urls: embedVideoUrl ? [embedVideoUrl] : prev.video_urls,
       episodes: finalEpisodes
     }));
     setSearchResults([]);
