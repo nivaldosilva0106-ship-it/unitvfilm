@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { getAllContents } from "@/lib/firebase";
 import { Content } from "@/types/content";
 import { Header } from "@/components/Header";
-import { ShieldCheck, Tv, Play, Search, X, Lock, Crown, AlertTriangle } from 'lucide-react';
+import { ShieldCheck, Tv, Play, Search, X, Lock, Crown, AlertTriangle, Monitor } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
@@ -21,6 +21,7 @@ const LiveTV = () => {
     const [adBlockEnabled, setAdBlockEnabled] = useState(true);
     const [iframeKey, setIframeKey] = useState(0);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
 
     const [searchParams] = useSearchParams();
     const channelIdParam = searchParams.get('channelId');
@@ -55,6 +56,7 @@ const LiveTV = () => {
 
     const handleChannelClick = (channel: Content) => {
         setActiveChannel(channel);
+        setCurrentPlayerIndex(0); // Reset to first player
         setIframeKey(prev => prev + 1);
         if (window.innerWidth < 768) {
             setIsSidebarOpen(false);
@@ -64,6 +66,37 @@ const LiveTV = () => {
     const toggleAdBlock = () => {
         setAdBlockEnabled(!adBlockEnabled);
         toast.info(`Bloqueador de Anúncios ${!adBlockEnabled ? 'Ativado' : 'Desativado'}`);
+    };
+
+    // Get available player URLs for the active channel
+    const getPlayerUrls = (channel: Content | null): string[] => {
+        if (!channel) return [];
+
+        // Combine video_url and video_urls array, filter out empty strings
+        const urls: string[] = [];
+        if (channel.video_url) urls.push(channel.video_url);
+        if (channel.video_urls && Array.isArray(channel.video_urls)) {
+            urls.push(...channel.video_urls.filter(url => url && url.trim() !== ''));
+        }
+
+        // Remove duplicates
+        return Array.from(new Set(urls));
+    };
+
+    const switchPlayer = () => {
+        const availableUrls = getPlayerUrls(activeChannel);
+        if (availableUrls.length > 1) {
+            const nextIndex = (currentPlayerIndex + 1) % availableUrls.length;
+            setCurrentPlayerIndex(nextIndex);
+            setIframeKey(prev => prev + 1);
+            toast.success(`Player ${nextIndex + 1} de ${availableUrls.length}`);
+        }
+    };
+
+    // Get current player URL
+    const getCurrentPlayerUrl = (): string => {
+        const urls = getPlayerUrls(activeChannel);
+        return urls[currentPlayerIndex] || urls[0] || '';
     };
 
     // Access Check logic
@@ -183,6 +216,21 @@ const LiveTV = () => {
                                     </div>
                                 </div>
 
+                                {/* Player Switcher - Show only if multiple players available */}
+                                {getPlayerUrls(activeChannel).length > 1 && (
+                                    <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40">
+                                        <div
+                                            onClick={switchPlayer}
+                                            className="flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-md cursor-pointer transition-all hover:scale-105 select-none bg-primary/20 border border-primary/50 text-primary hover:bg-primary/30"
+                                        >
+                                            <Monitor className="w-4 h-4" />
+                                            <span className="text-xs font-bold uppercase tracking-wide">
+                                                Player {currentPlayerIndex + 1}/{getPlayerUrls(activeChannel).length}
+                                            </span>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Iframe Container - Takes ALL remaining height */}
                                 <div className="flex-1 w-full relative group bg-black">
                                     {adBlockEnabled && (
@@ -190,13 +238,13 @@ const LiveTV = () => {
                                     )}
                                     <iframe
                                         key={iframeKey}
-                                        src={activeChannel.video_url}
+                                        src={getCurrentPlayerUrl()}
                                         className="w-full h-full border-0 absolute inset-0"
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                                         allowFullScreen
                                         sandbox={adBlockEnabled
-                                            ? "allow-forms allow-scripts allow-same-origin allow-presentation allow-fullscreen"
-                                            : "allow-forms allow-scripts allow-same-origin allow-presentation allow-fullscreen allow-popups allow-popups-to-escape-sandbox"}
+                                            ? "allow-forms allow-scripts allow-same-origin allow-presentation allow-top-navigation allow-top-navigation-by-user-activation"
+                                            : "allow-forms allow-scripts allow-same-origin allow-presentation allow-top-navigation allow-top-navigation-by-user-activation allow-popups allow-popups-to-escape-sandbox"}
                                         referrerPolicy="no-referrer"
                                         loading="eager"
                                         title={activeChannel.title}
