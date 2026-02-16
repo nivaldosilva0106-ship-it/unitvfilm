@@ -387,7 +387,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       }
     }
 
-    let finalEpisodes = fetchedEpisodes.length > 0 ? fetchedEpisodes : prev.episodes;
+    let finalEpisodes = fetchedEpisodes.length > 0 ? fetchedEpisodes : editingContent.episodes;
 
     // --- TV / SERIES ---
     if (isActuallySeries && fetchedEpisodes.length > 0) {
@@ -407,7 +407,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     }
 
     // Determine final Video URLs for Movies
-    let finalVideoUrls = prev.video_urls || (prev.video_url ? [prev.video_url] : []);
+    let finalVideoUrls = editingContent.video_urls || (editingContent.video_url ? [editingContent.video_url] : []);
 
     // Logic: If AutoEmbed generates a link, we want to ensure it's in the list.
     // Use Set to avoid duplicates if user clicks multiple times.
