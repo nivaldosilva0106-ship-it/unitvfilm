@@ -242,9 +242,6 @@ const LiveTV = () => {
                                         className="w-full h-full border-0 absolute inset-0"
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                                         allowFullScreen
-                                        sandbox={adBlockEnabled
-                                            ? "allow-forms allow-scripts allow-same-origin allow-presentation allow-top-navigation allow-top-navigation-by-user-activation"
-                                            : "allow-forms allow-scripts allow-same-origin allow-presentation allow-top-navigation allow-top-navigation-by-user-activation allow-popups allow-popups-to-escape-sandbox"}
                                         referrerPolicy="no-referrer"
                                         loading="eager"
                                         title={activeChannel.title}
