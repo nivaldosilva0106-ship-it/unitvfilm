@@ -63,6 +63,13 @@ const LiveTV = () => {
         }
     };
 
+    // Sync ad-block state with main process on mount and changes
+    useEffect(() => {
+        if ((window as any).ipcRenderer) {
+            (window as any).ipcRenderer.send('toggle-adblock', adBlockEnabled);
+        }
+    }, [adBlockEnabled]);
+
     const toggleAdBlock = () => {
         setAdBlockEnabled(!adBlockEnabled);
         toast.info(`Bloqueador de Anúncios ${!adBlockEnabled ? 'Ativado' : 'Desativado'}`);
