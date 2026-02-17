@@ -305,12 +305,12 @@ All colors MUST be HSL.
   /* Modern Scrollbar */
   .modern-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--primary)) transparent;
+    scrollbar-color: hsl(var(--primary) / 0.3) transparent;
   }
 
   .modern-scrollbar::-webkit-scrollbar {
-    height: 6px;
-    width: 6px;
+    height: 4px;
+    width: 4px;
   }
 
   .modern-scrollbar::-webkit-scrollbar-track {
@@ -318,11 +318,12 @@ All colors MUST be HSL.
   }
 
   .modern-scrollbar::-webkit-scrollbar-thumb {
-    background-color: hsl(var(--primary) / 0.5);
+    background-color: hsl(var(--primary) / 0.2);
     border-radius: 9999px;
+    transition: background-color 0.3s;
   }
 
   .modern-scrollbar::-webkit-scrollbar-thumb:hover {
-    background-color: hsl(var(--primary));
+    background-color: hsl(var(--primary) / 0.6);
   }
 }

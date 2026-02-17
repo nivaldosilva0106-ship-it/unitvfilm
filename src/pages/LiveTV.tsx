@@ -147,7 +147,7 @@ const LiveTV = () => {
                         </div>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-1 scrollbar-thin scrollbar-thumb-zinc-800 scrollbar-track-transparent hover:scrollbar-thumb-primary/50 transition-colors">
+                    <div className="flex-1 overflow-y-auto px-2 pb-2 space-y-1 modern-scrollbar transition-colors">
                         {loading ? (
                             Array.from({ length: 6 }).map((_, i) => (
                                 <div key={i} className="h-20 bg-white/5 rounded-xl animate-pulse mb-2" />
