@@ -103,7 +103,14 @@ const LiveTV = () => {
     // Get current player URL
     const getCurrentPlayerUrl = (): string => {
         const urls = getPlayerUrls(activeChannel);
-        return urls[currentPlayerIndex] || urls[0] || '';
+        const rawUrl = urls[currentPlayerIndex] || urls[0] || '';
+
+        // Use proxy if adblock is enabled and it's not already proxied
+        if (adBlockEnabled && rawUrl && !rawUrl.includes('/api/proxy-embed')) {
+            return `/api/proxy-embed?url=${encodeURIComponent(rawUrl)}`;
+        }
+
+        return rawUrl;
     };
 
     // Access Check logic
