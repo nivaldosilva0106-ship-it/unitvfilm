@@ -848,6 +848,7 @@ const Player = () => {
                                 autoPlay
                                 startTime={isResuming ? lastPositionSeconds : 0}
                                 subtitles={currentSource.subtitle_url}
+                                objectFit="fill"
                             />
                         </div>
                     ) : (

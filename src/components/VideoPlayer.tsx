@@ -217,38 +217,41 @@ export const VideoPlayer = ({
     const video = videoRef.current;
     if (!video) return;
 
-    if (volume > 1) {
-      // Initialize Audio Context for Amplification if needed
-      if (!audioCtxRef.current) {
-        try {
-          const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
-          const ctx = new AudioContextClass();
-          const source = ctx.createMediaElementSource(video);
-          const gain = ctx.createGain();
+    const setupAmplifier = () => {
+      if (audioCtxRef.current) return;
+      try {
+        const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+        const ctx = new AudioContextClass();
+        // createMediaElementSource can ONLY be called once per video element
+        const source = ctx.createMediaElementSource(video);
+        const gain = ctx.createGain();
 
-          source.connect(gain);
-          gain.connect(ctx.destination);
+        source.connect(gain);
+        gain.connect(ctx.destination);
 
-          audioCtxRef.current = ctx;
-          sourceNodeRef.current = source;
-          gainNodeRef.current = gain;
-        } catch (e) {
-          console.error("Failed to initialize AudioContext for amplification:", e);
-        }
+        audioCtxRef.current = ctx;
+        sourceNodeRef.current = source;
+        gainNodeRef.current = gain;
+      } catch (e) {
+        console.error("Failed to initialize AudioContext for amplification:", e);
       }
+    };
+
+    if (volume > 1) {
+      setupAmplifier();
 
       if (audioCtxRef.current?.state === 'suspended') {
-        audioCtxRef.current.resume();
+        audioCtxRef.current.resume().catch(console.error);
       }
 
       video.volume = 1;
       if (gainNodeRef.current) {
-        gainNodeRef.current.gain.value = isMuted ? 0 : volume;
+        gainNodeRef.current.gain.setTargetAtTime(isMuted ? 0 : volume, audioCtxRef.current!.currentTime, 0.01);
       }
     } else {
       video.volume = isMuted ? 0 : volume;
       if (gainNodeRef.current) {
-        gainNodeRef.current.gain.value = 1;
+        gainNodeRef.current.gain.setTargetAtTime(1, audioCtxRef.current!.currentTime, 0.01);
       }
     }
     video.muted = isMuted;
@@ -410,7 +413,7 @@ export const VideoPlayer = ({
       <video
         ref={videoRef}
         poster={poster}
-        className="w-full h-full grayscale"
+        className="w-full h-full"
         style={{ objectFit }}
         playsInline
         crossOrigin="anonymous"
