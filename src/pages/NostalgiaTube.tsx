@@ -869,8 +869,7 @@ export default function NostalgiaTube(): JSX.Element {
                                     poster={getPosterImage()}
                                     autoPlay={true}
                                     onEnded={playNextEpisode}
-                                    objectFit="contain"
-                                    grayscale={true}
+                                    objectFit="cover"
                                 />
                                 <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/80 to-transparent pointer-events-none z-20"></div>
                             </div>

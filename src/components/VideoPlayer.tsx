@@ -21,7 +21,6 @@ interface VideoPlayerProps {
   startTime?: number;
   subtitles?: string;
   objectFit?: 'contain' | 'cover' | 'fill';
-  grayscale?: boolean;
 }
 
 const formatTime = (seconds: number): string => {
@@ -43,8 +42,7 @@ export const VideoPlayer = ({
   autoPlay = true,
   startTime = 0,
   subtitles,
-  objectFit = 'contain',
-  grayscale = false
+  objectFit = 'contain'
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -322,8 +320,7 @@ export const VideoPlayer = ({
     const video = videoRef.current;
     if (!video) return;
     const newVolume = value[0];
-    // HTML5 volume range is 0 to 1. GainNode handles the amplification.
-    video.volume = Math.min(newVolume, 1);
+    video.volume = newVolume;
     video.muted = newVolume === 0;
     setVolume(newVolume);
     setIsMuted(newVolume === 0);
@@ -403,7 +400,7 @@ export const VideoPlayer = ({
         ref={videoRef}
         poster={poster}
         className="w-full h-full"
-        style={{ objectFit, filter: grayscale ? 'grayscale(1)' : 'none' }}
+        style={{ objectFit }}
         playsInline
         crossOrigin="anonymous"
         muted={isMuted}
