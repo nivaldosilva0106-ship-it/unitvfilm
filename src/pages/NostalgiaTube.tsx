@@ -895,7 +895,7 @@ export default function NostalgiaTube(): JSX.Element {
                                         <img
                                             src={getPosterImage()}
                                             alt="Poster"
-                                            className="absolute w-full h-full object-cover grayscale opacity-60"
+                                            className="absolute w-full h-full object-cover grayscale object-top opacity-60"
                                         />
                                     </div>
                                     <div className="absolute inset-0 bg-black/60"></div>

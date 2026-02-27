@@ -100,11 +100,15 @@ export const VideoPlayer = ({
 
     // Ensure video is not muted on initialization
     video.muted = false;
-    video.volume = volume;
+    video.volume = 1.0;
 
     const attemptPlay = async () => {
       try {
         await video.play();
+        video.volume = 1.0;
+        video.muted = false;
+        setIsMuted(false);
+        setVolume(1.0);
       } catch (err) {
         // If autoplay with sound fails, try muted autoplay then unmute
         console.log('Autoplay with sound blocked, trying muted...', err);
@@ -162,7 +166,7 @@ export const VideoPlayer = ({
         attemptPlay();
       }
     }
-  }, [url, isHLS, autoPlay, getVideoUrl, volume]);
+  }, [url, isHLS, autoPlay, getVideoUrl]);
 
   // Set start time
   useEffect(() => {

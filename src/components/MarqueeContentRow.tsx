@@ -78,9 +78,9 @@ export const MarqueeContentRow = ({
                 {/* Content Container */}
                 <div className="overflow-x-auto md:overflow-hidden scrollbar-hide snap-x snap-mandatory">
                     <div
-                        className="flex gap-2.5 sm:gap-4 transition-transform duration-500 ease-out md:translate-x-0"
+                        className="flex gap-2.5 sm:gap-4 transition-transform duration-500 ease-out"
                         style={{
-                            transform: `md:translateX(-${scrollPosition * (itemWidth + 16)}px)`,
+                            transform: `translateX(-${scrollPosition * (itemWidth + 16)}px)`,
                         }}
                     >
                         {contents.map((content, index) => (
@@ -134,6 +134,6 @@ export const MarqueeContentRow = ({
                     </button>
                 )}
             </div>
-        </div>
+        </div >
     );
 };
