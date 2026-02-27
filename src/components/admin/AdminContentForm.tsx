@@ -1123,12 +1123,20 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                     />
 
                     {isNostalgia && (
-                      <Input
-                        placeholder="URL API Google Drive (ex: https://www.googleapis.com/drive/v3/files/ID?alt=media&key=KEY)"
-                        value={episode.google_drive_url || ''}
-                        onChange={(e) => updateEpisode(index, 'google_drive_url', e.target.value)}
-                        className="bg-input border-border text-sm border-blue-500/30"
-                      />
+                      <>
+                        <Input
+                          placeholder="URL API Google Drive (ex: https://www.googleapis.com/drive/v3/files/ID?alt=media&key=KEY)"
+                          value={episode.google_drive_url || ''}
+                          onChange={(e) => updateEpisode(index, 'google_drive_url', e.target.value)}
+                          className="bg-input border-border text-sm border-blue-500/30"
+                        />
+                        <Input
+                          placeholder="Link do TikTok (ex: https://www.tiktok.com/@user/video/ID)"
+                          value={episode.tiktok_url || ''}
+                          onChange={(e) => updateEpisode(index, 'tiktok_url', e.target.value)}
+                          className="bg-input border-border text-sm border-pink-500/30"
+                        />
+                      </>
                     )}
 
 
@@ -1327,18 +1335,33 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
               </div>
 
               {isNostalgia && (
-                <div className="mt-4">
-                  <Label className="text-blue-400 font-bold">URL Google Drive (API Direct Link)</Label>
-                  <Input
-                    value={editingContent.google_drive_url || ''}
-                    onChange={(e) => setEditingContent(prev => ({ ...prev, google_drive_url: e.target.value }))}
-                    className="bg-input border-blue-500/30 text-blue-100 placeholder:text-blue-300/30"
-                    placeholder="https://www.googleapis.com/drive/v3/files/ID?alt=media&key=KEY"
-                  />
-                  <p className="text-[10px] text-muted-foreground mt-1 italic leading-relaxed">
-                    Use o formato da API do Google Drive para evitar bloqueios de iframe. <br />
-                    <span className="text-blue-400">Ex:</span> https://www.googleapis.com/drive/v3/files/<span className="underline">FILE_ID</span>?alt=media&key=<span className="underline">API_KEY</span>
-                  </p>
+                <div className="mt-4 space-y-4">
+                  <div>
+                    <Label className="text-blue-400 font-bold">URL Google Drive (API Direct Link)</Label>
+                    <Input
+                      value={editingContent.google_drive_url || ''}
+                      onChange={(e) => setEditingContent(prev => ({ ...prev, google_drive_url: e.target.value }))}
+                      className="bg-input border-blue-500/30 text-blue-100 placeholder:text-blue-300/30"
+                      placeholder="https://www.googleapis.com/drive/v3/files/ID?alt=media&key=KEY"
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1 italic leading-relaxed">
+                      Use o formato da API do Google Drive para evitar bloqueios de iframe. <br />
+                      <span className="text-blue-400">Ex:</span> https://www.googleapis.com/drive/v3/files/<span className="underline">FILE_ID</span>?alt=media&key=<span className="underline">API_KEY</span>
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label className="text-pink-400 font-bold">Link do TikTok</Label>
+                    <Input
+                      value={editingContent.tiktok_url || ''}
+                      onChange={(e) => setEditingContent(prev => ({ ...prev, tiktok_url: e.target.value }))}
+                      className="bg-input border-pink-500/30 text-pink-100 placeholder:text-pink-300/30"
+                      placeholder="https://www.tiktok.com/@user/video/71234567890"
+                    />
+                    <p className="text-[10px] text-muted-foreground mt-1 italic leading-relaxed">
+                      Cole o link do vídeo do TikTok para reprodução direta no player.
+                    </p>
+                  </div>
                 </div>
               )}
             </>

@@ -240,10 +240,22 @@ export default function NostalgiaTube(): JSX.Element {
     const currentEpisode = currentContent?.episodes?.[currentEpisodeIndex];
     const videoUrl = currentEpisode?.url || currentContent?.video_url;
     const googleDriveUrl = currentEpisode?.google_drive_url || currentContent?.google_drive_url;
+    const tiktokUrl = currentEpisode?.tiktok_url || currentContent?.tiktok_url;
 
     // Safety check for Google Drive API URL
     const isGoogleDriveApi = googleDriveUrl?.includes('googleapis.com/drive/v3/files');
     const youtubeId = getYoutubeId(videoUrl);
+
+    // Helper to extract TikTok ID
+    const getTikTokId = (url?: string) => {
+        if (!url) return null;
+        // Match formats: tiktok.com/@user/video/ID, tiktok.com/v/ID, vt.tiktok.com/ID
+        const regExp = /\/video\/(\d+)/;
+        const match = url.match(regExp);
+        return match ? match[1] : null;
+    };
+
+    const tiktokId = getTikTokId(tiktokUrl);
 
     // Get poster image
     const getPosterImage = () => {
@@ -333,6 +345,11 @@ export default function NostalgiaTube(): JSX.Element {
         setHasQuotaError(true);
         setIsLoadingVideo(false);
         toast.error("Erro ao carregar vídeo");
+    };
+
+    const handleTikTokLoad = () => {
+        setIsLoadingVideo(false);
+        setHasStartedPlaying(true);
     };
 
     // Initialize or update YouTube Player
@@ -801,7 +818,7 @@ export default function NostalgiaTube(): JSX.Element {
                             </div>
                         )}
 
-                        {youtubeId && !isGoogleDriveApi && (
+                        {youtubeId && !isGoogleDriveApi && !tiktokId && (
                             <div className={`absolute inset-0 w-full h-full overflow-hidden pointer-events-none ${isFullscreen ? 'z-0' : ''}`}>
                                 <div
                                     id="youtube-player"
@@ -814,8 +831,20 @@ export default function NostalgiaTube(): JSX.Element {
                             </div>
                         )}
 
+                        {tiktokId && (
+                            <div className="absolute inset-0 w-full h-full z-10 bg-black flex items-center justify-center">
+                                <iframe
+                                    src={`https://www.tiktok.com/embed/v2/${tiktokId}`}
+                                    className="w-full h-full border-0"
+                                    allow="autoplay; encrypted-media; fullscreen"
+                                    onLoad={handleTikTokLoad}
+                                />
+                                <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/80 to-transparent pointer-events-none z-20"></div>
+                            </div>
+                        )}
+
                         {/* 2. Common UI Layer (Poster, Interaction, Controls) */}
-                        {((youtubeId && !isGoogleDriveApi) || (isGoogleDriveApi && !hasQuotaError)) && (
+                        {((youtubeId && !isGoogleDriveApi && !tiktokId) || (isGoogleDriveApi && !hasQuotaError) || tiktokId) && (
                             <>
                                 {/* Poster / Loading / Ended Overlay */}
                                 <div className={`absolute inset-0 w-full h-full z-30 flex items-center justify-center bg-black transition-opacity duration-500 ${(!hasStartedPlaying || isLoadingVideo || videoEnded || waitingForSelection) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
@@ -1008,7 +1037,7 @@ export default function NostalgiaTube(): JSX.Element {
                         )}
 
                         {/* 4. Initial/Fallback UI */}
-                        {!youtubeId && !isGoogleDriveApi && (
+                        {!youtubeId && !isGoogleDriveApi && !tiktokId && (
                             <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/80 backdrop-blur-sm">
                                 <div className="text-center p-6 max-w-md animate-in fade-in zoom-in duration-500">
                                     <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6 shadow-2xl border border-primary/20">
