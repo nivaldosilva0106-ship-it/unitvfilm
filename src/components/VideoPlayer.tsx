@@ -60,6 +60,13 @@ export const VideoPlayer = ({
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSubtitles, setShowSubtitles] = useState(false);
 
+  // Audio amplification refs
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
+  const [isAmplified, setIsAmplified] = useState(true); // Enabled by default as per request
+  const boostLevel = 4.0; // Significant boost factor
+
   // Detect stream type
   const isHLS = url.includes('.m3u8') || url.includes('m3u8');
   const isGoogleDrive = url.includes('googleapis.com/drive') || url.includes('drive.google.com');
@@ -228,6 +235,49 @@ export const VideoPlayer = ({
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
   }, []);
 
+  // Handle audio amplification
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !isAmplified) return;
+
+    const initAudio = () => {
+      try {
+        if (!audioContextRef.current) {
+          audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+        }
+
+        const ctx = audioContextRef.current;
+
+        if (!sourceNodeRef.current) {
+          sourceNodeRef.current = ctx.createMediaElementSource(video);
+        }
+
+        if (!gainNodeRef.current) {
+          gainNodeRef.current = ctx.createGain();
+          gainNodeRef.current.gain.value = boostLevel;
+        }
+
+        const source = sourceNodeRef.current;
+        const gain = gainNodeRef.current;
+
+        source.connect(gain);
+        gain.connect(ctx.destination);
+
+        console.log("Audio amplification initialized with boost:", boostLevel);
+      } catch (err) {
+        console.error("Failed to initialize audio amplification:", err);
+      }
+    };
+
+    // Need to initialize on first interaction or when video is ready
+    video.addEventListener('play', initAudio, { once: true });
+
+    return () => {
+      // We don't necessarily want to disconnect everything on every render, 
+      // but if the component unmounts, we should cleanup.
+    };
+  }, [isAmplified, boostLevel]);
+
   // Hide controls on inactivity
   const resetHideTimer = useCallback(() => {
     setShowControls(true);
@@ -251,9 +301,15 @@ export const VideoPlayer = ({
   }, [isPlaying, resetHideTimer]);
 
   // Control handlers
-  const togglePlay = () => {
+  const togglePlay = async () => {
     const video = videoRef.current;
     if (!video) return;
+
+    // Resume AudioContext on user interaction
+    if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+      await audioContextRef.current.resume();
+    }
+
     if (isPlaying) {
       video.pause();
     } else {
@@ -263,7 +319,11 @@ export const VideoPlayer = ({
         video.volume = volume || 1;
         setIsMuted(false);
       }
-      video.play();
+      try {
+        await video.play();
+      } catch (e) {
+        console.error("Play failed:", e);
+      }
     }
   };
 
