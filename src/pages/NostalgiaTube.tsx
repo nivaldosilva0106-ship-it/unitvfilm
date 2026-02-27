@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { DownloadModal } from "@/components/DownloadModal";
 import { voteContent, getUserVote } from "@/lib/firebase";
+import { VideoPlayer } from "@/components/VideoPlayer";
 
 const formatTime = (seconds: number) => {
     if (!seconds) return "0:00";
@@ -70,6 +71,7 @@ export default function NostalgiaTube(): JSX.Element {
     const [isFullscreen, setIsFullscreen] = useState(false); // Track fullscreen state locally
     const [waitingForSelection, setWaitingForSelection] = useState(false); // New state for prompt
     const [lastProgress, setLastProgress] = useState<any>(null); // Last watched episode progress
+    const [tiktokVideoUrl, setTiktokVideoUrl] = useState<string | null>(null); // Fetched TikTok link
 
     // Quality labels mapping - MUST be before any conditional returns
     const qualityLabels: { [key: string]: string } = useMemo(() => ({
@@ -256,6 +258,34 @@ export default function NostalgiaTube(): JSX.Element {
     };
 
     const tiktokId = getTikTokId(tiktokUrl);
+
+    // Fetch Direct TikTok Video URL
+    useEffect(() => {
+        const fetchTiktokDirect = async () => {
+            if (!tiktokUrl) {
+                setTiktokVideoUrl(null);
+                return;
+            }
+
+            setIsLoadingVideo(true);
+            try {
+                const res = await fetch(`/api/tiktok?url=${encodeURIComponent(tiktokUrl)}`);
+                const data = await res.json();
+                if (data.url) {
+                    setTiktokVideoUrl(data.url);
+                } else {
+                    console.error("TikTok API Error:", data.error);
+                    toast.error("Erro ao carregar vídeo do TikTok.");
+                }
+            } catch (error) {
+                console.error("Fetch error:", error);
+            } finally {
+                setIsLoadingVideo(false);
+            }
+        };
+
+        fetchTiktokDirect();
+    }, [tiktokUrl]);
 
     // Get poster image
     const getPosterImage = () => {
@@ -831,7 +861,20 @@ export default function NostalgiaTube(): JSX.Element {
                             </div>
                         )}
 
-                        {tiktokId && (
+                        {tiktokVideoUrl && (
+                            <div className="absolute inset-0 w-full h-full z-10 bg-black flex items-center justify-center">
+                                <VideoPlayer
+                                    url={tiktokVideoUrl}
+                                    title={currentContent?.title || "TikTok Video"}
+                                    poster={getPosterImage()}
+                                    autoPlay={true}
+                                    onEnded={playNextEpisode}
+                                />
+                                <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/80 to-transparent pointer-events-none z-20"></div>
+                            </div>
+                        )}
+
+                        {tiktokId && !tiktokVideoUrl && (
                             <div className="absolute inset-0 w-full h-full z-10 bg-black flex items-center justify-center">
                                 <iframe
                                     src={`https://www.tiktok.com/embed/v2/${tiktokId}`}
@@ -844,7 +887,7 @@ export default function NostalgiaTube(): JSX.Element {
                         )}
 
                         {/* 2. Common UI Layer (Poster, Interaction, Controls) */}
-                        {((youtubeId && !isGoogleDriveApi && !tiktokId) || (isGoogleDriveApi && !hasQuotaError) || tiktokId) && (
+                        {((youtubeId && !isGoogleDriveApi && !tiktokId) || (isGoogleDriveApi && !hasQuotaError)) && (
                             <>
                                 {/* Poster / Loading / Ended Overlay */}
                                 <div className={`absolute inset-0 w-full h-full z-30 flex items-center justify-center bg-black transition-opacity duration-500 ${(!hasStartedPlaying || isLoadingVideo || videoEnded || waitingForSelection) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
