@@ -302,8 +302,11 @@ export const VideoPlayer = ({
       // User interaction - unmute if was muted due to autoplay policy
       if (video.muted && isMuted) {
         video.muted = false;
-        video.volume = volume || 1;
+        video.volume = volume > 1 ? 1 : (volume || 1);
         setIsMuted(false);
+      }
+      if (audioCtxRef.current?.state === 'suspended') {
+        audioCtxRef.current.resume();
       }
       video.play();
     }
@@ -320,10 +323,18 @@ export const VideoPlayer = ({
     const video = videoRef.current;
     if (!video) return;
     const newVolume = value[0];
-    video.volume = newVolume;
+
+    // Cap video volume at 1.0 to avoid errors, GainNode handles > 1.0
+    video.volume = newVolume > 1 ? 1 : newVolume;
     video.muted = newVolume === 0;
+
     setVolume(newVolume);
     setIsMuted(newVolume === 0);
+
+    // Resume AudioContext if needed
+    if (newVolume > 1 && audioCtxRef.current?.state === 'suspended') {
+      audioCtxRef.current.resume();
+    }
   };
 
   const toggleMute = () => {
@@ -399,7 +410,7 @@ export const VideoPlayer = ({
       <video
         ref={videoRef}
         poster={poster}
-        className="w-full h-full"
+        className="w-full h-full grayscale"
         style={{ objectFit }}
         playsInline
         crossOrigin="anonymous"
