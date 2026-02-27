@@ -20,6 +20,7 @@ interface VideoPlayerProps {
   autoPlay?: boolean;
   startTime?: number;
   subtitles?: string;
+  objectFit?: 'contain' | 'cover' | 'fill';
 }
 
 const formatTime = (seconds: number): string => {
@@ -40,12 +41,16 @@ export const VideoPlayer = ({
   onEnded,
   autoPlay = true,
   startTime = 0,
-  subtitles
+  subtitles,
+  objectFit = 'contain'
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const hlsRef = useRef<Hls | null>(null);
   const hideControlsTimer = useRef<NodeJS.Timeout | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const gainNodeRef = useRef<GainNode | null>(null);
+  const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -207,13 +212,54 @@ export const VideoPlayer = ({
     };
   }, [onEnded]);
 
-  // Sync volume with video element on mount and when volume/muted changes
+  // Sync volume with video element and Amplifier
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    video.volume = volume;
+
+    if (volume > 1) {
+      // Initialize Audio Context for Amplification if needed
+      if (!audioCtxRef.current) {
+        try {
+          const AudioContextClass = (window as any).AudioContext || (window as any).webkitAudioContext;
+          const ctx = new AudioContextClass();
+          const source = ctx.createMediaElementSource(video);
+          const gain = ctx.createGain();
+
+          source.connect(gain);
+          gain.connect(ctx.destination);
+
+          audioCtxRef.current = ctx;
+          sourceNodeRef.current = source;
+          gainNodeRef.current = gain;
+        } catch (e) {
+          console.error("Failed to initialize AudioContext for amplification:", e);
+        }
+      }
+
+      if (audioCtxRef.current?.state === 'suspended') {
+        audioCtxRef.current.resume();
+      }
+
+      video.volume = 1;
+      if (gainNodeRef.current) {
+        gainNodeRef.current.gain.value = isMuted ? 0 : volume;
+      }
+    } else {
+      video.volume = isMuted ? 0 : volume;
+      if (gainNodeRef.current) {
+        gainNodeRef.current.gain.value = 1;
+      }
+    }
     video.muted = isMuted;
   }, [volume, isMuted]);
+
+  // Clean up Audio Context
+  useEffect(() => {
+    return () => {
+      audioCtxRef.current?.close();
+    };
+  }, []);
 
   // Fullscreen change listener
   useEffect(() => {
@@ -353,7 +399,8 @@ export const VideoPlayer = ({
       <video
         ref={videoRef}
         poster={poster}
-        className="w-full h-full object-contain"
+        className="w-full h-full"
+        style={{ objectFit }}
         playsInline
         crossOrigin="anonymous"
         muted={isMuted}
@@ -470,11 +517,16 @@ export const VideoPlayer = ({
                   <Slider
                     value={[isMuted ? 0 : volume]}
                     min={0}
-                    max={1}
+                    max={4}
                     step={0.01}
                     onValueChange={handleVolumeChange}
                     className="cursor-pointer [&_[data-radix-slider-track]]:h-1 [&_[data-radix-slider-track]]:bg-white/30 [&_[data-radix-slider-range]]:bg-primary [&_[data-radix-slider-thumb]]:w-3 [&_[data-radix-slider-thumb]]:h-3 [&_[data-radix-slider-thumb]]:bg-white"
                   />
+                  {volume > 1 && (
+                    <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-lg animate-bounce">
+                      {Math.round(volume * 100)}%
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
