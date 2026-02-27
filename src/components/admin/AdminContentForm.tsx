@@ -62,12 +62,15 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     const isSeriesSelected = initialCategory === 'series';
 
     // --- DETECT CATEGORY & CONTEXT ---
-    const seasonHeaderPattern = /^temporada\s+(\d+)/i;
+    const seasonHeaderPattern = /(?:temporada\s+(\d+)|(\d+)\s*temporada)/i;
     const seriesPattern = /(\d+)x(\d+)/;
     const hierarchicalPattern = /^(\d+\.\s*)?(.+?)\s*[-:]\s*(https?:\/\/[^\s]+)/i;
+    const titlePattern = /^titulo:\s*(.*)/i;
+    const tiktokPattern = /https?:\/\/(?:www\.)?tiktok\.com\/@[^\/]+\/video\/\d+/;
 
-    // It's a series if it matches patterns OR if the user already selected a serial category
-    const isSeriesText = lines.some(l => seriesPattern.test(l) || seasonHeaderPattern.test(l) || hierarchicalPattern.test(l));
+    // It's a series if it matches patterns OR if the user already selected a serial category OR contains TikTok links
+    const isTikTok = lines.some(l => tiktokPattern.test(l));
+    const isSeriesText = lines.some(l => seriesPattern.test(l) || seasonHeaderPattern.test(l) || hierarchicalPattern.test(l)) || isTikTok;
     const shouldHandleAsMultiple = isSeriesText || isSeriesSelected || isNostalgiaSelected;
 
     let extractedTitle = "";
@@ -95,7 +98,31 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
         // Check for Season header
         const seasonMatch = line.match(seasonHeaderPattern);
         if (seasonMatch) {
-          currentSeason = parseInt(seasonMatch[1]);
+          currentSeason = parseInt(seasonMatch[1] || seasonMatch[2]);
+          return;
+        }
+
+        // Check for Title field ("Titulo: Nome")
+        const titleMatch = line.match(titlePattern);
+        if (titleMatch) {
+          extractedTitle = titleMatch[1].trim();
+          return;
+        }
+
+        // TikTok direct URL pattern
+        const tiktokMatch = line.match(tiktokPattern);
+        if (tiktokMatch) {
+          const url = tiktokMatch[0].trim();
+          const episodeNumber = newEpisodes.filter(e => e.season === currentSeason).length + 1;
+
+          newEpisodes.push({
+            season: currentSeason,
+            episode: episodeNumber,
+            title: extractedTitle || `Episódio ${episodeNumber}`,
+            url: "",
+            tiktok_url: url,
+            downloads: []
+          });
           return;
         }
 
