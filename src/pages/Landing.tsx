@@ -216,7 +216,7 @@ export const Landing = () => {
 
 
 
-        // ... (in JSX, replacing "Low Cost Plan Highlight" section)
+
             {/* Plans Section */}
             {plans.length > 0 && (
                 <section className="relative z-20 -mt-20 md:-mt-32 px-4 pb-20">
