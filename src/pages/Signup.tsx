@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { signUp, getPlans } from '@/lib/firebase';
 import { toast } from 'sonner';
 import type { Plan } from '@/types/user';
+import { InstallAppButton } from '@/components/InstallAppButton';
 
 const Signup = () => {
   const navigate = useNavigate();
@@ -139,7 +140,10 @@ const Signup = () => {
         style={{ backgroundImage: `url("${bgUrl}")` }}
       />
 
-      <div className="w-full max-w-4xl relative z-10">
+      <div className="w-full max-w-4xl relative z-10 mt-12 sm:mt-0">
+        <div className="absolute -top-12 right-0 sm:top-0 sm:right-[-40px]">
+          <InstallAppButton variant="icon" />
+        </div>
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
             <div className="bg-primary p-2 rounded-lg">

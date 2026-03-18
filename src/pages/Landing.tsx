@@ -7,6 +7,7 @@ import { getAllContents, getPlans } from '@/lib/firebase';
 import { Content } from '@/types/content';
 import { Plan } from '@/types/user';
 import { ContentRow } from '@/components/ContentRow';
+import { InstallAppButton } from '@/components/InstallAppButton';
 
 export const Landing = () => {
     const navigate = useNavigate();
@@ -155,6 +156,7 @@ export const Landing = () => {
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
+                    <InstallAppButton variant="icon" />
                     <Link to="/login">
                         <Button variant="outline" className="border-[#0aff7a] text-white hover:bg-[#0aff7a]/10 hover:text-[#0aff7a] bg-transparent font-medium hidden sm:flex">
                             Entrar

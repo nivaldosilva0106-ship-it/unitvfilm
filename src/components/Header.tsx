@@ -24,6 +24,7 @@ import { Input } from "./ui/input";
 import { toast } from "sonner";
 import type { Content } from "@/types/content";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
+import { InstallAppButton } from '@/components/InstallAppButton';
 
 declare global {
   interface BeforeInstallPromptEvent extends Event {
@@ -256,6 +257,7 @@ export const Header = () => {
                       <FileText className="w-5 h-5" />
                       Sobre Nós
                     </button>
+                    <InstallAppButton />
 
                     <div className="pt-4 border-t border-white/10 mt-2">
                       <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 px-2">Créditos Diários</p>
@@ -335,18 +337,8 @@ export const Header = () => {
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-            {/* PWA Install Icon - Only on Desktop or supported mobile browsers */}
-            {installButtonVisible && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleInstallPWA}
-                className="text-gray-300 hover:text-white hidden sm:flex"
-                title="Instalar aplicativo"
-              >
-                <Download className="h-5 w-5" />
-              </Button>
-            )}
+            {/* PWA Install Icon */}
+            <InstallAppButton variant="icon" className="text-gray-300 hover:text-white" />
 
             {/* Search Icon with Dropdown */}
             <DropdownMenu open={searchOpen} onOpenChange={setSearchOpen}>

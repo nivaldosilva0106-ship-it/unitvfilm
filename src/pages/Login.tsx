@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { signIn, signInAnonymously, resetPassword } from '@/lib/firebase';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { toast } from 'sonner';
+import { InstallAppButton } from '@/components/InstallAppButton';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -73,7 +74,10 @@ const Login = () => {
       />
       <div className="absolute inset-0 z-10 bg-[#022c22]/80" />
 
-      <div className="w-full max-w-md relative z-20">
+      <div className="w-full max-w-md relative z-20 mt-12 sm:mt-0">
+        <div className="absolute -top-12 right-0 sm:top-0 sm:right-[-40px]">
+          <InstallAppButton variant="icon" />
+        </div>
         <div className="text-center mb-8">
           <Link to="/" className="inline-flex items-center gap-2 mb-4">
             <div className="bg-primary p-3 rounded-lg glow-effect">
