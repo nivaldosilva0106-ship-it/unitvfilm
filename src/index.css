@@ -54,6 +54,7 @@ All colors MUST be HSL.
 
   body {
     @apply bg-gradient-to-br from-[hsl(var(--gradient-start))] to-[hsl(var(--gradient-end))] text-foreground min-h-screen;
+    padding-bottom: 72px;
   }
 
   html {
@@ -329,12 +330,12 @@ All colors MUST be HSL.
 
   /* ===== Mobile Bottom Navigation Bar ===== */
   .mobile-bottom-nav {
-    display: none;
+    display: flex;
     position: fixed;
     bottom: 0;
     left: 0;
     right: 0;
-    z-index: 50;
+    z-index: 9998;
     background: linear-gradient(
       180deg,
       rgba(10, 25, 18, 0.85) 0%,
@@ -347,17 +348,6 @@ All colors MUST be HSL.
     justify-content: space-around;
     align-items: center;
     box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.4), 0 -1px 0 hsl(var(--primary) / 0.1);
-  }
-
-  @media (max-width: 768px) {
-    .mobile-bottom-nav {
-      display: flex;
-    }
-
-    /* Add padding at bottom of page so content isn't hidden behind the bar */
-    body {
-      padding-bottom: 72px;
-    }
   }
 
   .mobile-bottom-nav-item {
