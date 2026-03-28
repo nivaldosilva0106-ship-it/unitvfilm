@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Home, List, Film, Clapperboard } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -8,13 +9,25 @@ const navItems = [
   { label: "Nostalgia", icon: Clapperboard, path: "/nostalgia" },
 ];
 
+const hiddenPaths = ["/admin", "/login", "/signup", "/watch/", "/profiles"];
+
 export const MobileBottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Hide on admin, login, signup, player pages
-  const hiddenPaths = ["/admin", "/login", "/signup", "/watch/", "/profiles"];
   const shouldHide = hiddenPaths.some((p) => location.pathname.startsWith(p));
+
+  useEffect(() => {
+    if (shouldHide) {
+      document.body.style.paddingBottom = "0px";
+    } else {
+      document.body.style.paddingBottom = "72px";
+    }
+    return () => {
+      document.body.style.paddingBottom = "0px";
+    };
+  }, [shouldHide]);
+
   if (shouldHide) return null;
 
   return (
@@ -42,3 +55,4 @@ export const MobileBottomNav = () => {
     </nav>
   );
 };
+

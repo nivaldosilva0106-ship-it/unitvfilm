@@ -54,7 +54,6 @@ All colors MUST be HSL.
 
   body {
     @apply bg-gradient-to-br from-[hsl(var(--gradient-start))] to-[hsl(var(--gradient-end))] text-foreground min-h-screen;
-    padding-bottom: 72px;
   }
 
   html {
