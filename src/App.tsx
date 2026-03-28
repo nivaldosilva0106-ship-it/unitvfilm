@@ -12,6 +12,7 @@ import { GuestSessionManager } from "@/components/GuestSessionManager";
 import { HolidayDecorations } from "@/components/HolidayDecorations";
 import FocusNavigator from "@/components/FocusNavigator";
 import GlobalContentProtection from "@/components/GlobalContentProtection";
+import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +69,7 @@ const App = () => (
           <NetworkStatus />
           <OfflineIndicator />
           <GlobalContentProtection />
+          <MobileBottomNav />
           <AuthGuard>
             <GuestSessionManager />
             <Suspense fallback={<LoadingScreen />}>

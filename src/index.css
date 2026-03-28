@@ -326,4 +326,121 @@ All colors MUST be HSL.
   .modern-scrollbar::-webkit-scrollbar-thumb:hover {
     background-color: hsl(var(--primary) / 0.6);
   }
+
+  /* ===== Mobile Bottom Navigation Bar ===== */
+  .mobile-bottom-nav {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: linear-gradient(
+      180deg,
+      rgba(10, 25, 18, 0.85) 0%,
+      rgba(8, 20, 14, 0.97) 100%
+    );
+    backdrop-filter: blur(20px) saturate(1.6);
+    -webkit-backdrop-filter: blur(20px) saturate(1.6);
+    border-top: 1px solid hsl(var(--primary) / 0.15);
+    padding: 6px 8px calc(env(safe-area-inset-bottom, 6px) + 6px) 8px;
+    justify-content: space-around;
+    align-items: center;
+    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.4), 0 -1px 0 hsl(var(--primary) / 0.1);
+  }
+
+  @media (max-width: 768px) {
+    .mobile-bottom-nav {
+      display: flex;
+    }
+
+    /* Add padding at bottom of page so content isn't hidden behind the bar */
+    body {
+      padding-bottom: 72px;
+    }
+  }
+
+  .mobile-bottom-nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 12px;
+    border-radius: 14px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    min-width: 60px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .mobile-bottom-nav-item:active {
+    transform: scale(0.92);
+  }
+
+  .mobile-bottom-nav-item.active {
+    background: hsl(var(--primary) / 0.1);
+  }
+
+  .mobile-bottom-nav-icon-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 28px;
+  }
+
+  .mobile-bottom-nav-icon {
+    width: 22px;
+    height: 22px;
+    color: hsl(150 10% 55%);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .mobile-bottom-nav-item.active .mobile-bottom-nav-icon {
+    color: hsl(var(--primary));
+    filter: drop-shadow(0 0 6px hsl(var(--primary) / 0.5));
+  }
+
+  .mobile-bottom-nav-indicator {
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 18px;
+    height: 3px;
+    border-radius: 3px;
+    background: hsl(var(--primary));
+    box-shadow: 0 0 8px hsl(var(--primary) / 0.6);
+    animation: indicator-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  @keyframes indicator-in {
+    from {
+      width: 0;
+      opacity: 0;
+    }
+    to {
+      width: 18px;
+      opacity: 1;
+    }
+  }
+
+  .mobile-bottom-nav-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: hsl(150 10% 50%);
+    transition: color 0.3s ease;
+    white-space: nowrap;
+    line-height: 1.2;
+  }
+
+  .mobile-bottom-nav-item.active .mobile-bottom-nav-label {
+    color: hsl(var(--primary));
+  }
 }
