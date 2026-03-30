@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Home, List, Film, Clapperboard } from "lucide-react";
+import { Home, List, Film, Clapperboard, Tv } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 const navItems = [
@@ -7,6 +7,7 @@ const navItems = [
   { label: "Minha Lista", icon: List, path: "/my-list" },
   { label: "Categorias", icon: Film, path: "/categories" },
   { label: "Nostalgia", icon: Clapperboard, path: "/nostalgia" },
+  { label: "24H", icon: Tv, path: "/canais24h" },
 ];
 
 const hiddenPaths = ["/admin", "/login", "/signup", "/watch/", "/profiles"];

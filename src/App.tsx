@@ -38,6 +38,7 @@ const ProfileSelection = React.lazy(() => import("./pages/profiles/ProfileSelect
 const Categories = React.lazy(() => import("./pages/Categories"));
 const LiveTV = React.lazy(() => import("./pages/LiveTV"));
 const NostalgiaTube = React.lazy(() => import("./pages/NostalgiaTube"));
+const Canais24h = React.lazy(() => import("./pages/Canais24h"));
 const VerifyCode = React.lazy(() => import("./pages/VerifyCode"));
 const NotFound = React.lazy(() => import("./pages/NotFound"));
 const About = React.lazy(() => import("./pages/About").catch(() => {
@@ -95,6 +96,7 @@ const App = () => (
                 <Route path="/tv" element={<LiveTV />} />
                 <Route path="/nostalgia" element={<NostalgiaTube />} />
                 <Route path="/nostalgia/:id" element={<NostalgiaTube />} />
+                <Route path="/canais24h" element={<Canais24h />} />
                 <Route path="/about" element={<About />} />
                 <Route path="/terms" element={<TermsOfUse />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />

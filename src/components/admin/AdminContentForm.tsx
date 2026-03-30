@@ -232,6 +232,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
   const isTV = editingContent.category === 'tv';
   const isSeries = editingContent.category === 'series';
   const isMovie = editingContent.category === 'movie';
+  const isCanais24h = editingContent.category === 'canais24h';
 
   // --- TMDB Handlers ---
   const handleTmdbSearch = async () => {
@@ -684,6 +685,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
               <SelectItem value="series">Série</SelectItem>
               <SelectItem value="tv">TV</SelectItem>
               <SelectItem value="nostalgia">NostalgiaTube</SelectItem>
+              <SelectItem value="canais24h">Canais 24 Horas</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -786,7 +788,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           </div>
         </div>
 
-        {!isTV && (
+        {(!isTV && !isCanais24h) && (
           <div className="space-y-2">
             <Label>Buscar no TMDB</Label>
             <div className="flex gap-2">

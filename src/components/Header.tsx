@@ -216,6 +216,18 @@ export const Header = () => {
                     </button>
 
                     <button
+                      onClick={() => { navigate("/canais24h"); }}
+                      className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
+                    >
+                      <Film className="w-5 h-5 text-red-500" />
+                      Transmissão 24h
+                      <div className="flex items-center gap-1.5 ml-auto px-2 py-0.5 bg-red-600/20 border border-red-600/30 rounded text-[10px] font-bold text-red-500 tracking-wider">
+                        <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]"></div>
+                        LIVE
+                      </div>
+                    </button>
+
+                    <button
                       onClick={() => { window.open("https://unitvfbox.vercel.app/", "_blank"); }}
                       className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
                     >
@@ -277,6 +289,14 @@ export const Header = () => {
               <button onClick={() => navigate("/tv")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors flex items-center gap-2">
                 TV Online
                 <span className="flex h-1.5 w-1.5 rounded-full bg-red-600 animate-pulse" />
+              </button>
+
+              <button onClick={() => navigate("/canais24h")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors flex items-center gap-1.5">
+                Transmissão 24h
+                <div className="flex items-center gap-1 px-1.5 py-0.5 bg-red-600/20 border border-red-600/30 rounded text-[9px] font-bold text-red-500 tracking-wider">
+                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]"></div>
+                  LIVE
+                </div>
               </button>
 
               <button
