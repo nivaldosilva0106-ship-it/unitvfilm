@@ -319,7 +319,7 @@ export default function Canais24h() {
                             <>
                                 {/* Channel Logo Watermark */}
                                 {currentChannel.channel_logo_url && (
-                                    <div className="absolute top-4 right-4 z-50 pointer-events-none select-none">
+                                    <div className="absolute bottom-16 right-4 z-50 pointer-events-none select-none">
                                         <img 
                                             src={currentChannel.channel_logo_url} 
                                             alt="Logo" 
