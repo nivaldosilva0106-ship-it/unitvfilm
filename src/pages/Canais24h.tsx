@@ -15,7 +15,8 @@ declare global {
 }
 
 // ============================================================
-// YOUTUBE PLAYER — defined OUTSIDE the main component to prevent re-mounts
+// YOUTUBE PLAYER — Memoized, outside main component
+// CSS scales the iframe to HIDE YouTube logo, watermark, and controls
 // ============================================================
 const YouTubePlayer = memo(({ id, videoId, onEnded, startTime, onTimeUpdate, muted }: {
     id: string;
@@ -27,11 +28,13 @@ const YouTubePlayer = memo(({ id, videoId, onEnded, startTime, onTimeUpdate, mut
 }) => {
     const playerRef = useRef<any>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
+        const elId = `yt-${id}-${videoId}`;
+
         const initPlayer = () => {
-            if (!window.YT || !window.YT.Player) return;
-            const elId = `yt-player-${id}-${videoId}`;
+            if (!window.YT?.Player) return;
             if (!document.getElementById(elId)) return;
 
             playerRef.current = new window.YT.Player(elId, {
@@ -40,23 +43,33 @@ const YouTubePlayer = memo(({ id, videoId, onEnded, startTime, onTimeUpdate, mut
                     autoplay: 1,
                     controls: 0,
                     disablekb: 1,
-                    rel: 0,
-                    start: startTime ? Math.floor(startTime) : 0,
+                    fs: 0,
+                    iv_load_policy: 3, // Hide annotations
                     modestbranding: 1,
+                    rel: 0,
+                    showinfo: 0,
+                    start: startTime ? Math.floor(startTime) : 0,
                 },
                 events: {
                     onReady: (e: any) => {
                         if (muted) e.target.mute(); else e.target.unMute();
+                        e.target.playVideo();
                         if (onTimeUpdate) {
                             intervalRef.current = setInterval(() => {
-                                if (e.target?.getCurrentTime) {
-                                    onTimeUpdate(e.target.getCurrentTime(), e.target.getDuration());
-                                }
+                                try {
+                                    const ct = e.target.getCurrentTime();
+                                    const du = e.target.getDuration();
+                                    if (ct && du) onTimeUpdate(ct, du);
+                                } catch {}
                             }, 1000);
                         }
                     },
                     onStateChange: (e: any) => {
                         if (e.data === window.YT.PlayerState.ENDED) onEnded();
+                        // Auto-play if paused unexpectedly
+                        if (e.data === window.YT.PlayerState.PAUSED) {
+                            setTimeout(() => { try { e.target.playVideo(); } catch {} }, 500);
+                        }
                     },
                 },
             });
@@ -68,27 +81,36 @@ const YouTubePlayer = memo(({ id, videoId, onEnded, startTime, onTimeUpdate, mut
             document.body.appendChild(tag);
             window.onYouTubeIframeAPIReady = initPlayer;
         } else {
-            initPlayer();
+            setTimeout(initPlayer, 100);
         }
 
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
-            if (playerRef.current?.destroy) playerRef.current.destroy();
+            try { playerRef.current?.destroy(); } catch {}
         };
     }, [videoId, id]);
 
     useEffect(() => {
-        if (playerRef.current?.mute) {
-            if (muted) playerRef.current.mute(); else playerRef.current.unMute();
-        }
+        try {
+            if (playerRef.current?.mute) {
+                if (muted) playerRef.current.mute(); else playerRef.current.unMute();
+            }
+        } catch {}
     }, [muted]);
 
-    return <div id={`yt-player-${id}-${videoId}`} className="w-full h-full border-0 pointer-events-auto" />;
+    // The outer div clips overflow; the inner div is scaled up to HIDE YouTube branding
+    return (
+        <div ref={containerRef} className="w-full h-full overflow-hidden relative">
+            <div className="absolute inset-[-15%] w-[130%] h-[130%]">
+                <div id={`yt-${id}-${videoId}`} className="w-full h-full" />
+            </div>
+        </div>
+    );
 });
 YouTubePlayer.displayName = "YouTubePlayer";
 
 // ============================================================
-// PLAYER INSTANCE — defined OUTSIDE as memoized component
+// PLAYER SLOT — Memoized, outside main. Never re-created on parent re-render
 // ============================================================
 const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeUpdate, onEnded }: {
     id: string;
@@ -101,23 +123,27 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
 }) => {
     if (!content) return null;
 
-    const getYoutubeId = (url?: string) => {
+    const getYtId = (url?: string) => {
         if (!url) return null;
         const m = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/|live\/)([^#&?]*).*/);
         return m && m[2].length === 11 ? m[2] : null;
     };
 
-    const ytId = getYoutubeId(content.url);
+    const ytId = getYtId(content.url);
 
     return (
-        <div className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ${active ? "opacity-100 z-10 pointer-events-auto" : "opacity-0 z-0 pointer-events-none"}`}>
+        <div
+            className={`absolute inset-0 w-full h-full transition-opacity duration-700 ease-in-out ${
+                active ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
+            }`}
+        >
             {ytId ? (
                 <YouTubePlayer
                     id={id}
                     videoId={ytId}
                     onEnded={onEnded || (() => {})}
                     startTime={content.startTime}
-                    onTimeUpdate={active ? onTimeUpdate : undefined}
+                    onTimeUpdate={onTimeUpdate}
                     muted={!active}
                 />
             ) : (
@@ -129,7 +155,7 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
                     startTime={content.startTime}
                     isLive={true}
                     onEnded={onEnded || (() => {})}
-                    onTimeUpdate={active ? onTimeUpdate : undefined}
+                    onTimeUpdate={onTimeUpdate}
                     muted={!active}
                 />
             )}
@@ -139,7 +165,18 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
 PlayerSlot.displayName = "PlayerSlot";
 
 // ============================================================
-// MAIN PAGE COMPONENT
+// TYPE for queue items
+// ============================================================
+interface QueueItem {
+    url: string;
+    startTime: number;
+    title: string;
+    type: "program" | "interval" | "ad";
+    programIndex: number; // which program in the list this relates to
+}
+
+// ============================================================
+// MAIN PAGE
 // ============================================================
 export default function Canais24h() {
     const [searchParams] = useSearchParams();
@@ -149,32 +186,30 @@ export default function Canais24h() {
     const [currentChannel, setCurrentChannel] = useState<Content | null>(null);
     const [loading, setLoading] = useState(true);
 
-    // Sync
+    // Server time offset
     const serverOffsetRef = useRef(0);
 
-    // Dual Player — use refs for content to avoid re-renders
+    // Dual player slots
     const [activeSlot, setActiveSlot] = useState<"A" | "B">("A");
-    const [slotA, setSlotA] = useState<{ url: string; startTime: number; title: string; isAd: boolean } | null>(null);
-    const [slotB, setSlotB] = useState<{ url: string; startTime: number; title: string; isAd: boolean } | null>(null);
+    const [slotA, setSlotA] = useState<QueueItem | null>(null);
+    const [slotB, setSlotB] = useState<QueueItem | null>(null);
     const [tiktokA, setTiktokA] = useState<string | null>(null);
     const [tiktokB, setTiktokB] = useState<string | null>(null);
 
-    // UI display states
-    const [currentProgramTitle, setCurrentProgramTitle] = useState("");
+    // UI
+    const [nowPlayingTitle, setNowPlayingTitle] = useState("");
     const [isAdMode, setIsAdMode] = useState(false);
-    const [nextPrograms, setNextPrograms] = useState<any[]>([]);
-
-    // Real playback tracking from the ACTIVE player's onTimeUpdate callback
     const [realTime, setRealTime] = useState(0);
     const [realDuration, setRealDuration] = useState(0);
 
-    // Refs to track what's loaded to prevent redundant state updates
-    const loadedUrlRef = useRef<string>("");
-    const bufferUrlRef = useRef<string>("");
-    const isSwappingRef = useRef(false);
-    const hasInitializedRef = useRef(false);
+    // Track current program index in the list
+    const currentIndexRef = useRef(0);
+    const isTransitioningRef = useRef(false);
+    const bufferReadyRef = useRef(false);
 
     const programs = currentChannel?.episodes || [];
+    const intervalUrls = currentChannel?.interval_urls || [];
+    const adUrls = currentChannel?.ad_urls || [];
 
     // ---- 1. Load channels ----
     useEffect(() => {
@@ -185,8 +220,8 @@ export default function Canais24h() {
                 const canais = all.filter((c) => c.category === "canais24h");
                 setContents(canais);
                 if (canais.length > 0) {
-                    const target = initialChannelId ? canais.find((c) => c.id === initialChannelId) : canais[0];
-                    setCurrentChannel(target || canais[0]);
+                    const t = initialChannelId ? canais.find((c) => c.id === initialChannelId) : canais[0];
+                    setCurrentChannel(t || canais[0]);
                 }
             } catch {
                 toast.error("Erro ao carregar canais");
@@ -196,74 +231,77 @@ export default function Canais24h() {
         })();
     }, [initialChannelId]);
 
-    // ---- 2. Server time sync (once) ----
+    // ---- 2. Server sync (once) ----
     useEffect(() => {
         (async () => {
             try {
                 const t0 = Date.now();
-                const res = await fetch(window.location.origin, { method: "HEAD" });
-                const d = res.headers.get("Date");
+                const r = await fetch(window.location.origin, { method: "HEAD" });
+                const d = r.headers.get("Date");
                 if (d) {
-                    const st = new Date(d).getTime();
-                    serverOffsetRef.current = st + (Date.now() - t0) / 2 - Date.now();
+                    serverOffsetRef.current = new Date(d).getTime() + (Date.now() - t0) / 2 - Date.now();
                 }
-            } catch { /* local fallback */ }
+            } catch {}
         })();
     }, []);
 
-    // ---- 3. Scheduling engine (pure function, no state updates) ----
-    const getScheduledContent = useCallback((shiftMs = 0) => {
+    // ---- 3. Get initial program index from global time ----
+    const getInitialState = useCallback(() => {
         if (!currentChannel || programs.length === 0) return null;
 
-        const GAP = 180; // 3 min gap
-        const nowSec = Math.floor((Date.now() + serverOffsetRef.current + shiftMs) / 1000);
+        const GAP = 180;
+        const nowSec = Math.floor((Date.now() + serverOffsetRef.current) / 1000);
+        const salt = currentChannel.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
 
         let total = 0;
-        const mapped = programs.map((p) => {
+        const mapped = programs.map((p, i) => {
             const s = total;
             const dur = p.duration || 1800;
             total = s + dur + GAP;
-            return { ...p, cycleStart: s, cycleEnd: s + dur, dur };
+            return { index: i, cycleStart: s, cycleEnd: s + dur, dur, gap: GAP };
         });
 
-        const salt = currentChannel.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
         const t = (nowSec + salt) % total;
 
-        for (const prog of mapped) {
-            if (t >= prog.cycleStart && t < prog.cycleEnd) {
+        for (const m of mapped) {
+            if (t >= m.cycleStart && t < m.cycleEnd) {
+                const prog = programs[m.index];
                 return {
-                    url: prog.internal_player_url || prog.url || "",
-                    startTime: t - prog.cycleStart,
-                    title: prog.title || "",
-                    isAd: false,
-                    duration: prog.dur,
-                    nextPrograms: mapped.filter((p) => p.cycleStart > prog.cycleStart).slice(0, 3),
+                    item: {
+                        url: prog.internal_player_url || prog.url || "",
+                        startTime: t - m.cycleStart,
+                        title: prog.title || "",
+                        type: "program" as const,
+                        programIndex: m.index,
+                    },
+                    duration: m.dur,
                 };
             }
-            if (t >= prog.cycleEnd && t < prog.cycleEnd + GAP) {
-                const iUrls = currentChannel.interval_urls || [];
-                const aUrls = currentChannel.ad_urls || [];
-                const gap = t - prog.cycleEnd;
-                const si = Math.floor(gap / 60);
-                const isInt = (si % 2 === 0) || aUrls.length === 0;
-                const adUrl = isInt && iUrls.length > 0
-                    ? iUrls[si % iUrls.length]
-                    : aUrls[si % aUrls.length];
+            // In the gap between programs
+            if (t >= m.cycleEnd && t < m.cycleEnd + m.gap) {
+                const gapOff = t - m.cycleEnd;
+                const si = Math.floor(gapOff / 60);
+                const isInt = (si % 2 === 0) || adUrls.length === 0;
+                const url = isInt && intervalUrls.length > 0
+                    ? intervalUrls[si % intervalUrls.length]
+                    : (adUrls.length > 0 ? adUrls[si % adUrls.length] : "");
                 return {
-                    url: adUrl || "",
-                    startTime: gap % 60,
-                    title: isInt ? "Intervalo" : "Publicidade",
-                    isAd: true,
+                    item: {
+                        url,
+                        startTime: gapOff % 60,
+                        title: isInt ? "Intervalo" : "Publicidade",
+                        type: (isInt ? "interval" : "ad") as "interval" | "ad",
+                        programIndex: m.index,
+                    },
                     duration: 60,
-                    nextPrograms: mapped.filter((p) => p.cycleStart > prog.cycleStart).slice(0, 3),
                 };
             }
         }
         return null;
-    }, [currentChannel, programs]);
+    }, [currentChannel, programs, intervalUrls, adUrls]);
 
     // TikTok resolver
-    const resolveTikTok = async (url: string) => {
+    const resolveTikTok = async (url: string): Promise<string | null> => {
         try {
             const r = await fetch(`/api/tiktok?url=${encodeURIComponent(url)}`);
             const d = await r.json();
@@ -271,141 +309,163 @@ export default function Canais24h() {
         } catch { return null; }
     };
 
-    // ---- 4. INITIAL LOAD — run once when channel changes ----
+    // ---- 4. Build the NEXT item to play after current ends ----
+    const getNextItem = useCallback((currentItem: QueueItem): QueueItem => {
+        if (currentItem.type === "program") {
+            // After a program → play interval or ad
+            const hasAdsOrIntervals = intervalUrls.length > 0 || adUrls.length > 0;
+            if (hasAdsOrIntervals) {
+                const seed = currentItem.programIndex + Date.now();
+                const si = Math.floor(seed / 1000) % 4;
+                const isInt = (si % 2 === 0) || adUrls.length === 0;
+                const pool = isInt ? intervalUrls : adUrls;
+                const url = pool.length > 0 ? pool[currentItem.programIndex % pool.length] : "";
+                if (url) {
+                    return {
+                        url,
+                        startTime: 0,
+                        title: isInt ? "Intervalo" : "Publicidade",
+                        type: isInt ? "interval" : "ad",
+                        programIndex: currentItem.programIndex,
+                    };
+                }
+            }
+            // No ads → go straight to next program
+            const nextIdx = (currentItem.programIndex + 1) % programs.length;
+            const nextProg = programs[nextIdx];
+            return {
+                url: nextProg.internal_player_url || nextProg.url || "",
+                startTime: 0,
+                title: nextProg.title || "",
+                type: "program",
+                programIndex: nextIdx,
+            };
+        } else {
+            // After an interval/ad → play the NEXT program
+            const nextIdx = (currentItem.programIndex + 1) % programs.length;
+            const nextProg = programs[nextIdx];
+            return {
+                url: nextProg.internal_player_url || nextProg.url || "",
+                startTime: 0,
+                title: nextProg.title || "",
+                type: "program",
+                programIndex: nextIdx,
+            };
+        }
+    }, [programs, intervalUrls, adUrls]);
+
+    // ---- 5. INITIAL LOAD ----
     useEffect(() => {
         if (!currentChannel || programs.length === 0) return;
 
-        hasInitializedRef.current = false;
-        loadedUrlRef.current = "";
-        bufferUrlRef.current = "";
+        const initial = getInitialState();
+        if (!initial) return;
 
-        const content = getScheduledContent(0);
-        if (!content) return;
+        currentIndexRef.current = initial.item.programIndex;
+        isTransitioningRef.current = false;
+        bufferReadyRef.current = false;
 
-        loadedUrlRef.current = content.url;
-        setSlotA({ url: content.url, startTime: content.startTime, title: content.title, isAd: content.isAd });
+        setSlotA(initial.item);
         setSlotB(null);
         setActiveSlot("A");
-        setCurrentProgramTitle(content.title);
-        setIsAdMode(content.isAd);
-        setRealDuration(content.duration);
-        setNextPrograms(content.nextPrograms || []);
+        setNowPlayingTitle(initial.item.title);
+        setIsAdMode(initial.item.type !== "program");
+        setRealDuration(initial.duration);
+        setRealTime(initial.item.startTime);
         setLoading(false);
-        hasInitializedRef.current = true;
 
-        if (content.url.includes("tiktok.com")) {
-            resolveTikTok(content.url).then(setTiktokA);
+        if (initial.item.url.includes("tiktok.com")) {
+            resolveTikTok(initial.item.url).then(setTiktokA);
         } else {
             setTiktokA(null);
         }
-    }, [currentChannel, programs, getScheduledContent]);
+        setTiktokB(null);
+    }, [currentChannel, programs, getInitialState]);
 
-    // ---- 5. onTimeUpdate from active player — THIS drives transitions ----
-    const handleActiveTimeUpdate = useCallback((time: number, duration?: number) => {
+    // ---- 6. Pre-buffer when 5 seconds remain ----
+    const handleTimeUpdate = useCallback((time: number, duration?: number) => {
         setRealTime(time);
         if (duration && duration > 0) setRealDuration(duration);
 
-        const remaining = (duration || realDuration) - time;
+        const remaining = (duration || 0) - time;
 
-        // When 5 seconds remain — pre-load the next content into the buffer slot
-        if (remaining <= 5 && remaining > 0 && !isSwappingRef.current) {
-            const next = getScheduledContent(6000); // what plays in 6 seconds
-            if (next && next.url !== loadedUrlRef.current && next.url !== bufferUrlRef.current) {
-                bufferUrlRef.current = next.url;
+        // Pre-load buffer at 5 seconds remaining
+        if (remaining > 0 && remaining <= 5 && !bufferReadyRef.current && !isTransitioningRef.current) {
+            bufferReadyRef.current = true;
 
-                if (activeSlot === "A") {
-                    setSlotB({ url: next.url, startTime: 0, title: next.title, isAd: next.isAd });
-                    if (next.url.includes("tiktok.com")) {
-                        resolveTikTok(next.url).then(setTiktokB);
-                    } else {
-                        setTiktokB(null);
-                    }
-                } else {
-                    setSlotA({ url: next.url, startTime: 0, title: next.title, isAd: next.isAd });
-                    if (next.url.includes("tiktok.com")) {
-                        resolveTikTok(next.url).then(setTiktokA);
-                    } else {
-                        setTiktokA(null);
-                    }
-                }
-            }
-        }
-    }, [activeSlot, getScheduledContent, realDuration]);
+            const currentContent = activeSlot === "A" ? slotA : slotB;
+            if (!currentContent) return;
 
-    // ---- 6. onEnded from active player — perform the swap ----
-    const handleActiveEnded = useCallback(() => {
-        if (isSwappingRef.current) return;
-        isSwappingRef.current = true;
+            const nextItem = getNextItem(currentContent);
 
-        const next = getScheduledContent(0);
-        if (!next) { isSwappingRef.current = false; return; }
-
-        const newSlot = activeSlot === "A" ? "B" : "A";
-        const bufferContent = newSlot === "A" ? slotA : slotB;
-
-        // If the buffer already has the right content, just swap
-        if (bufferContent && bufferContent.url === next.url) {
-            loadedUrlRef.current = next.url;
-            bufferUrlRef.current = "";
-            setActiveSlot(newSlot);
-            setCurrentProgramTitle(next.title);
-            setIsAdMode(next.isAd);
-            setRealDuration(next.duration);
-            setNextPrograms(next.nextPrograms || []);
-        } else {
-            // Load directly into the current slot
-            loadedUrlRef.current = next.url;
             if (activeSlot === "A") {
-                setSlotA({ url: next.url, startTime: next.startTime, title: next.title, isAd: next.isAd });
-                if (next.url.includes("tiktok.com")) resolveTikTok(next.url).then(setTiktokA);
+                setSlotB(nextItem);
+                if (nextItem.url.includes("tiktok.com")) {
+                    resolveTikTok(nextItem.url).then(setTiktokB);
+                } else {
+                    setTiktokB(null);
+                }
             } else {
-                setSlotB({ url: next.url, startTime: next.startTime, title: next.title, isAd: next.isAd });
-                if (next.url.includes("tiktok.com")) resolveTikTok(next.url).then(setTiktokB);
+                setSlotA(nextItem);
+                if (nextItem.url.includes("tiktok.com")) {
+                    resolveTikTok(nextItem.url).then(setTiktokA);
+                } else {
+                    setTiktokA(null);
+                }
             }
-            setCurrentProgramTitle(next.title);
-            setIsAdMode(next.isAd);
-            setRealDuration(next.duration);
-            setNextPrograms(next.nextPrograms || []);
+        }
+    }, [activeSlot, slotA, slotB, getNextItem]);
+
+    // ---- 7. Swap when video ends ----
+    const handleEnded = useCallback(() => {
+        if (isTransitioningRef.current) return;
+        isTransitioningRef.current = true;
+
+        const currentContent = activeSlot === "A" ? slotA : slotB;
+        if (!currentContent) { isTransitioningRef.current = false; return; }
+
+        // If buffer wasn't pre-loaded (video ended before 5s trigger), load now
+        const bufferSlot = activeSlot === "A" ? slotB : slotA;
+        if (!bufferSlot) {
+            const nextItem = getNextItem(currentContent);
+            if (activeSlot === "A") {
+                setSlotB(nextItem);
+                if (nextItem.url.includes("tiktok.com")) resolveTikTok(nextItem.url).then(setTiktokB);
+                else setTiktokB(null);
+            } else {
+                setSlotA(nextItem);
+                if (nextItem.url.includes("tiktok.com")) resolveTikTok(nextItem.url).then(setTiktokA);
+                else setTiktokA(null);
+            }
+            // Wait a moment for the buffer to mount, then swap
+            setTimeout(() => {
+                const newSlot = activeSlot === "A" ? "B" : "A";
+                const item = newSlot === "A" ? slotA : slotB;
+                const nextItem2 = getNextItem(currentContent);
+                setActiveSlot(newSlot);
+                setNowPlayingTitle(nextItem2.title);
+                setIsAdMode(nextItem2.type !== "program");
+                currentIndexRef.current = nextItem2.programIndex;
+                setRealTime(0);
+                bufferReadyRef.current = false;
+                setTimeout(() => { isTransitioningRef.current = false; }, 1000);
+            }, 500);
+            return;
         }
 
+        // Swap to buffer
+        const newSlot = activeSlot === "A" ? "B" : "A";
+        setActiveSlot(newSlot);
+        setNowPlayingTitle(bufferSlot.title);
+        setIsAdMode(bufferSlot.type !== "program");
+        currentIndexRef.current = bufferSlot.programIndex;
         setRealTime(0);
-        setTimeout(() => { isSwappingRef.current = false; }, 2000);
-    }, [activeSlot, slotA, slotB, getScheduledContent]);
+        bufferReadyRef.current = false;
 
-    // ---- 7. Lightweight sync check — only checks for DRIFT, does NOT touch players ----
-    useEffect(() => {
-        if (!currentChannel || programs.length === 0 || !hasInitializedRef.current) return;
+        setTimeout(() => { isTransitioningRef.current = false; }, 1000);
+    }, [activeSlot, slotA, slotB, getNextItem]);
 
-        const driftCheck = () => {
-            const now = getScheduledContent(0);
-            if (!now) return;
-
-            // Update EPG
-            if (now.nextPrograms) setNextPrograms(now.nextPrograms);
-
-            // Only force-correct if the content has CHANGED (e.g., user was away)
-            if (now.url !== loadedUrlRef.current && !isSwappingRef.current) {
-                loadedUrlRef.current = now.url;
-                if (activeSlot === "A") {
-                    setSlotA({ url: now.url, startTime: now.startTime, title: now.title, isAd: now.isAd });
-                    if (now.url.includes("tiktok.com")) resolveTikTok(now.url).then(setTiktokA);
-                    else setTiktokA(null);
-                } else {
-                    setSlotB({ url: now.url, startTime: now.startTime, title: now.title, isAd: now.isAd });
-                    if (now.url.includes("tiktok.com")) resolveTikTok(now.url).then(setTiktokB);
-                    else setTiktokB(null);
-                }
-                setCurrentProgramTitle(now.title);
-                setIsAdMode(now.isAd);
-                setRealDuration(now.duration);
-            }
-        };
-
-        const iv = setInterval(driftCheck, 10000); // Check every 10s, not 3s
-        return () => clearInterval(iv);
-    }, [currentChannel, programs, activeSlot, getScheduledContent]);
-
-    // ---- Helpers ----
+    // ---- Channel click ----
     const handleChannelClick = (channel: Content) => {
         setLoading(true);
         setCurrentChannel(channel);
@@ -415,13 +475,24 @@ export default function Canais24h() {
         window.scrollTo({ top: 0, behavior: "smooth" });
     };
 
+    // ---- UI Helpers ----
     const getRemainingTime = () => {
         if (!realDuration) return "Calculando...";
         const diff = realDuration - realTime;
         if (diff <= 0) return "Terminando...";
         const m = Math.floor(diff / 60);
         const s = Math.floor(diff % 60);
-        return m > 0 ? `Faltam ${m} min` : `Faltam ${s} seg`;
+        return m > 0 ? `Faltam ${m}min ${s.toString().padStart(2, "0")}s` : `Faltam ${s}s`;
+    };
+
+    const getUpcomingPrograms = () => {
+        if (programs.length === 0) return [];
+        const idx = currentIndexRef.current;
+        const upcoming: Episode[] = [];
+        for (let i = 1; i <= 3; i++) {
+            upcoming.push(programs[(idx + i) % programs.length]);
+        }
+        return upcoming;
     };
 
     // ============================================================
@@ -431,7 +502,7 @@ export default function Canais24h() {
         <div className="min-h-screen bg-[#141414] text-white font-sans">
             <Header />
             <main className="pt-20 pb-10">
-                {/* Player Area */}
+                {/* Player */}
                 <div className="w-full max-w-7xl mx-auto px-4 md:px-8 mb-8">
                     <div className="relative w-full bg-black rounded-lg overflow-hidden shadow-2xl aspect-video">
                         {loading ? (
@@ -452,8 +523,8 @@ export default function Canais24h() {
                                     tiktokUrl={tiktokA}
                                     active={activeSlot === "A"}
                                     channelThumb={currentChannel.thumbnail_url}
-                                    onTimeUpdate={activeSlot === "A" ? handleActiveTimeUpdate : undefined}
-                                    onEnded={activeSlot === "A" ? handleActiveEnded : undefined}
+                                    onTimeUpdate={activeSlot === "A" ? handleTimeUpdate : undefined}
+                                    onEnded={activeSlot === "A" ? handleEnded : undefined}
                                 />
                                 <PlayerSlot
                                     id="B"
@@ -461,13 +532,13 @@ export default function Canais24h() {
                                     tiktokUrl={tiktokB}
                                     active={activeSlot === "B"}
                                     channelThumb={currentChannel.thumbnail_url}
-                                    onTimeUpdate={activeSlot === "B" ? handleActiveTimeUpdate : undefined}
-                                    onEnded={activeSlot === "B" ? handleActiveEnded : undefined}
+                                    onTimeUpdate={activeSlot === "B" ? handleTimeUpdate : undefined}
+                                    onEnded={activeSlot === "B" ? handleEnded : undefined}
                                 />
 
                                 {/* Logo Watermark */}
                                 {currentChannel.channel_logo_url && (
-                                    <div className="absolute bottom-4 left-4 z-50 pointer-events-none select-none">
+                                    <div className="absolute bottom-3 left-3 z-50 pointer-events-none select-none">
                                         <img
                                             src={currentChannel.channel_logo_url}
                                             alt="Logo"
@@ -500,7 +571,7 @@ export default function Canais24h() {
                                     O que estás a ver
                                 </span>
                                 <h2 className="text-xl font-bold text-white mb-2 leading-tight">
-                                    {isAdMode ? "Intervalo Comercial" : currentProgramTitle || currentChannel?.title}
+                                    {isAdMode ? "Intervalo Comercial" : (nowPlayingTitle || currentChannel?.title)}
                                 </h2>
                                 <div className="mt-6 flex flex-col gap-2">
                                     <div className="flex justify-between items-end text-[10px] font-medium text-zinc-400 mb-1">
@@ -521,28 +592,26 @@ export default function Canais24h() {
                         <div className="lg:col-span-8 flex flex-col gap-4">
                             <div className="flex items-center gap-2">
                                 <Clock className="w-4 h-4 text-primary" />
-                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Guia de Transmissão</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                                    Programação de Hoje
+                                </span>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {nextPrograms.length > 0
-                                    ? nextPrograms.map((prog, idx) => (
-                                          <div key={idx} className="bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl group hover:border-primary/50 transition-colors">
-                                              <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">
-                                                  {idx === 0 ? "Próximo" : "A seguir"}
-                                              </span>
-                                              <h3 className="text-sm font-bold text-zinc-300 mt-2 truncate group-hover:text-white">
-                                                  {prog.title}
-                                              </h3>
-                                          </div>
-                                      ))
-                                    : programs.slice(0, 3).map((prog, idx) => (
-                                          <div key={idx} className="bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl group hover:border-primary/50 transition-colors">
-                                              <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">
-                                                  {idx === 0 ? "Próximo" : "A seguir"}
-                                              </span>
-                                              <h3 className="text-sm font-bold text-zinc-300 mt-2 truncate group-hover:text-white">{prog.title}</h3>
-                                          </div>
-                                      ))}
+                                {getUpcomingPrograms().map((prog, idx) => (
+                                    <div key={idx} className="bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl group hover:border-primary/50 transition-colors">
+                                        <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">
+                                            {idx === 0 ? "Próximo" : "A seguir"}
+                                        </span>
+                                        <h3 className="text-sm font-bold text-zinc-300 mt-2 truncate group-hover:text-white">
+                                            {prog.title}
+                                        </h3>
+                                        {prog.duration && (
+                                            <span className="text-[10px] text-zinc-500 mt-1 block">
+                                                {Math.floor(prog.duration / 60)} min
+                                            </span>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>
