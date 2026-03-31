@@ -179,13 +179,22 @@ export const VideoPlayer = ({
     }
   }, [url, isHLS, autoPlay, getVideoUrl]);
 
-  // Set start time
+  const hasSeekedRef = useRef(false);
+
+  useEffect(() => {
+    hasSeekedRef.current = false;
+  }, [url]);
+
+  // Set start time once per URL
   useEffect(() => {
     const video = videoRef.current;
-    if (video && startTime > 0 && duration > 0) {
-      video.currentTime = startTime;
+    if (video && startTime > 0 && duration > 0 && !hasSeekedRef.current) {
+      // If we are at the end, don't seek to the end, loop to beginning
+      const finalSeek = startTime >= duration ? startTime % duration : startTime;
+      video.currentTime = finalSeek;
+      hasSeekedRef.current = true;
     }
-  }, [startTime, duration]);
+  }, [startTime, duration, url]);
 
   // Video event handlers
   useEffect(() => {

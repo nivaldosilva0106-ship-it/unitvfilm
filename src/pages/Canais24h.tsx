@@ -162,15 +162,22 @@ export default function Canais24h() {
         const syncIndex = Math.floor(globalTime / SLOT_DURATION) % programs.length;
         const syncOffset = globalTime % SLOT_DURATION;
         
-        setCurrentProgramIndex(syncIndex);
-        setChannelStartTime(syncOffset);
-        hasSyncedRef.current = true;
-    }, [currentChannel, programs.length]);
+        // --- PREVENT LOOPING/STUTTERING ---
+        // Only update currentProgramIndex if it actually changed
+        if (syncIndex !== currentProgramIndex) {
+            setCurrentProgramIndex(syncIndex);
+            setChannelStartTime(syncOffset); // Reset only on program change
+        } else if (!hasSyncedRef.current) {
+            // First time sync for the current session
+            setChannelStartTime(syncOffset);
+            hasSyncedRef.current = true;
+        }
+    }, [currentChannel, programs.length, currentProgramIndex]);
 
     // Initial sync and continuous refresh
     useEffect(() => {
         updateSync();
-        const interval = setInterval(updateSync, 10000); // Sync precise every 10s
+        const interval = setInterval(updateSync, 10000); // Check for program change every 10s
         return () => clearInterval(interval);
     }, [updateSync]);
 
@@ -178,12 +185,10 @@ export default function Canais24h() {
         setVideoCurrentTime(time);
         if (duration) {
             setVideoDuration(duration);
-            if (hasSyncedRef.current && channelStartTime >= duration && duration > 0) {
-                const correctedStart = channelStartTime % duration;
-                setChannelStartTime(correctedStart);
-            }
+            // We only "loop" if the video actually ends within the slot 
+            // and the user first joins far into the slot
         }
-    }, [channelStartTime]);
+    }, []);
 
     // Helper para formatar horario (HH:MM)
     const formatTimeLabel = (offsetHours: number) => {
