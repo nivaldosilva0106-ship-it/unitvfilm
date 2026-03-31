@@ -102,14 +102,13 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
         let tiktok_url = "";
 
         if (isCanais24hSelected) {
+          // In 24h channels, we want all URLs to populate the 'url' field (embed) 
+          // as well as their specific fields for maximum compatibility
+          finalUrl = url;
           if (url.includes('tiktok.com')) {
             tiktok_url = url;
-            finalUrl = "";
-          } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
-            finalUrl = url;
-          } else {
+          } else if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
             internal_player_url = url;
-            finalUrl = "";
           }
         }
         
@@ -254,6 +253,51 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
         toast.success("Links extraídos com sucesso!");
       }
     }
+  };
+
+  const shuffleEpisodes = () => {
+    if (!editingContent.episodes) return;
+    const shuffled = [...editingContent.episodes].sort(() => Math.random() - 0.5);
+    setEditingContent(prev => ({ ...prev, episodes: shuffled }));
+    toast.success("Programação embaralhada!");
+  };
+
+  const orderEpisodes2by2 = () => {
+    if (!editingContent.episodes) return;
+    
+    // Group by title
+    const groups: { [key: string]: Episode[] } = {};
+    editingContent.episodes.forEach(ep => {
+      // Normalize title for grouping (e.g. "Simpsons - Ep 1" -> "Simpsons")
+      const baseTitle = ep.title.split(/[\-\:]/)[0].trim();
+      if (!groups[baseTitle]) groups[baseTitle] = [];
+      groups[baseTitle].push(ep);
+    });
+
+    const ordered: Episode[] = [];
+    const titles = Object.keys(groups);
+    
+    // Randomize initial title order
+    const shuffledTitles = [...titles].sort(() => Math.random() - 0.5);
+    const tempGroups = { ...groups };
+
+    // This loop picks a title, takes 2 episodes, then moves to next title
+    // to ensure variety but keep 2-by-2 groups
+    let hasContents = true;
+    while (hasContents) {
+      hasContents = false;
+      shuffledTitles.forEach(title => {
+        const group = tempGroups[title];
+        if (group.length > 0) {
+          const batch = group.splice(0, 2);
+          ordered.push(...batch);
+          hasContents = true;
+        }
+      });
+    }
+
+    setEditingContent(prev => ({ ...prev, episodes: ordered }));
+    toast.success("Programação organizada (2 em 2)!");
   };
 
   const isNostalgia = editingContent.category === 'nostalgia';
@@ -971,6 +1015,20 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
               <img src={editingContent.backdrop_url} className="mt-2 w-full h-32 object-cover rounded-md border border-white/10" />
             )}
           </div>
+          {isCanais24h && (
+            <div>
+              <Label className="text-primary">URL da Logo do Canal (Watermark) *</Label>
+              <Input
+                value={editingContent.channel_logo_url || ''}
+                onChange={(e) => setEditingContent(prev => ({ ...prev, channel_logo_url: e.target.value }))}
+                className="bg-input border-primary/30 focus:border-primary"
+                placeholder="https://... (Aparecerá no canto do player)"
+              />
+              {editingContent.channel_logo_url && (
+                <img src={editingContent.channel_logo_url} className="mt-2 h-12 w-auto object-contain rounded bg-black/40 p-1 border border-white/10" />
+              )}
+            </div>
+          )}
         </div>
 
         <div>
@@ -1143,6 +1201,32 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                 {isCanais24h ? "Adicionar Bloco" : "Adicionar Episódio"}
               </Button>
             </div>
+
+            {isCanais24h && (
+              <div className="flex flex-wrap gap-2 p-3 bg-primary/5 border border-primary/20 rounded-lg mb-4">
+                <p className="w-full text-xs font-bold text-primary mb-1 uppercase tracking-wider">Ferramentas de Programação:</p>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={shuffleEpisodes}
+                  className="border-primary/40 text-primary hover:bg-primary/10"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Aleatório (Embaralhar)
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={orderEpisodes2by2}
+                  className="border-primary/40 text-primary hover:bg-primary/10"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Ordem (2 em 2 Episódios)
+                </Button>
+              </div>
+            )}
 
             {isNostalgia && (
               <div className="flex gap-2 items-center mb-4 p-4 bg-red-900/10 border border-red-900/20 rounded-lg">
@@ -1597,6 +1681,56 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           <Sparkles className="w-5 h-5" /> Processar e Preencher Agora
         </Button>
       </div>
+
+      {isCanais24h && editingContent.id && (
+        <div className="mt-6 p-6 bg-gradient-to-br from-zinc-900 to-black rounded-xl border border-primary/30 shadow-2xl">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-primary/20 rounded-lg">
+              <MonitorPlay className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <h3 className="font-bold text-lg text-white">Transmissão M3U8 Profissional</h3>
+              <p className="text-xs text-zinc-400">URL para reprodutores externos (VLC, Smarters, etc)</p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div className="relative group">
+              <Input 
+                readOnly
+                value={`${window.location.origin}/api/m3u8?channelId=${editingContent.id}`}
+                className="bg-black/50 border-white/10 pr-24 font-mono text-xs text-primary h-11"
+              />
+              <Button 
+                onClick={() => {
+                  navigator.clipboard.writeText(`${window.location.origin}/api/m3u8?channelId=${editingContent.id}`);
+                  toast.success("URL M3U8 copiada!");
+                }}
+                className="absolute right-1 top-1 bottom-1 bg-primary hover:bg-primary/90 text-white px-4 h-9"
+              >
+                Copiar
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="p-3 bg-white/5 rounded-lg border border-white/5 flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5" />
+                <div>
+                  <p className="text-[11px] font-bold text-zinc-300">Compatível com IPTV</p>
+                  <p className="text-[10px] text-zinc-500">Funciona em Smart TVs e Boxes Android.</p>
+                </div>
+              </div>
+              <div className="p-3 bg-white/5 rounded-lg border border-white/5 flex items-start gap-2">
+                <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5" />
+                <div>
+                  <p className="text-[11px] font-bold text-zinc-300">Sync Automático</p>
+                  <p className="text-[10px] text-zinc-500">Sempre o mesmo que passa no site.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <AdminBulkUpdate />
 

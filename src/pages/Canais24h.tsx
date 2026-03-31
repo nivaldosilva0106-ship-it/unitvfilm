@@ -168,8 +168,18 @@ export default function Canais24h() {
 
     const handleTimeUpdate = useCallback((time: number, duration?: number) => {
         setVideoCurrentTime(time);
-        if (duration) setVideoDuration(duration);
-    }, []);
+        if (duration) {
+            setVideoDuration(duration);
+            // Sync Fix: If our calculated start time is beyond the video duration,
+            // we should probably loop it or reset to 0 to avoid playback stalls.
+            if (hasSyncedRef.current && channelStartTime >= duration && duration > 0) {
+                const correctedStart = channelStartTime % duration;
+                setChannelStartTime(correctedStart);
+                // Note: The player doesn't always need a manual seek if it's already playing,
+                // but this ensures the EPG and UI stay consistent.
+            }
+        }
+    }, [channelStartTime]);
 
     // Helper para formatar horario (HH:MM)
     const formatTimeLabel = (offsetHours: number) => {
@@ -258,6 +268,18 @@ export default function Canais24h() {
                             </div>
                         ) : (
                             <>
+                                {/* Channel Logo Watermark */}
+                                {currentChannel.channel_logo_url && (
+                                    <div className="absolute top-4 right-4 z-50 pointer-events-none select-none">
+                                        <img 
+                                            src={currentChannel.channel_logo_url} 
+                                            alt="Logo" 
+                                            className="h-8 md:h-14 w-auto object-contain opacity-70 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+                                            onError={(e) => (e.currentTarget.style.display = 'none')}
+                                        />
+                                    </div>
+                                )}
+
                                 {/* AO VIVO Indicator Overlay */}
                                 <div className="absolute top-4 left-4 z-40 flex items-center gap-2 pointer-events-none">
                                     <div className="flex items-center gap-1.5 bg-red-600/90 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white animate-pulse">

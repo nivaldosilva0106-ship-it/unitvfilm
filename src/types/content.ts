@@ -60,5 +60,6 @@ export interface Content {
   cast_members?: { name: string; character: string; profile_path: string | null }[];
   google_drive_url?: string;
   tiktok_url?: string;
+  channel_logo_url?: string;
   main_video_id?: string;
 }
