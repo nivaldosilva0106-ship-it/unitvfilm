@@ -673,10 +673,10 @@ export default function Canais24h() {
                                     isFullscreen={isFullscreen}
                                 />
 
-                                {/* Logo Watermark */}
+                                {/* Logo Watermark - Lower Z-Index to stay BEHIND controls */}
                                 {currentChannel.channel_logo_url && (
                                     <div
-                                        className={`absolute bottom-6 left-6 z-[60] pointer-events-none select-none transition-all duration-300 ${
+                                        className={`absolute bottom-6 left-6 z-20 pointer-events-none select-none transition-all duration-300 ${
                                             isFullscreen ? "opacity-90 scale-125" : "opacity-70"
                                         }`}
                                     >
@@ -697,6 +697,20 @@ export default function Canais24h() {
                                         {isAdMode ? "INTERVALO" : "24h Online"}
                                     </div>
                                 </div>
+
+                                {/* Periodic Title Badge ("Você está assistindo") */}
+                                {/* Visible for 15 seconds every 9 minutes (Cycle = 555s) */}
+                                {nowPlayingTitle && !isAdMode && (realTime % 555 < 15) && (
+                                    <div className="absolute top-6 right-6 z-50 animate-in fade-in slide-in-from-right-4 duration-700">
+                                        <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10 shadow-xl flex items-center gap-3">
+                                            <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] text-white/60 font-medium uppercase tracking-tight">Estás a ver:</span>
+                                                <span className="text-sm text-white font-bold max-w-[200px] truncate">{nowPlayingTitle}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </>
                         )}
                     </div>
