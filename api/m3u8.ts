@@ -16,7 +16,7 @@ if (!getApps().length) {
 const database = getDatabase();
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    const { channelId } = req.query;
+    const { channelId, format } = req.query;
 
     if (!channelId) {
         return res.status(400).send('Missing channelId');
@@ -41,15 +41,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // ============================================================
         // SAME SCHEDULING LOGIC AS Canais24h.tsx (Cumulative Dynamic)
         // ============================================================
-        const GAP_DURATION = 180; // 3 min gap for ads/intervals between programs
+        const GAP_DURATION = 180;
         const nowSec = Math.floor(Date.now() / 1000);
         const channelSalt = (channelId as string).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
 
-        // Build the cycle timeline
         let totalCycleSeconds = 0;
         const timeline = programs.map((p: any, i: number) => {
             const start = totalCycleSeconds;
-            const dur = p.duration || 1800; // 30min fallback
+            const dur = p.duration || 1800;
             const end = start + dur;
             totalCycleSeconds = end + GAP_DURATION;
             return { index: i, cycleStart: start, cycleEnd: end, dur, prog: p };
@@ -58,21 +57,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const timeInCycle = (nowSec + channelSalt) % totalCycleSeconds;
 
         let playbackUrl = '';
-        let playbackStartTime = 0;
         let playbackTitle = 'Canal 24h';
-        let isAdSlot = false;
 
         for (const slot of timeline) {
-            // Currently in a program
             if (timeInCycle >= slot.cycleStart && timeInCycle < slot.cycleEnd) {
                 playbackUrl = slot.prog.internal_player_url || slot.prog.url || '';
-                playbackStartTime = timeInCycle - slot.cycleStart;
                 playbackTitle = slot.prog.title || 'Programa';
                 break;
             }
-            // Currently in the gap (ad/interval)
             if (timeInCycle >= slot.cycleEnd && timeInCycle < slot.cycleEnd + GAP_DURATION) {
-                isAdSlot = true;
                 const intervalUrls = channel.interval_urls || [];
                 const adUrls = channel.ad_urls || [];
                 const gapOffset = timeInCycle - slot.cycleEnd;
@@ -83,7 +76,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     : (adUrls.length > 0 ? adUrls[slotIdx % adUrls.length] : '');
 
                 playbackUrl = adUrl || slot.prog.internal_player_url || slot.prog.url || '';
-                playbackStartTime = gapOffset % 60;
                 playbackTitle = isInterval ? 'Intervalo' : 'Publicidade';
                 break;
             }
@@ -93,11 +85,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!playbackUrl) {
             const first = programs[0];
             playbackUrl = first.internal_player_url || first.url || '';
-            playbackStartTime = 0;
             playbackTitle = first.title || 'Canal 24h';
         }
 
-        // Resolve TikTok URLs
+        // Resolve TikTok
         if (playbackUrl.includes('tiktok.com')) {
             try {
                 const protocol = req.headers['x-forwarded-proto'] || 'http';
@@ -114,26 +105,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         // ============================================================
-        // HLS MANIFEST — Points IPTV players to the correct content
+        // RESPONSE: 302 redirect for VLC/IPTV compatibility
+        // The external player only sees the m3u8 URL, the redirect
+        // happens server-side so sniffers capture only this endpoint.
         // ============================================================
-        res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+        
+        // If format=m3u requested, return an M3U playlist
+        if (format === 'm3u') {
+            res.setHeader('Content-Type', 'audio/x-mpegurl');
+            res.setHeader('Content-Disposition', `inline; filename="${channelId}.m3u"`);
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            res.setHeader('Access-Control-Allow-Origin', '*');
+            
+            const protocol = req.headers['x-forwarded-proto'] || 'https';
+            const host = req.headers.host;
+            const selfUrl = `${protocol}://${host}/api/m3u8?channelId=${channelId}`;
+            
+            const m3u = `#EXTM3U
+#EXTINF:-1 tvg-name="${playbackTitle}" group-title="UnitVFilm",${playbackTitle}
+${selfUrl}`;
+            return res.status(200).send(m3u);
+        }
+
+        // Default: 302 redirect to the actual content
+        // VLC, Smarters, IPTV players follow this redirect transparently
+        // IDM and sniffers only see: /api/m3u8?channelId=xxx
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Access-Control-Allow-Origin', '*');
-
-        const manifest = `#EXTM3U
-#EXT-X-VERSION:3
-#EXT-X-MEDIA-SEQUENCE:0
-#EXT-X-ALLOW-CACHE:NO
-#EXT-X-TARGETDURATION:60
-#EXT-X-PLAYLIST-TYPE:EVENT
-#EXTINF:60,${playbackTitle}
-#EXT-X-DISCONTINUITY
-#EXT-X-START:TIME-OFFSET=${playbackStartTime}
-#EXT-X-PROGRAM-DATE-TIME:${new Date().toISOString()}
-${playbackUrl}`;
-
-        return res.status(200).send(manifest);
+        res.setHeader('X-Now-Playing', playbackTitle);
+        
+        return res.redirect(302, playbackUrl);
 
     } catch (error) {
         console.error("M3U8 Error:", error);

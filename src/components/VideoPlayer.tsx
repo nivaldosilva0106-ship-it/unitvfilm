@@ -65,6 +65,8 @@ export const VideoPlayer = ({
   const [currentQuality, setCurrentQuality] = useState<number>(-1);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSubtitles, setShowSubtitles] = useState(false);
+  const [showPlayFlash, setShowPlayFlash] = useState(false);
+  const playFlashTimer = useRef<NodeJS.Timeout | null>(null);
 
   // Audio amplification refs
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -335,6 +337,10 @@ export const VideoPlayer = ({
       }
       try {
         await video.play();
+        // Show play flash animation
+        setShowPlayFlash(true);
+        if (playFlashTimer.current) clearTimeout(playFlashTimer.current);
+        playFlashTimer.current = setTimeout(() => setShowPlayFlash(false), 1200);
       } catch (e) {
         console.error("Play failed:", e);
       }
@@ -454,6 +460,15 @@ export const VideoPlayer = ({
         </div>
       )}
 
+      {/* Center Play Flash — shows briefly when play starts, then fades */}
+      {showPlayFlash && (
+        <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+          <div className="w-16 h-16 md:w-24 md:h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center animate-ping-once">
+            <Play className="w-8 h-8 md:w-12 md:h-12 text-white fill-white ml-1" />
+          </div>
+        </div>
+      )}
+
       {/* Center Play Button (when paused) */}
       {!isPlaying && !isBuffering && (
         <div className="absolute inset-0 flex items-center justify-center z-10">
@@ -538,8 +553,8 @@ export const VideoPlayer = ({
                 </>
               )}
 
-              {/* Volume */}
-              <div className="flex items-center gap-1 md:gap-2 group/volume">
+              {/* Volume — always visible */}
+              <div className="flex items-center gap-1 md:gap-2">
                 <button
                   onClick={toggleMute}
                   className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
@@ -550,7 +565,7 @@ export const VideoPlayer = ({
                     <Volume2 className="w-4 h-4 md:w-5 md:h-5 text-white" />
                   )}
                 </button>
-                <div className="w-0 overflow-hidden group-hover/volume:w-16 md:group-hover/volume:w-20 transition-all duration-300">
+                <div className="w-16 md:w-20">
                   <Slider
                     value={[isMuted ? 0 : volume]}
                     min={0}
@@ -565,14 +580,6 @@ export const VideoPlayer = ({
 
             {/* Right Controls */}
             <div className="flex items-center gap-1 md:gap-2">
-              <button
-                onClick={() => setShowSubtitles(!showSubtitles)}
-                className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors ${showSubtitles ? 'text-primary' : 'text-white'}`}
-                title="Legendas"
-                disabled={!subtitles}
-              >
-                {showSubtitles ? <Captions className="w-4 h-4 md:w-5 md:h-5" /> : <CaptionsOff className="w-4 h-4 md:w-5 md:h-5" />}
-              </button>
 
               {/* Settings Menu */}
               <DropdownMenu>

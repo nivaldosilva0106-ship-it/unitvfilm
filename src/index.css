@@ -110,6 +110,26 @@ All colors MUST be HSL.
     animation: marquee 15s linear infinite;
   }
 
+  /* Play Flash Animation — appears briefly on play click */
+  @keyframes play-flash {
+    0% {
+      opacity: 1;
+      transform: scale(0.6);
+    }
+    50% {
+      opacity: 0.9;
+      transform: scale(1.1);
+    }
+    100% {
+      opacity: 0;
+      transform: scale(1.5);
+    }
+  }
+
+  .animate-ping-once {
+    animation: play-flash 1.2s cubic-bezier(0.4, 0, 0.6, 1) forwards;
+  }
+
   /* Holiday Decorations Styles */
   .holiday-decorations {
     position: fixed;
