@@ -62,4 +62,6 @@ export interface Content {
   tiktok_url?: string;
   channel_logo_url?: string;
   main_video_id?: string;
+  interval_urls?: string[];
+  ad_urls?: string[];
 }
