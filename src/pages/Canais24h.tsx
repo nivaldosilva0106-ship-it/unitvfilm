@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { Content, Episode } from "@/types/content";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { toast } from "sonner";
-import { Loader2, Film, Tv, Play } from "lucide-react";
+import { Loader2, Film, Tv, Play, Clock, Info } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 declare global {
@@ -15,7 +15,7 @@ declare global {
 }
 
 // YouTube Player with onEnded support
-const YouTubePlayer = ({ videoId, onEnded, startTime, onTimeUpdate }: { videoId: string, onEnded: () => void, startTime?: number, onTimeUpdate?: (time: number) => void }) => {
+const YouTubePlayer = ({ videoId, onEnded, startTime, onTimeUpdate }: { videoId: string, onEnded: () => void, startTime?: number, onTimeUpdate?: (time: number, duration?: number) => void }) => {
     const playerRef = useRef<any>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -37,10 +37,10 @@ const YouTubePlayer = ({ videoId, onEnded, startTime, onTimeUpdate }: { videoId:
                     onReady: (event: any) => {
                         if (onTimeUpdate) {
                             intervalRef.current = setInterval(() => {
-                                if (event.target && event.target.getCurrentTime) {
-                                    onTimeUpdate(event.target.getCurrentTime());
-                                }
-                            }, 2000);
+                            if (event.target && event.target.getCurrentTime) {
+                                onTimeUpdate(event.target.getCurrentTime(), event.target.getDuration());
+                            }
+                        }, 2000);
                         }
                     },
                     onStateChange: (event: any) => {
@@ -80,7 +80,10 @@ export default function Canais24h() {
     const [currentChannel, setCurrentChannel] = useState<Content | null>(null);
     const [currentProgramIndex, setCurrentProgramIndex] = useState(0);
     const [channelStartTime, setChannelStartTime] = useState(0);
+    const [videoDuration, setVideoDuration] = useState(0);
+    const [videoCurrentTime, setVideoCurrentTime] = useState(0);
 
+    const hasSyncedRef = useRef(false);
     const [loading, setLoading] = useState(true);
 
     const [tiktokVideoUrl, setTiktokVideoUrl] = useState<string | null>(null);
@@ -139,45 +142,52 @@ export default function Canais24h() {
     useEffect(() => {
         // Quando o canal muda
         setTiktokVideoUrl(null);
+        hasSyncedRef.current = false; // Reset sync flag para o novo canal
+
         if (!currentChannel || programs.length === 0) {
              setCurrentProgramIndex(0);
              setChannelStartTime(0);
              return;
         }
 
-        const storageKey = `live_state_${currentChannel.id}`;
-        const savedState = localStorage.getItem(storageKey);
+        // Determimistic Global Sync Logic (TV Frame Sync)
+        const SLOT_DURATION = 3600; // 1 hora
+        const nowSec = Math.floor(Date.now() / 1000);
         
-        if (savedState) {
-            try {
-                const parsed = JSON.parse(savedState);
-                const elapsedSinceLeaveSec = Math.floor((Date.now() - parsed.timestamp) / 1000);
-                
-                // Retoma do index exato com o avanço correspondente ao tempo em falta
-                setCurrentProgramIndex(parsed.programIndex >= 0 && parsed.programIndex < programs.length ? parsed.programIndex : 0);
-                
-                // Se a ausencia foi muito longa (várias horas) pode exceder o video, mas a API "onEnded" tratará do salto mal tente carregar
-                setChannelStartTime(parsed.currentTime + elapsedSinceLeaveSec);
-            } catch (e) {
-                setCurrentProgramIndex(0);
-                setChannelStartTime(0);
-            }
-        } else {
-            // Utilizador nunca entrou no canal
-            setCurrentProgramIndex(0);
-            setChannelStartTime(0);
-        }
+        // Usamos o ID do canal como "sal" para que canais diferentes tenham offsets diferentes
+        const channelSalt = currentChannel.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const globalTime = nowSec + channelSalt;
+        
+        const syncIndex = Math.floor(globalTime / SLOT_DURATION) % programs.length;
+        const syncOffset = globalTime % SLOT_DURATION;
+        
+        setCurrentProgramIndex(syncIndex);
+        setChannelStartTime(syncOffset);
+        hasSyncedRef.current = true;
     }, [currentChannel]);
 
-    const handleTimeUpdate = useCallback((time: number) => {
-        if (!currentChannel) return;
-        const storageKey = `live_state_${currentChannel.id}`;
-        localStorage.setItem(storageKey, JSON.stringify({
-            programIndex: currentProgramIndex,
-            currentTime: time,
-            timestamp: Date.now()
-        }));
-    }, [currentChannel, currentProgramIndex]);
+    const handleTimeUpdate = useCallback((time: number, duration?: number) => {
+        setVideoCurrentTime(time);
+        if (duration) setVideoDuration(duration);
+    }, []);
+
+    // Helper para formatar horario (HH:MM)
+    const formatTimeLabel = (offsetHours: number) => {
+        const d = new Date();
+        d.setMinutes(0);
+        d.setSeconds(0);
+        d.setHours(d.getHours() + offsetHours);
+        return d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+    };
+
+    // Helper para tempo restante
+    const getRemainingTime = () => {
+        if (!videoDuration) return "Calculando...";
+        const diff = videoDuration - videoCurrentTime;
+        if (diff <= 0) return "Terminando...";
+        const mins = Math.floor(diff / 60);
+        return `Faltam ${mins} min`;
+    };
 
     // Use current program URLs if available, fallback to channel level URLs
     const videoUrl = currentProgram?.internal_player_url || currentProgram?.url || currentChannel?.video_url || currentChannel?.internal_player_url;
@@ -210,11 +220,12 @@ export default function Canais24h() {
     }, [tiktokUrl]);
 
     const handleProgramEnded = useCallback(() => {
-        setChannelStartTime(0); // Normalizar reprodução sequencial a partir de agora
+        setChannelStartTime(0); 
+        // Se o vídeo acabar naturalmente durante a sessão, o próximo começa do 0:00 (voto do user)
         if (programs.length > 0) {
             setCurrentProgramIndex(prev => {
                 const next = prev + 1;
-                return next >= programs.length ? 0 : next; // Loop 24/7
+                return next >= programs.length ? 0 : next; 
             });
         }
     }, [programs.length]);
@@ -313,45 +324,87 @@ export default function Canais24h() {
                     </div>
                 </div>
 
-                {/* Programação a Seguir (Up Next) */}
-                {programs.length > 1 && (
-                    <div className="mt-8 mb-12 w-full max-w-7xl mx-auto px-4 md:px-8">
-                        <div className="flex flex-col gap-1 mb-6">
-                            <div className="flex items-center gap-3">
-                                <div className="w-1.5 h-6 bg-primary rounded-full shadow-[0_0_10px_rgba(234,23,43,0.5)]"></div>
-                                <h2 className="text-xl font-bold tracking-tight text-white uppercase text-sm">Programação de Hoje</h2>
-                            </div>
-                            <p className="text-xs text-zinc-500 uppercase tracking-widest ml-4.5">Próximos Blocos</p>
-                        </div>
+                {/* Guia de Programação Estilo Descodificador (ZAP/DSTV) */}
+                <div className="mt-8 mb-16 w-full max-w-7xl mx-auto px-4 md:px-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                         
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                            {Array.from({ length: Math.min(4, programs.length - 1) }).map((_, idx) => {
-                                const nextIndex = (currentProgramIndex + 1 + idx) % programs.length;
-                                const nextProg = programs[nextIndex];
-                                return (
-                                    <div 
-                                        key={`next-${nextProg.title}-${idx}`} 
-                                        className="group flex flex-col gap-3 bg-zinc-900/40 hover:bg-zinc-800/60 p-4 rounded-xl border border-zinc-800/50 transition-all duration-300 hover:border-primary/30 relative overflow-hidden"
-                                    >
-                                        <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
-                                            <Tv className="w-10 h-10" />
-                                        </div>
-                                        <div className="flex items-center justify-between text-[10px] font-bold text-primary tracking-tighter uppercase mb-1">
-                                            <span>Bloco {nextIndex + 1}</span>
-                                            <span className="bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-400 font-medium">Em breve</span>
-                                        </div>
-                                        <h3 className="text-zinc-200 font-semibold line-clamp-2 leading-snug group-hover:text-white transition-colors">
-                                            {nextProg.title}
-                                        </h3>
-                                        <div className="mt-2 h-1 w-full bg-zinc-800 rounded-full overflow-hidden">
-                                            <div className="h-full bg-white/10 w-0 group-hover:w-full transition-all duration-1000"></div>
-                                        </div>
+                        {/* Bloco Ativo (O que está a dar agora) */}
+                        <div className="lg:col-span-4 flex flex-col">
+                            <div className="flex items-center gap-2 mb-4">
+                                <div className="w-2 h-2 bg-red-600 rounded-full animate-ping"></div>
+                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Canal Ativo</span>
+                            </div>
+                            
+                            <div className="bg-gradient-to-br from-zinc-800/80 to-zinc-900/80 backdrop-blur-xl border border-zinc-700/50 p-6 rounded-2xl shadow-2xl relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                                    <Tv className="w-24 h-24" />
+                                </div>
+                                
+                                <span className="inline-block px-2 py-0.5 bg-primary/20 text-primary text-[9px] font-bold rounded mb-3 border border-primary/30 uppercase tracking-tighter">Estás a ver agora</span>
+                                <h2 className="text-xl font-bold text-white mb-2 leading-tight">
+                                    {currentProgram ? currentProgram.title : currentChannel?.title}
+                                </h2>
+                                
+                                <div className="mt-6 flex flex-col gap-2">
+                                    <div className="flex justify-between items-end text-[10px] font-medium text-zinc-400 mb-1 uppercase tracking-widest">
+                                        <span>Progresso</span>
+                                        <span className="text-primary font-bold">{getRemainingTime()}</span>
                                     </div>
-                                );
-                            })}
+                                    <div className="h-2 w-full bg-zinc-950 rounded-full overflow-hidden p-[1px] border border-zinc-800">
+                                        <div 
+                                            className="h-full bg-gradient-to-r from-primary to-orange-500 rounded-full shadow-[0_0_10px_rgba(234,23,43,0.5)] transition-all duration-500" 
+                                            style={{ width: `${videoDuration ? (videoCurrentTime / videoDuration) * 100 : 0}%` }}
+                                        ></div>
+                                    </div>
+                                    <div className="flex justify-between text-[9px] font-mono text-zinc-500 mt-1">
+                                        <span>{formatTimeLabel(0)}</span>
+                                        <span>{formatTimeLabel(1)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Próximos Programas (EPG Grid) */}
+                        <div className="lg:col-span-8 flex flex-col">
+                            <div className="flex items-center gap-2 mb-4">
+                                <Clock className="w-4 h-4 text-zinc-500" />
+                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Próximos Programas</span>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                {programs.length > 1 ? (
+                                    Array.from({ length: Math.min(3, programs.length - 1) }).map((_, idx) => {
+                                        const nextIndex = (currentProgramIndex + 1 + idx) % programs.length;
+                                        const nextProg = programs[nextIndex];
+                                        return (
+                                            <div 
+                                                key={`next-${nextProg.title}-${idx}`} 
+                                                className="bg-zinc-900/60 hover:bg-zinc-800/80 backdrop-blur-md border border-zinc-800 hover:border-zinc-700/80 p-5 rounded-2xl transition-all duration-300 group cursor-default"
+                                            >
+                                                <div className="flex items-center justify-between mb-4">
+                                                    <span className="text-[10px] font-black text-primary uppercase tracking-tighter bg-primary/5 px-2 py-0.5 rounded">PRÓXIMO</span>
+                                                    <span className="text-xs font-mono text-zinc-500">{formatTimeLabel(idx + 1)}</span>
+                                                </div>
+                                                <h3 className="text-sm font-semibold text-zinc-200 line-clamp-2 leading-snug group-hover:text-white transition-colors">
+                                                    {nextProg.title}
+                                                </h3>
+                                                <div className="mt-4 flex items-center gap-2">
+                                                    <div className="w-1.5 h-1.5 bg-zinc-700 rounded-full"></div>
+                                                    <div className="h-[1px] flex-1 bg-zinc-800"></div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    <div className="col-span-3 py-10 flex flex-col items-center justify-center bg-zinc-900/30 rounded-2xl border border-dashed border-zinc-800">
+                                        <Info className="w-8 h-8 text-zinc-700 mb-2" />
+                                        <p className="text-xs text-zinc-600">Sem mais blocos na grelha de hoje</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
-                )}
+                </div>
 
                 {/* Lista de Canais */}
                 <div className="w-full max-w-7xl mx-auto px-4 md:px-8">

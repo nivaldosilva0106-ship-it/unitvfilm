@@ -17,7 +17,7 @@ interface VideoPlayerProps {
   poster?: string;
   title?: string;
   onEnded?: () => void;
-  onTimeUpdate?: (time: number) => void;
+  onTimeUpdate?: (time: number, duration?: number) => void;
   autoPlay?: boolean;
   startTime?: number;
   subtitles?: string;
@@ -194,7 +194,7 @@ export const VideoPlayer = ({
 
     const handleTimeUpdate = () => {
       setCurrentTime(video.currentTime);
-      onTimeUpdate?.(video.currentTime);
+      onTimeUpdate?.(video.currentTime, video.duration);
     };
     const handleDurationChange = () => setDuration(video.duration);
     const handlePlay = () => setIsPlaying(true);
