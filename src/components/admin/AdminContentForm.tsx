@@ -56,202 +56,133 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     const lines = smartConfigText.split('\n').map(l => l.trim()).filter(l => l);
     if (lines.length === 0) return;
 
-    // Save current selection to avoid losing context
+    // --- CONTEXT DETECTION ---
     const initialCategory = editingContent.category;
     const isNostalgiaSelected = initialCategory === 'nostalgia';
     const isSeriesSelected = initialCategory === 'series';
     const isCanais24hSelected = initialCategory === 'canais24h';
 
-    // --- DETECT CATEGORY & CONTEXT ---
-    const seasonHeaderPattern = /(?:temporada\s+(\d+)|(\d+)\s*temporada)/i;
-    const seriesPattern = /(\d+)x(\d+)/;
-    const hierarchicalPattern = /^(\d+\.\s*)?(.+?)\s*[-:]\s*(https?:\/\/[^\s]+)/i;
-    const titlePattern = /^titulo:\s*(.*)/i;
+    // Patterns
     const tiktokPattern = /https?:\/\/(?:www\.)?tiktok\.com\/@[^\/]+\/video\/\d+/;
+    const urlPattern = /https?:\/\/[^\s]+/;
+    const separatorPattern = /^[-\s=]{3,}$/;
+    const seasonHeaderPattern = /(?:temporada\s+(\d+)|(\d+)\s*temporada)/i;
+    const hierarchicalPatternWithUrl = /^(\d+\.\s*)?(.+?)\s*[-:]\s*(https?:\/\/[^\s]+)/i;
 
-    // It's a series if it matches patterns OR if the user already selected a serial category OR contains TikTok links
-    const isTikTok = lines.some(l => tiktokPattern.test(l));
-    const isSeriesText = lines.some(l => seriesPattern.test(l) || seasonHeaderPattern.test(l) || hierarchicalPattern.test(l)) || isTikTok;
-    const shouldHandleAsMultiple = isSeriesText || isSeriesSelected || isNostalgiaSelected || isCanais24hSelected;
+    // Helper for URL mapping
+    const buildEpisodeURLs = (url: string) => {
+      const isGoogle = url.includes('googleapis.com');
+      let finalUrl = isGoogle ? "" : url;
+      let google_drive_url = isGoogle && isNostalgiaSelected ? url : "";
+      let internal_player_url = (isGoogle && !isNostalgiaSelected && !isCanais24hSelected) ? url : "";
+      let tiktok_url = "";
 
-    let extractedTitle = "";
-    // If first line isn't a pattern, it's likely the title
-    if (!seasonHeaderPattern.test(lines[0]) && !seriesPattern.test(lines[0]) && !hierarchicalPattern.test(lines[0])) {
-      extractedTitle = lines[0].replace(/\(\d{4}\)/, '').trim();
-    }
-
-    if (shouldHandleAsMultiple) {
-      toast.info(`Processando como lista de episódios...`);
-
-      const finalCategory = isNostalgiaSelected ? 'nostalgia' : isCanais24hSelected ? 'canais24h' : (isSeriesSelected ? 'series' : 'series');
-
-      // Update basic info if title found, or just ensure category
-      setEditingContent(prev => ({
-        ...prev,
-        title: extractedTitle || prev.title,
-        category: finalCategory
-      }));
-
-      const newEpisodes: Episode[] = [];
-      let currentSeason = 1;
-
-      const buildEpisodeURLs = (url: string, isGoogle: boolean) => {
-        let finalUrl = isGoogle ? "" : url;
-        let google_drive_url = isGoogle && isNostalgiaSelected ? url : "";
-        let internal_player_url = (isGoogle && !isNostalgiaSelected && !isCanais24hSelected) ? url : "";
-        let tiktok_url = "";
-
-        if (isCanais24hSelected) {
-          // In 24h channels, we want all URLs to populate the 'url' field (embed) 
-          // as well as their specific fields for maximum compatibility
-          finalUrl = url;
-          if (url.includes('tiktok.com')) {
-            tiktok_url = url;
-          } else if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
-            internal_player_url = url;
-          }
+      if (isCanais24hSelected) {
+        finalUrl = url;
+        if (url.includes('tiktok.com')) {
+          tiktok_url = url;
+        } else if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
+          internal_player_url = url;
         }
-        
-        return { finalUrl, google_drive_url, internal_player_url, tiktok_url };
-      };
-
-      lines.forEach(line => {
-        // Check for Season header
-        const seasonMatch = line.match(seasonHeaderPattern);
-        if (seasonMatch) {
-          currentSeason = parseInt(seasonMatch[1] || seasonMatch[2]);
-          return;
-        }
-
-        // Check for Title field ("Titulo: Nome")
-        const titleMatch = line.match(titlePattern);
-        if (titleMatch) {
-          extractedTitle = titleMatch[1].trim();
-          return;
-        }
-
-        // TikTok direct URL pattern
-        const tiktokMatch = line.match(tiktokPattern);
-        if (tiktokMatch) {
-          const url = tiktokMatch[0].trim();
-          const episodeNumber = newEpisodes.filter(e => e.season === currentSeason).length + 1;
-
-          newEpisodes.push({
-            season: currentSeason,
-            episode: episodeNumber,
-            title: extractedTitle || `Episódio ${episodeNumber}`,
-            url: "",
-            tiktok_url: url,
-            downloads: []
-          });
-          return;
-        }
-
-        // Standard 1x1 pattern
-        const epPatternMatch = line.match(/^(\d+)x(\d+)\s*(.*)/i);
-        if (epPatternMatch) {
-          const season = parseInt(epPatternMatch[1]);
-          const episode = parseInt(epPatternMatch[2]);
-          const remaining = epPatternMatch[3];
-
-          const urlMatch = remaining.match(/https?:\/\/[^\s]+/);
-          const title = remaining.replace(/https?:\/\/[^\s]+/, '').trim() || `Episódio ${episode}`;
-          const url = urlMatch ? urlMatch[0] : "";
-          const isGoogle = url.includes('googleapis.com');
-
-          const urls = buildEpisodeURLs(url, isGoogle);
-
-          newEpisodes.push({
-            season,
-            episode,
-            title: title || (isCanais24hSelected ? `Vídeo ${episode}` : `Episódio ${episode}`),
-            url: urls.finalUrl,
-            google_drive_url: urls.google_drive_url,
-            internal_player_url: urls.internal_player_url,
-            tiktok_url: urls.tiktok_url,
-            downloads: []
-          });
-          return;
-        }
-
-        // Hierarchical pattern: "1. 01 - URL" or "2. Title - URL"
-        const hierarchicalMatch = line.match(hierarchicalPattern);
-        if (hierarchicalMatch) {
-          const rawTitle = hierarchicalMatch[2].trim();
-          const url = hierarchicalMatch[3].trim();
-          const isGoogle = url.includes('googleapis.com');
-
-          // Use the rawTitle directly as the user requested ("01", "Ep X", "Nome")
-          const episodeNumber = newEpisodes.filter(e => e.season === currentSeason).length + 1;
-
-          const urls = buildEpisodeURLs(url, isGoogle);
-
-          newEpisodes.push({
-            season: currentSeason,
-            episode: episodeNumber,
-            title: rawTitle,
-            url: urls.finalUrl,
-            google_drive_url: urls.google_drive_url,
-            internal_player_url: urls.internal_player_url,
-            tiktok_url: urls.tiktok_url,
-            downloads: []
-          });
-        }
-      });
-
-      if (newEpisodes.length > 0) {
-        setEditingContent(prev => {
-          const updatedEpisodes = [...(prev.episodes || []), ...newEpisodes];
-
-          // Also fill top-level google_drive_url for Nostalgia if none exists
-          let topGoogleDriveUrl = prev.google_drive_url;
-          if (isNostalgiaSelected && !topGoogleDriveUrl) {
-            topGoogleDriveUrl = newEpisodes.find(e => e.google_drive_url)?.google_drive_url || "";
-          }
-
-          return {
-            ...prev,
-            episodes: updatedEpisodes,
-            google_drive_url: topGoogleDriveUrl
-          };
-        });
-
-        toast.success(`${newEpisodes.length} episódios identificados!`);
-        if (extractedTitle) {
-          setTmdbSearchQuery(extractedTitle);
-          handleTmdbSearch();
-        }
-      } else if (!extractedTitle) {
-        toast.warning("Nenhum episódio ou título identificado no texto.");
       }
+      return { finalUrl, google_drive_url, internal_player_url, tiktok_url };
+    };
 
-    } else {
-      // --- MOVIE PARSING ---
-      toast.info(`Detectado padrão de FILME. Processando...`);
+    const newEpisodes: Episode[] = [];
+    let currentSeason = 1;
+    let runningTitle = "";
 
-      const urls = lines.flatMap(l => l.match(/https?:\/\/[^\s]+/g) || []);
-      const googleApiUrl = urls.find(u => u.includes('googleapis.com')) || "";
-      const otherUrls = urls.filter(u => u !== googleApiUrl);
+    // Preliminary check: Is it just one or two URLs for a MOVIE?
+    const allUrls = smartConfigText.match(/https?:\/\/[^\s]+/g) || [];
+    if (allUrls.length > 0 && !isSeriesSelected && !isNostalgiaSelected && !isCanais24hSelected && allUrls.length <= 2) {
+      toast.info(`Processando como FILME...`);
+      const googleApiUrl = allUrls.find(u => u.includes('googleapis.com')) || "";
+      const otherUrls = allUrls.filter(u => u !== googleApiUrl);
+      
+      const firstLineIsTitle = !urlPattern.test(lines[0]);
 
       setEditingContent(prev => ({
         ...prev,
-        title: extractedTitle || prev.title,
-        category: initialCategory || 'movie', // Respect current or default to movie
+        title: firstLineIsTitle ? lines[0] : prev.title,
+        category: 'movie',
         google_drive_url: googleApiUrl || prev.google_drive_url,
         internal_player_url: googleApiUrl || prev.internal_player_url,
         video_url: otherUrls[0] || prev.video_url,
         video_urls: otherUrls.length > 0 ? otherUrls : prev.video_urls
       }));
+      toast.success("Links de filme extraídos!");
+      return;
+    }
 
-      if (extractedTitle) {
-        toast.success("Links extraídos! Buscando metadados...");
-        setTmdbSearchQuery(extractedTitle);
-        searchMovies(extractedTitle).then(results => {
-          setSearchResults(results);
+    // --- MULTIPLE BLOCKS PROCESSING ---
+    toast.info(`Sincronizando blocos de programação...`);
+    
+    lines.forEach((line) => {
+      // 1. Skip separators (---, ===, etc)
+      if (separatorPattern.test(line)) return;
+
+      // 2. Season detection: "Temporada 1"
+      const seasonMatch = line.match(seasonHeaderPattern);
+      if (seasonMatch) {
+        currentSeason = parseInt(seasonMatch[1] || seasonMatch[2]);
+        return;
+      }
+
+      // 3. Hierarchical specific match: "1. Ep X - URL"
+      const hybridMatch = line.match(hierarchicalPatternWithUrl);
+      if (hybridMatch) {
+        const epTitle = hybridMatch[2].trim();
+        const epUrl = hybridMatch[3].trim();
+        const urls = buildEpisodeURLs(epUrl);
+        newEpisodes.push({
+          season: currentSeason,
+          episode: newEpisodes.filter(e => e.season === currentSeason).length + 1,
+          title: epTitle,
+          url: urls.finalUrl,
+          google_drive_url: urls.google_drive_url,
+          internal_player_url: urls.internal_player_url,
+          tiktok_url: urls.tiktok_url,
+          downloads: []
+        });
+        return;
+      }
+
+      // 4. URL detection: Apply current runningTitle
+      const urlMatch = line.match(urlPattern);
+      if (urlMatch) {
+        const epUrl = urlMatch[0];
+        const urls = buildEpisodeURLs(epUrl);
+        const epNum = newEpisodes.filter(e => e.season === currentSeason).length + 1;
+        
+        newEpisodes.push({
+          season: currentSeason,
+          episode: epNum,
+          title: runningTitle || (isCanais24hSelected ? `Vídeo ${epNum}` : `Episódio ${epNum}`),
+          url: urls.finalUrl,
+          google_drive_url: urls.google_drive_url,
+          internal_player_url: urls.internal_player_url,
+          tiktok_url: urls.tiktok_url,
+          downloads: []
         });
       } else {
-        toast.success("Links extraídos com sucesso!");
+        // 5. It's a title line for upcoming URLs
+        runningTitle = line.trim();
+        // If content title is empty, set the first seen title
+        if (!editingContent.title) {
+          setEditingContent(prev => ({ ...prev, title: runningTitle }));
+        }
       }
+    });
+
+    if (newEpisodes.length > 0) {
+      setEditingContent(prev => ({
+        ...prev,
+        episodes: [...(prev.episodes || []), ...newEpisodes],
+        category: prev.category || (isCanais24hSelected ? 'canais24h' : 'series')
+      }));
+      toast.success(`${newEpisodes.length} itens adicionados com sucesso!`);
+    } else {
+      toast.warning("Nenhum link ou bloco identificado.");
     }
   };
 
