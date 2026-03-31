@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Search, Save, Plus, X, Lock, Sparkles, Clapperboard, Bell, Trash, Upload, Film, Tv, Download as DownloadIcon, ShieldCheck, PlusCircle, Play, RefreshCw, Link as LinkIcon } from "lucide-react";
+import { Play, Search, Trash, Loader2, Link as LinkIcon, Download, DownloadIcon, CheckCircle2, Clapperboard, MonitorPlay, Sparkles, X, Plus, PlusCircle, Maximize, AlertTriangle, ShieldCheck, ChevronUp, ChevronDown, Save, Lock, Bell, Upload, Film, Tv, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { searchMovies, searchSeries, getImageUrl, getMovieTrailer, getSeriesTrailer, getMovieDetails, getSeriesDetails, getSeasonDetails } from "@/lib/tmdb";
 import { sendContentNotification, getAllContents, updateContent } from "@/lib/firebase";
@@ -60,6 +60,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     const initialCategory = editingContent.category;
     const isNostalgiaSelected = initialCategory === 'nostalgia';
     const isSeriesSelected = initialCategory === 'series';
+    const isCanais24hSelected = initialCategory === 'canais24h';
 
     // --- DETECT CATEGORY & CONTEXT ---
     const seasonHeaderPattern = /(?:temporada\s+(\d+)|(\d+)\s*temporada)/i;
@@ -71,7 +72,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     // It's a series if it matches patterns OR if the user already selected a serial category OR contains TikTok links
     const isTikTok = lines.some(l => tiktokPattern.test(l));
     const isSeriesText = lines.some(l => seriesPattern.test(l) || seasonHeaderPattern.test(l) || hierarchicalPattern.test(l)) || isTikTok;
-    const shouldHandleAsMultiple = isSeriesText || isSeriesSelected || isNostalgiaSelected;
+    const shouldHandleAsMultiple = isSeriesText || isSeriesSelected || isNostalgiaSelected || isCanais24hSelected;
 
     let extractedTitle = "";
     // If first line isn't a pattern, it's likely the title
@@ -82,7 +83,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     if (shouldHandleAsMultiple) {
       toast.info(`Processando como lista de episódios...`);
 
-      const finalCategory = isNostalgiaSelected ? 'nostalgia' : (isSeriesSelected ? 'series' : 'series');
+      const finalCategory = isNostalgiaSelected ? 'nostalgia' : isCanais24hSelected ? 'canais24h' : (isSeriesSelected ? 'series' : 'series');
 
       // Update basic info if title found, or just ensure category
       setEditingContent(prev => ({
@@ -141,10 +142,10 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           newEpisodes.push({
             season,
             episode,
-            title: title || `Episódio ${episode}`,
+            title: title || (isCanais24hSelected ? `Vídeo ${episode}` : `Episódio ${episode}`),
             url: isGoogle ? "" : url, // If it's a direct API link, we use the specialized fields
             google_drive_url: isGoogle && isNostalgiaSelected ? url : "",
-            internal_player_url: isGoogle && !isNostalgiaSelected ? url : "",
+            internal_player_url: isCanais24hSelected ? url : (isGoogle && !isNostalgiaSelected ? url : ""),
             downloads: []
           });
           return;
@@ -166,7 +167,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
             title: rawTitle,
             url: isGoogle ? "" : url,
             google_drive_url: isGoogle && isNostalgiaSelected ? url : "",
-            internal_player_url: isGoogle && !isNostalgiaSelected ? url : "",
+            internal_player_url: isCanais24hSelected ? url : (isGoogle && !isNostalgiaSelected ? url : ""),
             downloads: []
           });
         }
@@ -645,6 +646,24 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     }));
   };
 
+  const moveEpisodeUp = (index: number) => {
+    if (index === 0) return;
+    setEditingContent(prev => {
+      const eps = [...(prev.episodes || [])];
+      [eps[index - 1], eps[index]] = [eps[index], eps[index - 1]];
+      return { ...prev, episodes: eps };
+    });
+  };
+
+  const moveEpisodeDown = (index: number) => {
+    setEditingContent(prev => {
+      const eps = [...(prev.episodes || [])];
+      if (index === eps.length - 1) return prev;
+      [eps[index + 1], eps[index]] = [eps[index], eps[index + 1]];
+      return { ...prev, episodes: eps };
+    });
+  };
+
   const updateEpisode = (index: number, field: keyof Episode, value: string | number) => {
     const currentEpisodes = editingContent.episodes || [];
     const updated = [...currentEpisodes];
@@ -1083,10 +1102,10 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           </div>
         )}
 
-        {(isSeries || isNostalgia) && (
+        {(isSeries || isNostalgia || isCanais24h) && (
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>Episódios / Temporadas</Label>
+              <Label>{isCanais24h ? "Blocos de Programação / Vídeos do Canal" : "Episódios / Temporadas"}</Label>
               <Button
                 type="button"
                 size="sm"
@@ -1094,7 +1113,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                 className="bg-primary hover:bg-primary/90"
               >
                 <Plus className="w-4 h-4 mr-1" />
-                Adicionar Episódio
+                {isCanais24h ? "Adicionar Bloco" : "Adicionar Episódio"}
               </Button>
             </div>
 
@@ -1119,6 +1138,17 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {(editingContent.episodes || []).map((episode, index) => (
                 <div key={index} className="flex gap-2 items-start p-3 bg-secondary/50 rounded-lg">
+                  {isCanais24h && (
+                    <div className="flex flex-col gap-1 items-center justify-center pt-2">
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => moveEpisodeUp(index)} disabled={index === 0}>
+                        <ChevronUp className="w-4 h-4" />
+                      </Button>
+                      <span className="text-xs font-mono">{index + 1}</span>
+                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => moveEpisodeDown(index)} disabled={index === (editingContent.episodes || []).length - 1}>
+                        <ChevronDown className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  )}
                   <div className="flex-1 space-y-2">
                     <div className="grid grid-cols-2 gap-2">
                       <Input
@@ -1126,20 +1156,20 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                         placeholder="Temp."
                         value={episode.season || ''}
                         onChange={(e) => updateEpisode(index, 'season', parseInt(e.target.value) || 1)}
-                        className="bg-input border-border text-sm"
+                        className={`bg-input border-border text-sm ${isCanais24h ? 'hidden' : ''}`}
                         min="1"
                       />
                       <Input
                         type="number"
-                        placeholder="Ep."
+                        placeholder={isCanais24h ? "Ordem" : "Ep."}
                         value={episode.episode || ''}
                         onChange={(e) => updateEpisode(index, 'episode', parseInt(e.target.value) || 1)}
-                        className="bg-input border-border text-sm"
+                        className={`bg-input border-border text-sm ${isCanais24h ? 'col-span-2' : ''}`}
                         min="1"
                       />
                     </div>
                     <Input
-                      placeholder="Título do episódio"
+                      placeholder={isCanais24h ? "Nome do Bloco de Programação / Título" : "Título do episódio"}
                       value={episode.title}
                       onChange={(e) => updateEpisode(index, 'title', e.target.value)}
                       className="bg-input border-border text-sm"
@@ -1323,7 +1353,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                         onClick={() => removeEpisode(index)}
                         className="h-8"
                       >
-                        <Trash className="w-4 h-4 mr-2" /> Remover Episódio
+                        <Trash className="w-4 h-4 mr-2" /> {isCanais24h ? "Remover Bloco" : "Remover Episódio"}
                       </Button>
                     </div>
                   </div>
@@ -1340,7 +1370,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
             <div className="flex gap-2 mb-4">
               <Button onClick={addEpisode} className="bg-primary hover:bg-primary/90 flex-1">
                 <PlusCircle className="w-5 h-5 mr-2" />
-                Adicionar Episódio
+                {isCanais24h ? "Adicionar Bloco" : "Adicionar Episódio"}
               </Button>
               <Button onClick={removeAllEpisodes} variant="destructive" className="bg-red-600 hover:bg-red-700" title="Apagar TUDO">
                 <Trash className="w-5 h-5 mr-2" />

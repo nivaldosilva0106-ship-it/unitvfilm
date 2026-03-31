@@ -1,14 +1,72 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { getAllContents } from "@/lib/firebase";
 import { Header } from "@/components/Header";
-import { Content } from "@/types/content";
+import { Content, Episode } from "@/types/content";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { toast } from "sonner";
 import { Loader2, Film } from "lucide-react";
+import { useSearchParams } from "react-router-dom";
+
+declare global {
+    interface Window {
+        YT: any;
+        onYouTubeIframeAPIReady: () => void;
+    }
+}
+
+// YouTube Player with onEnded support
+const YouTubePlayer = ({ videoId, onEnded }: { videoId: string, onEnded: () => void }) => {
+    const playerRef = useRef<any>(null);
+
+    useEffect(() => {
+        const initPlayer = () => {
+            if (!window.YT || !window.YT.Player) return;
+            
+            playerRef.current = new window.YT.Player(`yt-player-${videoId}`, {
+                videoId: videoId,
+                playerVars: { 
+                    autoplay: 1, 
+                    controls: 1,
+                    rel: 0,
+                    modestbranding: 1
+                },
+                events: {
+                    onStateChange: (event: any) => {
+                        if (event.data === window.YT.PlayerState.ENDED) {
+                            onEnded();
+                        }
+                    }
+                }
+            });
+        };
+
+        if (!window.YT) {
+            const tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            document.body.appendChild(tag);
+            window.onYouTubeIframeAPIReady = initPlayer;
+        } else {
+            initPlayer();
+        }
+
+        return () => {
+            if (playerRef.current && playerRef.current.destroy) {
+                playerRef.current.destroy();
+            }
+        };
+    }, [videoId, onEnded]);
+
+    return <div id={`yt-player-${videoId}`} className="w-full h-full border-0 pointer-events-auto"></div>;
+};
 
 export default function Canais24h() {
+    const [searchParams] = useSearchParams();
+    const initialChannelId = searchParams.get("channelId");
+
     const [contents, setContents] = useState<Content[]>([]);
     const [currentChannel, setCurrentChannel] = useState<Content | null>(null);
+    const [currentProgramIndex, setCurrentProgramIndex] = useState(0);
+
     const [loading, setLoading] = useState(true);
 
     const [tiktokVideoUrl, setTiktokVideoUrl] = useState<string | null>(null);
@@ -23,7 +81,16 @@ export default function Canais24h() {
                 setContents(canaisItems);
 
                 if (canaisItems.length > 0) {
-                    setCurrentChannel(canaisItems[0]); // Seleciona o primeiro por padrão
+                    if (initialChannelId) {
+                        const target = canaisItems.find(c => c.id === initialChannelId);
+                        if (target) {
+                            setCurrentChannel(target);
+                        } else {
+                            setCurrentChannel(canaisItems[0]);
+                        }
+                    } else {
+                        setCurrentChannel(canaisItems[0]); // Seleciona o primeiro por padrão
+                    }
                 }
             } catch (error) {
                 console.error("Erro ao buscar canais 24h:", error);
@@ -51,8 +118,19 @@ export default function Canais24h() {
         return match ? match[1] : null;
     };
 
-    const videoUrl = currentChannel?.video_url || currentChannel?.internal_player_url;
-    const tiktokUrl = currentChannel?.tiktok_url;
+    // Get current program if using episodes/programming blocks
+    const programs = currentChannel?.episodes || [];
+    const currentProgram = programs.length > 0 ? programs[currentProgramIndex] : null;
+
+    useEffect(() => {
+        // Quando o canal muda, voltar ao programa 0
+        setCurrentProgramIndex(0);
+        setTiktokVideoUrl(null);
+    }, [currentChannel]);
+
+    // Use current program URLs if available, fallback to channel level URLs
+    const videoUrl = currentProgram?.internal_player_url || currentProgram?.url || currentChannel?.video_url || currentChannel?.internal_player_url;
+    const tiktokUrl = currentProgram?.tiktok_url || currentChannel?.tiktok_url;
     
     const youtubeId = getYoutubeId(videoUrl);
     const tiktokId = getTikTokId(tiktokUrl);
@@ -84,9 +162,19 @@ export default function Canais24h() {
     }, [tiktokUrl]);
 
     const handleChannelClick = (channel: Content) => {
+        if (currentChannel?.id === channel.id) return;
         setCurrentChannel(channel);
         window.scrollTo({ top: 0, behavior: 'smooth' });
     };
+
+    const handleProgramEnded = useCallback(() => {
+        if (programs.length > 0) {
+            setCurrentProgramIndex(prev => {
+                const next = prev + 1;
+                return next >= programs.length ? 0 : next; // Loop 24/7
+            });
+        }
+    }, [programs.length]);
 
     return (
         <div className="min-h-screen bg-[#141414] text-white font-sans">
@@ -113,15 +201,8 @@ export default function Canais24h() {
                             <>
                                 {/* YouTube Player */}
                                 {youtubeId && (
-                                    <div className="absolute inset-0 w-full h-full pointer-events-auto">
-                                        <iframe
-                                            src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=0&controls=1`}
-                                            title="YouTube video player"
-                                            className="w-full h-full border-0"
-                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                                            referrerPolicy="strict-origin-when-cross-origin"
-                                            allowFullScreen
-                                        ></iframe>
+                                    <div className="absolute inset-0 w-full h-full">
+                                        <YouTubePlayer videoId={youtubeId} onEnded={handleProgramEnded} />
                                     </div>
                                 )}
 
@@ -130,9 +211,10 @@ export default function Canais24h() {
                                     <div className="absolute inset-0 w-full h-full z-10">
                                         <VideoPlayer
                                             url={tiktokVideoUrl || videoUrl || ""}
-                                            title={currentChannel.title}
+                                            title={currentProgram ? currentProgram.title : currentChannel.title}
                                             poster={currentChannel.thumbnail_url}
                                             autoPlay={true}
+                                            onEnded={handleProgramEnded}
                                         />
                                     </div>
                                 )}
@@ -161,9 +243,17 @@ export default function Canais24h() {
 
                 {/* Lista de Canais */}
                 <div className="w-full max-w-7xl mx-auto px-4 md:px-8">
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="w-2 h-8 bg-primary rounded"></div>
-                        <h2 className="text-xl md:text-2xl font-bold tracking-tight">Canais Disponíveis</h2>
+                    <div className="flex flex-col gap-1 mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-2 h-8 bg-primary rounded"></div>
+                            <h2 className="text-xl md:text-2xl font-bold tracking-tight">Canais Disponíveis</h2>
+                        </div>
+                        {programs.length > 0 && currentProgram && (
+                            <p className="text-sm text-zinc-400 mt-2 px-5">
+                                A transmitir agora: <span className="text-white font-medium">{currentProgram.title}</span> 
+                                <span className="ml-2 text-xs bg-zinc-800 px-2 py-1 rounded">Bloco {currentProgramIndex + 1} de {programs.length}</span>
+                            </p>
+                        )}
                     </div>
 
                     {contents.length === 0 && !loading ? (

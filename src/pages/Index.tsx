@@ -129,6 +129,7 @@ const Index = () => {
     const series = allContentData.filter(c => c.category === 'series');
     const tvChannels = allContentData.filter(c => c.category === 'tv');
     const nostalgia = allContentData.filter(c => c.category === 'nostalgia');
+    const canais24h = allContentData.filter(c => c.category === 'canais24h');
 
     // Additional filtered categories for the UI
     const actionAdventure = allContentData.filter(c => c.genre?.some(g => g.toLowerCase().includes('ação') || g.toLowerCase().includes('aventura')));
@@ -162,7 +163,7 @@ const Index = () => {
       }
     }
 
-    return { featured, topRated, movies, series, tvChannels, nostalgia, actionAdventure, comedyHorror, recentReleases, dramaCrime, comedyRomance, singleRow, singleRowTitle };
+    return { featured, topRated, movies, series, tvChannels, nostalgia, canais24h, actionAdventure, comedyHorror, recentReleases, dramaCrime, comedyRomance, singleRow, singleRowTitle };
   }, [allContentData, selectedCategory]);
 
   const randomSections = useMemo(() => {
@@ -200,8 +201,19 @@ const Index = () => {
       showNumbers: false
     };
 
-    // Return Featured first + Shuffled sections + TV ALWAYS LAST
+    const canais24hSection = {
+      id: 'canais24h',
+      type: 'row',
+      title: 'Transmissão 24 Horas',
+      data: [...categorizedContent.canais24h].sort(() => Math.random() - 0.5),
+      showNumbers: false
+    };
+
+    // Return Featured first + Shuffled sections + Canais 24h + TV ALWAYS LAST
     const finalSections = [featuredSection, ...shuffled];
+    if (canais24hSection.data.length > 0) {
+      finalSections.push(canais24hSection);
+    }
     if (tvSection.data.length > 0) {
       finalSections.push(tvSection);
     }
@@ -234,6 +246,11 @@ const Index = () => {
   const toggleAudio = () => setIsMuted(!isMuted);
 
   const handlePlayContent = (content: Content) => {
+    if (content.category === 'canais24h') {
+      navigate(`/canais24h?channelId=${content.id}`);
+      return;
+    }
+
     if (content.category === 'nostalgia') {
       navigate(`/nostalgia/${content.id}`);
       return;
@@ -263,6 +280,10 @@ const Index = () => {
 
   // When clicking the card itself (not the play button)
   const handleDetailsContent = (content: Content) => {
+    if (content.category === 'canais24h') {
+      navigate(`/canais24h?channelId=${content.id}`);
+      return;
+    }
     if (content.category === 'nostalgia') {
       navigate(`/nostalgia/${content.main_video_id || content.id}`);
       return;
