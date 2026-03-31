@@ -20,6 +20,7 @@ interface VideoPlayerProps {
   autoPlay?: boolean;
   startTime?: number;
   subtitles?: string;
+  isLive?: boolean;
 }
 
 const formatTime = (seconds: number): string => {
@@ -40,7 +41,8 @@ export const VideoPlayer = ({
   onEnded,
   autoPlay = true,
   startTime = 0,
-  subtitles
+  subtitles,
+  isLive = false
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -470,24 +472,26 @@ export const VideoPlayer = ({
         {/* Controls Container */}
         <div className="relative p-3 md:p-4 space-y-2 md:space-y-3">
           {/* Progress Bar */}
-          <div className="flex items-center gap-2 md:gap-3">
-            <span className="text-white text-[10px] md:text-xs font-mono min-w-[35px] md:min-w-[45px]">
-              {formatTime(currentTime)}
-            </span>
-            <div className="flex-1 group/progress">
-              <Slider
-                value={[currentTime]}
-                min={0}
-                max={duration || 100}
-                step={0.1}
-                onValueChange={handleSeek}
-                className="cursor-pointer [&_[data-radix-slider-track]]:h-1 [&_[data-radix-slider-track]]:bg-white/30 [&_[data-radix-slider-range]]:bg-primary [&_[data-radix-slider-thumb]]:w-3 [&_[data-radix-slider-thumb]]:h-3 md:[&_[data-radix-slider-thumb]]:w-4 md:[&_[data-radix-slider-thumb]]:h-4 [&_[data-radix-slider-thumb]]:bg-primary [&_[data-radix-slider-thumb]]:border-2 [&_[data-radix-slider-thumb]]:border-white [&_[data-radix-slider-thumb]]:opacity-0 group-hover/progress:[&_[data-radix-slider-thumb]]:opacity-100 [&_[data-radix-slider-thumb]]:transition-opacity"
-              />
+          {!isLive && (
+            <div className="flex items-center gap-2 md:gap-3">
+              <span className="text-white text-[10px] md:text-xs font-mono min-w-[35px] md:min-w-[45px]">
+                {formatTime(currentTime)}
+              </span>
+              <div className="flex-1 group/progress">
+                <Slider
+                  value={[currentTime]}
+                  min={0}
+                  max={duration || 100}
+                  step={0.1}
+                  onValueChange={handleSeek}
+                  className="cursor-pointer [&_[data-radix-slider-track]]:h-1 [&_[data-radix-slider-track]]:bg-white/30 [&_[data-radix-slider-range]]:bg-primary [&_[data-radix-slider-thumb]]:w-3 [&_[data-radix-slider-thumb]]:h-3 md:[&_[data-radix-slider-thumb]]:w-4 md:[&_[data-radix-slider-thumb]]:h-4 [&_[data-radix-slider-thumb]]:bg-primary [&_[data-radix-slider-thumb]]:border-2 [&_[data-radix-slider-thumb]]:border-white [&_[data-radix-slider-thumb]]:opacity-0 group-hover/progress:[&_[data-radix-slider-thumb]]:opacity-100 [&_[data-radix-slider-thumb]]:transition-opacity"
+                />
+              </div>
+              <span className="text-white text-[10px] md:text-xs font-mono min-w-[35px] md:min-w-[45px] text-right">
+                {formatTime(duration)}
+              </span>
             </div>
-            <span className="text-white text-[10px] md:text-xs font-mono min-w-[35px] md:min-w-[45px] text-right">
-              {formatTime(duration)}
-            </span>
-          </div>
+          )}
 
           {/* Bottom Controls */}
           <div className="flex items-center justify-between">
@@ -504,19 +508,23 @@ export const VideoPlayer = ({
                 )}
               </button>
 
-              <button
-                onClick={() => skip(-10)}
-                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
-              >
-                <SkipBack className="w-4 h-4 md:w-5 md:h-5 text-white" />
-              </button>
+              {!isLive && (
+                <>
+                  <button
+                    onClick={() => skip(-10)}
+                    className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                  >
+                    <SkipBack className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                  </button>
 
-              <button
-                onClick={() => skip(10)}
-                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
-              >
-                <SkipForward className="w-4 h-4 md:w-5 md:h-5 text-white" />
-              </button>
+                  <button
+                    onClick={() => skip(10)}
+                    className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                  >
+                    <SkipForward className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                  </button>
+                </>
+              )}
 
               {/* Volume */}
               <div className="flex items-center gap-1 md:gap-2 group/volume">

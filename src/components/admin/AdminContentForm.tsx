@@ -95,6 +95,27 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       const newEpisodes: Episode[] = [];
       let currentSeason = 1;
 
+      const buildEpisodeURLs = (url: string, isGoogle: boolean) => {
+        let finalUrl = isGoogle ? "" : url;
+        let google_drive_url = isGoogle && isNostalgiaSelected ? url : "";
+        let internal_player_url = (isGoogle && !isNostalgiaSelected && !isCanais24hSelected) ? url : "";
+        let tiktok_url = "";
+
+        if (isCanais24hSelected) {
+          if (url.includes('tiktok.com')) {
+            tiktok_url = url;
+            finalUrl = "";
+          } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
+            finalUrl = url;
+          } else {
+            internal_player_url = url;
+            finalUrl = "";
+          }
+        }
+        
+        return { finalUrl, google_drive_url, internal_player_url, tiktok_url };
+      };
+
       lines.forEach(line => {
         // Check for Season header
         const seasonMatch = line.match(seasonHeaderPattern);
@@ -139,13 +160,16 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           const url = urlMatch ? urlMatch[0] : "";
           const isGoogle = url.includes('googleapis.com');
 
+          const urls = buildEpisodeURLs(url, isGoogle);
+
           newEpisodes.push({
             season,
             episode,
             title: title || (isCanais24hSelected ? `Vídeo ${episode}` : `Episódio ${episode}`),
-            url: isGoogle ? "" : url, // If it's a direct API link, we use the specialized fields
-            google_drive_url: isGoogle && isNostalgiaSelected ? url : "",
-            internal_player_url: isCanais24hSelected ? url : (isGoogle && !isNostalgiaSelected ? url : ""),
+            url: urls.finalUrl,
+            google_drive_url: urls.google_drive_url,
+            internal_player_url: urls.internal_player_url,
+            tiktok_url: urls.tiktok_url,
             downloads: []
           });
           return;
@@ -161,13 +185,16 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           // Use the rawTitle directly as the user requested ("01", "Ep X", "Nome")
           const episodeNumber = newEpisodes.filter(e => e.season === currentSeason).length + 1;
 
+          const urls = buildEpisodeURLs(url, isGoogle);
+
           newEpisodes.push({
             season: currentSeason,
             episode: episodeNumber,
             title: rawTitle,
-            url: isGoogle ? "" : url,
-            google_drive_url: isGoogle && isNostalgiaSelected ? url : "",
-            internal_player_url: isCanais24hSelected ? url : (isGoogle && !isNostalgiaSelected ? url : ""),
+            url: urls.finalUrl,
+            google_drive_url: urls.google_drive_url,
+            internal_player_url: urls.internal_player_url,
+            tiktok_url: urls.tiktok_url,
             downloads: []
           });
         }

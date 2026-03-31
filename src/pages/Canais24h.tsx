@@ -15,7 +15,7 @@ declare global {
 }
 
 // YouTube Player with onEnded support
-const YouTubePlayer = ({ videoId, onEnded }: { videoId: string, onEnded: () => void }) => {
+const YouTubePlayer = ({ videoId, onEnded, startTime }: { videoId: string, onEnded: () => void, startTime?: number }) => {
     const playerRef = useRef<any>(null);
 
     useEffect(() => {
@@ -26,8 +26,10 @@ const YouTubePlayer = ({ videoId, onEnded }: { videoId: string, onEnded: () => v
                 videoId: videoId,
                 playerVars: { 
                     autoplay: 1, 
-                    controls: 1,
+                    controls: 0,
+                    disablekb: 1,
                     rel: 0,
+                    start: startTime ? Math.floor(startTime) : 0,
                     modestbranding: 1
                 },
                 events: {
@@ -66,6 +68,7 @@ export default function Canais24h() {
     const [contents, setContents] = useState<Content[]>([]);
     const [currentChannel, setCurrentChannel] = useState<Content | null>(null);
     const [currentProgramIndex, setCurrentProgramIndex] = useState(0);
+    const [channelStartTime, setChannelStartTime] = useState(0);
 
     const [loading, setLoading] = useState(true);
 
@@ -123,9 +126,25 @@ export default function Canais24h() {
     const currentProgram = programs.length > 0 ? programs[currentProgramIndex] : null;
 
     useEffect(() => {
-        // Quando o canal muda, voltar ao programa 0
-        setCurrentProgramIndex(0);
+        // Quando o canal muda
         setTiktokVideoUrl(null);
+        if (!currentChannel || programs.length === 0) {
+             setCurrentProgramIndex(0);
+             setChannelStartTime(0);
+             return;
+        }
+
+        const nowSec = Math.floor(Date.now() / 1000);
+        const salt = currentChannel.id.charCodeAt(0) || 0;
+        
+        const PROGRAM_DURATION_SEC = 3600; // 60 minutes assumed per block to cycle
+        const currentGlobalBlock = Math.floor(nowSec / PROGRAM_DURATION_SEC) + salt;
+        
+        const initialIndex = currentGlobalBlock % programs.length;
+        const initialOffset = nowSec % PROGRAM_DURATION_SEC;
+        
+        setCurrentProgramIndex(initialIndex);
+        setChannelStartTime(initialOffset);
     }, [currentChannel]);
 
     // Use current program URLs if available, fallback to channel level URLs
@@ -168,6 +187,7 @@ export default function Canais24h() {
     };
 
     const handleProgramEnded = useCallback(() => {
+        setChannelStartTime(0); // Normalizar reprodução sequencial a partir de agora
         if (programs.length > 0) {
             setCurrentProgramIndex(prev => {
                 const next = prev + 1;
@@ -201,8 +221,8 @@ export default function Canais24h() {
                             <>
                                 {/* YouTube Player */}
                                 {youtubeId && (
-                                    <div className="absolute inset-0 w-full h-full">
-                                        <YouTubePlayer videoId={youtubeId} onEnded={handleProgramEnded} />
+                                    <div className="absolute inset-0 w-full h-full pointer-events-auto">
+                                        <YouTubePlayer videoId={youtubeId} onEnded={handleProgramEnded} startTime={channelStartTime} />
                                     </div>
                                 )}
 
@@ -215,6 +235,8 @@ export default function Canais24h() {
                                             poster={currentChannel.thumbnail_url}
                                             autoPlay={true}
                                             onEnded={handleProgramEnded}
+                                            startTime={channelStartTime}
+                                            isLive={true}
                                         />
                                     </div>
                                 )}
