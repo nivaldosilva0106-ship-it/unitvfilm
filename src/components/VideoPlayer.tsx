@@ -22,6 +22,7 @@ interface VideoPlayerProps {
   startTime?: number;
   subtitles?: string;
   isLive?: boolean;
+  muted?: boolean;
 }
 
 const formatTime = (seconds: number): string => {
@@ -44,7 +45,8 @@ export const VideoPlayer = ({
   autoPlay = true,
   startTime = 0,
   subtitles,
-  isLive = false
+  isLive = false,
+  muted = false
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);

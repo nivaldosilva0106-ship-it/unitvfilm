@@ -14,8 +14,8 @@ declare global {
     }
 }
 
-// YouTube Player with onEnded support
-const YouTubePlayer = ({ videoId, onEnded, startTime, onTimeUpdate }: { videoId: string, onEnded: () => void, startTime?: number, onTimeUpdate?: (time: number, duration?: number) => void }) => {
+// Helper YouTube Player component
+const YouTubePlayer = ({ videoId, onEnded, startTime, onTimeUpdate, muted }: { videoId: string, onEnded: () => void, startTime?: number, onTimeUpdate?: (time: number, duration?: number) => void, muted?: boolean }) => {
     const playerRef = useRef<any>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -35,12 +35,15 @@ const YouTubePlayer = ({ videoId, onEnded, startTime, onTimeUpdate }: { videoId:
                 },
                 events: {
                     onReady: (event: any) => {
+                        if (muted) event.target.mute();
+                        else event.target.unMute();
+
                         if (onTimeUpdate) {
                             intervalRef.current = setInterval(() => {
-                            if (event.target && event.target.getCurrentTime) {
-                                onTimeUpdate(event.target.getCurrentTime(), event.target.getDuration());
-                            }
-                        }, 2000);
+                                if (event.target && event.target.getCurrentTime) {
+                                    onTimeUpdate(event.target.getCurrentTime(), event.target.getDuration());
+                                }
+                            }, 2000);
                         }
                     },
                     onStateChange: (event: any) => {
@@ -67,7 +70,15 @@ const YouTubePlayer = ({ videoId, onEnded, startTime, onTimeUpdate }: { videoId:
                 playerRef.current.destroy();
             }
         };
-    }, [videoId, onEnded]);
+    }, [videoId]);
+
+    // Handle external mute change (for buffering swap)
+    useEffect(() => {
+        if (playerRef.current && playerRef.current.mute) {
+            if (muted) playerRef.current.mute();
+            else playerRef.current.unMute();
+        }
+    }, [muted]);
 
     return <div id={`yt-player-${videoId}`} className="w-full h-full border-0 pointer-events-auto"></div>;
 };
@@ -78,21 +89,27 @@ export default function Canais24h() {
 
     const [contents, setContents] = useState<Content[]>([]);
     const [currentChannel, setCurrentChannel] = useState<Content | null>(null);
-    const [currentProgramIndex, setCurrentProgramIndex] = useState(0);
-    const [channelStartTime, setChannelStartTime] = useState(0);
-    const [videoDuration, setVideoDuration] = useState(0);
-    const [videoCurrentTime, setVideoCurrentTime] = useState(0);
-
-    // --- Ad Mode State ---
-    const [isAdMode, setIsAdMode] = useState(false);
-    const [adConfig, setAdConfig] = useState<{ url: string, startTime: number } | null>(null);
-
-    const hasSyncedRef = useRef(false);
     const [loading, setLoading] = useState(true);
 
-    const [tiktokVideoUrl, setTiktokVideoUrl] = useState<string | null>(null);
-    const [isLoadingTikTok, setIsLoadingTikTok] = useState(false);
+    // --- Unified Sync Offset State ---
+    const [serverOffset, setServerOffset] = useState(0);
+    
+    // --- Dual Player States (For Double Buffering) ---
+    const [activePlayerId, setActivePlayerId] = useState<'A' | 'B'>('A');
+    const [playerA, setPlayerA] = useState<{ url: string; startTime: number; title: string; isAd: boolean; originalProg?: Episode } | null>(null);
+    const [playerB, setPlayerB] = useState<{ url: string; startTime: number; title: string; isAd: boolean; originalProg?: Episode } | null>(null);
+    
+    // UI Feedback States
+    const [currentProgram, setCurrentProgram] = useState<Episode | null>(null);
+    const [isAdMode, setIsAdMode] = useState(false);
+    const [videoCurrentTime, setVideoCurrentTime] = useState(0);
+    const [videoDuration, setVideoDuration] = useState(0);
+    const [tiktokVideoUrlA, setTiktokVideoUrlA] = useState<string | null>(null);
+    const [tiktokVideoUrlB, setTiktokVideoUrlB] = useState<string | null>(null);
 
+    const programs = currentChannel?.episodes || [];
+
+    // 1. Initial Load of Channels
     useEffect(() => {
         const fetchContent = async () => {
             setLoading(true);
@@ -102,28 +119,169 @@ export default function Canais24h() {
                 setContents(canaisItems);
 
                 if (canaisItems.length > 0) {
-                    if (initialChannelId) {
-                        const target = canaisItems.find(c => c.id === initialChannelId);
-                        if (target) {
-                            setCurrentChannel(target);
-                        } else {
-                            setCurrentChannel(canaisItems[0]);
-                        }
-                    } else {
-                        setCurrentChannel(canaisItems[0]); // Seleciona o primeiro por padrão
-                    }
+                    const target = initialChannelId ? canaisItems.find(c => c.id === initialChannelId) : canaisItems[0];
+                    setCurrentChannel(target || canaisItems[0]);
                 }
             } catch (error) {
-                console.error("Erro ao buscar canais 24h:", error);
+                console.error("Erro ao buscar canais:", error);
                 toast.error("Erro ao carregar canais");
             } finally {
                 setLoading(false);
             }
         };
         fetchContent();
+    }, [initialChannelId]);
+
+    // 2. Initial Global Sync Offset Calculation
+    useEffect(() => {
+        const syncTime = async () => {
+            try {
+                const start = Date.now();
+                const res = await fetch(window.location.origin, { method: 'HEAD' });
+                const serverDateStr = res.headers.get('Date');
+                if (serverDateStr) {
+                    const serverTime = new Date(serverDateStr).getTime();
+                    const delay = (Date.now() - start) / 2;
+                    setServerOffset(serverTime + delay - Date.now());
+                }
+            } catch (e) {
+                console.warn("[Sync] Usando relógio local como fallback.");
+            }
+        };
+        syncTime();
     }, []);
 
-    // Helper to extract YouTube ID
+    // 3. Helper: Get content for a specific timestamp
+    const getScheduledContent = useCallback((timeShiftMs = 0) => {
+        if (!currentChannel || programs.length === 0) return null;
+        
+        const SLOT_DURATION = 3600; // 1 Hour
+        const nowSec = Math.floor((Date.now() + serverOffset + timeShiftMs) / 1000);
+        const channelSalt = currentChannel.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const globalTime = nowSec + channelSalt;
+        
+        const progIdx = Math.floor(globalTime / SLOT_DURATION) % programs.length;
+        const prog = programs[progIdx];
+        const syncOffset = globalTime % SLOT_DURATION;
+        const progDuration = prog.duration || 2700; // Default 45m
+        
+        if (syncOffset >= progDuration) {
+            const intervalUrls = currentChannel.interval_urls || [];
+            const adUrls = currentChannel.ad_urls || [];
+            if (intervalUrls.length > 0 || adUrls.length > 0) {
+                const gapOffset = syncOffset - progDuration;
+                const slotIdx = Math.floor(gapOffset / 60);
+                const isInterval = (slotIdx % 4 === 0) || adUrls.length === 0;
+                const adUrl = isInterval && intervalUrls.length > 0 
+                                ? intervalUrls[slotIdx % intervalUrls.length] 
+                                : adUrls[slotIdx % adUrls.length];
+                return {
+                    url: adUrl || "",
+                    startTime: gapOffset % 60,
+                    title: isInterval ? 'Intervalo' : 'Publicidade',
+                    isAd: true,
+                    originalProg: prog
+                };
+            }
+        }
+        
+        return {
+            url: prog.internal_player_url || prog.url || "",
+            startTime: syncOffset,
+            title: prog.title || "",
+            isAd: false,
+            originalProg: prog
+        };
+    }, [currentChannel, programs, serverOffset]);
+
+    // 4. TikTok Link Resolver
+    const resolveTikTok = async (url: string) => {
+        try {
+            const res = await fetch(`/api/tiktok?url=${encodeURIComponent(url)}`);
+            const data = await res.json();
+            return data.url || null;
+        } catch {
+            return null;
+        }
+    };
+
+    // 5. Main Double Buffering Synchronization Loop
+    useEffect(() => {
+        if (!currentChannel || programs.length === 0) return;
+
+        const syncLoop = async () => {
+            const nowContent = getScheduledContent(0);
+            if (!nowContent) return;
+
+            // 1. Initialize First Player if everything is blank
+            if (!playerA && !playerB) {
+                setPlayerA(nowContent);
+                setCurrentProgram(nowContent.originalProg || null);
+                setIsAdMode(nowContent.isAd);
+                if (nowContent.url.includes('tiktok.com')) {
+                    const res = await resolveTikTok(nowContent.url);
+                    setTiktokVideoUrlA(res);
+                }
+                return;
+            }
+
+            // 2. Pre-loading: Check what will play in 15 seconds
+            const nextContent = getScheduledContent(15000);
+            if (nextContent) {
+                const active = activePlayerId === 'A' ? playerA : playerB;
+                if (active && nextContent.url !== active.url) {
+                    if (activePlayerId === 'A') {
+                        if (!playerB || playerB.url !== nextContent.url) {
+                            setPlayerB(nextContent);
+                            if (nextContent.url.includes('tiktok.com')) {
+                                const res = await resolveTikTok(nextContent.url);
+                                setTiktokVideoUrlB(res);
+                            }
+                        }
+                    } else {
+                        if (!playerA || playerA.url !== nextContent.url) {
+                            setPlayerA(nextContent);
+                            if (nextContent.url.includes('tiktok.com')) {
+                                const res = await resolveTikTok(nextContent.url);
+                                setTiktokVideoUrlA(res);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 3. The Swap
+            const currentInActive = activePlayerId === 'A' ? playerA : playerB;
+            if (currentInActive && nowContent.url !== currentInActive.url) {
+                const targetId = activePlayerId === 'A' ? 'B' : 'A';
+                const targetPlayer = targetId === 'A' ? playerA : playerB;
+                
+                if (targetPlayer && targetPlayer.url === nowContent.url) {
+                    setActivePlayerId(targetId);
+                    setCurrentProgram(nowContent.originalProg || null);
+                    setIsAdMode(nowContent.isAd);
+                } else {
+                    if (activePlayerId === 'A') setPlayerA(nowContent); else setPlayerB(nowContent);
+                }
+            }
+
+            setVideoCurrentTime(nowContent.startTime);
+            setVideoDuration(nowContent.isAd ? 60 : (nowContent.originalProg?.duration || 2700));
+        };
+
+        const interval = setInterval(syncLoop, 3000);
+        return () => clearInterval(interval);
+    }, [currentChannel, programs, activePlayerId, playerA, playerB, getScheduledContent]);
+
+    const handleChannelClick = (channel: Content) => {
+        setLoading(true);
+        setCurrentChannel(channel);
+        setPlayerA(null);
+        setPlayerB(null);
+        setActivePlayerId('A');
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+
     const getYoutubeId = (url?: string) => {
         if (!url) return null;
         const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&?]*).*/;
@@ -131,106 +289,6 @@ export default function Canais24h() {
         return (match && match[2].length === 11) ? match[2] : null;
     };
 
-    // Helper to extract TikTok ID
-    const getTikTokId = (url?: string) => {
-        if (!url) return null;
-        const regExp = /\/video\/(\d+)/;
-        const match = url.match(regExp);
-        return match ? match[1] : null;
-    };
-
-    // Get current program if using episodes/programming blocks
-    const programs = currentChannel?.episodes || [];
-    const currentProgram = programs.length > 0 ? programs[currentProgramIndex] : null;
-
-    useEffect(() => {
-        // Quando o canal muda
-        setTiktokVideoUrl(null);
-        hasSyncedRef.current = false; // Reset sync flag para o novo canal
-
-        if (!currentChannel || programs.length === 0) {
-             setCurrentProgramIndex(0);
-             setChannelStartTime(0);
-        }
-    }, [currentChannel]);
-
-    // Deterministic Global Sync Logic (Updated continuously to avoid drift)
-    const updateSync = useCallback(() => {
-        if (!currentChannel || !programs.length) return;
-        
-        const SLOT_DURATION = 3600; // 1 hora
-        const nowSec = Math.floor(Date.now() / 1000);
-        const channelSalt = currentChannel.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        const globalTime = nowSec + channelSalt;
-        
-        const syncIndex = Math.floor(globalTime / SLOT_DURATION) % programs.length;
-        const syncOffset = globalTime % SLOT_DURATION;
-        
-        // --- PREVENT LOOPING/STUTTERING ---
-        // Only update currentProgramIndex if it actually changed
-        if (syncIndex !== currentProgramIndex) {
-            setCurrentProgramIndex(syncIndex);
-            setChannelStartTime(syncOffset); // Reset only on program change
-            setIsAdMode(false); // Reset ad mode for new program
-        } else if (!hasSyncedRef.current) {
-            // First time sync for the current session
-            setChannelStartTime(syncOffset);
-            hasSyncedRef.current = true;
-        }
-
-        // --- GAP FILLER (ADS) CHECK ---
-        if (videoDuration > 0 && syncOffset >= videoDuration) {
-            const ad = getDeterministicAd(syncOffset - videoDuration, currentChannel);
-            if (ad) {
-                setAdConfig(ad);
-                setIsAdMode(true);
-            }
-        } else {
-            setIsAdMode(false);
-            setAdConfig(null);
-        }
-    }, [currentChannel, programs.length, currentProgramIndex, videoDuration]);
-
-    const getDeterministicAd = (offset: number, channel: Content) => {
-        const intervalUrls = channel.interval_urls || [];
-        const adUrls = channel.ad_urls || [];
-        if (intervalUrls.length === 0 && adUrls.length === 0) return null;
-
-        const AD_SLOT = 60; // 1 min per ad
-        const slotIdx = Math.floor(offset / AD_SLOT);
-        
-        // Pattern: Slot 0 = Interval, 1-3 = Ads, 4 = Interval...
-        const isInterval = (slotIdx % 4 === 0) || adUrls.length === 0;
-        
-        if (isInterval && intervalUrls.length > 0) {
-            return {
-                url: intervalUrls[slotIdx % intervalUrls.length],
-                startTime: offset % AD_SLOT
-            };
-        } else if (adUrls.length > 0) {
-            return {
-                url: adUrls[slotIdx % adUrls.length],
-                startTime: offset % AD_SLOT
-            };
-        }
-        return null;
-    };
-
-    // Initial sync and continuous refresh
-    useEffect(() => {
-        updateSync();
-        const interval = setInterval(updateSync, 10000); // Check for program change every 10s
-        return () => clearInterval(interval);
-    }, [updateSync]);
-
-    const handleTimeUpdate = useCallback((time: number, duration?: number) => {
-        if (duration) {
-            setVideoDuration(duration);
-            setVideoCurrentTime(time);
-        }
-    }, []);
-
-    // Helper para formatar horario (HH:MM)
     const formatTimeLabel = (offsetHours: number) => {
         const d = new Date();
         d.setMinutes(0);
@@ -239,59 +297,42 @@ export default function Canais24h() {
         return d.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
     };
 
-    // Helper para tempo restante
     const getRemainingTime = () => {
         if (!videoDuration) return "Calculando...";
         const diff = videoDuration - videoCurrentTime;
         if (diff <= 0) return "Terminando...";
-        const mins = Math.floor(diff / 60);
-        return `Faltam ${mins} min`;
+        return `Faltam ${Math.floor(diff / 60)} min`;
     };
 
-    // Use current program URLs if available, fallback to channel level URLs
-    const videoUrl = currentProgram?.internal_player_url || currentProgram?.url || currentChannel?.video_url || currentChannel?.internal_player_url;
-    const tiktokUrl = currentProgram?.tiktok_url || currentChannel?.tiktok_url;
-    
-    const youtubeId = getYoutubeId(videoUrl);
-    const tiktokId = getTikTokId(tiktokUrl);
-
-    useEffect(() => {
-        const fetchTiktokDirect = async () => {
-            if (!tiktokUrl) {
-                setTiktokVideoUrl(null);
-                return;
-            }
-
-            setIsLoadingTikTok(true);
-            try {
-                const res = await fetch(`/api/tiktok?url=${encodeURIComponent(tiktokUrl)}`);
-                const data = await res.json();
-                if (data.url) {
-                    setTiktokVideoUrl(data.url);
-                }
-            } catch (err) {
-                console.error("TikTok feed error:", err);
-            } finally {
-                setIsLoadingTikTok(false);
-            }
-        };
-        fetchTiktokDirect();
-    }, [tiktokUrl]);
-
-    const handleProgramEnded = useCallback(() => {
-        setChannelStartTime(0); 
-        // Se o vídeo acabar naturalmente durante a sessão, o próximo começa do 0:00 (voto do user)
-        if (programs.length > 0) {
-            setCurrentProgramIndex(prev => {
-                const next = prev + 1;
-                return next >= programs.length ? 0 : next; 
-            });
-        }
-    }, [programs.length]);
-
-    const handleChannelClick = (channel: Content) => {
-        setCurrentChannel(channel);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Sub-component for each player instance
+    const PlayerInstance = ({ content, tiktokUrl, active }: { content: any, tiktokUrl: string | null, active: boolean }) => {
+        if (!content) return null;
+        const ytId = getYoutubeId(content.url);
+        
+        return (
+            <div className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ${active ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'}`}>
+                {ytId ? (
+                    <YouTubePlayer 
+                        videoId={ytId} 
+                        onEnded={() => {}} 
+                        startTime={content.startTime}
+                        onTimeUpdate={() => {}} 
+                        muted={!active}
+                    />
+                ) : (
+                    <VideoPlayer
+                        url={tiktokUrl || content.url}
+                        title={content.title}
+                        poster={currentChannel?.thumbnail_url}
+                        autoPlay={true}
+                        startTime={content.startTime}
+                        isLive={true}
+                        onEnded={() => {}}
+                        muted={!active}
+                    />
+                )}
+            </div>
+        );
     };
 
     return (
@@ -299,10 +340,8 @@ export default function Canais24h() {
             <Header />
 
             <main className="pt-20 pb-10">
-                {/* Player Principal */}
                 <div className="w-full max-w-7xl mx-auto px-4 md:px-8 mb-8">
                     <div className="relative w-full bg-black rounded-lg overflow-hidden shadow-2xl aspect-video">
-                        
                         {loading ? (
                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/80">
                                 <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
@@ -310,254 +349,91 @@ export default function Canais24h() {
                             </div>
                         ) : !currentChannel ? (
                             <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/80">
-                                <div className="text-center">
-                                    <Film className="w-16 h-16 text-primary mx-auto mb-4" />
-                                    <h2 className="text-2xl font-bold">Nenhum canal disponível</h2>
-                                </div>
+                                <Film className="w-16 h-16 text-primary mx-auto mb-4" />
+                                <h2 className="text-2xl font-bold">Nenhum canal disponível</h2>
                             </div>
                         ) : (
                             <>
-                                {/* Channel Logo Watermark */}
+                                <PlayerInstance content={playerA} tiktokUrl={tiktokVideoUrlA} active={activePlayerId === 'A'} />
+                                <PlayerInstance content={playerB} tiktokUrl={tiktokVideoUrlB} active={activePlayerId === 'B'} />
+
                                 {currentChannel.channel_logo_url && (
-                                    <div className="absolute bottom-16 right-4 z-50 pointer-events-none select-none">
-                                        <img 
-                                            src={currentChannel.channel_logo_url} 
-                                            alt="Logo" 
-                                            className="h-8 md:h-14 w-auto object-contain opacity-70 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
-                                            onError={(e) => (e.currentTarget.style.display = 'none')}
-                                        />
+                                    <div className="absolute bottom-4 left-4 z-50 pointer-events-none select-none">
+                                        <img src={currentChannel.channel_logo_url} alt="Logo" className="h-8 md:h-14 w-auto object-contain opacity-70 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]" />
                                     </div>
                                 )}
 
-                                {/* AO VIVO Indicator Overlay */}
                                 <div className="absolute top-4 left-4 z-40 flex items-center gap-2 pointer-events-none">
                                     <div className="flex items-center gap-1.5 bg-red-600/90 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white animate-pulse">
-                                        <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                                        AO VIVO
+                                        <div className="w-1.5 h-1.5 bg-white rounded-full"></div> AO VIVO
                                     </div>
                                     <div className="bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-medium text-white/90">
                                         {isAdMode ? "INTERVALO" : "24h Online"}
                                     </div>
                                 </div>
-
-                                {/* AD / INTERVAL PLAYER */}
-                                {isAdMode && adConfig && (
-                                    <div className="absolute inset-0 w-full h-full z-30 bg-black">
-                                        <div className="absolute top-4 left-4 right-4 z-40 pointer-events-none">
-                                            <div className="flex items-center gap-2">
-                                                <span className="bg-primary px-2 py-0.5 rounded text-[10px] font-black text-white uppercase tracking-tighter">Publicidade</span>
-                                                <h2 className="text-white font-bold text-sm md:text-lg drop-shadow-lg line-clamp-1">
-                                                    {adConfig.url.includes('interval') ? 'Intervalo Comercial' : 'Espaço Publicitário'}
-                                                </h2>
-                                            </div>
-                                        </div>
-                                        <VideoPlayer
-                                            url={adConfig.url}
-                                            title="Publicidade / Intervalo"
-                                            poster={currentChannel.thumbnail_url}
-                                            autoPlay={true}
-                                            startTime={adConfig.startTime}
-                                            isLive={true}
-                                            onEnded={() => setIsAdMode(false)}
-                                        />
-                                    </div>
-                                )}
-
-                                {/* YouTube Player */}
-                                {youtubeId && !isAdMode && (
-                                    <div className="absolute inset-0 w-full h-full pointer-events-auto">
-                                        <div className="absolute top-4 left-4 right-4 z-20 pointer-events-none">
-                                            <h2 className="text-white font-bold text-sm md:text-lg drop-shadow-lg line-clamp-1">
-                                                Você está assistindo: {currentProgram ? currentProgram.title : currentChannel.title}
-                                            </h2>
-                                        </div>
-                                        <YouTubePlayer 
-                                            videoId={youtubeId} 
-                                            onEnded={handleProgramEnded} 
-                                            startTime={channelStartTime}
-                                            onTimeUpdate={handleTimeUpdate} 
-                                        />
-                                    </div>
-                                )}
-
-                                {/* HLS / MP4 / TikTok Direto Player */}
-                                {!youtubeId && !isAdMode && (tiktokVideoUrl || (videoUrl && !tiktokId)) && (
-                                    <div className="absolute inset-0 w-full h-full z-10">
-                                        <VideoPlayer
-                                            url={tiktokVideoUrl || videoUrl || ""}
-                                            title={`Você está assistindo: ${currentProgram ? currentProgram.title : currentChannel.title}`}
-                                            poster={currentChannel.thumbnail_url}
-                                            autoPlay={true}
-                                            onEnded={handleProgramEnded}
-                                            onTimeUpdate={handleTimeUpdate}
-                                            startTime={channelStartTime}
-                                            isLive={true}
-                                        />
-                                    </div>
-                                )}
-
-                                {/* TikTok Embed Fallback (Se a API falhar em dar URL direto) */}
-                                {tiktokId && !tiktokVideoUrl && !isAdMode && (
-                                    <div className="absolute inset-0 w-full h-full z-10 flex items-center justify-center bg-black">
-                                        {isLoadingTikTok ? (
-                                             <div className="flex flex-col items-center">
-                                                <Loader2 className="w-10 h-10 animate-spin text-primary mb-2" />
-                                                <span className="text-sm">A aceder à transmissão...</span>
-                                             </div>
-                                        ) : (
-                                            <iframe
-                                                src={`https://www.tiktok.com/embed/v2/${tiktokId}`}
-                                                className="w-full h-full border-0"
-                                                allow="autoplay; encrypted-media; fullscreen"
-                                            />
-                                        )}
-                                    </div>
-                                )}
                             </>
                         )}
                     </div>
                 </div>
 
-                {/* Guia de Programação Estilo Descodificador (ZAP/DSTV) */}
                 <div className="mt-8 mb-16 w-full max-w-7xl mx-auto px-4 md:px-8">
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                        
-                        {/* Bloco Ativo (O que está a dar agora) */}
                         <div className="lg:col-span-4 flex flex-col">
-                            <div className="flex items-center gap-2 mb-4">
-                                <div className="w-2 h-2 bg-red-600 rounded-full animate-ping"></div>
-                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Canal Ativo</span>
-                            </div>
-                            
-                            <div className="bg-gradient-to-br from-zinc-800/80 to-zinc-900/80 backdrop-blur-xl border border-zinc-700/50 p-6 rounded-2xl shadow-2xl relative overflow-hidden group">
-                                <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                                    <Tv className="w-24 h-24" />
-                                </div>
-                                
-                                <span className="inline-block px-2 py-0.5 bg-primary/20 text-primary text-[9px] font-bold rounded mb-3 border border-primary/30 uppercase tracking-tighter">Estás a ver agora</span>
+                            <div className="bg-zinc-800/80 backdrop-blur-xl border border-zinc-700/50 p-6 rounded-2xl shadow-2xl relative overflow-hidden group">
+                                <span className="inline-block px-2 py-0.5 bg-primary/20 text-primary text-[9px] font-bold rounded mb-3 border border-primary/30 uppercase tracking-tighter italic">O que estás a ver</span>
                                 <h2 className="text-xl font-bold text-white mb-2 leading-tight">
-                                    {isAdMode ? "Intervalo / Publicidade" : (currentProgram ? currentProgram.title : currentChannel?.title)}
+                                    {isAdMode ? "Intervalo Comercial" : (currentProgram ? currentProgram.title : currentChannel?.title)}
                                 </h2>
-                                
                                 <div className="mt-6 flex flex-col gap-2">
-                                    <div className="flex justify-between items-end text-[10px] font-medium text-zinc-400 mb-1 uppercase tracking-widest">
-                                        <span>Progresso</span>
-                                        <span className="text-primary font-bold">{getRemainingTime()}</span>
+                                    <div className="flex justify-between items-end text-[10px] font-medium text-zinc-400 mb-1">
+                                        <span>Tempo Restante</span>
+                                        <span className="text-primary font-black tracking-tight">{getRemainingTime()}</span>
                                     </div>
                                     <div className="h-2 w-full bg-zinc-950 rounded-full overflow-hidden p-[1px] border border-zinc-800">
-                                        <div 
-                                            className="h-full bg-gradient-to-r from-primary to-orange-500 rounded-full shadow-[0_0_10px_rgba(234,23,43,0.5)] transition-all duration-500" 
-                                            style={{ width: `${videoDuration ? (videoCurrentTime / videoDuration) * 100 : 0}%` }}
-                                        ></div>
-                                    </div>
-                                    <div className="flex justify-between text-[9px] font-mono text-zinc-500 mt-1">
-                                        <span>{formatTimeLabel(0)}</span>
-                                        <span>{formatTimeLabel(1)}</span>
+                                        <div className="h-full bg-gradient-to-r from-primary to-orange-500 rounded-full transition-all duration-1000" style={{ width: `${videoDuration ? (videoCurrentTime / videoDuration) * 100 : 0}%` }}></div>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Próximos Programas (EPG Grid) */}
-                        <div className="lg:col-span-8 flex flex-col">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-2">
-                                    <Clock className="w-4 h-4 text-primary" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Grelha de Programação</span>
-                                </div>
-                                <span className="text-[10px] font-bold text-zinc-500 uppercase">Seguinte na Emissão</span>
+                        <div className="lg:col-span-8 flex flex-col gap-4">
+                            <div className="flex items-center gap-2">
+                                <Clock className="w-4 h-4 text-primary" />
+                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Guia de Transmissão</span>
                             </div>
-
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {programs.length > 1 ? (
-                                    Array.from({ length: Math.min(3, programs.length - 1) }).map((_, idx) => {
-                                        const nextIndex = (currentProgramIndex + 1 + idx) % programs.length;
-                                        const nextProg = programs[nextIndex];
-                                        return (
-                                            <div 
-                                                key={`next-${nextProg.title}-${idx}`} 
-                                                className="bg-zinc-900/40 hover:bg-primary/5 backdrop-blur-xl border border-zinc-800/50 hover:border-primary/30 p-5 rounded-2xl transition-all duration-500 group cursor-default relative overflow-hidden"
-                                            >
-                                                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-3xl -mr-10 -mt-10 group-hover:bg-primary/10 transition-colors"></div>
-                                                
-                                                <div className="flex items-center justify-between mb-4 relative z-10">
-                                                    <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase tracking-tighter border border-primary/20">Próximo</span>
-                                                    <span className="text-[10px] font-mono font-bold text-zinc-500 group-hover:text-zinc-300 transition-colors uppercase">{formatTimeLabel(idx + 1)}</span>
-                                                </div>
-                                                
-                                                <h3 className="text-sm font-bold text-zinc-300 line-clamp-2 leading-tight group-hover:text-white transition-colors relative z-10 min-h-[2.5rem]">
-                                                    {nextProg.title}
-                                                </h3>
-                                                
-                                                <div className="mt-4 pt-4 border-t border-zinc-800/50 flex items-center justify-between relative z-10">
-                                                    <div className="flex items-center gap-1.5 font-mono text-[9px] text-zinc-500 uppercase">
-                                                        <Tv className="w-3 h-3" />
-                                                        <span>24h Live</span>
-                                                    </div>
-                                                    <div className="w-1.5 h-1.5 bg-zinc-800 rounded-full group-hover:bg-primary transition-colors"></div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })
-                                ) : (
-                                    <div className="col-span-1 md:col-span-3 py-16 flex flex-col items-center justify-center bg-zinc-900/20 rounded-3xl border border-dashed border-zinc-800/50 backdrop-blur-sm">
-                                        <div className="w-12 h-12 bg-zinc-800/50 rounded-full flex items-center justify-center mb-4">
-                                            <Info className="w-6 h-6 text-zinc-600" />
+                                {programs.length > 0 ? (
+                                    Array.from({ length: 3 }).map((_, idx) => (
+                                        <div key={idx} className="bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl group hover:border-primary/50 transition-colors">
+                                            <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">{idx === 0 ? 'Próximo' : 'A seguir'}</span>
+                                            <h3 className="text-sm font-bold text-zinc-300 mt-2 truncate group-hover:text-white">{formatTimeLabel(idx + 1)} - Programa {idx + 1}</h3>
                                         </div>
-                                        <p className="text-xs font-bold text-zinc-600 uppercase tracking-widest">Sem mais conteúdos agendados</p>
-                                    </div>
-                                )}
+                                    ))
+                                ) : <p className="text-zinc-600 italic">Programação indisponível.</p>}
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* Lista de Canais */}
                 <div className="w-full max-w-7xl mx-auto px-4 md:px-8">
-                    <div className="flex flex-col gap-1 mb-8">
-                        <div className="flex items-center gap-3">
-                            <div className="w-1.5 h-8 bg-primary rounded-full shadow-[0_0_15px_rgba(234,23,43,0.3)]"></div>
-                            <h2 className="text-2xl font-black uppercase tracking-tighter">Escolher Canal</h2>
-                        </div>
+                    <div className="flex items-center gap-3 mb-8">
+                        <Tv className="w-6 h-6 text-primary" />
+                        <h2 className="text-2xl font-black uppercase tracking-tighter">Explorar Canais</h2>
                     </div>
-
-                    {contents.length === 0 && !loading ? (
-                        <p className="text-zinc-500">Nenhum canal na grelha de transmissão de momento.</p>
-                    ) : (
-                        <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-6">
-                            {contents.map((channel) => (
-                                <div 
-                                    key={channel.id} 
-                                    className={`relative aspect-[2/3] md:aspect-video rounded-xl overflow-hidden cursor-pointer group transition-all duration-500 ${currentChannel?.id === channel.id ? 'ring-2 ring-primary ring-offset-4 ring-offset-[#141414] scale-[1.03]' : 'hover:scale-105 hover:ring-2 hover:ring-white/30'}`}
-                                    onClick={() => handleChannelClick(channel)}
-                                >
-                                    <img 
-                                        src={channel.thumbnail_url || "/placeholder.svg"} 
-                                        alt={channel.title} 
-                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                                    />
-                                    <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-black/10 to-transparent flex flex-col justify-end p-3">
-                                        <div className={`w-8 h-8 rounded-full bg-primary/90 flex items-center justify-center mb-2 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 shadow-lg ${currentChannel?.id === channel.id ? 'translate-y-0 opacity-100' : ''}`}>
-                                            <Play className="w-4 h-4 text-white fill-white ml-0.5" />
-                                        </div>
-                                        <h3 className="text-white font-bold text-sm md:text-base leading-tight drop-shadow-md">
-                                            {channel.title}
-                                        </h3>
-                                        <div className="flex items-center gap-1.5 mt-1">
-                                            <span className="w-1.5 h-1.5 bg-red-600 rounded-full animate-pulse shadow-[0_0_5px_rgba(220,38,38,0.8)]"></span>
-                                            <span className="text-[10px] text-zinc-400 font-medium uppercase tracking-widest">LIVE</span>
-                                        </div>
-                                    </div>
-                                    
-                                    {currentChannel?.id === channel.id && (
-                                        <div className="absolute top-3 right-3 bg-primary px-2 py-0.5 rounded text-[9px] font-black uppercase text-white shadow-xl">
-                                            Agora
-                                        </div>
-                                    )}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-6">
+                        {contents.map((channel) => (
+                            <div 
+                                key={channel.id} 
+                                className={`aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer group relative border-2 ${currentChannel?.id === channel.id ? 'border-primary shadow-[0_0_20px_rgba(229,9,20,0.3)]' : 'border-zinc-800/50'}`} 
+                                onClick={() => handleChannelClick(channel)}
+                            >
+                                <img src={channel.thumbnail_url} alt={channel.title} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <span className="text-xs font-bold text-white truncate">{channel.title}</span>
                                 </div>
-                            ))}
-                        </div>
-                    )}
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </main>
         </div>
