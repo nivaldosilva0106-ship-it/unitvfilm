@@ -77,16 +77,55 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // --- HLS Manifest Generation (TV Online Mode) ---
         const syncOffset = globalTime % SLOT_DURATION;
         
-        // Construct the HLS playlist content
-        // We use EVENT type to prevent simple seeking backwards beyond the stream start in some players
+        // --- AD/INTERVAL LOGIC (Same as Frontend) ---
+        const intervalUrls = channel.interval_urls || [];
+        const adUrls = channel.ad_urls || [];
+        
+        // Use a default duration (e.g., 45 min) if not specified to allow ads/intervals to trigger
+        const videoDuration = currentProgram.duration || 2700; 
+        
+        let playbackUrl = finalUrl;
+        let playbackStartTime = syncOffset;
+        let playbackTitle = currentProgram.title || 'Canal 24h';
+
+        if (syncOffset >= videoDuration && (intervalUrls.length > 0 || adUrls.length > 0)) {
+            const AD_SLOT = 60; // 1 min slots
+            const gapOffset = syncOffset - videoDuration;
+            const slotIdx = Math.floor(gapOffset / AD_SLOT);
+            
+            const isInterval = (slotIdx % 4 === 0) || adUrls.length === 0;
+            const adUrl = isInterval && intervalUrls.length > 0 
+                ? intervalUrls[slotIdx % intervalUrls.length]
+                : adUrls[slotIdx % adUrls.length];
+
+            if (adUrl) {
+                playbackUrl = adUrl;
+                playbackStartTime = gapOffset % AD_SLOT;
+                playbackTitle = isInterval ? 'Intervalo' : 'Publicidade';
+                
+                // If the ad is a TikTok URL, resolve it too
+                if (adUrl.includes('tiktok.com')) {
+                    const protocol = req.headers['x-forwarded-proto'] || 'http';
+                    const host = req.headers.host;
+                    const resolverUrl = `${protocol}://${host}/api/tiktok?url=${encodeURIComponent(adUrl)}`;
+                    try {
+                        const resolveRes = await fetch(resolverUrl);
+                        const resolveData = await resolveRes.json();
+                        if (resolveData.url) playbackUrl = resolveData.url;
+                    } catch(e) {}
+                }
+            }
+        }
+
+        // --- HLS Manifest Generation ---
         const hlsManifest = [
             '#EXTM3U',
             '#EXT-X-VERSION:3',
             '#EXT-X-TARGETDURATION:3600',
             '#EXT-X-MEDIA-SEQUENCE:0',
             '#EXT-X-PLAYLIST-TYPE:EVENT',
-            `#EXTINF:3600.0, ${currentProgram.title || 'Canal 24h'}`,
-            `${finalUrl}${finalUrl.includes('?') ? '&' : '?'}t=${syncOffset}`
+            `#EXTINF:3600.0, ${playbackTitle}`,
+            `${playbackUrl}${playbackUrl.includes('?') ? '&' : '?'}t=${playbackStartTime}`
         ].join('\n');
 
         // Set Headers for M3U8 compatibility and no-caching

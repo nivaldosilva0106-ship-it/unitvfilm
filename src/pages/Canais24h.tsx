@@ -83,6 +83,10 @@ export default function Canais24h() {
     const [videoDuration, setVideoDuration] = useState(0);
     const [videoCurrentTime, setVideoCurrentTime] = useState(0);
 
+    // --- Ad Mode State ---
+    const [isAdMode, setIsAdMode] = useState(false);
+    const [adConfig, setAdConfig] = useState<{ url: string, startTime: number } | null>(null);
+
     const hasSyncedRef = useRef(false);
     const [loading, setLoading] = useState(true);
 
@@ -167,12 +171,50 @@ export default function Canais24h() {
         if (syncIndex !== currentProgramIndex) {
             setCurrentProgramIndex(syncIndex);
             setChannelStartTime(syncOffset); // Reset only on program change
+            setIsAdMode(false); // Reset ad mode for new program
         } else if (!hasSyncedRef.current) {
             // First time sync for the current session
             setChannelStartTime(syncOffset);
             hasSyncedRef.current = true;
         }
-    }, [currentChannel, programs.length, currentProgramIndex]);
+
+        // --- GAP FILLER (ADS) CHECK ---
+        if (videoDuration > 0 && syncOffset >= videoDuration) {
+            const ad = getDeterministicAd(syncOffset - videoDuration, currentChannel);
+            if (ad) {
+                setAdConfig(ad);
+                setIsAdMode(true);
+            }
+        } else {
+            setIsAdMode(false);
+            setAdConfig(null);
+        }
+    }, [currentChannel, programs.length, currentProgramIndex, videoDuration]);
+
+    const getDeterministicAd = (offset: number, channel: Content) => {
+        const intervalUrls = channel.interval_urls || [];
+        const adUrls = channel.ad_urls || [];
+        if (intervalUrls.length === 0 && adUrls.length === 0) return null;
+
+        const AD_SLOT = 60; // 1 min per ad
+        const slotIdx = Math.floor(offset / AD_SLOT);
+        
+        // Pattern: Slot 0 = Interval, 1-3 = Ads, 4 = Interval...
+        const isInterval = (slotIdx % 4 === 0) || adUrls.length === 0;
+        
+        if (isInterval && intervalUrls.length > 0) {
+            return {
+                url: intervalUrls[slotIdx % intervalUrls.length],
+                startTime: offset % AD_SLOT
+            };
+        } else if (adUrls.length > 0) {
+            return {
+                url: adUrls[slotIdx % adUrls.length],
+                startTime: offset % AD_SLOT
+            };
+        }
+        return null;
+    };
 
     // Initial sync and continuous refresh
     useEffect(() => {
@@ -182,11 +224,9 @@ export default function Canais24h() {
     }, [updateSync]);
 
     const handleTimeUpdate = useCallback((time: number, duration?: number) => {
-        setVideoCurrentTime(time);
         if (duration) {
             setVideoDuration(duration);
-            // We only "loop" if the video actually ends within the slot 
-            // and the user first joins far into the slot
+            setVideoCurrentTime(time);
         }
     }, []);
 
@@ -296,12 +336,35 @@ export default function Canais24h() {
                                         AO VIVO
                                     </div>
                                     <div className="bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-medium text-white/90">
-                                        24h Online
+                                        {isAdMode ? "INTERVALO" : "24h Online"}
                                     </div>
                                 </div>
 
+                                {/* AD / INTERVAL PLAYER */}
+                                {isAdMode && adConfig && (
+                                    <div className="absolute inset-0 w-full h-full z-30 bg-black">
+                                        <div className="absolute top-4 left-4 right-4 z-40 pointer-events-none">
+                                            <div className="flex items-center gap-2">
+                                                <span className="bg-primary px-2 py-0.5 rounded text-[10px] font-black text-white uppercase tracking-tighter">Publicidade</span>
+                                                <h2 className="text-white font-bold text-sm md:text-lg drop-shadow-lg line-clamp-1">
+                                                    {adConfig.url.includes('interval') ? 'Intervalo Comercial' : 'Espaço Publicitário'}
+                                                </h2>
+                                            </div>
+                                        </div>
+                                        <VideoPlayer
+                                            url={adConfig.url}
+                                            title="Publicidade / Intervalo"
+                                            poster={currentChannel.thumbnail_url}
+                                            autoPlay={true}
+                                            startTime={adConfig.startTime}
+                                            isLive={true}
+                                            onEnded={() => setIsAdMode(false)}
+                                        />
+                                    </div>
+                                )}
+
                                 {/* YouTube Player */}
-                                {youtubeId && (
+                                {youtubeId && !isAdMode && (
                                     <div className="absolute inset-0 w-full h-full pointer-events-auto">
                                         <div className="absolute top-4 left-4 right-4 z-20 pointer-events-none">
                                             <h2 className="text-white font-bold text-sm md:text-lg drop-shadow-lg line-clamp-1">
@@ -318,7 +381,7 @@ export default function Canais24h() {
                                 )}
 
                                 {/* HLS / MP4 / TikTok Direto Player */}
-                                {!youtubeId && (tiktokVideoUrl || (videoUrl && !tiktokId)) && (
+                                {!youtubeId && !isAdMode && (tiktokVideoUrl || (videoUrl && !tiktokId)) && (
                                     <div className="absolute inset-0 w-full h-full z-10">
                                         <VideoPlayer
                                             url={tiktokVideoUrl || videoUrl || ""}
@@ -334,7 +397,7 @@ export default function Canais24h() {
                                 )}
 
                                 {/* TikTok Embed Fallback (Se a API falhar em dar URL direto) */}
-                                {tiktokId && !tiktokVideoUrl && (
+                                {tiktokId && !tiktokVideoUrl && !isAdMode && (
                                     <div className="absolute inset-0 w-full h-full z-10 flex items-center justify-center bg-black">
                                         {isLoadingTikTok ? (
                                              <div className="flex flex-col items-center">
@@ -373,7 +436,7 @@ export default function Canais24h() {
                                 
                                 <span className="inline-block px-2 py-0.5 bg-primary/20 text-primary text-[9px] font-bold rounded mb-3 border border-primary/30 uppercase tracking-tighter">Estás a ver agora</span>
                                 <h2 className="text-xl font-bold text-white mb-2 leading-tight">
-                                    {currentProgram ? currentProgram.title : currentChannel?.title}
+                                    {isAdMode ? "Intervalo / Publicidade" : (currentProgram ? currentProgram.title : currentChannel?.title)}
                                 </h2>
                                 
                                 <div className="mt-6 flex flex-col gap-2">

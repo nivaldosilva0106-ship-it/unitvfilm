@@ -14,6 +14,7 @@ export interface Episode {
   }[];
   google_drive_url?: string;
   tiktok_url?: string;
+  duration?: number;
 }
 
 export interface Content {

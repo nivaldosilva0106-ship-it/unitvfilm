@@ -1613,49 +1613,123 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
         </Button>
       </div>
 
-      {isCanais24h && editingContent.id && (
-        <div className="mt-6 p-6 bg-gradient-to-br from-zinc-900 to-black rounded-xl border border-primary/30 shadow-2xl">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 bg-primary/20 rounded-lg">
-              <MonitorPlay className="w-6 h-6 text-primary" />
+      {isCanais24h && (
+        <div className="mt-6 p-6 bg-zinc-900/40 rounded-xl border border-white/5 space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-primary">
+              <Tv className="w-5 h-5" />
+              <h3 className="font-bold text-lg">Gestão de Programação (24h)</h3>
             </div>
-            <div>
-              <h3 className="font-bold text-lg text-white">Transmissão M3U8 Profissional</h3>
-              <p className="text-xs text-zinc-400">URL para reprodutores externos (VLC, Smarters, etc)</p>
+            <div className="flex gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={shuffleEpisodes}
+                className="text-[10px] uppercase font-bold h-8 border-primary/30 hover:bg-primary/10"
+              >
+                <RefreshCw className="w-3 h-3 mr-1" /> Aleatório
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={orderEpisodes2by2}
+                className="text-[10px] uppercase font-bold h-8 border-orange-500/30 hover:bg-orange-500/10"
+              >
+                <MonitorPlay className="w-3 h-3 mr-1" /> Organizar 2x2
+              </Button>
+            </div>
+          </div>
+          
+          <div className="space-y-2">
+            <Label className="text-zinc-400 text-[10px] uppercase font-black tracking-widest">URL da Logo do Canal (Watermark)</Label>
+            <Input 
+              placeholder="https://... (ex: .png transparente)"
+              value={editingContent.channel_logo_url || ''}
+              onChange={(e) => setEditingContent(prev => ({ ...prev, channel_logo_url: e.target.value }))}
+              className="bg-black/40 border-zinc-800 text-xs font-mono"
+            />
+            <p className="text-[9px] text-zinc-500 italic">Esta logo aparecerá no canto superior direito do player.</p>
+          </div>
+        </div>
+      )}
+
+      {isCanais24h && editingContent.id && (
+        <div className="mt-8 space-y-6">
+          {/* Configuração de Intervalos e Publicidade */}
+          <div className="p-6 bg-zinc-900/50 rounded-xl border border-white/5 space-y-4 shadow-xl">
+            <div className="flex items-center gap-2 text-primary mb-2">
+              <Clapperboard className="w-5 h-5" />
+              <h3 className="font-bold text-lg">Intervalos e Publicidade</h3>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label className="text-zinc-400 text-xs uppercase font-black tracking-widest">Links de Intervalo / Pausa</Label>
+                <Textarea 
+                  placeholder="https://... (um link por linha)"
+                  value={editingContent.interval_urls?.join('\n') || ''}
+                  onChange={(e) => setEditingContent(prev => ({ ...prev, interval_urls: e.target.value.split('\n').filter(l => l.trim()) }))}
+                  className="min-h-[120px] bg-black/40 border-zinc-800 text-xs font-mono"
+                />
+                <p className="text-[10px] text-zinc-500 italic">Ex: 'Já Voltamos', 'A Seguir', 'Identidade do Canal'.</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-zinc-400 text-xs uppercase font-black tracking-widest">Links de Publicidade</Label>
+                <Textarea 
+                  placeholder="https://... (um link por linha)"
+                  value={editingContent.ad_urls?.join('\n') || ''}
+                  onChange={(e) => setEditingContent(prev => ({ ...prev, ad_urls: e.target.value.split('\n').filter(l => l.trim()) }))}
+                  className="min-h-[120px] bg-black/40 border-zinc-800 text-xs font-mono"
+                />
+                <p className="text-[10px] text-zinc-500 italic">Ex: Trailers, Comerciais, Spots.</p>
+              </div>
             </div>
           </div>
 
-          <div className="space-y-4">
-            <div className="relative group">
-              <Input 
-                readOnly
-                value={`${window.location.origin}/api/m3u8?channelId=${editingContent.id}`}
-                className="bg-black/50 border-white/10 pr-24 font-mono text-xs text-primary h-11"
-              />
-              <Button 
-                onClick={() => {
-                  navigator.clipboard.writeText(`${window.location.origin}/api/m3u8?channelId=${editingContent.id}`);
-                  toast.success("URL M3U8 copiada!");
-                }}
-                className="absolute right-1 top-1 bottom-1 bg-primary hover:bg-primary/90 text-white px-4 h-9"
-              >
-                Copiar
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div className="p-3 bg-white/5 rounded-lg border border-white/5 flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5" />
-                <div>
-                  <p className="text-[11px] font-bold text-zinc-300">Compatível com IPTV</p>
-                  <p className="text-[10px] text-zinc-500">Funciona em Smart TVs e Boxes Android.</p>
-                </div>
+          <div className="p-6 bg-gradient-to-br from-zinc-900 to-black rounded-xl border border-primary/30 shadow-2xl">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 bg-primary/20 rounded-lg">
+                <MonitorPlay className="w-6 h-6 text-primary" />
               </div>
-              <div className="p-3 bg-white/5 rounded-lg border border-white/5 flex items-start gap-2">
-                <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5" />
-                <div>
-                  <p className="text-[11px] font-bold text-zinc-300">Sync Automático</p>
-                  <p className="text-[10px] text-zinc-500">Sempre o mesmo que passa no site.</p>
+              <div>
+                <h3 className="font-bold text-lg text-white">Transmissão M3U8 Profissional</h3>
+                <p className="text-xs text-zinc-400">URL para reprodutores externos (VLC, Smarters, etc)</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div className="relative group">
+                <Input 
+                  readOnly
+                  value={`${window.location.origin}/api/m3u8?channelId=${editingContent.id}`}
+                  className="bg-black/50 border-white/10 pr-24 font-mono text-xs text-primary h-11"
+                />
+                <Button 
+                  onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/api/m3u8?channelId=${editingContent.id}`);
+                    toast.success("URL M3U8 copiada!");
+                  }}
+                  className="absolute right-1 top-1 bottom-1 bg-primary hover:bg-primary/90 text-white px-4 h-9"
+                >
+                  Copiar
+                </Button>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="p-3 bg-white/5 rounded-lg border border-white/5 flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5" />
+                  <div>
+                    <p className="text-[11px] font-bold text-zinc-300">Compatível com IPTV</p>
+                    <p className="text-[10px] text-zinc-500">Funciona em Smart TVs e Boxes Android.</p>
+                  </div>
+                </div>
+                <div className="p-3 bg-white/5 rounded-lg border border-white/5 flex items-start gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 mt-0.5" />
+                  <div>
+                    <p className="text-[11px] font-bold text-zinc-300">Sync Automático</p>
+                    <p className="text-[10px] text-zinc-500">Sempre o mesmo que passa no site.</p>
+                  </div>
                 </div>
               </div>
             </div>
