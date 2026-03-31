@@ -16,22 +16,29 @@ declare global {
 
 // ============================================================
 // YOUTUBE PLAYER — Memoized, outside main component
-// CSS scales the iframe to HIDE YouTube logo, watermark, and controls
+// - Overlay blocks YouTube's play button & end screen replay icon
+// - Thumbnail shown while buffering (hides initial play icon)
+// - Auto-scales to hide YouTube branding
 // ============================================================
-const YouTubePlayer = memo(({ id, videoId, onEnded, startTime, onTimeUpdate, muted }: {
+const YouTubePlayer = memo(({ id, videoId, onEnded, startTime, onTimeUpdate, muted, poster, isFullscreen }: {
     id: string;
     videoId: string;
     onEnded: () => void;
     startTime?: number;
     onTimeUpdate?: (time: number, duration?: number) => void;
     muted?: boolean;
+    poster?: string;
+    isFullscreen?: boolean;
 }) => {
     const playerRef = useRef<any>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
-    const containerRef = useRef<HTMLDivElement>(null);
+    const [isReady, setIsReady] = useState(false);
+    const [isPlaying, setIsPlaying] = useState(false);
 
     useEffect(() => {
         const elId = `yt-${id}-${videoId}`;
+        setIsReady(false);
+        setIsPlaying(false);
 
         const initPlayer = () => {
             if (!window.YT?.Player) return;
@@ -41,34 +48,62 @@ const YouTubePlayer = memo(({ id, videoId, onEnded, startTime, onTimeUpdate, mut
                 videoId,
                 playerVars: {
                     autoplay: 1,
-                    controls: 0,
+                    controls: 0,       // hide controls completely
                     disablekb: 1,
-                    fs: 0,
-                    iv_load_policy: 3, // Hide annotations
+                    fs: 0,             // disable fullscreen button
+                    iv_load_policy: 3, // hide annotations
                     modestbranding: 1,
-                    rel: 0,
+                    rel: 0,            // no related videos
                     showinfo: 0,
+                    playsinline: 1,
                     start: startTime ? Math.floor(startTime) : 0,
+                    // This hides the end screen
+                    enablejsapi: 1,
                 },
                 events: {
                     onReady: (e: any) => {
-                        if (muted) e.target.mute(); else e.target.unMute();
+                        setIsReady(true);
+                        // Always start muted to pass autoplay policy, then unmute if active
+                        e.target.mute();
                         e.target.playVideo();
+                        // If this is the active player, unmute after a short delay
+                        if (!muted) {
+                            setTimeout(() => {
+                                try { e.target.unMute(); e.target.setVolume(100); } catch {}
+                            }, 300);
+                        }
                         if (onTimeUpdate) {
                             intervalRef.current = setInterval(() => {
                                 try {
-                                    const ct = e.target.getCurrentTime();
-                                    const du = e.target.getDuration();
-                                    if (ct && du) onTimeUpdate(ct, du);
+                                    const state = e.target.getPlayerState();
+                                    // Only update if playing (state 1)
+                                    if (state === 1) {
+                                        const ct = e.target.getCurrentTime();
+                                        const du = e.target.getDuration();
+                                        if (du > 0) onTimeUpdate(ct, du);
+                                    }
                                 } catch {}
                             }, 1000);
                         }
                     },
                     onStateChange: (e: any) => {
-                        if (e.data === window.YT.PlayerState.ENDED) onEnded();
-                        // Auto-play if paused unexpectedly
-                        if (e.data === window.YT.PlayerState.PAUSED) {
-                            setTimeout(() => { try { e.target.playVideo(); } catch {} }, 500);
+                        const YTState = window.YT.PlayerState;
+                        if (e.data === YTState.PLAYING) {
+                            setIsPlaying(true);
+                        }
+                        if (e.data === YTState.ENDED) {
+                            // Immediately call onEnded — do NOT let YouTube show replay button
+                            onEnded();
+                        }
+                        // If paused unexpectedly (not by us), resume
+                        if (e.data === YTState.PAUSED) {
+                            setTimeout(() => {
+                                try {
+                                    if (e.target.getPlayerState() === YTState.PAUSED) {
+                                        e.target.playVideo();
+                                    }
+                                } catch {}
+                            }, 600);
                         }
                     },
                 },
@@ -76,34 +111,73 @@ const YouTubePlayer = memo(({ id, videoId, onEnded, startTime, onTimeUpdate, mut
         };
 
         if (!window.YT) {
-            const tag = document.createElement("script");
-            tag.src = "https://www.youtube.com/iframe_api";
-            document.body.appendChild(tag);
-            window.onYouTubeIframeAPIReady = initPlayer;
+            // Check if script is already being loaded
+            if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+                const tag = document.createElement("script");
+                tag.src = "https://www.youtube.com/iframe_api";
+                document.body.appendChild(tag);
+            }
+            // Queue the init - it may already be loading
+            const prevReady = window.onYouTubeIframeAPIReady;
+            window.onYouTubeIframeAPIReady = () => {
+                if (prevReady) prevReady();
+                initPlayer();
+            };
         } else {
-            setTimeout(initPlayer, 100);
+            setTimeout(initPlayer, 150);
         }
 
         return () => {
             if (intervalRef.current) clearInterval(intervalRef.current);
             try { playerRef.current?.destroy(); } catch {}
+            playerRef.current = null;
         };
     }, [videoId, id]);
 
+    // Handle mute/unmute when active slot changes
     useEffect(() => {
         try {
-            if (playerRef.current?.mute) {
-                if (muted) playerRef.current.mute(); else playerRef.current.unMute();
+            if (!playerRef.current?.mute) return;
+            if (muted) {
+                playerRef.current.mute();
+            } else {
+                playerRef.current.unMute();
+                playerRef.current.setVolume(100);
+                // Also ensure it's playing
+                setTimeout(() => {
+                    try { playerRef.current?.playVideo(); } catch {}
+                }, 100);
             }
         } catch {}
     }, [muted]);
 
-    // The outer div clips overflow; the inner div is scaled up to HIDE YouTube branding
     return (
-        <div ref={containerRef} className="w-full h-full overflow-hidden relative">
+        <div className="w-full h-full overflow-hidden relative bg-black">
+            {/* Scaled iframe to crop YouTube branding */}
             <div className="absolute inset-[-15%] w-[130%] h-[130%]">
                 <div id={`yt-${id}-${videoId}`} className="w-full h-full" />
             </div>
+
+            {/* Thumbnail cover shown while buffering — hides YouTube's play icon */}
+            {poster && !isPlaying && (
+                <div
+                    className="absolute inset-0 z-20 bg-black"
+                    style={{
+                        backgroundImage: `url(${poster})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                    }}
+                >
+                    {/* Subtle loading spinner */}
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-10 h-10 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+                    </div>
+                </div>
+            )}
+
+            {/* CRITICAL: Transparent overlay blocks ALL YouTube UI clicks */}
+            {/* This prevents play button, replay button, info cards from showing */}
+            <div className="absolute inset-0 z-30" style={{ pointerEvents: 'all', background: 'transparent' }} />
         </div>
     );
 });
@@ -112,7 +186,7 @@ YouTubePlayer.displayName = "YouTubePlayer";
 // ============================================================
 // PLAYER SLOT — Memoized, outside main. Never re-created on parent re-render
 // ============================================================
-const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeUpdate, onEnded }: {
+const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeUpdate, onEnded, onToggleFullscreen, isFullscreen }: {
     id: string;
     content: { url: string; startTime: number; title: string } | null;
     tiktokUrl: string | null;
@@ -120,6 +194,8 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
     channelThumb?: string;
     onTimeUpdate?: (time: number, duration?: number) => void;
     onEnded?: () => void;
+    onToggleFullscreen?: () => void;
+    isFullscreen?: boolean;
 }) => {
     if (!content) return null;
 
@@ -144,7 +220,7 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
                     onEnded={onEnded || (() => {})}
                     startTime={content.startTime}
                     onTimeUpdate={onTimeUpdate}
-                    muted={!active}
+                    isFullscreen={isFullscreen}
                 />
             ) : (
                 <VideoPlayer
@@ -156,6 +232,8 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
                     isLive={true}
                     onEnded={onEnded || (() => {})}
                     onTimeUpdate={onTimeUpdate}
+                    onToggleFullscreen={onToggleFullscreen}
+                    isFullscreen={isFullscreen}
                     muted={!active}
                 />
             )}
@@ -201,6 +279,10 @@ export default function Canais24h() {
     const [isAdMode, setIsAdMode] = useState(false);
     const [realTime, setRealTime] = useState(0);
     const [realDuration, setRealDuration] = useState(0);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+
+    // Ref to player container for fullscreen logo injection
+    const playerContainerRef = useRef<HTMLDivElement>(null);
 
     // Track current program index in the list
     const currentIndexRef = useRef(0);
@@ -389,8 +471,8 @@ export default function Canais24h() {
 
         const remaining = (duration || 0) - time;
 
-        // Pre-load buffer at 5 seconds remaining
-        if (remaining > 0 && remaining <= 5 && !bufferReadyRef.current && !isTransitioningRef.current) {
+        // Pre-load buffer at 10 seconds remaining
+        if (remaining > 0 && remaining <= 10 && !bufferReadyRef.current && !isTransitioningRef.current) {
             bufferReadyRef.current = true;
 
             const currentContent = activeSlot === "A" ? slotA : slotB;
@@ -495,6 +577,33 @@ export default function Canais24h() {
         return upcoming;
     };
 
+    // ---- Fullscreen management ----
+    const handleToggleFullscreen = useCallback(() => {
+        if (!playerContainerRef.current) return;
+        
+        if (!document.fullscreenElement) {
+            if (playerContainerRef.current.requestFullscreen) {
+                playerContainerRef.current.requestFullscreen();
+            }
+        } else {
+            if (document.exitFullscreen) {
+                document.exitFullscreen();
+            }
+        }
+    }, []);
+
+    useEffect(() => {
+        const onFSChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener("fullscreenchange", onFSChange);
+        document.addEventListener("webkitfullscreenchange", onFSChange);
+        return () => {
+            document.removeEventListener("fullscreenchange", onFSChange);
+            document.removeEventListener("webkitfullscreenchange", onFSChange);
+        };
+    }, []);
+
     // ============================================================
     // RENDER
     // ============================================================
@@ -504,7 +613,11 @@ export default function Canais24h() {
             <main className="pt-20 pb-10">
                 {/* Player */}
                 <div className="w-full max-w-7xl mx-auto px-4 md:px-8 mb-8">
-                    <div className="relative w-full bg-black rounded-lg overflow-hidden shadow-2xl aspect-video">
+                    <div
+                        ref={playerContainerRef}
+                        id="player-container"
+                        className="relative w-full bg-black rounded-lg overflow-hidden shadow-2xl aspect-video group/container"
+                    >
                         {loading ? (
                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/80">
                                 <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
@@ -525,6 +638,8 @@ export default function Canais24h() {
                                     channelThumb={currentChannel.thumbnail_url}
                                     onTimeUpdate={activeSlot === "A" ? handleTimeUpdate : undefined}
                                     onEnded={activeSlot === "A" ? handleEnded : undefined}
+                                    onToggleFullscreen={handleToggleFullscreen}
+                                    isFullscreen={isFullscreen}
                                 />
                                 <PlayerSlot
                                     id="B"
@@ -534,25 +649,31 @@ export default function Canais24h() {
                                     channelThumb={currentChannel.thumbnail_url}
                                     onTimeUpdate={activeSlot === "B" ? handleTimeUpdate : undefined}
                                     onEnded={activeSlot === "B" ? handleEnded : undefined}
+                                    onToggleFullscreen={handleToggleFullscreen}
+                                    isFullscreen={isFullscreen}
                                 />
 
                                 {/* Logo Watermark */}
                                 {currentChannel.channel_logo_url && (
-                                    <div className="absolute bottom-3 left-3 z-50 pointer-events-none select-none">
+                                    <div
+                                        className={`absolute bottom-6 left-6 z-[60] pointer-events-none select-none transition-all duration-300 ${
+                                            isFullscreen ? "opacity-90 scale-125" : "opacity-70"
+                                        }`}
+                                    >
                                         <img
                                             src={currentChannel.channel_logo_url}
                                             alt="Logo"
-                                            className="h-8 md:h-14 w-auto object-contain opacity-70 filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]"
+                                            className="h-8 md:h-14 w-auto object-contain filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
                                         />
                                     </div>
                                 )}
 
                                 {/* Live Badge */}
-                                <div className="absolute top-4 left-4 z-40 flex items-center gap-2 pointer-events-none">
-                                    <div className="flex items-center gap-1.5 bg-red-600/90 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-white animate-pulse">
-                                        <div className="w-1.5 h-1.5 bg-white rounded-full" /> AO VIVO
+                                <div className="absolute top-6 left-6 z-50 flex items-center gap-2 pointer-events-none transition-all">
+                                    <div className="flex items-center gap-1.5 bg-red-600/90 backdrop-blur-sm px-2.5 py-1 rounded text-[11px] font-bold uppercase tracking-wider text-white animate-pulse">
+                                        <div className="w-2 h-2 bg-white rounded-full" /> AO VIVO
                                     </div>
-                                    <div className="bg-black/40 backdrop-blur-sm px-2 py-0.5 rounded text-[10px] font-medium text-white/90">
+                                    <div className="bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded text-[11px] font-medium text-white/90">
                                         {isAdMode ? "INTERVALO" : "24h Online"}
                                     </div>
                                 </div>

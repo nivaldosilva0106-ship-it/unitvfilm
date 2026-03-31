@@ -23,6 +23,8 @@ interface VideoPlayerProps {
   subtitles?: string;
   isLive?: boolean;
   muted?: boolean;
+  onToggleFullscreen?: () => void;
+  isFullscreen?: boolean;
 }
 
 const formatTime = (seconds: number): string => {
@@ -46,7 +48,9 @@ export const VideoPlayer = ({
   startTime = 0,
   subtitles,
   isLive = false,
-  muted = false
+  muted = false,
+  onToggleFullscreen,
+  isFullscreen: isFullscreenProp
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -57,8 +61,10 @@ export const VideoPlayer = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMuted, setIsMuted] = useState(muted);
+  const [isFullscreenInternal, setIsFullscreenInternal] = useState(false);
+  
+  const isFullscreen = isFullscreenProp !== undefined ? isFullscreenProp : isFullscreenInternal;
   const [showControls, setShowControls] = useState(true);
   const [isBuffering, setIsBuffering] = useState(false);
   const [qualities, setQualities] = useState<{ height: number; level: number }[]>([]);
@@ -242,14 +248,15 @@ export const VideoPlayer = ({
     video.muted = isMuted;
   }, [volume, isMuted]);
 
-  // Fullscreen change listener
   useEffect(() => {
-    const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
+    const handleFSChange = () => {
+      if (!onToggleFullscreen) {
+        setIsFullscreenInternal(!!document.fullscreenElement);
+      }
     };
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
+    document.addEventListener('fullscreenchange', handleFSChange);
+    return () => document.removeEventListener('fullscreenchange', handleFSChange);
+  }, [onToggleFullscreen]);
 
   // Handle audio amplification
   useEffect(() => {
@@ -378,15 +385,22 @@ export const VideoPlayer = ({
   };
 
   const toggleFullscreen = async () => {
+    if (onToggleFullscreen) {
+      onToggleFullscreen();
+      return;
+    }
+
     if (!containerRef.current) return;
     try {
       if (!document.fullscreenElement) {
         await containerRef.current.requestFullscreen();
+        setIsFullscreenInternal(true);
       } else {
         await document.exitFullscreen();
+        setIsFullscreenInternal(false);
       }
-    } catch (err) {
-      console.error('Fullscreen error:', err);
+    } catch (e) {
+      console.error("Fullscreen failed:", e);
     }
   };
 
