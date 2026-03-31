@@ -424,7 +424,7 @@ export const VideoPlayer = ({
       <video
         ref={videoRef}
         poster={poster}
-        className="w-full h-full object-contain"
+        className="w-full h-full object-cover"
         playsInline
         crossOrigin="anonymous"
         muted={isMuted}

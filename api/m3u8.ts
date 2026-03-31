@@ -74,12 +74,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(404).send('Current program has no valid URL');
         }
 
-        // Set Cache-Control to avoid being stuck on an old video in some players
+        // --- HLS Manifest Generation (TV Online Mode) ---
+        const syncOffset = globalTime % SLOT_DURATION;
+        
+        // Construct the HLS playlist content
+        // We use EVENT type to prevent simple seeking backwards beyond the stream start in some players
+        const hlsManifest = [
+            '#EXTM3U',
+            '#EXT-X-VERSION:3',
+            '#EXT-X-TARGETDURATION:3600',
+            '#EXT-X-MEDIA-SEQUENCE:0',
+            '#EXT-X-PLAYLIST-TYPE:EVENT',
+            `#EXTINF:3600.0, ${currentProgram.title || 'Canal 24h'}`,
+            `${finalUrl}${finalUrl.includes('?') ? '&' : '?'}t=${syncOffset}`
+        ].join('\n');
+
+        // Set Headers for M3U8 compatibility and no-caching
+        res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+        res.setHeader('Content-Disposition', 'inline; filename="playlist.m3u8"');
         res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
+        res.setHeader('Access-Control-Allow-Origin', '*');
 
-        return res.redirect(302, finalUrl);
+        return res.status(200).send(hlsManifest);
 
     } catch (error) {
         console.error('M3U8 Error:', error);

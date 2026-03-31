@@ -147,14 +147,15 @@ export default function Canais24h() {
         if (!currentChannel || programs.length === 0) {
              setCurrentProgramIndex(0);
              setChannelStartTime(0);
-             return;
         }
+    }, [currentChannel]);
 
-        // Determimistic Global Sync Logic (TV Frame Sync)
+    // Deterministic Global Sync Logic (Updated continuously to avoid drift)
+    const updateSync = useCallback(() => {
+        if (!currentChannel || !programs.length) return;
+        
         const SLOT_DURATION = 3600; // 1 hora
         const nowSec = Math.floor(Date.now() / 1000);
-        
-        // Usamos o ID do canal como "sal" para que canais diferentes tenham offsets diferentes
         const channelSalt = currentChannel.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
         const globalTime = nowSec + channelSalt;
         
@@ -164,19 +165,22 @@ export default function Canais24h() {
         setCurrentProgramIndex(syncIndex);
         setChannelStartTime(syncOffset);
         hasSyncedRef.current = true;
-    }, [currentChannel]);
+    }, [currentChannel, programs.length]);
+
+    // Initial sync and continuous refresh
+    useEffect(() => {
+        updateSync();
+        const interval = setInterval(updateSync, 10000); // Sync precise every 10s
+        return () => clearInterval(interval);
+    }, [updateSync]);
 
     const handleTimeUpdate = useCallback((time: number, duration?: number) => {
         setVideoCurrentTime(time);
         if (duration) {
             setVideoDuration(duration);
-            // Sync Fix: If our calculated start time is beyond the video duration,
-            // we should probably loop it or reset to 0 to avoid playback stalls.
             if (hasSyncedRef.current && channelStartTime >= duration && duration > 0) {
                 const correctedStart = channelStartTime % duration;
                 setChannelStartTime(correctedStart);
-                // Note: The player doesn't always need a manual seek if it's already playing,
-                // but this ensures the EPG and UI stay consistent.
             }
         }
     }, [channelStartTime]);
@@ -252,7 +256,7 @@ export default function Canais24h() {
             <main className="pt-20 pb-10">
                 {/* Player Principal */}
                 <div className="w-full max-w-7xl mx-auto px-4 md:px-8 mb-8">
-                    <div className="relative w-full bg-black rounded-lg overflow-hidden shadow-2xl aspect-video md:aspect-[21/9] lg:aspect-[21/9]">
+                    <div className="relative w-full bg-black rounded-lg overflow-hidden shadow-2xl aspect-video">
                         
                         {loading ? (
                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/80">
@@ -388,12 +392,15 @@ export default function Canais24h() {
 
                         {/* Próximos Programas (EPG Grid) */}
                         <div className="lg:col-span-8 flex flex-col">
-                            <div className="flex items-center gap-2 mb-4">
-                                <Clock className="w-4 h-4 text-zinc-500" />
-                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Próximos Programas</span>
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-2">
+                                    <Clock className="w-4 h-4 text-primary" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Grelha de Programação</span>
+                                </div>
+                                <span className="text-[10px] font-bold text-zinc-500 uppercase">Seguinte na Emissão</span>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {programs.length > 1 ? (
                                     Array.from({ length: Math.min(3, programs.length - 1) }).map((_, idx) => {
                                         const nextIndex = (currentProgramIndex + 1 + idx) % programs.length;
@@ -401,26 +408,35 @@ export default function Canais24h() {
                                         return (
                                             <div 
                                                 key={`next-${nextProg.title}-${idx}`} 
-                                                className="bg-zinc-900/60 hover:bg-zinc-800/80 backdrop-blur-md border border-zinc-800 hover:border-zinc-700/80 p-5 rounded-2xl transition-all duration-300 group cursor-default"
+                                                className="bg-zinc-900/40 hover:bg-primary/5 backdrop-blur-xl border border-zinc-800/50 hover:border-primary/30 p-5 rounded-2xl transition-all duration-500 group cursor-default relative overflow-hidden"
                                             >
-                                                <div className="flex items-center justify-between mb-4">
-                                                    <span className="text-[10px] font-black text-primary uppercase tracking-tighter bg-primary/5 px-2 py-0.5 rounded">PRÓXIMO</span>
-                                                    <span className="text-xs font-mono text-zinc-500">{formatTimeLabel(idx + 1)}</span>
+                                                <div className="absolute top-0 right-0 w-24 h-24 bg-primary/5 blur-3xl -mr-10 -mt-10 group-hover:bg-primary/10 transition-colors"></div>
+                                                
+                                                <div className="flex items-center justify-between mb-4 relative z-10">
+                                                    <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase tracking-tighter border border-primary/20">Próximo</span>
+                                                    <span className="text-[10px] font-mono font-bold text-zinc-500 group-hover:text-zinc-300 transition-colors uppercase">{formatTimeLabel(idx + 1)}</span>
                                                 </div>
-                                                <h3 className="text-sm font-semibold text-zinc-200 line-clamp-2 leading-snug group-hover:text-white transition-colors">
+                                                
+                                                <h3 className="text-sm font-bold text-zinc-300 line-clamp-2 leading-tight group-hover:text-white transition-colors relative z-10 min-h-[2.5rem]">
                                                     {nextProg.title}
                                                 </h3>
-                                                <div className="mt-4 flex items-center gap-2">
-                                                    <div className="w-1.5 h-1.5 bg-zinc-700 rounded-full"></div>
-                                                    <div className="h-[1px] flex-1 bg-zinc-800"></div>
+                                                
+                                                <div className="mt-4 pt-4 border-t border-zinc-800/50 flex items-center justify-between relative z-10">
+                                                    <div className="flex items-center gap-1.5 font-mono text-[9px] text-zinc-500 uppercase">
+                                                        <Tv className="w-3 h-3" />
+                                                        <span>24h Live</span>
+                                                    </div>
+                                                    <div className="w-1.5 h-1.5 bg-zinc-800 rounded-full group-hover:bg-primary transition-colors"></div>
                                                 </div>
                                             </div>
                                         );
                                     })
                                 ) : (
-                                    <div className="col-span-3 py-10 flex flex-col items-center justify-center bg-zinc-900/30 rounded-2xl border border-dashed border-zinc-800">
-                                        <Info className="w-8 h-8 text-zinc-700 mb-2" />
-                                        <p className="text-xs text-zinc-600">Sem mais blocos na grelha de hoje</p>
+                                    <div className="col-span-1 md:col-span-3 py-16 flex flex-col items-center justify-center bg-zinc-900/20 rounded-3xl border border-dashed border-zinc-800/50 backdrop-blur-sm">
+                                        <div className="w-12 h-12 bg-zinc-800/50 rounded-full flex items-center justify-center mb-4">
+                                            <Info className="w-6 h-6 text-zinc-600" />
+                                        </div>
+                                        <p className="text-xs font-bold text-zinc-600 uppercase tracking-widest">Sem mais conteúdos agendados</p>
                                     </div>
                                 )}
                             </div>
