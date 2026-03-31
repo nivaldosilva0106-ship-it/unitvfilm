@@ -111,8 +111,8 @@ export const VideoPlayer = ({
 
     const videoUrl = getVideoUrl();
 
-    // Ensure video is not muted on initialization
-    video.muted = false;
+    // Respect the muted prop on initialization (buffer player starts silent)
+    video.muted = muted;
     video.volume = 1.0;
 
     const attemptPlay = async () => {
