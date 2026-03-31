@@ -17,6 +17,7 @@ interface VideoPlayerProps {
   poster?: string;
   title?: string;
   onEnded?: () => void;
+  onTimeUpdate?: (time: number) => void;
   autoPlay?: boolean;
   startTime?: number;
   subtitles?: string;
@@ -39,6 +40,7 @@ export const VideoPlayer = ({
   poster,
   title,
   onEnded,
+  onTimeUpdate,
   autoPlay = true,
   startTime = 0,
   subtitles,
@@ -190,7 +192,10 @@ export const VideoPlayer = ({
     const video = videoRef.current;
     if (!video) return;
 
-    const handleTimeUpdate = () => setCurrentTime(video.currentTime);
+    const handleTimeUpdate = () => {
+      setCurrentTime(video.currentTime);
+      onTimeUpdate?.(video.currentTime);
+    };
     const handleDurationChange = () => setDuration(video.duration);
     const handlePlay = () => setIsPlaying(true);
     const handlePause = () => setIsPlaying(false);
@@ -218,7 +223,7 @@ export const VideoPlayer = ({
       video.removeEventListener('playing', handlePlaying);
       video.removeEventListener('ended', handleEnded);
     };
-  }, [onEnded]);
+  }, [onEnded, onTimeUpdate]);
 
   // Sync volume with video element on mount and when volume/muted changes
   useEffect(() => {
