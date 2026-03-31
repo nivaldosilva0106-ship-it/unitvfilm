@@ -20,7 +20,7 @@ declare global {
 // - Thumbnail shown while buffering (hides initial play icon)
 // - Auto-scales to hide YouTube branding
 // ============================================================
-const YouTubePlayer = memo(({ id, videoId, onEnded, startTime, onTimeUpdate, muted, poster, isFullscreen }: {
+const YouTubePlayer = memo(({ id, videoId, onEnded, startTime, onTimeUpdate, muted, poster, isFullscreen, active }: {
     id: string;
     videoId: string;
     onEnded: () => void;
@@ -29,6 +29,7 @@ const YouTubePlayer = memo(({ id, videoId, onEnded, startTime, onTimeUpdate, mut
     muted?: boolean;
     poster?: string;
     isFullscreen?: boolean;
+    active?: boolean;
 }) => {
     const playerRef = useRef<any>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -177,7 +178,7 @@ const YouTubePlayer = memo(({ id, videoId, onEnded, startTime, onTimeUpdate, mut
 
             {/* CRITICAL: Transparent overlay blocks ALL YouTube UI clicks */}
             {/* This prevents play button, replay button, info cards from showing */}
-            <div className="absolute inset-0 z-30" style={{ pointerEvents: 'all', background: 'transparent' }} />
+            <div className={`absolute inset-0 z-30 ${!active ? 'hidden' : ''}`} style={{ pointerEvents: 'all', background: 'transparent' }} />
         </div>
     );
 });
@@ -221,6 +222,7 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
                     startTime={content.startTime}
                     onTimeUpdate={onTimeUpdate}
                     isFullscreen={isFullscreen}
+                    active={active}
                 />
             ) : (
                 <VideoPlayer
@@ -464,22 +466,89 @@ export default function Canais24h() {
         setTiktokB(null);
     }, [currentChannel, programs, getInitialState]);
 
-    // ---- 6. Pre-buffer when 5 seconds remain ----
+    // ---- 7. Swap when video ends ----
+    const handleEnded = useCallback(() => {
+        if (isTransitioningRef.current) return;
+        isTransitioningRef.current = true;
+
+        const currentContent = activeSlot === "A" ? slotA : slotB;
+        if (!currentContent) { 
+            isTransitioningRef.current = false; 
+            return; 
+        }
+
+        // Get the pre-loaded buffer
+        const bufferSlot = activeSlot === "A" ? slotB : slotA;
+
+        // If no buffer was pre-loaded (video too short or timing skip)
+        // Load NEXT item manually and swap immediately
+        if (!bufferSlot) {
+            const nextItem = getNextItem(currentContent);
+            const targetSlot = activeSlot === "A" ? "B" : "A";
+            
+            if (targetSlot === "B") {
+                setSlotB(nextItem);
+                if (nextItem.url.includes("tiktok.com")) resolveTikTok(nextItem.url).then(setTiktokB);
+                else setTiktokB(null);
+            } else {
+                setSlotA(nextItem);
+                if (nextItem.url.includes("tiktok.com")) resolveTikTok(nextItem.url).then(setTiktokA);
+                else setTiktokA(null);
+            }
+
+            // Direct swap
+            setTimeout(() => {
+                setActiveSlot(targetSlot);
+                setNowPlayingTitle(nextItem.title);
+                setIsAdMode(nextItem.type !== "program");
+                currentIndexRef.current = nextItem.programIndex;
+                setRealTime(0);
+                bufferReadyRef.current = false;
+                setTimeout(() => { isTransitioningRef.current = false; }, 1000);
+            }, 300);
+            return;
+        }
+
+        // NORMAL CASE: Swap to already pre-loaded buffer
+        const newSlot = activeSlot === "A" ? "B" : "A";
+        console.log(`Swapping to Slot ${newSlot}: ${bufferSlot.title}`);
+        
+        setActiveSlot(newSlot);
+        setNowPlayingTitle(bufferSlot.title);
+        setIsAdMode(bufferSlot.type !== "program");
+        currentIndexRef.current = bufferSlot.programIndex;
+        setRealTime(0);
+        bufferReadyRef.current = false;
+
+        // Clear the *previous* slot after the swap animation
+        setTimeout(() => {
+            if (newSlot === "A") setSlotB(null);
+            else setSlotA(null);
+            isTransitioningRef.current = false; 
+        }, 1000);
+    }, [activeSlot, slotA, slotB, getNextItem]);
+
+    // ---- 6. Pre-buffer next video ----
     const handleTimeUpdate = useCallback((time: number, duration?: number) => {
         setRealTime(time);
-        if (duration && duration > 0) setRealDuration(duration);
+        if (duration) setRealDuration(duration);
 
         const remaining = (duration || 0) - time;
 
-        // Pre-load buffer at 10 seconds remaining
-        if (remaining > 0 && remaining <= 10 && !bufferReadyRef.current && !isTransitioningRef.current) {
+        // PRE-EMPTIVE SWAP (0.8s before end)
+        // This stops YouTube UI from ever showing the "replay" icon
+        if (remaining > 0 && remaining <= 0.8 && !isTransitioningRef.current) {
+            handleEnded();
+            return;
+        }
+
+        // PRE-BUFFER (10s before end)
+        if (remaining > 0 && remaining <= 10 && !bufferReadyRef.current) {
             bufferReadyRef.current = true;
+            const currentItem = activeSlot === "A" ? slotA : slotB;
+            if (!currentItem) return;
 
-            const currentContent = activeSlot === "A" ? slotA : slotB;
-            if (!currentContent) return;
-
-            const nextItem = getNextItem(currentContent);
-
+            const nextItem = getNextItem(currentItem);
             if (activeSlot === "A") {
                 setSlotB(nextItem);
                 if (nextItem.url.includes("tiktok.com")) {
@@ -496,56 +565,7 @@ export default function Canais24h() {
                 }
             }
         }
-    }, [activeSlot, slotA, slotB, getNextItem]);
-
-    // ---- 7. Swap when video ends ----
-    const handleEnded = useCallback(() => {
-        if (isTransitioningRef.current) return;
-        isTransitioningRef.current = true;
-
-        const currentContent = activeSlot === "A" ? slotA : slotB;
-        if (!currentContent) { isTransitioningRef.current = false; return; }
-
-        // If buffer wasn't pre-loaded (video ended before 5s trigger), load now
-        const bufferSlot = activeSlot === "A" ? slotB : slotA;
-        if (!bufferSlot) {
-            const nextItem = getNextItem(currentContent);
-            if (activeSlot === "A") {
-                setSlotB(nextItem);
-                if (nextItem.url.includes("tiktok.com")) resolveTikTok(nextItem.url).then(setTiktokB);
-                else setTiktokB(null);
-            } else {
-                setSlotA(nextItem);
-                if (nextItem.url.includes("tiktok.com")) resolveTikTok(nextItem.url).then(setTiktokA);
-                else setTiktokA(null);
-            }
-            // Wait a moment for the buffer to mount, then swap
-            setTimeout(() => {
-                const newSlot = activeSlot === "A" ? "B" : "A";
-                const item = newSlot === "A" ? slotA : slotB;
-                const nextItem2 = getNextItem(currentContent);
-                setActiveSlot(newSlot);
-                setNowPlayingTitle(nextItem2.title);
-                setIsAdMode(nextItem2.type !== "program");
-                currentIndexRef.current = nextItem2.programIndex;
-                setRealTime(0);
-                bufferReadyRef.current = false;
-                setTimeout(() => { isTransitioningRef.current = false; }, 1000);
-            }, 500);
-            return;
-        }
-
-        // Swap to buffer
-        const newSlot = activeSlot === "A" ? "B" : "A";
-        setActiveSlot(newSlot);
-        setNowPlayingTitle(bufferSlot.title);
-        setIsAdMode(bufferSlot.type !== "program");
-        currentIndexRef.current = bufferSlot.programIndex;
-        setRealTime(0);
-        bufferReadyRef.current = false;
-
-        setTimeout(() => { isTransitioningRef.current = false; }, 1000);
-    }, [activeSlot, slotA, slotB, getNextItem]);
+    }, [activeSlot, slotA, slotB, getNextItem, handleEnded]);
 
     // ---- Channel click ----
     const handleChannelClick = (channel: Content) => {
