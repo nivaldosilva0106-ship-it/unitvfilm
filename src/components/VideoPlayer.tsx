@@ -181,20 +181,16 @@ export const VideoPlayer = ({
     }
   }, [url, isHLS, autoPlay, getVideoUrl]);
 
-  const hasSeekedRef = useRef(false);
+  const hasSeekedRef = useRef<string | null>(null);
 
-  useEffect(() => {
-    hasSeekedRef.current = false;
-  }, [url]);
-
-  // Set start time once per URL
+  // Set start time once per URL to prevent repetition loops during sync
   useEffect(() => {
     const video = videoRef.current;
-    if (video && startTime > 0 && duration > 0 && !hasSeekedRef.current) {
+    if (video && startTime > 0 && duration > 0 && hasSeekedRef.current !== url) {
       // If we are at the end, don't seek to the end, loop to beginning
       const finalSeek = startTime >= duration ? startTime % duration : startTime;
       video.currentTime = finalSeek;
-      hasSeekedRef.current = true;
+      hasSeekedRef.current = url; // Mark as seeked for THIS specific URL
     }
   }, [startTime, duration, url]);
 

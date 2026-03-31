@@ -109,6 +109,7 @@ export default function Canais24h() {
     const [videoDuration, setVideoDuration] = useState(0);
     const [tiktokVideoUrlA, setTiktokVideoUrlA] = useState<string | null>(null);
     const [tiktokVideoUrlB, setTiktokVideoUrlB] = useState<string | null>(null);
+    const [nextPrograms, setNextPrograms] = useState<any[]>([]);
 
     const programs = currentChannel?.episodes || [];
 
@@ -154,47 +155,62 @@ export default function Canais24h() {
         syncTime();
     }, []);
 
-    // 3. Helper: Get content for a specific timestamp
+    // 3. Helper: Get content for a specific timestamp (Cumulative Dynamic Logic)
     const getScheduledContent = useCallback((timeShiftMs = 0) => {
         if (!currentChannel || programs.length === 0) return null;
         
-        const SLOT_DURATION = 3600; // 1 Hour
+        const GAP_DURATION = 180; // 3 min mandatory interval/ads between programs
         const nowSec = Math.floor((Date.now() + serverOffset + timeShiftMs) / 1000);
+        
+        // Calculate total cycle duration
+        let totalCycleSeconds = 0;
+        const processedPrograms = programs.map(p => {
+            const start = totalCycleSeconds;
+            const duration = p.duration || 1800; // Fallback 30m
+            const end = start + duration;
+            totalCycleSeconds = end + GAP_DURATION;
+            return { ...p, startTimeInCycle: start, endTimeInCycle: end, duration };
+        });
+
+        // Loop the cycle relative to a stable base (e.g., day start or salt)
         const channelSalt = currentChannel.id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        const globalTime = nowSec + channelSalt;
-        
-        const progIdx = Math.floor(globalTime / SLOT_DURATION) % programs.length;
-        const prog = programs[progIdx];
-        const syncOffset = globalTime % SLOT_DURATION;
-        const progDuration = prog.duration || 2700; // Default 45m
-        
-        if (syncOffset >= progDuration) {
-            const intervalUrls = currentChannel.interval_urls || [];
-            const adUrls = currentChannel.ad_urls || [];
-            if (intervalUrls.length > 0 || adUrls.length > 0) {
-                const gapOffset = syncOffset - progDuration;
+        const timeInCycle = (nowSec + channelSalt) % totalCycleSeconds;
+
+        // Find current program or interval
+        for (const prog of processedPrograms) {
+            if (timeInCycle >= prog.startTimeInCycle && timeInCycle < prog.endTimeInCycle) {
+                return {
+                    url: prog.internal_player_url || prog.url || "",
+                    startTime: timeInCycle - prog.startTimeInCycle,
+                    title: prog.title || "",
+                    isAd: false,
+                    originalProg: prog,
+                    nextPrograms: processedPrograms.filter(p => p.startTimeInCycle > prog.startTimeInCycle).slice(0, 3)
+                };
+            }
+            if (timeInCycle >= prog.endTimeInCycle && timeInCycle < (prog.endTimeInCycle + GAP_DURATION)) {
+                // We are in the gap
+                const intervalUrls = currentChannel.interval_urls || [];
+                const adUrls = currentChannel.ad_urls || [];
+                const gapOffset = timeInCycle - prog.endTimeInCycle;
                 const slotIdx = Math.floor(gapOffset / 60);
-                const isInterval = (slotIdx % 4 === 0) || adUrls.length === 0;
+                const isInterval = (slotIdx % 2 === 0) || adUrls.length === 0;
                 const adUrl = isInterval && intervalUrls.length > 0 
                                 ? intervalUrls[slotIdx % intervalUrls.length] 
                                 : adUrls[slotIdx % adUrls.length];
+
                 return {
                     url: adUrl || "",
                     startTime: gapOffset % 60,
                     title: isInterval ? 'Intervalo' : 'Publicidade',
                     isAd: true,
-                    originalProg: prog
+                    originalProg: prog,
+                    nextPrograms: processedPrograms.filter(p => p.startTimeInCycle > prog.startTimeInCycle).slice(0, 3)
                 };
             }
         }
         
-        return {
-            url: prog.internal_player_url || prog.url || "",
-            startTime: syncOffset,
-            title: prog.title || "",
-            isAd: false,
-            originalProg: prog
-        };
+        return null;
     }, [currentChannel, programs, serverOffset]);
 
     // 4. TikTok Link Resolver
@@ -215,6 +231,10 @@ export default function Canais24h() {
         const syncLoop = async () => {
             const nowContent = getScheduledContent(0);
             if (!nowContent) return;
+
+            if (nowContent.nextPrograms) {
+                setNextPrograms(nowContent.nextPrograms);
+            }
 
             // 1. Initialize First Player if everything is blank
             if (!playerA && !playerB) {
@@ -407,14 +427,27 @@ export default function Canais24h() {
                                 <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">Guia de Transmissão</span>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {programs.length > 0 ? (
-                                    Array.from({ length: 3 }).map((_, idx) => (
+                                {nextPrograms.length > 0 ? (
+                                    nextPrograms.map((prog, idx) => {
+                                        // Calculate human-friendly start time relative to now
+                                        const startTime = new Date(Date.now() + serverOffset + (prog.startTimeInCycle - (Math.floor((Date.now() + serverOffset) / 1000) % 86400)) * 1000);
+                                        return (
+                                            <div key={idx} className="bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl group hover:border-primary/50 transition-colors">
+                                                <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">{idx === 0 ? 'Próximo' : 'A seguir'}</span>
+                                                <h3 className="text-sm font-bold text-zinc-300 mt-2 truncate group-hover:text-white">
+                                                    {startTime.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })} - {prog.title}
+                                                </h3>
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    programs.slice(0, 3).map((prog, idx) => (
                                         <div key={idx} className="bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl group hover:border-primary/50 transition-colors">
                                             <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">{idx === 0 ? 'Próximo' : 'A seguir'}</span>
-                                            <h3 className="text-sm font-bold text-zinc-300 mt-2 truncate group-hover:text-white">{formatTimeLabel(idx + 1)} - Programa {idx + 1}</h3>
+                                            <h3 className="text-sm font-bold text-zinc-300 mt-2 truncate group-hover:text-white">{prog.title}</h3>
                                         </div>
                                     ))
-                                ) : <p className="text-zinc-600 italic">Programação indisponível.</p>}
+                                )}
                             </div>
                         </div>
                     </div>

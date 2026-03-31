@@ -32,114 +32,90 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const programs = channel.episodes || [];
 
         if (programs.length === 0) {
-            // Fallback to main video URL if no programs
             if (channel.video_url || channel.internal_player_url) {
                 return res.redirect(302, channel.internal_player_url || channel.video_url);
             }
             return res.status(404).send('No content available for this channel');
         }
 
-        // --- Deterministic Global Sync Logic (Same as Frontend) ---
-        const SLOT_DURATION = 3600; // 1 hour
+        // --- Deterministic Global Sync Logic (Sequential Dynamic) ---
+        const GAP_DURATION = 180; // 3 min mandatory interval/ads between programs
         const nowSec = Math.floor(Date.now() / 1000);
         
-        // Channel ID as seed for shift
         const channelSalt = (channelId as string).split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        const globalTime = nowSec + channelSalt;
         
-        const syncIndex = Math.floor(globalTime / SLOT_DURATION) % programs.length;
-        const currentProgram = programs[syncIndex];
+        let totalCycleSeconds = 0;
+        const processedPrograms = programs.map((p: any) => {
+            const start = totalCycleSeconds;
+            const duration = p.duration || 1800;
+            totalCycleSeconds = start + duration + GAP_DURATION;
+            return { ...p, startTimeInCycle: start, endTimeInCycle: start + duration };
+        });
 
-        // The URL to redirect to
-        let finalUrl = currentProgram.internal_player_url || currentProgram.url;
+        const timeInCycle = (nowSec + channelSalt) % totalCycleSeconds;
+        let currentMatch = null;
+        let isAdSlot = false;
+        let playStartTime = 0;
 
-        // If it's a TikTok URL, we might need to resolve it 
-        // (but for M3U8 players, it's better to redirect to a direct link if possible)
-        if (currentProgram.tiktok_url) {
-            // Option: Call our own tiktok proxy logic here or redirect to it
-            // For simplicity, we redirect to the tiktok resolver
-            const protocol = req.headers['x-forwarded-proto'] || 'http';
-            const host = req.headers.host;
-            const resolverUrl = `${protocol}://${host}/api/tiktok?url=${encodeURIComponent(currentProgram.tiktok_url)}`;
-            
-            // Fetch the resolver to get the direct URL
-            const resolveRes = await fetch(resolverUrl);
-            const resolveData = await resolveRes.json();
-            if (resolveData.url) {
-                finalUrl = resolveData.url;
+        for (const prog of processedPrograms) {
+            if (timeInCycle >= prog.startTimeInCycle && timeInCycle < prog.endTimeInCycle) {
+                currentMatch = prog;
+                playStartTime = timeInCycle - prog.startTimeInCycle;
+                break;
+            }
+            if (timeInCycle >= prog.endTimeInCycle && timeInCycle < (prog.endTimeInCycle + GAP_DURATION)) {
+                isAdSlot = true;
+                playStartTime = timeInCycle - prog.endTimeInCycle;
+                currentMatch = prog;
+                break;
             }
         }
 
-        if (!finalUrl) {
-            return res.status(404).send('Current program has no valid URL');
+        if (!currentMatch) {
+            currentMatch = processedPrograms[0];
+            playStartTime = 0;
         }
 
-        // --- HLS Manifest Generation (TV Online Mode) ---
-        const syncOffset = globalTime % SLOT_DURATION;
-        
-        // --- AD/INTERVAL LOGIC (Same as Frontend) ---
-        const intervalUrls = channel.interval_urls || [];
-        const adUrls = channel.ad_urls || [];
-        
-        // Use a default duration (e.g., 45 min) if not specified to allow ads/intervals to trigger
-        const videoDuration = currentProgram.duration || 2700; 
-        
+        let finalUrl = currentMatch.internal_player_url || currentMatch.url;
+        let playbackTitle = currentMatch.title || 'Canal 24h';
         let playbackUrl = finalUrl;
-        let playbackStartTime = syncOffset;
-        let playbackTitle = currentProgram.title || 'Canal 24h';
+        let playbackStartTime = playStartTime;
 
-        if (syncOffset >= videoDuration && (intervalUrls.length > 0 || adUrls.length > 0)) {
-            const AD_SLOT = 60; // 1 min slots
-            const gapOffset = syncOffset - videoDuration;
-            const slotIdx = Math.floor(gapOffset / AD_SLOT);
-            
-            const isInterval = (slotIdx % 4 === 0) || adUrls.length === 0;
+        if (isAdSlot) {
+            const intervalUrls = channel.interval_urls || [];
+            const adUrls = channel.ad_urls || [];
+            const slotIdx = Math.floor(playStartTime / 60);
+            const isInterval = (slotIdx % 2 === 0) || adUrls.length === 0;
             const adUrl = isInterval && intervalUrls.length > 0 
                 ? intervalUrls[slotIdx % intervalUrls.length]
                 : adUrls[slotIdx % adUrls.length];
-
-            if (adUrl) {
-                playbackUrl = adUrl;
-                playbackStartTime = gapOffset % AD_SLOT;
-                playbackTitle = isInterval ? 'Intervalo' : 'Publicidade';
-                
-                // If the ad is a TikTok URL, resolve it too
-                if (adUrl.includes('tiktok.com')) {
-                    const protocol = req.headers['x-forwarded-proto'] || 'http';
-                    const host = req.headers.host;
-                    const resolverUrl = `${protocol}://${host}/api/tiktok?url=${encodeURIComponent(adUrl)}`;
-                    try {
-                        const resolveRes = await fetch(resolverUrl);
-                        const resolveData = await resolveRes.json();
-                        if (resolveData.url) playbackUrl = resolveData.url;
-                    } catch(e) {}
-                }
-            }
+            
+            playbackUrl = adUrl || finalUrl;
+            playbackStartTime = playStartTime % 60;
+            playbackTitle = isInterval ? 'Intervalo' : 'Publicidade';
         }
 
-        // --- HLS Manifest Generation ---
-        const hlsManifest = [
-            '#EXTM3U',
-            '#EXT-X-VERSION:3',
-            '#EXT-X-TARGETDURATION:3600',
-            '#EXT-X-MEDIA-SEQUENCE:0',
-            '#EXT-X-PLAYLIST-TYPE:EVENT',
-            `#EXTINF:3600.0, ${playbackTitle}`,
-            `${playbackUrl}${playbackUrl.includes('?') ? '&' : '?'}t=${playbackStartTime}`
-        ].join('\n');
-
-        // Set Headers for M3U8 compatibility and no-caching
+        // Respond with HLS Manifest
         res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
-        res.setHeader('Content-Disposition', 'inline; filename="playlist.m3u8"');
-        res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-        res.setHeader('Pragma', 'no-cache');
-        res.setHeader('Expires', '0');
-        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cache-Control', 'no-cache');
+        
+        const manifest = `#EXTM3U
+#EXT-X-VERSION:3
+#EXT-X-MEDIA-SEQUENCE:0
+#EXT-X-ALLOW-CACHE:NO
+#EXT-X-TARGETDURATION:60
+#EXT-X-PLAYLIST-TYPE:EVENT
+#EXTINF:60,
+#EXT-X-DISCONTINUITY
+#EXT-X-START:TIME-OFFSET=${playbackStartTime}
+#EXT-X-PROGRAM-DATE-TIME:${new Date().toISOString()}
+#EXT-X-TITLE:${playbackTitle}
+${playbackUrl}`;
 
-        return res.status(200).send(hlsManifest);
+        return res.status(200).send(manifest);
 
     } catch (error) {
-        console.error('M3U8 Error:', error);
+        console.error("M3U8 Error:", error);
         return res.status(500).send('Internal Server Error');
     }
 }
