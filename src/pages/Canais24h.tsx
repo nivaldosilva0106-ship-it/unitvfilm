@@ -14,8 +14,8 @@ declare global {
     }
 }
 
-// Helper YouTube Player component
-const YouTubePlayer = ({ videoId, onEnded, startTime, onTimeUpdate, muted }: { videoId: string, onEnded: () => void, startTime?: number, onTimeUpdate?: (time: number, duration?: number) => void, muted?: boolean }) => {
+// Helper YouTube Player component - Now with unique instance ID to avoid conflicts in dual-player
+const YouTubePlayer = ({ id, videoId, onEnded, startTime, onTimeUpdate, muted }: { id: string, videoId: string, onEnded: () => void, startTime?: number, onTimeUpdate?: (time: number, duration?: number) => void, muted?: boolean }) => {
     const playerRef = useRef<any>(null);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -23,7 +23,10 @@ const YouTubePlayer = ({ videoId, onEnded, startTime, onTimeUpdate, muted }: { v
         const initPlayer = () => {
             if (!window.YT || !window.YT.Player) return;
             
-            playerRef.current = new window.YT.Player(`yt-player-${videoId}`, {
+            const playerElementId = `yt-player-${id}-${videoId}`;
+            if (!document.getElementById(playerElementId)) return;
+
+            playerRef.current = new window.YT.Player(playerElementId, {
                 videoId: videoId,
                 playerVars: { 
                     autoplay: 1, 
@@ -284,7 +287,8 @@ export default function Canais24h() {
 
     const getYoutubeId = (url?: string) => {
         if (!url) return null;
-        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&?]*).*/;
+        // Expanded regex for standard, shorts, live, etc.
+        const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=|shorts\/|live\/)([^#\&?]*).*/;
         const match = url.match(regExp);
         return (match && match[2].length === 11) ? match[2] : null;
     };
@@ -305,7 +309,7 @@ export default function Canais24h() {
     };
 
     // Sub-component for each player instance
-    const PlayerInstance = ({ content, tiktokUrl, active }: { content: any, tiktokUrl: string | null, active: boolean }) => {
+    const PlayerInstance = ({ id, content, tiktokUrl, active }: { id: string, content: any, tiktokUrl: string | null, active: boolean }) => {
         if (!content) return null;
         const ytId = getYoutubeId(content.url);
         
@@ -313,6 +317,7 @@ export default function Canais24h() {
             <div className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ${active ? 'opacity-100 z-10 pointer-events-auto' : 'opacity-0 z-0 pointer-events-none'}`}>
                 {ytId ? (
                     <YouTubePlayer 
+                        id={id}
                         videoId={ytId} 
                         onEnded={() => {}} 
                         startTime={content.startTime}
@@ -354,8 +359,8 @@ export default function Canais24h() {
                             </div>
                         ) : (
                             <>
-                                <PlayerInstance content={playerA} tiktokUrl={tiktokVideoUrlA} active={activePlayerId === 'A'} />
-                                <PlayerInstance content={playerB} tiktokUrl={tiktokVideoUrlB} active={activePlayerId === 'B'} />
+                                <PlayerInstance id="A" content={playerA} tiktokUrl={tiktokVideoUrlA} active={activePlayerId === 'A'} />
+                                <PlayerInstance id="B" content={playerB} tiktokUrl={tiktokVideoUrlB} active={activePlayerId === 'B'} />
 
                                 {currentChannel.channel_logo_url && (
                                     <div className="absolute bottom-4 left-4 z-50 pointer-events-none select-none">
