@@ -207,6 +207,31 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
     };
 
     const ytId = getYtId(content.url);
+    const isTikTok = content.url.includes("tiktok.com");
+
+    // Loading state for TikTok
+    if (isTikTok && tiktokUrl === null) {
+        return (
+            <div className={`absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-black transition-opacity duration-700 ease-in-out ${active ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"}`}>
+                <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+                <span className="text-sm font-medium text-white/70">A processar TikTok...</span>
+            </div>
+        );
+    }
+
+    // Error state for TikTok
+    if (isTikTok && tiktokUrl === "error") {
+        if (active && onEnded) {
+            // Auto-skip after 2 seconds if active
+            setTimeout(onEnded, 2000);
+        }
+        return (
+            <div className={`absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-black transition-opacity duration-700 ease-in-out ${active ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"}`}>
+                <p className="text-red-500 font-bold mb-2">Erro ao carregar TikTok</p>
+                <span className="text-sm text-white/50">A saltar vídeo...</span>
+            </div>
+        );
+    }
 
     return (
         <div
@@ -226,7 +251,7 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
                 />
             ) : (
                 <VideoPlayer
-                    url={tiktokUrl || content.url}
+                    url={isTikTok ? tiktokUrl! : content.url}
                     title={content.title}
                     poster={channelThumb}
                     autoPlay={true}
@@ -385,12 +410,12 @@ export default function Canais24h() {
     }, [currentChannel, programs, intervalUrls, adUrls]);
 
     // TikTok resolver
-    const resolveTikTok = async (url: string): Promise<string | null> => {
+    const resolveTikTok = async (url: string): Promise<string> => {
         try {
             const r = await fetch(`/api/tiktok?url=${encodeURIComponent(url)}`);
             const d = await r.json();
-            return d.url || null;
-        } catch { return null; }
+            return d.url || "error";
+        } catch { return "error"; }
     };
 
     // ---- 4. Build the NEXT item to play after current ends ----
@@ -459,10 +484,12 @@ export default function Canais24h() {
         setLoading(false);
 
         if (initial.item.url.includes("tiktok.com")) {
+            setTiktokA(null);
             resolveTikTok(initial.item.url).then(setTiktokA);
         } else {
             setTiktokA(null);
         }
+        setSlotB(null);
         setTiktokB(null);
     }, [currentChannel, programs, getInitialState]);
 
@@ -488,12 +515,16 @@ export default function Canais24h() {
             
             if (targetSlot === "B") {
                 setSlotB(nextItem);
-                if (nextItem.url.includes("tiktok.com")) resolveTikTok(nextItem.url).then(setTiktokB);
-                else setTiktokB(null);
+                if (nextItem.url.includes("tiktok.com")) {
+                    setTiktokB(null);
+                    resolveTikTok(nextItem.url).then(setTiktokB);
+                } else setTiktokB(null);
             } else {
                 setSlotA(nextItem);
-                if (nextItem.url.includes("tiktok.com")) resolveTikTok(nextItem.url).then(setTiktokA);
-                else setTiktokA(null);
+                if (nextItem.url.includes("tiktok.com")) {
+                    setTiktokA(null);
+                    resolveTikTok(nextItem.url).then(setTiktokA);
+                } else setTiktokA(null);
             }
 
             // Direct swap
@@ -552,6 +583,7 @@ export default function Canais24h() {
             if (activeSlot === "A") {
                 setSlotB(nextItem);
                 if (nextItem.url.includes("tiktok.com")) {
+                    setTiktokB(null);
                     resolveTikTok(nextItem.url).then(setTiktokB);
                 } else {
                     setTiktokB(null);
@@ -559,6 +591,7 @@ export default function Canais24h() {
             } else {
                 setSlotA(nextItem);
                 if (nextItem.url.includes("tiktok.com")) {
+                    setTiktokA(null);
                     resolveTikTok(nextItem.url).then(setTiktokA);
                 } else {
                     setTiktokA(null);
