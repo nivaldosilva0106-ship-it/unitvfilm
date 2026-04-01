@@ -1210,12 +1210,32 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                         min="1"
                       />
                     </div>
-                    <Input
-                      placeholder={isCanais24h ? "Nome do Bloco de Programação / Título" : "Título do episódio"}
-                      value={episode.title}
-                      onChange={(e) => updateEpisode(index, 'title', e.target.value)}
-                      className="bg-input border-border text-sm"
-                    />
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder={isCanais24h ? "Nome do Bloco de Programação / Título" : "Título do episódio"}
+                        value={episode.title}
+                        onChange={(e) => updateEpisode(index, 'title', e.target.value)}
+                        className="bg-input border-border text-sm flex-1"
+                      />
+                      {isCanais24h && (
+                        <Select
+                          value={(episode.playback_speed || 1).toString()}
+                          onValueChange={(v) => updateEpisode(index, 'playback_speed', parseFloat(v))}
+                        >
+                          <SelectTrigger className="w-[100px] h-9 text-xs bg-input border-border">
+                            <SelectValue placeholder="Vel." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="0.5">0.5x</SelectItem>
+                            <SelectItem value="0.75">0.75x</SelectItem>
+                            <SelectItem value="1">Normal</SelectItem>
+                            <SelectItem value="1.25">1.25x</SelectItem>
+                            <SelectItem value="1.5">1.5x</SelectItem>
+                            <SelectItem value="2">2x</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    </div>
                     <Input
                       placeholder="URL do episódio (embed)"
                       value={episode.url}

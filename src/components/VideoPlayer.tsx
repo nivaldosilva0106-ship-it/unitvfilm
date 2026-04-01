@@ -25,6 +25,7 @@ interface VideoPlayerProps {
   muted?: boolean;
   onToggleFullscreen?: () => void;
   isFullscreen?: boolean;
+  initialPlaybackRate?: number;
 }
 
 const formatTime = (seconds: number): string => {
@@ -50,7 +51,8 @@ export const VideoPlayer = ({
   isLive = false,
   muted = false,
   onToggleFullscreen,
-  isFullscreen: isFullscreenProp
+  isFullscreen: isFullscreenProp,
+  initialPlaybackRate = 1
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -69,7 +71,7 @@ export const VideoPlayer = ({
   const [isBuffering, setIsBuffering] = useState(false);
   const [qualities, setQualities] = useState<{ height: number; level: number }[]>([]);
   const [currentQuality, setCurrentQuality] = useState<number>(-1);
-  const [playbackRate, setPlaybackRate] = useState(1);
+  const [playbackRate, setPlaybackRate] = useState(initialPlaybackRate);
   const [showSubtitles, setShowSubtitles] = useState(false);
   const [showPlayFlash, setShowPlayFlash] = useState(false);
   const playFlashTimer = useRef<NodeJS.Timeout | null>(null);
@@ -190,6 +192,17 @@ export const VideoPlayer = ({
   }, [url, isHLS, autoPlay, getVideoUrl]);
 
   const hasSeekedRef = useRef<string | null>(null);
+
+  // Playback rate management
+  useEffect(() => {
+    setPlaybackRate(initialPlaybackRate);
+  }, [initialPlaybackRate]);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      videoRef.current.playbackRate = playbackRate;
+    }
+  }, [playbackRate]);
 
   // Set start time once per URL to prevent repetition loops during sync
   useEffect(() => {

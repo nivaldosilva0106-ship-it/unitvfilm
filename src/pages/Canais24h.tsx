@@ -18,11 +18,12 @@ declare global {
 // YOUTUBE PLAYER — STABLE. Only recreates when videoId changes.
 // Uses refs for callbacks to prevent iframe destruction loops.
 // ============================================================
-const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEnded }: {
+const YouTubePlayer = memo(({ videoId, id, startTime, active, playbackSpeed, onTimeUpdate, onEnded }: {
     videoId: string;
     id: string;
     startTime: number;
     active: boolean;
+    playbackSpeed?: number;
     onTimeUpdate: (time: number, duration?: number) => void;
     onEnded: () => void;
 }) => {
@@ -100,6 +101,12 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                             try {
                                 if (!playerRef.current || destroyed) return;
                                 const state = playerRef.current.getPlayerState();
+                                
+                                // Set playback speed
+                                if (playbackSpeed && playerRef.current.getPlaybackRate() !== playbackSpeed) {
+                                    playerRef.current.setPlaybackRate(playbackSpeed);
+                                }
+
                                 if (state === 1 && activeRef.current) {
                                     const ct = playerRef.current.getCurrentTime();
                                     const du = playerRef.current.getDuration();
@@ -310,6 +317,7 @@ interface QueueItem {
     title: string;
     type: "program" | "interval" | "ad";
     programIndex: number;
+    playbackSpeed?: number;
 }
 
 // ============================================================
@@ -425,6 +433,7 @@ export default function Canais24h() {
                         title: prog.title || "",
                         type: "program" as const,
                         programIndex: m.index,
+                        playbackSpeed: prog.playback_speed,
                     },
                     duration: m.dur,
                 };
@@ -457,6 +466,7 @@ export default function Canais24h() {
                 title: fallbackProg.title || "",
                 type: "program" as const,
                 programIndex: 0,
+                playbackSpeed: fallbackProg.playback_speed,
             },
             duration: fallbackProg.duration || 1800,
         };
@@ -506,6 +516,7 @@ export default function Canais24h() {
                 title: nextProg.title || "",
                 type: "program",
                 programIndex: nextIdx,
+                playbackSpeed: nextProg.playback_speed,
             };
         } else {
             const nextIdx = (currentItem.programIndex + 1) % programs.length;
@@ -516,6 +527,7 @@ export default function Canais24h() {
                 title: nextProg.title || "",
                 type: "program",
                 programIndex: nextIdx,
+                playbackSpeed: nextProg.playback_speed,
             };
         }
     }, [programs, intervalUrls, adUrls]);
@@ -789,8 +801,8 @@ export default function Canais24h() {
                                     </div>
                                 )}
 
-                                {/* Live Badge */}
-                                <div className="absolute top-6 left-6 z-50 flex items-center gap-2 pointer-events-none transition-all">
+                                {/* Live Badge - Moved to Top Right and Right-Aligned */}
+                                <div className="absolute top-6 right-6 z-50 flex flex-row-reverse items-center gap-2 pointer-events-none transition-all">
                                     <div className="flex items-center gap-1.5 bg-red-600/90 backdrop-blur-sm px-2.5 py-1 rounded text-[11px] font-bold uppercase tracking-wider text-white animate-pulse">
                                         <div className="w-2 h-2 bg-white rounded-full" /> AO VIVO
                                     </div>
@@ -799,12 +811,12 @@ export default function Canais24h() {
                                     </div>
                                 </div>
 
-                                {/* Periodic Title Badge ("Você está assistindo") */}
+                                {/* Periodic Title Badge ("Você está assistindo") - Now appears slightly below the live badge if both are present, or we can just shift it left */}
                                 {nowPlayingTitle && !isAdMode && (realTime % 555 < 15) && (
-                                    <div className="absolute top-6 right-6 z-50 animate-in fade-in slide-in-from-right-4 duration-700">
+                                    <div className="absolute top-16 right-6 z-50 animate-in fade-in slide-in-from-right-4 duration-700">
                                         <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10 shadow-xl flex items-center gap-3">
                                             <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
-                                            <div className="flex flex-col">
+                                            <div className="flex flex-col text-right">
                                                 <span className="text-[10px] text-white/60 font-medium uppercase tracking-tight">Estás a ver:</span>
                                                 <span className="text-sm text-white font-bold max-w-[200px] truncate">{nowPlayingTitle}</span>
                                             </div>
@@ -892,7 +904,7 @@ export default function Canais24h() {
                                 <img
                                     src={channel.thumbnail_url}
                                     alt={channel.title}
-                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                    className="w-full h-full object-contain bg-zinc-900 p-4 group-hover:scale-110 transition-transform duration-500"
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-4 opacity-0 group-hover:opacity-100 transition-opacity">
                                     <span className="text-xs font-bold text-white truncate">{channel.title}</span>

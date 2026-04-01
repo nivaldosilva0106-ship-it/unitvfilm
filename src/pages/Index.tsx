@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { Volume2, VolumeX, Play, Info, Plus, Check, Star } from "lucide-react";
+import { Volume2, VolumeX, Play, Info, Plus, Check, Star, Tv } from "lucide-react";
 import { ContentRow } from "@/components/ContentRow";
 import { MarqueeContentRow } from "@/components/MarqueeContentRow";
 import { CategoryNavigation } from "@/components/CategoryNavigation";
@@ -203,7 +203,7 @@ const Index = () => {
 
     const canais24hSection = {
       id: 'canais24h',
-      type: 'row',
+      type: 'channels',
       title: 'Transmissão 24 Horas',
       data: [...categorizedContent.canais24h].sort(() => Math.random() - 0.5),
       showNumbers: false
@@ -389,6 +389,37 @@ const Index = () => {
                     showNumbers={section.showNumbers}
                     hideDownloadIcon={true}
                   />
+                ) : section.type === 'channels' ? (
+                  <div className="mb-12">
+                    <div className="flex items-center gap-3 mb-6 px-4 sm:px-8">
+                      <Tv className="w-6 h-6 text-primary" />
+                      <h2 className="text-2xl font-bold text-foreground uppercase tracking-tighter italic">{section.title}</h2>
+                    </div>
+                    <div className="relative group/row">
+                      <div className="flex gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-8 py-2">
+                        {section.data.map((channel: Content) => (
+                          <div
+                            key={channel.id}
+                            className="flex-shrink-0 w-[160px] sm:w-[200px] aspect-[4/3] rounded-xl overflow-hidden cursor-pointer group relative border border-zinc-800/50 hover:border-primary transition-all duration-300"
+                            onClick={() => navigate(`/canais24h?channelId=${channel.id}`)}
+                          >
+                            <img
+                              src={channel.thumbnail_url}
+                              alt={channel.title}
+                              className="w-full h-full object-contain bg-zinc-900 p-4 group-hover:scale-110 transition-transform duration-500"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent flex flex-col justify-end p-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <span className="text-xs font-black text-white truncate uppercase italic">{channel.title}</span>
+                              <div className="flex items-center gap-1 mt-1">
+                                <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
+                                <span className="text-[10px] font-bold text-primary italic uppercase">Direto</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
                 ) : (
                   <ContentRow
                     title={section.title}
