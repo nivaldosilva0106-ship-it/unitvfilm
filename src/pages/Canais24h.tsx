@@ -15,77 +15,82 @@ declare global {
 }
 
 // ============================================================
-// YOUTUBE PLAYER — Memoized, outside main component
-// - Overlay blocks YouTube's play button & end screen replay icon
-// - Thumbnail shown while buffering (hides initial play icon)
-// - Auto-scales to hide YouTube branding
+// YOUTUBE PLAYER — Specific implementation for the dual-slot system
 // ============================================================
-const YouTubePlayer = memo(({ id, videoId, onEnded, startTime, onTimeUpdate, muted, poster, isFullscreen, active }: {
-    id: string;
+const YouTubePlayer = memo(({ videoId, id, startTime, muted, active, onTimeUpdate, onEnded, isFullscreen }: {
     videoId: string;
+    id: string;
+    startTime: number;
+    muted: boolean;
+    active: boolean;
+    onTimeUpdate: (time: number, duration?: number) => void;
     onEnded: () => void;
-    startTime?: number;
-    onTimeUpdate?: (time: number, duration?: number) => void;
-    muted?: boolean;
-    poster?: string;
-    isFullscreen?: boolean;
-    active?: boolean;
+    isFullscreen: boolean;
 }) => {
     const playerRef = useRef<any>(null);
-    const intervalRef = useRef<NodeJS.Timeout | null>(null);
-    const [isReady, setIsReady] = useState(false);
+    const intervalRef = useRef<any>(null);
+    const lastTimeRef = useRef<number>(0);
+    const stuckCountRef = useRef<number>(0);
     const [isPlaying, setIsPlaying] = useState(false);
 
+    // Initial load
     useEffect(() => {
-        const elId = `yt-${id}-${videoId}`;
-        setIsReady(false);
-        setIsPlaying(false);
-
         const initPlayer = () => {
-            if (!window.YT?.Player) return;
-            if (!document.getElementById(elId)) return;
+            if (!window.YT || !window.YT.Player) return;
+            
+            // Clean up previous iframe if it exists manually (to avoid browser conflicts)
+            const el = document.getElementById(`yt-${id}-${videoId}`);
+            if (!el) return;
 
-            playerRef.current = new window.YT.Player(elId, {
+            playerRef.current = new window.YT.Player(`yt-${id}-${videoId}`, {
                 videoId,
                 playerVars: {
                     autoplay: 1,
-                    controls: 0,       // hide controls completely
+                    controls: 0,
                     disablekb: 1,
-                    fs: 0,             // disable fullscreen button
-                    iv_load_policy: 3, // hide annotations
+                    fs: 0,
                     modestbranding: 1,
-                    rel: 0,            // no related videos
+                    rel: 0,
                     showinfo: 0,
-                    playsinline: 1,
-                    start: startTime ? Math.floor(startTime) : 0,
-                    // This hides the end screen
-                    enablejsapi: 1,
+                    iv_load_policy: 3,
+                    start: Math.floor(startTime),
+                    origin: window.location.origin
                 },
                 events: {
                     onReady: (e: any) => {
-                        setIsReady(true);
-                        // Always start muted to pass autoplay policy, then unmute if active
-                        e.target.mute();
+                        if (muted) e.target.mute();
+                        else {
+                            e.target.unMute();
+                            e.target.setVolume(100);
+                        }
                         e.target.playVideo();
-                        // If this is the active player, unmute after a short delay
-                        if (!muted) {
-                            setTimeout(() => {
-                                try { e.target.unMute(); e.target.setVolume(100); } catch {}
-                            }, 300);
-                        }
-                        if (onTimeUpdate) {
-                            intervalRef.current = setInterval(() => {
-                                try {
-                                    const state = e.target.getPlayerState();
-                                    // Only update if playing (state 1)
-                                    if (state === 1) {
-                                        const ct = e.target.getCurrentTime();
-                                        const du = e.target.getDuration();
-                                        if (du > 0) onTimeUpdate(ct, du);
+                        
+                        // Sync timer
+                        if (intervalRef.current) clearInterval(intervalRef.current);
+                        intervalRef.current = setInterval(() => {
+                            try {
+                                if (!playerRef.current) return;
+                                const state = playerRef.current.getPlayerState();
+                                if (state === 1) {
+                                    const ct = playerRef.current.getCurrentTime();
+                                    const du = playerRef.current.getDuration();
+                                    
+                                    // Watchdog for stuck video
+                                    if (Math.abs(ct - lastTimeRef.current) < 0.1) {
+                                        stuckCountRef.current++;
+                                        if (stuckCountRef.current > 5) {
+                                            playerRef.current.seekTo(ct + 0.5);
+                                            stuckCountRef.current = 0;
+                                        }
+                                    } else {
+                                        stuckCountRef.current = 0;
                                     }
-                                } catch {}
-                            }, 1000);
-                        }
+                                    lastTimeRef.current = ct;
+
+                                    if (du > 0 && active) onTimeUpdate(ct, du);
+                                }
+                            } catch {}
+                        }, 1000);
                     },
                     onStateChange: (e: any) => {
                         const YTState = window.YT.PlayerState;
@@ -93,11 +98,9 @@ const YouTubePlayer = memo(({ id, videoId, onEnded, startTime, onTimeUpdate, mut
                             setIsPlaying(true);
                         }
                         if (e.data === YTState.ENDED) {
-                            // Immediately call onEnded — do NOT let YouTube show replay button
-                            onEnded();
+                            if (active) onEnded();
                         }
-                        // If paused unexpectedly (not by us), resume
-                        if (e.data === YTState.PAUSED) {
+                        if (e.data === YTState.PAUSED && active) {
                             setTimeout(() => {
                                 try {
                                     if (e.target.getPlayerState() === YTState.PAUSED) {
@@ -112,13 +115,11 @@ const YouTubePlayer = memo(({ id, videoId, onEnded, startTime, onTimeUpdate, mut
         };
 
         if (!window.YT) {
-            // Check if script is already being loaded
             if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
                 const tag = document.createElement("script");
                 tag.src = "https://www.youtube.com/iframe_api";
                 document.body.appendChild(tag);
             }
-            // Queue the init - it may already be loading
             const prevReady = window.onYouTubeIframeAPIReady;
             window.onYouTubeIframeAPIReady = () => {
                 if (prevReady) prevReady();
@@ -133,52 +134,36 @@ const YouTubePlayer = memo(({ id, videoId, onEnded, startTime, onTimeUpdate, mut
             try { playerRef.current?.destroy(); } catch {}
             playerRef.current = null;
         };
-    }, [videoId, id]);
+    }, [videoId, id, startTime, active, onTimeUpdate, onEnded]);
 
-    // Handle mute/unmute when active slot changes
+    // Handle mute/unmute and visibility
     useEffect(() => {
         try {
-            if (!playerRef.current?.mute) return;
+            if (!playerRef.current) return;
             if (muted) {
                 playerRef.current.mute();
+                if (playerRef.current.getPlayerState() === 1) playerRef.current.pauseVideo();
             } else {
                 playerRef.current.unMute();
                 playerRef.current.setVolume(100);
-                // Also ensure it's playing
-                setTimeout(() => {
-                    try { playerRef.current?.playVideo(); } catch {}
-                }, 100);
+                if (playerRef.current.getPlayerState() !== 1) {
+                    playerRef.current.playVideo();
+                }
             }
         } catch {}
     }, [muted]);
 
     return (
         <div className="w-full h-full overflow-hidden relative bg-black">
-            {/* Scaled iframe to crop YouTube branding */}
             <div className="absolute inset-[-15%] w-[130%] h-[130%]">
                 <div id={`yt-${id}-${videoId}`} className="w-full h-full" />
             </div>
-
-            {/* Thumbnail cover shown while buffering — hides YouTube's play icon */}
-            {poster && !isPlaying && (
-                <div
-                    className="absolute inset-0 z-20 bg-black"
-                    style={{
-                        backgroundImage: `url(${poster})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                    }}
-                >
-                    {/* Subtle loading spinner */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-10 h-10 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
-                    </div>
+            {!isPlaying && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black">
+                    <div className="w-10 h-10 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
                 </div>
             )}
-
-            {/* CRITICAL: Transparent overlay blocks ALL YouTube UI clicks */}
-            {/* This prevents play button, replay button, info cards from showing */}
-            <div className={`absolute inset-0 z-30 ${!active ? 'hidden' : ''}`} style={{ pointerEvents: 'all', background: 'transparent' }} />
+            <div className="absolute inset-0 z-30" style={{ pointerEvents: 'none' }} />
         </div>
     );
 });
@@ -198,37 +183,46 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
     onToggleFullscreen?: () => void;
     isFullscreen?: boolean;
 }) => {
-    if (!content) return null;
-
     const getYtId = (url?: string) => {
         if (!url) return null;
         const m = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/|live\/)([^#&?]*).*/);
         return m && m[2].length === 11 ? m[2] : null;
     };
 
-    const ytId = getYtId(content.url);
-    const isTikTok = content.url.includes("tiktok.com");
+    const ytId = getYtId(content?.url);
+    const isTikTok = content?.url.includes("tiktok.com");
+
+    // TikTok auto-skip effect
+    useEffect(() => {
+        if (isTikTok && tiktokUrl === "error" && active && onEnded) {
+            const t = setTimeout(onEnded, 2000);
+            return () => clearTimeout(t);
+        }
+    }, [isTikTok, tiktokUrl, active, onEnded]);
+
+    // PRE-BUFFER Logic: We need to mount the slot even if inactive, IF it has content
+    if (!content) return null;
 
     // Loading state for TikTok
     if (isTikTok && tiktokUrl === null) {
         return (
             <div className={`absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-black transition-opacity duration-700 ease-in-out ${active ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"}`}>
-                <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
-                <span className="text-sm font-medium text-white/70">A processar TikTok...</span>
+                <div className="bg-black/80 backdrop-blur-xl p-8 rounded-3xl border border-white/5 flex flex-col items-center shadow-2xl">
+                    <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
+                    <span className="text-xs font-bold text-white uppercase tracking-[0.2em] opacity-80">A Sincronizar TikTok...</span>
+                </div>
             </div>
         );
     }
 
     // Error state for TikTok
     if (isTikTok && tiktokUrl === "error") {
-        if (active && onEnded) {
-            // Auto-skip after 2 seconds if active
-            setTimeout(onEnded, 2000);
-        }
         return (
             <div className={`absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-black transition-opacity duration-700 ease-in-out ${active ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"}`}>
-                <p className="text-red-500 font-bold mb-2">Erro ao carregar TikTok</p>
-                <span className="text-sm text-white/50">A saltar vídeo...</span>
+                <div className="bg-black/40 backdrop-blur-md p-6 rounded-2xl border border-red-500/20 text-center">
+                    <p className="text-red-500 font-bold mb-2">Erro ao carregar TikTok</p>
+                    <span className="text-sm text-white/50">A saltar vídeo...</span>
+                </div>
             </div>
         );
     }
@@ -243,11 +237,12 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
                 <YouTubePlayer
                     id={id}
                     videoId={ytId}
-                    onEnded={onEnded || (() => {})}
                     startTime={content.startTime}
-                    onTimeUpdate={onTimeUpdate}
-                    isFullscreen={isFullscreen}
+                    muted={!active}
                     active={active}
+                    onTimeUpdate={onTimeUpdate || (() => {})}
+                    onEnded={onEnded || (() => {})}
+                    isFullscreen={!!isFullscreen}
                 />
             ) : (
                 <VideoPlayer
@@ -409,13 +404,22 @@ export default function Canais24h() {
         return null;
     }, [currentChannel, programs, intervalUrls, adUrls]);
 
-    // TikTok resolver
+    // TikTok resolver with 8s Timeout Fail-safe
     const resolveTikTok = async (url: string): Promise<string> => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 8000); 
+
         try {
-            const r = await fetch(`/api/tiktok?url=${encodeURIComponent(url)}`);
+            const r = await fetch(`/api/tiktok?url=${encodeURIComponent(url)}`, {
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
             const d = await r.json();
             return d.url || "error";
-        } catch { return "error"; }
+        } catch (err) {
+            console.error("TikTok resolution failed:", err);
+            return "error"; 
+        }
     };
 
     // ---- 4. Build the NEXT item to play after current ends ----
@@ -494,7 +498,10 @@ export default function Canais24h() {
     }, [currentChannel, programs, getInitialState]);
 
     // ---- 7. Swap when video ends ----
-    const handleEnded = useCallback(() => {
+    const handleEnded = useCallback((fromSlot: string) => {
+        // VALIDATION: Only allow swap if it comes from the ACTIVE slot
+        if (fromSlot !== activeSlot) return;
+
         if (isTransitioningRef.current) return;
         isTransitioningRef.current = true;
 
@@ -507,8 +514,7 @@ export default function Canais24h() {
         // Get the pre-loaded buffer
         const bufferSlot = activeSlot === "A" ? slotB : slotA;
 
-        // If no buffer was pre-loaded (video too short or timing skip)
-        // Load NEXT item manually and swap immediately
+        // If no buffer was pre-loaded
         if (!bufferSlot) {
             const nextItem = getNextItem(currentContent);
             const targetSlot = activeSlot === "A" ? "B" : "A";
@@ -527,7 +533,6 @@ export default function Canais24h() {
                 } else setTiktokA(null);
             }
 
-            // Direct swap
             setTimeout(() => {
                 setActiveSlot(targetSlot);
                 setNowPlayingTitle(nextItem.title);
@@ -542,8 +547,6 @@ export default function Canais24h() {
 
         // NORMAL CASE: Swap to already pre-loaded buffer
         const newSlot = activeSlot === "A" ? "B" : "A";
-        console.log(`Swapping to Slot ${newSlot}: ${bufferSlot.title}`);
-        
         setActiveSlot(newSlot);
         setNowPlayingTitle(bufferSlot.title);
         setIsAdMode(bufferSlot.type !== "program");
@@ -551,7 +554,6 @@ export default function Canais24h() {
         setRealTime(0);
         bufferReadyRef.current = false;
 
-        // Clear the *previous* slot after the swap animation
         setTimeout(() => {
             if (newSlot === "A") setSlotB(null);
             else setSlotA(null);
@@ -561,15 +563,23 @@ export default function Canais24h() {
 
     // ---- 6. Pre-buffer next video ----
     const handleTimeUpdate = useCallback((time: number, duration?: number) => {
-        setRealTime(time);
+        if (time > 0) setRealTime(time);
         if (duration) setRealDuration(duration);
 
         const remaining = (duration || 0) - time;
 
-        // PRE-EMPTIVE SWAP (0.8s before end)
-        // This stops YouTube UI from ever showing the "replay" icon
-        if (remaining > 0 && remaining <= 0.8 && !isTransitioningRef.current) {
-            handleEnded();
+        // WATCHDOG: If we are at the very end or negative remaining, and not transitioning
+        // Force the ended event. This handles cases where YouTube fails to fire ENDED or
+        // where time remaining logic misses the window.
+        if (duration && duration > 0 && remaining <= 0.2 && !isTransitioningRef.current) {
+            console.log("Watchdog: Forcing end transition");
+            handleEnded(activeSlot);
+            return;
+        }
+
+        // PRE-EMPTIVE SWAP (1s before end to be safe)
+        if (duration && remaining > 0 && remaining <= 1.0 && !isTransitioningRef.current) {
+            handleEnded(activeSlot);
             return;
         }
 
@@ -631,17 +641,12 @@ export default function Canais24h() {
     };
 
     // ---- Fullscreen management ----
-    const handleToggleFullscreen = useCallback(() => {
+    const toggleFullscreen = useCallback(() => {
         if (!playerContainerRef.current) return;
-        
         if (!document.fullscreenElement) {
-            if (playerContainerRef.current.requestFullscreen) {
-                playerContainerRef.current.requestFullscreen();
-            }
+            playerContainerRef.current.requestFullscreen().catch(() => {});
         } else {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
-            }
+            document.exitFullscreen().catch(() => {});
         }
     }, []);
 
@@ -650,10 +655,8 @@ export default function Canais24h() {
             setIsFullscreen(!!document.fullscreenElement);
         };
         document.addEventListener("fullscreenchange", onFSChange);
-        document.addEventListener("webkitfullscreenchange", onFSChange);
         return () => {
             document.removeEventListener("fullscreenchange", onFSChange);
-            document.removeEventListener("webkitfullscreenchange", onFSChange);
         };
     }, []);
 
@@ -685,24 +688,24 @@ export default function Canais24h() {
                             <>
                                 <PlayerSlot
                                     id="A"
+                                    active={activeSlot === "A"}
                                     content={slotA}
                                     tiktokUrl={tiktokA}
-                                    active={activeSlot === "A"}
-                                    channelThumb={currentChannel.thumbnail_url}
-                                    onTimeUpdate={activeSlot === "A" ? handleTimeUpdate : undefined}
-                                    onEnded={activeSlot === "A" ? handleEnded : undefined}
-                                    onToggleFullscreen={handleToggleFullscreen}
+                                    channelThumb={currentChannel.channel_logo_url}
+                                    onTimeUpdate={handleTimeUpdate}
+                                    onEnded={() => handleEnded("A")}
+                                    onToggleFullscreen={toggleFullscreen}
                                     isFullscreen={isFullscreen}
                                 />
                                 <PlayerSlot
                                     id="B"
+                                    active={activeSlot === "B"}
                                     content={slotB}
                                     tiktokUrl={tiktokB}
-                                    active={activeSlot === "B"}
-                                    channelThumb={currentChannel.thumbnail_url}
-                                    onTimeUpdate={activeSlot === "B" ? handleTimeUpdate : undefined}
-                                    onEnded={activeSlot === "B" ? handleEnded : undefined}
-                                    onToggleFullscreen={handleToggleFullscreen}
+                                    channelThumb={currentChannel.channel_logo_url}
+                                    onTimeUpdate={handleTimeUpdate}
+                                    onEnded={() => handleEnded("B")}
+                                    onToggleFullscreen={toggleFullscreen}
                                     isFullscreen={isFullscreen}
                                 />
 
