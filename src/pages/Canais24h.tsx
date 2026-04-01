@@ -42,13 +42,26 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
     // Create player ONLY when videoId changes
     useEffect(() => {
         let destroyed = false;
+        let retryTimer: any = null;
+        let safetyTimer: any = null;
         setIsPlaying(false);
 
-        const initPlayer = () => {
+        const initPlayer = (attempt = 0) => {
             if (destroyed) return;
-            if (!window.YT?.Player) return;
+            if (!window.YT?.Player) {
+                // YT API not loaded yet, retry
+                if (attempt < 30) retryTimer = setTimeout(() => initPlayer(attempt + 1), 200);
+                return;
+            }
             const el = document.getElementById(`yt-${id}-${videoId}`);
-            if (!el) return;
+            if (!el) {
+                // DOM element not ready yet, retry up to 15 times (3 seconds)
+                if (attempt < 15) retryTimer = setTimeout(() => initPlayer(attempt + 1), 200);
+                return;
+            }
+
+            try { playerRef.current?.destroy(); } catch {}
+            playerRef.current = null;
 
             playerRef.current = new window.YT.Player(`yt-${id}-${videoId}`, {
                 videoId,
@@ -68,9 +81,18 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                 events: {
                     onReady: (e: any) => {
                         if (destroyed) return;
-                        // Always start muted for autoplay policy, unmute later via effect
                         e.target.mute();
                         e.target.playVideo();
+
+                        // If active, unmute immediately
+                        if (activeRef.current) {
+                            setTimeout(() => {
+                                try {
+                                    e.target.unMute();
+                                    e.target.setVolume(100);
+                                } catch {}
+                            }, 300);
+                        }
 
                         // Time sync interval
                         if (intervalRef.current) clearInterval(intervalRef.current);
@@ -83,6 +105,10 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                                     const du = playerRef.current.getDuration();
                                     if (du > 0) onTimeUpdateRef.current(ct, du);
                                 }
+                                // Auto-recover: if CUED (5) or UNSTARTED (-1), force play
+                                if (state === 5 || state === -1) {
+                                    playerRef.current.playVideo();
+                                }
                             } catch {}
                         }, 1000);
                     },
@@ -94,6 +120,10 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                         }
                         if (e.data === YTState.ENDED) {
                             if (activeRef.current) onEndedRef.current();
+                        }
+                        // Force play if CUED (loaded but not playing)
+                        if (e.data === 5) {
+                            e.target.playVideo();
                         }
                         // Auto-resume if paused unexpectedly
                         if (e.data === YTState.PAUSED && activeRef.current) {
@@ -108,6 +138,17 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                     },
                 },
             });
+
+            // Safety timer: if after 5s the video still hasn't played, force it
+            safetyTimer = setTimeout(() => {
+                if (destroyed) return;
+                try {
+                    const state = playerRef.current?.getPlayerState?.();
+                    if (state !== 1) { // not playing
+                        playerRef.current?.playVideo();
+                    }
+                } catch {}
+            }, 5000);
         };
 
         if (!window.YT) {
@@ -122,11 +163,14 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                 initPlayer();
             };
         } else {
-            setTimeout(initPlayer, 100);
+            // Start trying immediately
+            initPlayer();
         }
 
         return () => {
             destroyed = true;
+            if (retryTimer) clearTimeout(retryTimer);
+            if (safetyTimer) clearTimeout(safetyTimer);
             if (intervalRef.current) clearInterval(intervalRef.current);
             try { playerRef.current?.destroy(); } catch {}
             playerRef.current = null;
@@ -404,7 +448,18 @@ export default function Canais24h() {
                 };
             }
         }
-        return null;
+        // Fallback: if no slot matched (edge case), start from first program
+        const fallbackProg = programs[0];
+        return {
+            item: {
+                url: fallbackProg.internal_player_url || fallbackProg.url || "",
+                startTime: 0,
+                title: fallbackProg.title || "",
+                type: "program" as const,
+                programIndex: 0,
+            },
+            duration: fallbackProg.duration || 1800,
+        };
     }, [currentChannel, programs, intervalUrls, adUrls]);
 
     // TikTok resolver with 8s timeout + generation guard
