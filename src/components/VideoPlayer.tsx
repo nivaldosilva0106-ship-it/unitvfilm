@@ -233,6 +233,10 @@ export const VideoPlayer = ({
       setIsPlaying(false);
       onEnded?.();
     };
+    const handleLoadedMetadata = () => {
+      video.playbackRate = playbackRate;
+      video.defaultPlaybackRate = playbackRate;
+    };
 
     video.addEventListener('timeupdate', handleTimeUpdate);
     video.addEventListener('durationchange', handleDurationChange);
@@ -241,6 +245,7 @@ export const VideoPlayer = ({
     video.addEventListener('waiting', handleWaiting);
     video.addEventListener('playing', handlePlaying);
     video.addEventListener('ended', handleEnded);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
 
     return () => {
       video.removeEventListener('timeupdate', handleTimeUpdate);
@@ -250,8 +255,9 @@ export const VideoPlayer = ({
       video.removeEventListener('waiting', handleWaiting);
       video.removeEventListener('playing', handlePlaying);
       video.removeEventListener('ended', handleEnded);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
     };
-  }, [onEnded, onTimeUpdate]);
+  }, [onEnded, onTimeUpdate, playbackRate]);
 
   // Sync volume with video element on mount and when volume/muted changes
   useEffect(() => {

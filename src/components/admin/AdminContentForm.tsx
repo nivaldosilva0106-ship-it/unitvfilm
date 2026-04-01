@@ -1226,7 +1226,12 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                             <SelectValue placeholder="Vel." />
                           </SelectTrigger>
                           <SelectContent>
+                            <SelectItem value="0.25">0.25x</SelectItem>
+                            <SelectItem value="0.30">0.30x</SelectItem>
+                            <SelectItem value="0.45">0.45x</SelectItem>
                             <SelectItem value="0.5">0.5x</SelectItem>
+                            <SelectItem value="0.55">0.55x</SelectItem>
+                            <SelectItem value="0.60">0.60x</SelectItem>
                             <SelectItem value="0.75">0.75x</SelectItem>
                             <SelectItem value="1">Normal</SelectItem>
                             <SelectItem value="1.25">1.25x</SelectItem>

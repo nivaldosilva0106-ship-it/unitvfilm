@@ -285,6 +285,7 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
                     videoId={ytId}
                     startTime={content.startTime}
                     active={active}
+                    playbackSpeed={content.playbackSpeed}
                     onTimeUpdate={onTimeUpdate || (() => {})}
                     onEnded={onEnded || (() => {})}
                 />
@@ -301,6 +302,7 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
                     onToggleFullscreen={onToggleFullscreen}
                     isFullscreen={isFullscreen}
                     muted={!active}
+                    initialPlaybackRate={content.playbackSpeed}
                 />
             )}
         </div>
@@ -409,7 +411,7 @@ export default function Canais24h() {
     const getInitialState = useCallback(() => {
         if (!currentChannel || programs.length === 0) return null;
 
-        const GAP = 180;
+        const GAP = 0; // Removido o GAP global para os intervalos não ficarem sincronizados ao mudar de canal.
         const nowSec = Math.floor((Date.now() + serverOffsetRef.current) / 1000);
         const salt = currentChannel.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
 
@@ -421,7 +423,7 @@ export default function Canais24h() {
             return { index: i, cycleStart: s, cycleEnd: s + dur, dur, gap: GAP };
         });
 
-        const t = (nowSec + salt) % total;
+        const t = (nowSec + salt) % (total || 1);
 
         for (const m of mapped) {
             if (t >= m.cycleStart && t < m.cycleEnd) {
@@ -436,24 +438,6 @@ export default function Canais24h() {
                         playbackSpeed: prog.playback_speed,
                     },
                     duration: m.dur,
-                };
-            }
-            if (t >= m.cycleEnd && t < m.cycleEnd + m.gap) {
-                const gapOff = t - m.cycleEnd;
-                const si = Math.floor(gapOff / 60);
-                const isInt = (si % 2 === 0) || adUrls.length === 0;
-                const url = isInt && intervalUrls.length > 0
-                    ? intervalUrls[si % intervalUrls.length]
-                    : (adUrls.length > 0 ? adUrls[si % adUrls.length] : "");
-                return {
-                    item: {
-                        url,
-                        startTime: gapOff % 60,
-                        title: isInt ? "Intervalo" : "Publicidade",
-                        type: (isInt ? "interval" : "ad") as "interval" | "ad",
-                        programIndex: m.index,
-                    },
-                    duration: 60,
                 };
             }
         }
