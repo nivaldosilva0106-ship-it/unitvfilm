@@ -7,6 +7,9 @@ import { toast } from "sonner";
 import { Loader2, Film, Tv, Clock } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
+import { Volume2, VolumeX, Maximize, Minimize, Play, Pause, SkipBack, SkipForward } from "lucide-react";
+import { Slider } from "@/components/ui/slider";
+
 declare global {
     interface Window {
         YT: any;
@@ -18,7 +21,7 @@ declare global {
 // YOUTUBE PLAYER — STABLE. Only recreates when videoId changes.
 // Uses refs for callbacks to prevent iframe destruction loops.
 // ============================================================
-const YouTubePlayer = memo(({ videoId, id, startTime, active, playbackSpeed, onTimeUpdate, onEnded }: {
+const YouTubePlayer = memo(({ videoId, id, startTime, active, playbackSpeed, onTimeUpdate, onEnded, onToggleFullscreen, isFullscreen, title }: {
     videoId: string;
     id: string;
     startTime: number;
@@ -26,21 +29,78 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, playbackSpeed, onT
     playbackSpeed?: number;
     onTimeUpdate: (time: number, duration?: number) => void;
     onEnded: () => void;
+    onToggleFullscreen?: () => void;
+    isFullscreen?: boolean;
+    title?: string;
 }) => {
     const playerRef = useRef<any>(null);
     const intervalRef = useRef<any>(null);
     const [isPlaying, setIsPlaying] = useState(false);
+    const [isMuted, setIsMuted] = useState(false);
+    const [volume, setVolume] = useState(100);
+    const [showControls, setShowControls] = useState(false);
+    const [currentTime, setCurrentTime] = useState(startTime || 0);
+    const [duration, setDuration] = useState(0);
 
-    // CRITICAL: Store callbacks in refs so the useEffect doesn't
-    // need them as dependencies (prevents iframe recreation loops)
     const onTimeUpdateRef = useRef(onTimeUpdate);
     const onEndedRef = useRef(onEnded);
     const activeRef = useRef(active);
+    const startTimeRef = useRef(startTime);
     onTimeUpdateRef.current = onTimeUpdate;
     onEndedRef.current = onEnded;
     activeRef.current = active;
+    startTimeRef.current = startTime;
 
-    // Create player ONLY when videoId changes
+    // Format time helper
+    const formatTime = (seconds: number) => {
+        if (!seconds || isNaN(seconds)) return "00:00";
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = Math.floor(seconds % 60);
+        if (h > 0) return `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    };
+
+    // UI Controls triggers
+    const triggerTogglePlay = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (playerRef.current) {
+            const state = playerRef.current.getPlayerState();
+            if (state === 1) { // playing
+                playerRef.current.pauseVideo();
+                setIsPlaying(false);
+            } else {
+                playerRef.current.playVideo();
+                setIsPlaying(true);
+            }
+        }
+    };
+
+    const triggerToggleMute = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (playerRef.current) {
+            if (isMuted || volume === 0) {
+                playerRef.current.unMute();
+                playerRef.current.setVolume(volume > 0 ? volume : 100);
+                setIsMuted(false);
+                setVolume(volume > 0 ? volume : 100);
+            } else {
+                playerRef.current.mute();
+                setIsMuted(true);
+            }
+        }
+    };
+
+    // Keep controls active on mouse move
+    const controlsTimeoutRef = useRef<any>(null);
+    const handleMouseMove = () => {
+        setShowControls(true);
+        if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+        controlsTimeoutRef.current = setTimeout(() => {
+            if (isPlaying) setShowControls(false);
+        }, 3000);
+    };
+
     useEffect(() => {
         let destroyed = false;
         let retryTimer: any = null;
@@ -91,8 +151,14 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, playbackSpeed, onT
                                 try {
                                     e.target.unMute();
                                     e.target.setVolume(100);
+                                    setIsMuted(false);
                                 } catch {}
                             }, 300);
+                        }
+                        
+                        // Force seek to designated start time! (Critical for correct time advancement)
+                        if (startTimeRef.current && startTimeRef.current > 0) {
+                           e.target.seekTo(startTimeRef.current, true);
                         }
 
                         // Time sync interval
@@ -110,6 +176,8 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, playbackSpeed, onT
                                 if (state === 1 && activeRef.current) {
                                     const ct = playerRef.current.getCurrentTime();
                                     const du = playerRef.current.getDuration();
+                                    setCurrentTime(ct);
+                                    setDuration(du);
                                     if (du > 0) onTimeUpdateRef.current(ct, du);
                                 }
                                 // Auto-recover: if CUED (5) or UNSTARTED (-1), force play
@@ -202,19 +270,86 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, playbackSpeed, onT
     }, [active]);
 
     return (
-        <div className="w-full h-full overflow-hidden relative bg-black">
+        <div 
+            className="w-full h-full overflow-hidden relative bg-black group"
+            onMouseMove={handleMouseMove}
+            onMouseLeave={() => isPlaying && setShowControls(false)}
+            onClick={triggerTogglePlay}
+        >
             {/* Scaled iframe to crop YouTube branding */}
             <div className="absolute inset-[-15%] w-[130%] h-[130%]">
                 <div id={`yt-${id}-${videoId}`} className="w-full h-full" />
             </div>
+            
+            {/* Transparent overlay blocks ALL native YouTube UI clicks */}
+            <div className="absolute inset-0 z-20 pointer-events-none" />
+
             {/* Loading spinner until YouTube starts playing */}
             {!isPlaying && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black z-20">
+                <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
                     <div className="w-10 h-10 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
                 </div>
             )}
-            {/* Transparent overlay blocks ALL YouTube UI clicks */}
-            <div className="absolute inset-0 z-30" style={{ pointerEvents: 'all', background: 'transparent' }} />
+            
+            {/* Center Play Button (when paused) */}
+            {!isPlaying && (
+                <div className="absolute inset-0 flex items-center justify-center z-20">
+                    <button 
+                        onClick={triggerTogglePlay}
+                        className="w-14 h-14 md:w-20 md:h-20 bg-primary/90 hover:bg-primary rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-2xl"
+                    >
+                        <Play className="w-6 h-6 md:w-10 md:h-10 text-white fill-white ml-1" />
+                    </button>
+                </div>
+            )}
+
+            {/* UI Custom Overlay (Identical to VideoPlayer) */}
+            <div 
+                className={`absolute inset-0 flex flex-col justify-end transition-opacity duration-300 z-30 ${showControls || !isPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
+                
+                {title && (
+                    <div className="absolute top-4 left-4 right-4 z-40">
+                        <h2 className="text-white font-bold text-sm md:text-lg drop-shadow-lg line-clamp-1">{title}</h2>
+                    </div>
+                )}
+                
+                <div className="relative p-3 md:p-4 space-y-2 md:space-y-3 z-40">
+                    <div className="flex items-center gap-2 md:gap-3">
+                        <span className="text-white text-[10px] md:text-xs font-mono min-w-[35px] md:min-w-[45px]">{formatTime(currentTime)}</span>
+                        <div className="flex-1">
+                             <Slider
+                                value={[currentTime]}
+                                min={0}
+                                max={duration || 100}
+                                onValueChange={(vals) => playerRef.current?.seekTo?.(vals[0], true)}
+                                className="cursor-pointer [&_[data-radix-slider-track]]:bg-white/30 [&_[data-radix-slider-range]]:bg-primary"
+                             />
+                        </div>
+                        <span className="text-white text-[10px] md:text-xs font-mono min-w-[35px] md:min-w-[45px] text-right">{formatTime(duration)}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1 md:gap-2">
+                             <button onClick={triggerTogglePlay} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
+                                 {isPlaying ? <Pause className="w-4 h-4 md:w-6 md:h-6 text-white fill-white" /> : <Play className="w-4 h-4 md:w-6 md:h-6 text-white fill-white ml-0.5" />}
+                             </button>
+                             <div className="flex items-center gap-1 md:gap-2">
+                                  <button onClick={triggerToggleMute} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
+                                      {isMuted || volume === 0 ? <VolumeX className="w-4 h-4 md:w-5 md:h-5 text-white" /> : <Volume2 className="w-4 h-4 md:w-5 md:h-5 text-white" />}
+                                  </button>
+                             </div>
+                        </div>
+                        {onToggleFullscreen && (
+                             <button onClick={onToggleFullscreen} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
+                                  {isFullscreen ? <Minimize className="w-4 h-4 md:w-5 md:h-5 text-white" /> : <Maximize className="w-4 h-4 md:w-5 md:h-5 text-white" />}
+                             </button>
+                        )}
+                    </div>
+                </div>
+            </div>
         </div>
     );
 });
@@ -243,7 +378,7 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
     const ytId = content ? getYtId(content.url) : null;
     const isTikTok = content?.url?.includes("tiktok.com") || false;
 
-    // TikTok auto-skip if error
+        // TikTok auto-skip if error
     useEffect(() => {
         if (isTikTok && tiktokUrl === "error" && active && onEnded) {
             const t = setTimeout(onEnded, 2500);
@@ -283,11 +418,14 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
                 <YouTubePlayer
                     id={id}
                     videoId={ytId}
-                    startTime={content.startTime}
+                    startTime={content.startTime || 0}
                     active={active}
                     playbackSpeed={content.playbackSpeed}
                     onTimeUpdate={onTimeUpdate || (() => {})}
                     onEnded={onEnded || (() => {})}
+                    onToggleFullscreen={onToggleFullscreen}
+                    isFullscreen={isFullscreen}
+                    title={content.title}
                 />
             ) : (
                 <VideoPlayer
@@ -413,10 +551,64 @@ export default function Canais24h() {
     const getInitialState = useCallback(() => {
         if (!currentChannel || programs.length === 0) return null;
 
-        const GAP = 0; // Removido o GAP global para os intervalos não ficarem sincronizados ao mudar de canal.
+        const GAP = 0; 
+        const channelId = currentChannel.id;
+        
+        // 1. First, check if we have a saved progression state for this channel locally
+        const SAVED_STATE_KEY = `tv_progression_${channelId}`;
+        const savedSyncStr = localStorage.getItem(SAVED_STATE_KEY);
+        
+        let bestStartingProg = null;
+        let bestStartTime = 0;
+        
+        if (savedSyncStr) {
+            try {
+                const data = JSON.parse(savedSyncStr);
+                const elapsedSinceSave = Math.floor((Date.now() - data.realTimestamp) / 1000);
+                
+                // If it's been less than 24 hours, we resume from where they were and skip forward logically
+                // to simulate they left the TV on. (Advances TV time correctly without looping) a true virtual broadcast tracking.
+                if (elapsedSinceSave >= 0 && elapsedSinceSave < 86400) {
+                    let simulatedProgIndex = data.index;
+                    let simulatedElapsedWithinVideo = data.videoTime + elapsedSinceSave;
+                    
+                    // Loop forward through programs mathematically to find the correct active video now!
+                    let iterations = 0;
+                    while (iterations < programs.length) {
+                         const currentDur = programs[simulatedProgIndex]?.duration || 1800; // Use actual duration if present
+                         if (simulatedElapsedWithinVideo < currentDur) {
+                             bestStartingProg = programs[simulatedProgIndex];
+                             bestStartTime = simulatedElapsedWithinVideo;
+                             break;
+                         } else {
+                             // Subtract duration, jump to next block
+                             simulatedElapsedWithinVideo -= currentDur;
+                             simulatedProgIndex = (simulatedProgIndex + 1) % programs.length;
+                         }
+                         iterations++;
+                    }
+                    
+                    if (bestStartingProg) {
+                        return {
+                            item: {
+                                url: bestStartingProg.internal_player_url || bestStartingProg.url || "",
+                                startTime: bestStartTime,
+                                title: bestStartingProg.title || "",
+                                type: "program" as const,
+                                programIndex: simulatedProgIndex,
+                                playbackSpeed: bestStartingProg.playback_speed,
+                                description: bestStartingProg.description || "",
+                            },
+                            duration: bestStartingProg.duration || 1800,
+                        };
+                    }
+                }
+            } catch {}
+        }
+
+        // 2. Fallback to static mathematical scheduler 
         const nowSec = Math.floor((Date.now() + serverOffsetRef.current) / 1000);
         const salt = currentChannel.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
-
         let total = 0;
         const mapped = programs.map((p, i) => {
             const s = total;
@@ -444,6 +636,7 @@ export default function Canais24h() {
                 };
             }
         }
+
         // Fallback: if no slot matched (edge case), start from first program
         const fallbackProg = programs[0];
         return {
@@ -661,9 +854,26 @@ export default function Canais24h() {
     const handleEndedB = useCallback(() => handleEndedRef.current("B"), []);
 
     // ---- 7. Pre-buffer & time tracking ----
+    const lastSaveRef = useRef(0);
+    
     const handleTimeUpdate = useCallback((time: number, duration?: number) => {
         if (time > 0) setRealTime(time);
         if (duration) setRealDuration(duration);
+
+        // Periodically save progression (avoids duration-math skipping bug on refresh)
+        const now = Date.now();
+        if (now - lastSaveRef.current > 5000 && currentChannel) {
+             lastSaveRef.current = now;
+             const activeSlotName = activeSlotRef.current;
+             const runningSlot = activeSlotName === "A" ? slotARef.current : slotBRef.current;
+             if (runningSlot && runningSlot.type === "program") {
+                  localStorage.setItem(`tv_progression_${currentChannel.id}`, JSON.stringify({
+                       index: runningSlot.programIndex,
+                       videoTime: Math.floor(time),
+                       realTimestamp: now
+                  }));
+             }
+        }
 
         const remaining = (duration || 0) - time;
 
