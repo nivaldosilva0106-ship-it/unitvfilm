@@ -1,3 +1,8 @@
+export interface MediaLink {
+  title: string;
+  url: string;
+}
+
 export interface Episode {
   season: number;
   episode: number;
@@ -16,6 +21,8 @@ export interface Episode {
   tiktok_url?: string;
   duration?: number;
   playback_speed?: number;
+  post_video_intervals?: number;
+  post_video_ads?: number;
 }
 
 export interface Content {
@@ -64,6 +71,10 @@ export interface Content {
   tiktok_url?: string;
   channel_logo_url?: string;
   main_video_id?: string;
-  interval_urls?: string[];
-  ad_urls?: string[];
+  interval_urls?: string[]; // Legacy
+  ad_urls?: string[]; // Legacy
+  interval_list?: MediaLink[];
+  ad_list?: MediaLink[];
+  shuffle_intervals?: boolean;
+  shuffle_ads?: boolean;
 }

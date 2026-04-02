@@ -650,13 +650,13 @@ export const VideoPlayer = ({
 
                   {/* Playback Speed */}
                   <div className="px-2 py-1.5 text-[10px] md:text-xs text-gray-400 font-semibold">Velocidade</div>
-                  {[0.5, 0.75, 1, 1.25, 1.5, 2].map(rate => (
+                  {[0.25, 0.30, 0.45, 0.50, 0.55, 0.60, 0.75, 1, 1.25, 1.5, 2].map(rate => (
                     <DropdownMenuItem
                       key={rate}
                       onClick={() => changePlaybackRate(rate)}
                       className={`text-white hover:bg-white/10 cursor-pointer text-xs md:text-sm ${playbackRate === rate ? 'bg-primary/20' : ''}`}
                     >
-                      {rate === 1 ? 'Normal' : `${rate}x`}
+                      {rate === 1 ? 'Normal' : `${rate.toFixed(2)}x`}
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuContent>

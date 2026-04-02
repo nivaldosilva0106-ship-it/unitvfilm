@@ -320,6 +320,7 @@ interface QueueItem {
     type: "program" | "interval" | "ad";
     programIndex: number;
     playbackSpeed?: number;
+    breakIndex?: number;
 }
 
 // ============================================================
@@ -362,8 +363,8 @@ export default function Canais24h() {
     const channelGenRef = useRef(0);
 
     const programs = currentChannel?.episodes || [];
-    const intervalUrls = currentChannel?.interval_urls || [];
-    const adUrls = currentChannel?.ad_urls || [];
+    const intervalList = currentChannel?.interval_list || [];
+    const adList = currentChannel?.ad_list || [];
 
     // Use refs for state accessed in callbacks to avoid stale closures
     const activeSlotRef = useRef(activeSlot);
@@ -454,7 +455,7 @@ export default function Canais24h() {
             },
             duration: fallbackProg.duration || 1800,
         };
-    }, [currentChannel, programs, intervalUrls, adUrls]);
+    }, [currentChannel, programs]);
 
     // TikTok resolver with 8s timeout + generation guard
     const resolveTikTok = useCallback(async (url: string, gen: number): Promise<string> => {
@@ -474,47 +475,79 @@ export default function Canais24h() {
 
     // ---- 4. Build the NEXT item ----
     const getNextItem = useCallback((currentItem: QueueItem): QueueItem => {
+        const shuffleIntervals = currentChannel?.shuffle_intervals || false;
+        const shuffleAds = currentChannel?.shuffle_ads || false;
+        const currentProg = programs[currentItem.programIndex] || programs[0];
+
+        const reqIntervals = currentProg?.post_video_intervals || 0;
+        const reqAds = currentProg?.post_video_ads || 0;
+        
+        let breakIdx = currentItem.breakIndex || 0;
+        
         if (currentItem.type === "program") {
-            const hasAdsOrIntervals = intervalUrls.length > 0 || adUrls.length > 0;
-            if (hasAdsOrIntervals) {
-                const seed = currentItem.programIndex + Date.now();
-                const si = Math.floor(seed / 1000) % 4;
-                const isInt = (si % 2 === 0) || adUrls.length === 0;
-                const pool = isInt ? intervalUrls : adUrls;
-                const url = pool.length > 0 ? pool[currentItem.programIndex % pool.length] : "";
-                if (url) {
-                    return {
-                        url,
-                        startTime: 0,
-                        title: isInt ? "Intervalo" : "Publicidade",
-                        type: isInt ? "interval" : "ad",
-                        programIndex: currentItem.programIndex,
-                    };
-                }
+            if (reqIntervals > 0 && intervalList.length > 0) {
+                const urlObj = shuffleIntervals 
+                    ? intervalList[Math.floor(Math.random() * intervalList.length)] 
+                    : intervalList[0 % intervalList.length];
+                return {
+                    url: urlObj.url, startTime: 0, title: urlObj.title || "Intervalo",
+                    type: "interval", programIndex: currentItem.programIndex, breakIndex: 1
+                };
+            } else if (reqAds > 0 && adList.length > 0) {
+                 const urlObj = shuffleAds 
+                    ? adList[Math.floor(Math.random() * adList.length)] 
+                    : adList[0 % adList.length];
+                return {
+                    url: urlObj.url, startTime: 0, title: urlObj.title || "Publicidade",
+                    type: "ad", programIndex: currentItem.programIndex, breakIndex: 1
+                };
             }
-            const nextIdx = (currentItem.programIndex + 1) % programs.length;
-            const nextProg = programs[nextIdx];
-            return {
-                url: nextProg.internal_player_url || nextProg.url || "",
-                startTime: 0,
-                title: nextProg.title || "",
-                type: "program",
-                programIndex: nextIdx,
-                playbackSpeed: nextProg.playback_speed,
-            };
-        } else {
-            const nextIdx = (currentItem.programIndex + 1) % programs.length;
-            const nextProg = programs[nextIdx];
-            return {
-                url: nextProg.internal_player_url || nextProg.url || "",
-                startTime: 0,
-                title: nextProg.title || "",
-                type: "program",
-                programIndex: nextIdx,
-                playbackSpeed: nextProg.playback_speed,
-            };
+        } 
+        
+        if (currentItem.type === "interval") {
+             if (breakIdx < reqIntervals && intervalList.length > 0) {
+                  const urlObj = shuffleIntervals 
+                    ? intervalList[Math.floor(Math.random() * intervalList.length)] 
+                    : intervalList[breakIdx % intervalList.length];
+                  return {
+                      url: urlObj.url, startTime: 0, title: urlObj.title || "Intervalo",
+                      type: "interval", programIndex: currentItem.programIndex, breakIndex: breakIdx + 1
+                  };
+             } else if (reqAds > 0 && adList.length > 0) {
+                  const urlObj = shuffleAds 
+                    ? adList[Math.floor(Math.random() * adList.length)] 
+                    : adList[0 % adList.length];
+                  return {
+                      url: urlObj.url, startTime: 0, title: urlObj.title || "Publicidade",
+                      type: "ad", programIndex: currentItem.programIndex, breakIndex: 1
+                  };
+             }
         }
-    }, [programs, intervalUrls, adUrls]);
+
+        if (currentItem.type === "ad") {
+             if (breakIdx < reqAds && adList.length > 0) {
+                   const urlObj = shuffleAds 
+                    ? adList[Math.floor(Math.random() * adList.length)] 
+                    : adList[breakIdx % adList.length];
+                  return {
+                      url: urlObj.url, startTime: 0, title: urlObj.title || "Publicidade",
+                      type: "ad", programIndex: currentItem.programIndex, breakIndex: breakIdx + 1
+                  };
+             }
+        }
+
+        const nextIdx = (currentItem.programIndex + 1) % programs.length;
+        const nextProg = programs[nextIdx];
+        return {
+            url: nextProg?.internal_player_url || nextProg?.url || "",
+            startTime: 0,
+            title: nextProg?.title || "",
+            type: "program",
+            programIndex: nextIdx,
+            playbackSpeed: nextProg?.playback_speed,
+            breakIndex: 0
+        };
+    }, [programs, currentChannel, intervalList, adList]);
 
     // ---- Helper: resolve TikTok for a slot ----
     const loadTikTokForSlot = useCallback((item: QueueItem, slot: "A" | "B") => {

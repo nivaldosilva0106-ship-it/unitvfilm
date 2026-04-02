@@ -1241,6 +1241,32 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                         </Select>
                       )}
                     </div>
+                    {isCanais24h && (
+                      <div className="flex gap-4 p-3 border border-white/5 rounded-lg bg-black/20">
+                        <div className="flex-1 flex flex-col gap-1">
+                          <Label className="text-[10px] text-zinc-400 font-bold uppercase">Intervalos Pós-Vídeo (Qtd)</Label>
+                          <Input
+                            type="number"
+                            placeholder="Ex: 3"
+                            value={episode.post_video_intervals || 0}
+                            onChange={(e) => updateEpisode(index, 'post_video_intervals', parseInt(e.target.value) || 0)}
+                            className="bg-black/50 border-zinc-800 text-xs h-8"
+                            min="0"
+                          />
+                        </div>
+                        <div className="flex-1 flex flex-col gap-1">
+                          <Label className="text-[10px] text-zinc-400 font-bold uppercase">Publicidades Pós-Vídeo (Qtd)</Label>
+                          <Input
+                            type="number"
+                            placeholder="Ex: 1"
+                            value={episode.post_video_ads || 0}
+                            onChange={(e) => updateEpisode(index, 'post_video_ads', parseInt(e.target.value) || 0)}
+                            className="bg-black/50 border-zinc-800 text-xs h-8"
+                            min="0"
+                          />
+                        </div>
+                      </div>
+                    )}
                     <Input
                       placeholder="URL do episódio (embed)"
                       value={episode.url}
@@ -1681,33 +1707,159 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       {isCanais24h && editingContent.id && (
         <div className="mt-8 space-y-6">
           {/* Configuração de Intervalos e Publicidade */}
-          <div className="p-6 bg-zinc-900/50 rounded-xl border border-white/5 space-y-4 shadow-xl">
+          <div className="p-6 bg-zinc-900/50 rounded-xl border border-white/5 space-y-6 shadow-xl">
             <div className="flex items-center gap-2 text-primary mb-2">
               <Clapperboard className="w-5 h-5" />
-              <h3 className="font-bold text-lg">Intervalos e Publicidade</h3>
+              <h3 className="font-bold text-lg">Intervalos e Publicidade Estruturados</h3>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label className="text-zinc-400 text-xs uppercase font-black tracking-widest">Links de Intervalo / Pausa</Label>
-                <Textarea 
-                  placeholder="https://... (um link por linha)"
-                  value={editingContent.interval_urls?.join('\n') || ''}
-                  onChange={(e) => setEditingContent(prev => ({ ...prev, interval_urls: e.target.value.split('\n').filter(l => l.trim()) }))}
-                  className="min-h-[120px] bg-black/40 border-zinc-800 text-xs font-mono"
-                />
-                <p className="text-[10px] text-zinc-500 italic">Ex: 'Já Voltamos', 'A Seguir', 'Identidade do Canal'.</p>
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+              {/* Intervalos */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label className="text-zinc-400 text-xs uppercase font-black tracking-widest">Links de Intervalo</Label>
+                    <p className="text-[10px] text-zinc-500 italic">Ex: 'Já Voltamos', 'Identidade do Canal'.</p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="shuffle_intervals" className="text-xs text-zinc-300">Aleatório</Label>
+                    <Switch
+                      id="shuffle_intervals"
+                      checked={editingContent.shuffle_intervals || false}
+                      onCheckedChange={(v) => setEditingContent(prev => ({ ...prev, shuffle_intervals: v }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                  {(editingContent.interval_list || []).map((link, idx) => (
+                    <div key={idx} className="flex gap-2 items-start bg-black/40 p-2 rounded-lg border border-white/5">
+                      <div className="flex-1 space-y-2">
+                        <Input
+                          placeholder="Título do Intervalo"
+                          value={link.title}
+                          onChange={(e) => {
+                            const newList = [...(editingContent.interval_list || [])];
+                            newList[idx].title = e.target.value;
+                            setEditingContent(prev => ({ ...prev, interval_list: newList }));
+                          }}
+                          className="h-8 text-xs bg-zinc-900 border-zinc-800"
+                        />
+                        <Input
+                          placeholder="URL"
+                          value={link.url}
+                          onChange={(e) => {
+                            const newList = [...(editingContent.interval_list || [])];
+                            newList[idx].url = e.target.value;
+                            setEditingContent(prev => ({ ...prev, interval_list: newList }));
+                          }}
+                          className="h-8 text-xs bg-zinc-900 border-zinc-800"
+                        />
+                      </div>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="h-8 w-8 mt-1 flex-shrink-0"
+                        onClick={() => {
+                          const newList = (editingContent.interval_list || []).filter((_, i) => i !== idx);
+                          setEditingContent(prev => ({ ...prev, interval_list: newList }));
+                        }}
+                      >
+                        <Trash className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  {(!editingContent.interval_list || editingContent.interval_list.length === 0) && (
+                    <div className="text-xs text-center text-zinc-600 py-4 border border-dashed border-white/10 rounded-lg">
+                      Nenhum intervalo adicionado.
+                    </div>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const newList = [...(editingContent.interval_list || []), { title: '', url: '' }];
+                    setEditingContent(prev => ({ ...prev, interval_list: newList }));
+                  }}
+                  className="w-full h-8 text-xs border-primary/20 hover:bg-primary/10 text-primary"
+                >
+                  <PlusCircle className="w-3 h-3 mr-2" /> Adicionar Intervalo
+                </Button>
               </div>
 
-              <div className="space-y-2">
-                <Label className="text-zinc-400 text-xs uppercase font-black tracking-widest">Links de Publicidade</Label>
-                <Textarea 
-                  placeholder="https://... (um link por linha)"
-                  value={editingContent.ad_urls?.join('\n') || ''}
-                  onChange={(e) => setEditingContent(prev => ({ ...prev, ad_urls: e.target.value.split('\n').filter(l => l.trim()) }))}
-                  className="min-h-[120px] bg-black/40 border-zinc-800 text-xs font-mono"
-                />
-                <p className="text-[10px] text-zinc-500 italic">Ex: Trailers, Comerciais, Spots.</p>
+              {/* Publicidades */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label className="text-zinc-400 text-xs uppercase font-black tracking-widest">Links de Publicidade</Label>
+                    <p className="text-[10px] text-zinc-500 italic">Ex: Trailers, Spots Patrocinados.</p>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="shuffle_ads" className="text-xs text-zinc-300">Aleatório</Label>
+                    <Switch
+                      id="shuffle_ads"
+                      checked={editingContent.shuffle_ads || false}
+                      onCheckedChange={(v) => setEditingContent(prev => ({ ...prev, shuffle_ads: v }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                  {(editingContent.ad_list || []).map((link, idx) => (
+                    <div key={idx} className="flex gap-2 items-start bg-black/40 p-2 rounded-lg border border-white/5">
+                      <div className="flex-1 space-y-2">
+                        <Input
+                          placeholder="Título da Publicidade"
+                          value={link.title}
+                          onChange={(e) => {
+                            const newList = [...(editingContent.ad_list || [])];
+                            newList[idx].title = e.target.value;
+                            setEditingContent(prev => ({ ...prev, ad_list: newList }));
+                          }}
+                          className="h-8 text-xs bg-zinc-900 border-zinc-800"
+                        />
+                        <Input
+                          placeholder="URL"
+                          value={link.url}
+                          onChange={(e) => {
+                            const newList = [...(editingContent.ad_list || [])];
+                            newList[idx].url = e.target.value;
+                            setEditingContent(prev => ({ ...prev, ad_list: newList }));
+                          }}
+                          className="h-8 text-xs bg-zinc-900 border-zinc-800"
+                        />
+                      </div>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        className="h-8 w-8 mt-1 flex-shrink-0"
+                        onClick={() => {
+                          const newList = (editingContent.ad_list || []).filter((_, i) => i !== idx);
+                          setEditingContent(prev => ({ ...prev, ad_list: newList }));
+                        }}
+                      >
+                        <Trash className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  ))}
+                  {(!editingContent.ad_list || editingContent.ad_list.length === 0) && (
+                    <div className="text-xs text-center text-zinc-600 py-4 border border-dashed border-white/10 rounded-lg">
+                      Nenhuma publicidade adicionada.
+                    </div>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const newList = [...(editingContent.ad_list || []), { title: '', url: '' }];
+                    setEditingContent(prev => ({ ...prev, ad_list: newList }));
+                  }}
+                  className="w-full h-8 text-xs border-orange-500/20 hover:bg-orange-500/10 text-orange-400"
+                >
+                  <PlusCircle className="w-3 h-3 mr-2" /> Adicionar Publicidade
+                </Button>
               </div>
             </div>
           </div>
