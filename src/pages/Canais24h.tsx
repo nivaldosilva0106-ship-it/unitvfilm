@@ -317,19 +317,7 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, playbackSpeed, onT
                 )}
                 
                 <div className="relative p-3 md:p-4 space-y-2 md:space-y-3 z-40">
-                    <div className="flex items-center gap-2 md:gap-3">
-                        <span className="text-white text-[10px] md:text-xs font-mono min-w-[35px] md:min-w-[45px]">{formatTime(currentTime)}</span>
-                        <div className="flex-1">
-                             <Slider
-                                value={[currentTime]}
-                                min={0}
-                                max={duration || 100}
-                                onValueChange={(vals) => playerRef.current?.seekTo?.(vals[0], true)}
-                                className="cursor-pointer [&_[data-radix-slider-track]]:bg-white/30 [&_[data-radix-slider-range]]:bg-primary"
-                             />
-                        </div>
-                        <span className="text-white text-[10px] md:text-xs font-mono min-w-[35px] md:min-w-[45px] text-right">{formatTime(duration)}</span>
-                    </div>
+                    {/* Progress bar removed for better TV experience */}
 
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1 md:gap-2">
