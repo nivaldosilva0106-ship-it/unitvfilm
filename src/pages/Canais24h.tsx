@@ -321,6 +321,7 @@ interface QueueItem {
     programIndex: number;
     playbackSpeed?: number;
     breakIndex?: number;
+    description?: string;
 }
 
 // ============================================================
@@ -437,6 +438,7 @@ export default function Canais24h() {
                         type: "program" as const,
                         programIndex: m.index,
                         playbackSpeed: prog.playback_speed,
+                        description: prog.description || "",
                     },
                     duration: m.dur,
                 };
@@ -452,6 +454,7 @@ export default function Canais24h() {
                 type: "program" as const,
                 programIndex: 0,
                 playbackSpeed: fallbackProg.playback_speed,
+                description: fallbackProg.description || "",
             },
             duration: fallbackProg.duration || 1800,
         };
@@ -545,7 +548,8 @@ export default function Canais24h() {
             type: "program",
             programIndex: nextIdx,
             playbackSpeed: nextProg?.playback_speed,
-            breakIndex: 0
+            breakIndex: 0,
+            description: nextProg?.description || "",
         };
     }, [programs, currentChannel, intervalList, adList]);
 
@@ -857,6 +861,16 @@ export default function Canais24h() {
                                 <h2 className="text-xl font-bold text-white mb-2 leading-tight">
                                     {isAdMode ? "Intervalo Comercial" : (nowPlayingTitle || currentChannel?.title)}
                                 </h2>
+                                {!isAdMode && activeSlotRef.current === "A" && slotA?.description && (
+                                    <p className="text-xs text-zinc-400 mb-2 line-clamp-3">
+                                        {slotA.description}
+                                    </p>
+                                )}
+                                {!isAdMode && activeSlotRef.current === "B" && slotB?.description && (
+                                    <p className="text-xs text-zinc-400 mb-2 line-clamp-3">
+                                        {slotB.description}
+                                    </p>
+                                )}
                                 <div className="mt-6 flex flex-col gap-2">
                                     <div className="flex justify-between items-end text-[10px] font-medium text-zinc-400 mb-1">
                                         <span>Tempo Restante</span>

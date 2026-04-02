@@ -7,6 +7,7 @@ export interface Episode {
   season: number;
   episode: number;
   title: string;
+  description?: string;
   url: string;
   internal_player_url?: string; // URL for internal player (m3u8, mp4, ts)
   subtitle_url?: string; // URL for VTT subtitles

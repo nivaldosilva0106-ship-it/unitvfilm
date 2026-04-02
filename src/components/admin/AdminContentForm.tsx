@@ -1150,6 +1150,30 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                   type="button" 
                   variant="outline" 
                   size="sm" 
+                  onClick={() => {
+                    const intval = prompt("Número de Intervalos pós-vídeo(Qtd):", "2");
+                    if (intval === null) return;
+                    const adval = prompt("Número de Publicidades pós-vídeo(Qtd):", "1");
+                    if (adval === null) return;
+                    const intN = parseInt(intval) || 0;
+                    const adN = parseInt(adval) || 0;
+                    const newEps = (editingContent.episodes || []).map(ep => ({
+                      ...ep,
+                      post_video_intervals: intN,
+                      post_video_ads: adN
+                    }));
+                    setEditingContent(prev => ({ ...prev, episodes: newEps }));
+                    toast.success(`Todos os blocos configurados com ${intN} intervalos e ${adN} publicidades.`);
+                  }}
+                  className="border-green-500/40 text-green-400 hover:bg-green-500/10"
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Auto-Configurar Intervalos/Publicidades
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
                   onClick={orderEpisodes2by2}
                   className="border-primary/40 text-primary hover:bg-primary/10"
                 >
@@ -1214,7 +1238,23 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                       <Input
                         placeholder={isCanais24h ? "Nome do Bloco de Programação / Título" : "Título do episódio"}
                         value={episode.title}
-                        onChange={(e) => updateEpisode(index, 'title', e.target.value)}
+                        onChange={(e) => {
+                          const newTitle = e.target.value;
+                          if (!editingContent.episodes) return;
+                          
+                          const newEps = [...editingContent.episodes];
+                          newEps[index] = { ...newEps[index], title: newTitle };
+
+                          // Auto sync description from existing blocks with this new title
+                          if (newTitle && newTitle.trim() !== '' && isCanais24h) {
+                             const existingEp = newEps.find((ep, i) => i !== index && ep.title === newTitle && ep.description);
+                             if (existingEp && existingEp.description) {
+                                 newEps[index].description = existingEp.description;
+                             }
+                          }
+
+                          setEditingContent(prev => ({ ...prev, episodes: newEps }));
+                        }}
                         className="bg-input border-border text-sm flex-1"
                       />
                       {isCanais24h && (
@@ -1232,6 +1272,8 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                             <SelectItem value="0.5">0.5x</SelectItem>
                             <SelectItem value="0.55">0.55x</SelectItem>
                             <SelectItem value="0.60">0.60x</SelectItem>
+                            <SelectItem value="0.65">0.65x</SelectItem>
+                            <SelectItem value="0.70">0.70x</SelectItem>
                             <SelectItem value="0.75">0.75x</SelectItem>
                             <SelectItem value="1">Normal</SelectItem>
                             <SelectItem value="1.25">1.25x</SelectItem>
@@ -1266,6 +1308,30 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                           />
                         </div>
                       </div>
+                    )}
+                    {isCanais24h && (
+                      <Textarea
+                        placeholder="Descrição do Bloco de Programação (Opcional) - Sincroniza automaticamente com blocos com o mesmo título"
+                        value={episode.description || ''}
+                        onChange={(e) => {
+                          const newDesc = e.target.value;
+                          const currentTitle = episode.title;
+                          if (!editingContent.episodes) return;
+                          
+                          const newEps = [...editingContent.episodes];
+                          newEps[index] = { ...newEps[index], description: newDesc };
+
+                          if (currentTitle && currentTitle.trim() !== '') {
+                            newEps.forEach((ep, i) => {
+                               if (i !== index && ep.title === currentTitle) {
+                                  ep.description = newDesc;
+                               }
+                            });
+                          }
+                          setEditingContent(prev => ({ ...prev, episodes: newEps }));
+                        }}
+                        className="bg-input border-border text-xs min-h-[60px]"
+                      />
                     )}
                     <Input
                       placeholder="URL do episódio (embed)"
