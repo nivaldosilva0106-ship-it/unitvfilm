@@ -286,8 +286,11 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, playbackSpeed, onT
 
             {/* Loading spinner until YouTube starts playing */}
             {!isPlaying && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/50 z-20">
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 z-20 gap-4">
                     <div className="w-10 h-10 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
+                    <p className="text-white font-medium text-xs md:text-sm animate-pulse tracking-wide px-4 text-center">
+                        Aguarde, estamos a estabelecer a ligação da rede...
+                    </p>
                 </div>
             )}
             
