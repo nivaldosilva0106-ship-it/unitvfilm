@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { getAllUsers, getAccountProfiles, updateUserProfile, deleteUserProfile, getAllAdmins, setUserAsAdmin, removeUserAdmin, getPlans, createAccountProfile } from '@/lib/firebase';
+import { getAllUsers, getAccountProfiles, updateUserProfile, deleteUserProfile, getAllAdmins, setUserAsAdmin, removeUserAdmin, getPlans, createAccountProfile, getSiteSettings, updateSiteSettings } from '@/lib/firebase';
 import { UserProfile, Profile, Plan } from '@/types/user';
 import {
     Users,
@@ -39,6 +39,9 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Sparkles } from 'lucide-react';
 
 export const AdminUsers = () => {
     const [users, setUsers] = useState<UserProfile[]>([]);
@@ -67,11 +70,39 @@ export const AdminUsers = () => {
     const [adminUserIds, setAdminUserIds] = useState<string[]>([]);
     const [togglingAdmin, setTogglingAdmin] = useState<string | null>(null);
 
+    // Free Trial State
+    const [freeTrialMode, setFreeTrialMode] = useState(false);
+    const [updatingTrial, setUpdatingTrial] = useState(false);
+
     useEffect(() => {
         loadUsers();
         loadAdmins();
         loadPlans();
+        loadSettings();
     }, []);
+
+    const loadSettings = async () => {
+        try {
+            const settings = await getSiteSettings();
+            setFreeTrialMode(settings.freeTrialMode || false);
+        } catch (e) {
+            console.error("Error loading settings", e);
+        }
+    };
+
+    const handleToggleTrial = async (checked: boolean) => {
+        setUpdatingTrial(true);
+        try {
+            await updateSiteSettings({ freeTrialMode: checked });
+            setFreeTrialMode(checked);
+            toast.success(checked ? "Campanha de 30 dias grátis ATIVADA!" : "Campanha de 30 dias grátis DESATIVADA!");
+        } catch (e) {
+            toast.error("Erro ao atualizar campanha");
+            console.error(e);
+        } finally {
+            setUpdatingTrial(false);
+        }
+    };
 
     const loadPlans = async () => {
         try {
@@ -258,6 +289,43 @@ export const AdminUsers = () => {
                     <p className="text-muted-foreground mt-1">Visualize e administre as contas de usuários registrados.</p>
                 </div>
             </div>
+
+            {/* Campaign Banner Section */}
+            <Card className="bg-primary/5 border-primary/20 overflow-hidden relative">
+                <div className="absolute top-0 right-0 p-4 opacity-10">
+                    <Sparkles className="w-24 h-24 text-primary" />
+                </div>
+                <CardHeader className="pb-3">
+                    <CardTitle className="text-xl flex items-center gap-2 text-white">
+                        <Sparkles className="w-5 h-5 text-primary" /> Campanha Especial: 30 Dias Grátis
+                    </CardTitle>
+                    <CardDescription className="text-muted-foreground">
+                        Quando ativado, qualquer novo usuário que se cadastrar terá 30 dias de acesso premium ilimitado automaticamente.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex items-center justify-between bg-black/20 p-4 rounded-lg border border-white/5">
+                        <div className="space-y-1">
+                            <p className="font-medium text-white">Status da Campanha</p>
+                            <p className="text-sm text-muted-foreground">
+                                {freeTrialMode 
+                                    ? "Ativo: Novos usuários ganham 30 dias grátis." 
+                                    : "Inativo: Cadastro funciona normalmente com escolha de planos."}
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            <span className={`text-xs font-bold uppercase tracking-wider ${freeTrialMode ? "text-green-500" : "text-gray-500"}`}>
+                                {freeTrialMode ? "Ativo" : "Inativo"}
+                            </span>
+                            <Switch 
+                                checked={freeTrialMode} 
+                                onCheckedChange={handleToggleTrial} 
+                                disabled={updatingTrial}
+                            />
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
 
             {/* Statistics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Film, Play, Monitor, Smartphone, Tv, Check, ChevronRight } from 'lucide-react';
+import { Film, Play, Monitor, Smartphone, Tv, Check, ChevronRight, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { getAllContents, getPlans } from '@/lib/firebase';
+import { getAllContents, getPlans, getSiteSettings } from '@/lib/firebase';
 import { Content } from '@/types/content';
 import { Plan } from '@/types/user';
 import { ContentRow } from '@/components/ContentRow';
@@ -18,6 +18,7 @@ export const Landing = () => {
     const [plans, setPlans] = useState<Plan[]>([]);
 
     const [showIosInstructions, setShowIosInstructions] = useState(false);
+    const [isTrialActive, setIsTrialActive] = useState(false);
 
     // ... (PWA useEffect) ...
 
@@ -25,11 +26,13 @@ export const Landing = () => {
     useEffect(() => {
         const loadData = async () => {
             try {
-                const [fetchedContent, fetchedPlans] = await Promise.all([
+                const [fetchedContent, fetchedPlans, settings] = await Promise.all([
                     getAllContents(),
-                    getPlans()
+                    getPlans(),
+                    getSiteSettings()
                 ]);
 
+                setIsTrialActive(settings.freeTrialMode || false);
                 setAllContent(fetchedContent);
                 if (fetchedContent.length > 0) {
                     setHeroContent(fetchedContent[Math.floor(Math.random() * fetchedContent.length)]);
@@ -170,6 +173,18 @@ export const Landing = () => {
                 </div>
             </nav>
 
+            {isTrialActive && (
+                <div className="fixed top-[72px] left-0 w-full z-40 bg-primary/20 backdrop-blur-md border-y border-primary/30 py-2 overflow-hidden">
+                    <div className="flex items-center justify-center gap-4 animate-in slide-in-from-top duration-500">
+                        <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+                        <p className="text-sm md:text-base font-bold text-white tracking-wide uppercase">
+                            Campanha Especial: 30 Dias Grátis com Acesso Total! <span className="hidden sm:inline-block ml-2 text-primary">Crie sua conta agora.</span>
+                        </p>
+                        <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+                    </div>
+                </div>
+            )}
+
             {/* Hero Section */}
             <header className="relative w-full h-[85vh] md:h-screen flex items-center justify-center overflow-hidden">
                 {/* Hero Background Collage */}
@@ -193,7 +208,9 @@ export const Landing = () => {
                         Assista filmes, séries e TV <br className="hidden md:block" /> em qualquer lugar.
                     </h1>
                     <p className="text-lg md:text-2xl text-gray-200 mb-8 max-w-2xl mx-auto font-light">
-                        Conteúdo em alta qualidade, reunido em um só lugar, <br className="hidden sm:block" /> com planos que cabem no seu bolso.
+                        {isTrialActive 
+                          ? "Aproveite 30 DIAS GRÁTIS de assinatura Premium. No UniTvFilm, você assiste a tudo sem limites agora!"
+                          : "Conteúdo em alta qualidade, reunido em um só lugar, com planos que cabem no seu bolso."}
                     </p>
 
                     <form onSubmit={handleGetStarted} className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full max-w-xl mx-auto">
@@ -264,6 +281,45 @@ export const Landing = () => {
                                 </div>
                             </div>
                         ))}
+                    </div>
+                </section>
+            )}
+
+            {isTrialActive && (
+                <section className="relative z-20 -mt-20 md:-mt-32 px-4 pb-20">
+                    <div className="max-w-4xl mx-auto">
+                        <div className="bg-gradient-to-r from-[#0aff7a]/20 to-[#021b16] border border-[#0aff7a] rounded-3xl p-8 md:p-12 relative overflow-hidden group shadow-[0_0_50px_rgba(10,255,122,0.1)]">
+                            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+                                <Sparkles className="w-32 h-32 text-[#0aff7a]" />
+                            </div>
+                            <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
+                                <div className="flex-1 text-center md:text-left">
+                                    <div className="inline-block px-4 py-1 bg-[#0aff7a] text-[#021b16] text-xs font-black rounded-full mb-6 uppercase tracking-[0.2em]">OFERTA POR TEMPO LIMITADO</div>
+                                    <h2 className="text-4xl md:text-5xl font-black text-white mb-4 italic tracking-tighter uppercase leading-none">VOCÊ GANHOU <span className="text-[#0aff7a]">30 DIAS</span> DE ACESSO TOTAL!</h2>
+                                    <p className="text-xl text-gray-300 font-medium mb-6">Cadastre-se hoje e desbloqueie todos os filmes, séries e canais de TV imediatamente, sem pagar absolutamente nada.</p>
+                                    <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+                                        <li className="flex items-center gap-2 text-white font-semibold">
+                                            <Check className="w-5 h-5 text-[#0aff7a]" /> Filmes e Séries Ilimitados
+                                        </li>
+                                        <li className="flex items-center gap-2 text-white font-semibold">
+                                            <Check className="w-5 h-5 text-[#0aff7a]" /> Qualidade 4K / HD
+                                        </li>
+                                        <li className="flex items-center gap-2 text-white font-semibold">
+                                            <Check className="w-5 h-5 text-[#0aff7a]" /> 4 Perfis Simultâneos
+                                        </li>
+                                        <li className="flex items-center gap-2 text-white font-semibold">
+                                            <Check className="w-5 h-5 text-[#0aff7a]" /> Canais de TV Abertos
+                                        </li>
+                                    </ul>
+                                </div>
+                                <div className="w-full md:w-auto text-center">
+                                    <Button onClick={() => navigate('/signup')} size="lg" className="h-20 px-12 bg-[#0aff7a] text-[#021b16] hover:bg-[#0aff7a]/90 font-black text-2xl rounded-2xl shadow-[0_10px_40px_rgba(10,255,122,0.3)] animate-pulse">
+                                        ATIVAR AGORA
+                                    </Button>
+                                    <p className="text-[10px] text-gray-400 mt-4 uppercase font-bold tracking-widest leading-relaxed">Não é necessário cartão de crédito<br/>Acesso instantâneo</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </section>
             )}

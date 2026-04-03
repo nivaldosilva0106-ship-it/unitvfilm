@@ -20,6 +20,7 @@ export interface UserProfile {
   photoURL?: string;
   lastExpiryNotification?: string;
   profilesLimitOverride?: number | null;
+  trialSignup?: boolean;
 }
 
 export interface Plan {

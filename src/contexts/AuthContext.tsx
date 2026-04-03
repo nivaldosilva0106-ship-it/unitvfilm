@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { type User } from 'firebase/auth';
-import { onAuthChange, logOut, isUserAdmin, getAccountProfiles, getPlans, subscribeToUserProfile, initializeOriginalAdmin } from '@/lib/firebase';
+import { onAuthChange, logOut, isUserAdmin, getAccountProfiles, getPlans, subscribeToUserProfile, initializeOriginalAdmin, checkSubscriptionExpired } from '@/lib/firebase';
 import type { UserProfile, Profile, Plan } from '@/types/user';
 import type { Content } from '@/types/content';
 
@@ -45,6 +45,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (firebaseUser) {
         unsubscribeProfile = subscribeToUserProfile(firebaseUser.uid, async (userProfile) => {
+          if (userProfile && userProfile.subscriptionExpiresAt) {
+            const isExpired = await checkSubscriptionExpired(firebaseUser.uid);
+            if (isExpired) return; // The DB update will trigger a new onValue tick
+          }
           setProfile(userProfile);
 
           if (userProfile) {

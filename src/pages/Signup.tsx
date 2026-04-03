@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Film, Check, Loader2 } from 'lucide-react';
+import { Film, Check, Loader2, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -21,16 +21,32 @@ const Signup = () => {
   const [name, setName] = useState(''); // Prompt implied user has name/phone
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isTrialActive, setIsTrialActive] = useState(false);
 
   /* Background State */
   const [bgUrl, setBgUrl] = useState('/login-bg.jpg');
 
   useEffect(() => {
-    loadPlans();
     import('@/lib/firebase').then(({ getSiteSettings }) => {
       getSiteSettings().then(settings => {
         if (settings.loginBackgroundUrl) {
           setBgUrl(settings.loginBackgroundUrl);
+        }
+        if (settings.freeTrialMode) {
+          setIsTrialActive(true);
+          const trialPlan: Plan = {
+            id: 'trial_30d',
+            name: '30 Dias Grátis',
+            description: 'Acesso Premium Ilimitado por 30 dias',
+            price: 0,
+            limits: { moviesPerDay: -1, episodesPerDay: -1, maxProfiles: 4, canDownload: true },
+            isActive: true,
+            requiresVerification: false
+          };
+          setSelectedPlan(trialPlan);
+          setStep('form');
+        } else {
+          loadPlans();
         }
       });
     });
@@ -89,17 +105,27 @@ const Signup = () => {
 
       const needsVerification = selectedPlan.requiresVerification;
       const status = needsVerification ? 'pending_payment' : 'active';
-      const subscriptionTier = selectedPlan.price > 0 ? 'premium' : 'free';
+      const isTrial = selectedPlan.id === 'trial_30d';
+      const subscriptionTier = (selectedPlan.price > 0 || isTrial) ? 'premium' : 'free';
 
       const { user } = await signUp(email, password, subscriptionTier, selectedPlan.id, status);
 
       // Update additional profile info
       const { ref, update, getDatabase } = await import('firebase/database');
       const db = getDatabase();
+      
+      const expirationDate = new Date();
+      if (isTrial) {
+        expirationDate.setDate(expirationDate.getDate() + 30);
+      }
+
       await update(ref(db, `profiles/${user.uid}`), {
         planId: selectedPlan.id,
         phone: phone || '', // Add phone to profile
         displayName: name || '', // Add name
+        isPremium: subscriptionTier === 'premium',
+        subscriptionExpiresAt: isTrial ? expirationDate.toISOString() : null,
+        trialSignup: isTrial,
         credits: { date: new Date().toISOString().split('T')[0], moviesWatched: 0, episodesWatched: 0 }
       });
 
@@ -152,8 +178,15 @@ const Signup = () => {
             <span className="text-2xl font-bold text-white">Uni<span className="text-primary">Tv</span>Film</span>
           </Link>
           <h1 className="text-2xl sm:text-3xl font-bold text-white px-4">
-            {step === 'plans' ? 'Escolha seu Plano' : 'Para finalizar, crie sua conta'}
+            {isTrialActive 
+              ? '🔥 Campanha Especial: 30 Dias Grátis!' 
+              : (step === 'plans' ? 'Escolha seu Plano' : 'Para finalizar, crie sua conta')}
           </h1>
+          {isTrialActive && (
+            <p className="text-primary font-medium mt-2 animate-pulse">
+                Você ganhou acesso total ilimitado por 1 mês! Sem custos.
+            </p>
+          )}
         </div>
 
         {step === 'plans' ? (
@@ -204,8 +237,19 @@ const Signup = () => {
         ) : (
           <div className="max-w-md mx-auto bg-zinc-900 border border-zinc-800 rounded-xl p-6 sm:p-8">
             <div className="mb-6 flex items-center justify-between">
-              <h3 className="font-semibold text-lg text-white">Plano Selecionado: <span className="text-primary">{selectedPlan?.name}</span></h3>
-              <Button variant="ghost" size="sm" onClick={() => setStep('plans')} className="text-xs">Alterar</Button>
+              <h3 className="font-semibold text-lg text-white">
+                {isTrialActive ? (
+                  <span className="flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-primary" />
+                    Plano Selecionado: <span className="text-primary italic">30 Dias Grátis</span>
+                  </span>
+                ) : (
+                  <>Plano Selecionado: <span className="text-primary">{selectedPlan?.name}</span></>
+                )}
+              </h3>
+              {!isTrialActive && (
+                <Button variant="ghost" size="sm" onClick={() => setStep('plans')} className="text-xs">Alterar</Button>
+              )}
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">

@@ -393,6 +393,7 @@ export interface SiteSettings {
   holidayDecorationsEnabled?: boolean;
   holidayDecorationsType?: 'christmas' | 'newyear' | 'both';
   youtubeApiKey?: string;
+  freeTrialMode?: boolean;
 }
 
 export const getSiteSettings = async (): Promise<SiteSettings> => {
