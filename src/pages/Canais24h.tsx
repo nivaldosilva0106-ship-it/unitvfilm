@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, memo } from "react";
+import { useState, useEffect, useCallback, useRef, memo, useMemo } from "react";
 import { getAllContents } from "@/lib/firebase";
 import { Header } from "@/components/Header";
 import { Content, Episode } from "@/types/content";
@@ -361,14 +361,28 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
     isFullscreen?: boolean;
     title?: string;
 }) => {
-    const [isPlaying, setIsPlaying] = useState(false);
+    // Normalize Facebook Reels URLs to standard Video URLs
+    const normalizedUrl = useMemo(() => {
+        let u = url;
+        // Match /reel/XXXX or /videos/XXXX or ?v=XXXX
+        if (u.includes('facebook.com/reel/')) {
+            const reelMatch = u.match(/facebook\.com\/reel\/(\d+)/);
+            if (reelMatch && reelMatch[1]) {
+                u = `https://www.facebook.com/facebook/videos/${reelMatch[1]}/`;
+            }
+        }
+        return u;
+    }, [url]);
+
+    const [isPlaying, setIsPlaying] = useState(active);
     const [isMuted, setIsMuted] = useState(!active);
     const [volume, setVolume] = useState(1);
     const [showControls, setShowControls] = useState(false);
     const playerRef = useRef<any>(null);
 
-    // Sync active state with mute
+    // Sync active state with player state
     useEffect(() => {
+        setIsPlaying(active);
         setIsMuted(!active);
     }, [active]);
 
@@ -405,26 +419,37 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
             onMouseLeave={() => isPlaying && setShowControls(false)}
             onClick={togglePlay}
         >
-            <ReactPlayer
-                ref={playerRef}
-                url={url}
-                width="100%"
-                height="100%"
-                playing={active && isPlaying}
-                muted={isMuted}
-                volume={volume}
-                onProgress={handleProgress}
-                onEnded={onEnded}
-                onPlay={() => setIsPlaying(true)}
-                onPause={() => setIsPlaying(false)}
-                progressInterval={1000}
-                config={{
-                    facebook: {
-                        appId: '123456789' // Generic or optional
-                    }
-                }}
-                style={{ position: 'absolute', top: 0, left: 0 }}
-            />
+            {url.includes('facebook.com') || url.includes('fb.watch') ? (
+                <iframe
+                    src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&t=0&autoplay=${active ? 1 : 0}&mute=${isMuted ? 1 : 0}`}
+                    width="100%"
+                    height="100%"
+                    style={{ border: 'none', overflow: 'hidden', position: 'absolute', top: 0, left: 0 }}
+                    scrolling="no"
+                    frameBorder="0"
+                    allowFullScreen={true}
+                    allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                    onLoad={() => {
+                         if (active) onTimeUpdate(1); // Fake some progress to trigger any logic
+                    }}
+                />
+            ) : (
+                <ReactPlayer
+                    ref={playerRef}
+                    url={url}
+                    width="100%"
+                    height="100%"
+                    playing={active && isPlaying}
+                    muted={isMuted}
+                    volume={volume}
+                    onProgress={handleProgress}
+                    onEnded={onEnded}
+                    onPlay={() => setIsPlaying(true)}
+                    onPause={() => setIsPlaying(false)}
+                    progressInterval={1000}
+                    style={{ position: 'absolute', top: 0, left: 0 }}
+                />
+            )}
 
             {/* UI Custom Overlay (consistent with YouTubePlayer) */}
             <div 
