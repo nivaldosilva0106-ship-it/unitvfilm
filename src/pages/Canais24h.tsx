@@ -361,19 +361,6 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
     isFullscreen?: boolean;
     title?: string;
 }) => {
-    // Normalize Facebook Reels URLs to standard Video URLs
-    const normalizedUrl = useMemo(() => {
-        let u = url;
-        // Match /reel/XXXX or /videos/XXXX or ?v=XXXX
-        if (u.includes('facebook.com/reel/')) {
-            const reelMatch = u.match(/facebook\.com\/reel\/(\d+)/);
-            if (reelMatch && reelMatch[1]) {
-                u = `https://www.facebook.com/facebook/videos/${reelMatch[1]}/`;
-            }
-        }
-        return u;
-    }, [url]);
-
     const [isPlaying, setIsPlaying] = useState(active);
     const [isMuted, setIsMuted] = useState(true);
     const [volume, setVolume] = useState(1);
@@ -419,38 +406,29 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
             onClick={togglePlay}
         >
             {url.includes('facebook.com') || url.includes('fb.watch') ? (
-                <div className="absolute inset-0 bg-black">
-                    <ReactPlayer
-                        ref={playerRef}
-                        url={normalizedUrl}
+                <div className="absolute inset-0 bg-black flex items-center justify-center">
+                    <iframe
+                        src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&t=0&autoplay=1&mute=1`}
                         width="100%"
                         height="100%"
-                        playing={active && isPlaying}
-                        muted={isMuted}
-                        volume={volume}
-                        onProgress={handleProgress}
-                        onEnded={onEnded}
-                        onPlay={() => setIsPlaying(true)}
-                        onPause={() => setIsPlaying(false)}
-                        progressInterval={1000}
-                        config={{
-                            facebook: {
-                                appId: '123456789'
-                            }
+                        style={{ border: 'none', overflow: 'hidden' }}
+                        scrolling="no"
+                        frameBorder="0"
+                        allowFullScreen={true}
+                        allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                        onLoad={() => {
+                            if (active) onTimeUpdate(1);
                         }}
-                        style={{ position: 'absolute', top: 0, left: 0 }}
                     />
                     
-                    {/* UI Patches to hide Facebook branding elements without cropping the video */}
+                    {/* UI Patches to hide Facebook branding elements */}
                     {active && (
                         <>
                             {/* Hide Top Left Branding (Logo/Name) */}
-                            <div className="absolute top-0 left-0 w-[50%] h-[60px] bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10" />
-                            <div className="absolute top-[10px] left-[10px] w-[150px] h-[40px] bg-black/90 blur-md pointer-events-none z-20" />
+                            <div className="absolute top-0 left-0 w-[40%] h-[50px] bg-black/80 blur-sm pointer-events-none z-10" />
                             
                             {/* Hide Top Right Branding (Live/Share) */}
-                            <div className="absolute top-0 right-0 w-[50%] h-[60px] bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10" />
-                            <div className="absolute top-[10px] right-[10px] w-[120px] h-[40px] bg-black/90 blur-md pointer-events-none z-20" />
+                            <div className="absolute top-0 right-0 w-[30%] h-[50px] bg-black/80 blur-sm pointer-events-none z-10" />
                         </>
                     )}
                 </div>
