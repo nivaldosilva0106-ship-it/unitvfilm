@@ -375,15 +375,14 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
     }, [url]);
 
     const [isPlaying, setIsPlaying] = useState(active);
-    const [isMuted, setIsMuted] = useState(!active);
+    const [isMuted, setIsMuted] = useState(true);
     const [volume, setVolume] = useState(1);
     const [showControls, setShowControls] = useState(false);
     const playerRef = useRef<any>(null);
 
-    // Sync active state with player state
+    // Sync active state with playback
     useEffect(() => {
         setIsPlaying(active);
-        setIsMuted(!active);
     }, [active]);
 
     const handleProgress = (state: { playedSeconds: number; loadedSeconds: number }) => {
@@ -420,29 +419,40 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
             onClick={togglePlay}
         >
             {url.includes('facebook.com') || url.includes('fb.watch') ? (
-                /* Cropping Container to hide top branding (logo/share button) */
-                <div className="absolute inset-0 overflow-hidden pointer-events-none bg-black">
-                    <iframe
-                        src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&t=0&autoplay=1&mute=1`}
+                <div className="absolute inset-0 bg-black">
+                    <ReactPlayer
+                        ref={playerRef}
+                        url={normalizedUrl}
                         width="100%"
-                        height="calc(100% + 80px)"
-                        style={{ 
-                            border: 'none', 
-                            overflow: 'hidden', 
-                            position: 'absolute', 
-                            top: '-40px', 
-                            left: 0,
-                            transform: 'scale(1.1)',
-                            transformOrigin: 'top center'
+                        height="100%"
+                        playing={active && isPlaying}
+                        muted={isMuted}
+                        volume={volume}
+                        onProgress={handleProgress}
+                        onEnded={onEnded}
+                        onPlay={() => setIsPlaying(true)}
+                        onPause={() => setIsPlaying(false)}
+                        progressInterval={1000}
+                        config={{
+                            facebook: {
+                                appId: '123456789'
+                            }
                         }}
-                        scrolling="no"
-                        frameBorder="0"
-                        allowFullScreen={true}
-                        allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                        onLoad={() => {
-                            if (active) onTimeUpdate(1);
-                        }}
+                        style={{ position: 'absolute', top: 0, left: 0 }}
                     />
+                    
+                    {/* UI Patches to hide Facebook branding elements without cropping the video */}
+                    {active && (
+                        <>
+                            {/* Hide Top Left Branding (Logo/Name) */}
+                            <div className="absolute top-0 left-0 w-[50%] h-[60px] bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10" />
+                            <div className="absolute top-[10px] left-[10px] w-[150px] h-[40px] bg-black/90 blur-md pointer-events-none z-20" />
+                            
+                            {/* Hide Top Right Branding (Live/Share) */}
+                            <div className="absolute top-0 right-0 w-[50%] h-[60px] bg-gradient-to-b from-black/60 to-transparent pointer-events-none z-10" />
+                            <div className="absolute top-[10px] right-[10px] w-[120px] h-[40px] bg-black/90 blur-md pointer-events-none z-20" />
+                        </>
+                    )}
                 </div>
             ) : (
                 <ReactPlayer
