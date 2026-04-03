@@ -22,6 +22,7 @@ const Signup = () => {
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [isTrialActive, setIsTrialActive] = useState(false);
+  const [globalWhatsappNumber, setGlobalWhatsappNumber] = useState("244944016791");
 
   /* Background State */
   const [bgUrl, setBgUrl] = useState('/login-bg.jpg');
@@ -31,6 +32,9 @@ const Signup = () => {
       getSiteSettings().then(settings => {
         if (settings.loginBackgroundUrl) {
           setBgUrl(settings.loginBackgroundUrl);
+        }
+        if (settings.whatsappNumber) {
+          setGlobalWhatsappNumber(settings.whatsappNumber);
         }
         if (settings.freeTrialMode) {
           setIsTrialActive(true);
@@ -132,7 +136,7 @@ const Signup = () => {
       if (selectedPlan.requiresVerification) {
         // Paid Plan Flow
         const message = `Quero assinar o plano ${selectedPlan.name}.\nNome: ${name}\nEmail: ${email}\nTelefone: ${phone}\nPreço: ${selectedPlan.price} KZ`;
-        const whatsappNumber = selectedPlan.whatsappNumber || "244944016791";
+        const whatsappNumber = selectedPlan.whatsappNumber || globalWhatsappNumber;
         const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
 
         window.open(url, '_blank');

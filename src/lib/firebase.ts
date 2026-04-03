@@ -394,6 +394,7 @@ export interface SiteSettings {
   holidayDecorationsType?: 'christmas' | 'newyear' | 'both';
   youtubeApiKey?: string;
   freeTrialMode?: boolean;
+  whatsappNumber?: string;
 }
 
 export const getSiteSettings = async (): Promise<SiteSettings> => {
