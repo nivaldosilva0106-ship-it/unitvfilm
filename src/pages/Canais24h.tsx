@@ -420,19 +420,30 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
             onClick={togglePlay}
         >
             {url.includes('facebook.com') || url.includes('fb.watch') ? (
-                <iframe
-                    src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&t=0&autoplay=${active ? 1 : 0}&mute=${isMuted ? 1 : 0}`}
-                    width="100%"
-                    height="100%"
-                    style={{ border: 'none', overflow: 'hidden', position: 'absolute', top: 0, left: 0 }}
-                    scrolling="no"
-                    frameBorder="0"
-                    allowFullScreen={true}
-                    allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
-                    onLoad={() => {
-                         if (active) onTimeUpdate(1); // Fake some progress to trigger any logic
-                    }}
-                />
+                /* Cropping Container to hide top branding (logo/share button) */
+                <div className="absolute inset-0 overflow-hidden pointer-events-none bg-black">
+                    <iframe
+                        src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&t=0&autoplay=1&mute=1`}
+                        width="100%"
+                        height="calc(100% + 80px)"
+                        style={{ 
+                            border: 'none', 
+                            overflow: 'hidden', 
+                            position: 'absolute', 
+                            top: '-40px', 
+                            left: 0,
+                            transform: 'scale(1.1)',
+                            transformOrigin: 'top center'
+                        }}
+                        scrolling="no"
+                        frameBorder="0"
+                        allowFullScreen={true}
+                        allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"
+                        onLoad={() => {
+                            if (active) onTimeUpdate(1);
+                        }}
+                    />
+                </div>
             ) : (
                 <ReactPlayer
                     ref={playerRef}
