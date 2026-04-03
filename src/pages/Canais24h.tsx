@@ -347,6 +347,124 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, playbackSpeed, onT
 YouTubePlayer.displayName = "YouTubePlayer";
 
 // ============================================================
+// SOCIAL PLAYER — Handles Facebook and X (Twitter)
+// ============================================================
+import ReactPlayerComponent from 'react-player';
+const ReactPlayer = ReactPlayerComponent as any;
+
+const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscreen, isFullscreen, title }: {
+    url: string;
+    active: boolean;
+    onTimeUpdate: (time: number, duration?: number) => void;
+    onEnded: () => void;
+    onToggleFullscreen?: () => void;
+    isFullscreen?: boolean;
+    title?: string;
+}) => {
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [isMuted, setIsMuted] = useState(!active);
+    const [volume, setVolume] = useState(1);
+    const [showControls, setShowControls] = useState(false);
+    const playerRef = useRef<any>(null);
+
+    // Sync active state with mute
+    useEffect(() => {
+        setIsMuted(!active);
+    }, [active]);
+
+    const handleProgress = (state: { playedSeconds: number; loadedSeconds: number }) => {
+        if (active) {
+            onTimeUpdate(state.playedSeconds);
+        }
+    };
+
+    const togglePlay = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsPlaying(!isPlaying);
+    };
+
+    const toggleMute = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setIsMuted(!isMuted);
+    };
+
+    // Auto-hide controls
+    const controlsTimeoutRef = useRef<any>(null);
+    const handleMouseMove = () => {
+        setShowControls(true);
+        if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+        controlsTimeoutRef.current = setTimeout(() => {
+            if (isPlaying) setShowControls(false);
+        }, 3000);
+    };
+
+    return (
+        <div 
+            className="w-full h-full bg-black relative group overflow-hidden"
+            onMouseMove={handleMouseMove}
+            onMouseLeave={() => isPlaying && setShowControls(false)}
+            onClick={togglePlay}
+        >
+            <ReactPlayer
+                ref={playerRef}
+                url={url}
+                width="100%"
+                height="100%"
+                playing={active && isPlaying}
+                muted={isMuted}
+                volume={volume}
+                onProgress={handleProgress}
+                onEnded={onEnded}
+                onPlay={() => setIsPlaying(true)}
+                onPause={() => setIsPlaying(false)}
+                progressInterval={1000}
+                config={{
+                    facebook: {
+                        appId: '123456789' // Generic or optional
+                    }
+                }}
+                style={{ position: 'absolute', top: 0, left: 0 }}
+            />
+
+            {/* UI Custom Overlay (consistent with YouTubePlayer) */}
+            <div 
+                className={`absolute inset-0 flex flex-col justify-end transition-opacity duration-300 z-30 ${showControls || !isPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
+                onClick={(e) => e.stopPropagation()}
+            >
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
+                
+                {title && (
+                    <div className="absolute top-4 left-4 right-4 z-40">
+                        <h2 className="text-white font-bold text-sm md:text-lg drop-shadow-lg line-clamp-1">{title}</h2>
+                    </div>
+                )}
+                
+                <div className="relative p-3 md:p-4 space-y-2 md:space-y-3 z-40">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1 md:gap-2">
+                             <button onClick={togglePlay} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
+                                 {isPlaying ? <Pause className="w-4 h-4 md:w-6 md:h-6 text-white fill-white" /> : <Play className="w-4 h-4 md:w-6 md:h-6 text-white fill-white ml-0.5" />}
+                             </button>
+                             <div className="flex items-center gap-1 md:gap-2">
+                                  <button onClick={toggleMute} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
+                                      {isMuted || volume === 0 ? <VolumeX className="w-4 h-4 md:w-5 md:h-5 text-white" /> : <Volume2 className="w-4 h-4 md:w-5 md:h-5 text-white" />}
+                                  </button>
+                             </div>
+                        </div>
+                        {onToggleFullscreen && (
+                             <button onClick={onToggleFullscreen} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
+                                  {isFullscreen ? <Minimize className="w-4 h-4 md:w-5 md:h-5 text-white" /> : <Maximize className="w-4 h-4 md:w-5 md:h-5 text-white" />}
+                             </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+});
+SocialPlayer.displayName = "SocialPlayer";
+
+// ============================================================
 // PLAYER SLOT — Renders YouTube or VideoPlayer
 // ============================================================
 const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeUpdate, onEnded, onToggleFullscreen, isFullscreen }: {
@@ -368,6 +486,9 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
 
     const ytId = content ? getYtId(content.url) : null;
     const isTikTok = content?.url?.includes("tiktok.com") || false;
+    const isFacebook = content?.url?.includes("facebook.com") || content?.url?.includes("fb.watch") || false;
+    const isTwitter = content?.url?.includes("twitter.com") || content?.url?.includes("x.com") || false;
+    const isSocial = isFacebook || isTwitter;
 
         // TikTok auto-skip if error
     useEffect(() => {
@@ -412,6 +533,16 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
                     startTime={content.startTime || 0}
                     active={active}
                     playbackSpeed={content.playbackSpeed}
+                    onTimeUpdate={onTimeUpdate || (() => {})}
+                    onEnded={onEnded || (() => {})}
+                    onToggleFullscreen={onToggleFullscreen}
+                    isFullscreen={isFullscreen}
+                    title={content.title}
+                />
+            ) : isSocial ? (
+                <SocialPlayer
+                    url={content.url}
+                    active={active}
                     onTimeUpdate={onTimeUpdate || (() => {})}
                     onEnded={onEnded || (() => {})}
                     onToggleFullscreen={onToggleFullscreen}

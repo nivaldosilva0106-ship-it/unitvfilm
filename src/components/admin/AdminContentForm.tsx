@@ -72,16 +72,20 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     // Helper for URL mapping
     const buildEpisodeURLs = (url: string) => {
       const isGoogle = url.includes('googleapis.com');
+      const isTikTok = url.includes('tiktok.com');
+      const isFacebook = url.includes('facebook.com') || url.includes('fb.watch');
+      const isTwitter = url.includes('twitter.com') || url.includes('x.com');
+      const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
+      const isSocial = isYouTube || isTikTok || isFacebook || isTwitter;
+
       let finalUrl = isGoogle ? "" : url;
       let google_drive_url = isGoogle && isNostalgiaSelected ? url : "";
       let internal_player_url = (isGoogle && !isNostalgiaSelected && !isCanais24hSelected) ? url : "";
-      let tiktok_url = "";
+      let tiktok_url = isTikTok ? url : "";
 
       if (isCanais24hSelected) {
         finalUrl = url;
-        if (url.includes('tiktok.com')) {
-          tiktok_url = url;
-        } else if (!url.includes('youtube.com') && !url.includes('youtu.be')) {
+        if (!isSocial) {
           internal_player_url = url;
         }
       }
