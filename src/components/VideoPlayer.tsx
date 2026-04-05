@@ -81,7 +81,7 @@ export const VideoPlayer = ({
   const audioContextRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
-  const [isAmplified, setIsAmplified] = useState(false); // Can be toggled in settings
+  const [isAmplified, setIsAmplified] = useState(true); // Enabled by default to boost low volume content like TikToks
 
   // Detect stream type
   const isHLS = url.includes('.m3u8') || url.includes('m3u8');
