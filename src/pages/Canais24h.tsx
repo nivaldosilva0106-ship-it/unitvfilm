@@ -338,7 +338,12 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
             onMouseLeave={() => isPlaying && setShowControls(false)}
             onClick={triggerTogglePlay}
         >
-            {/* Watermark Logo Overlay */}
+            <div className="absolute inset-[-15%] w-[130%] h-[130%]">
+                <div id={`yt-${id}-${videoId}`} className="w-full h-full" />
+            </div>
+            
+            <div className="absolute inset-0 z-20 pointer-events-none" />
+
             {watermarkUrl && (
                 <div className="absolute bottom-6 left-6 z-[35] pointer-events-none select-none transition-all duration-300 opacity-70">
                     <img 
@@ -348,15 +353,7 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                     />
                 </div>
             )}
-            {/* Scaled iframe to crop YouTube branding */}
-            <div className="absolute inset-[-15%] w-[130%] h-[130%]">
-                <div id={`yt-${id}-${videoId}`} className="w-full h-full" />
-            </div>
-            
-            {/* Transparent overlay blocks ALL native YouTube UI clicks */}
-            <div className="absolute inset-0 z-20 pointer-events-none" />
 
-            {/* Loading spinner until YouTube starts playing */}
             {!isPlaying && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 z-20 gap-4">
                     <div className="w-10 h-10 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
@@ -366,7 +363,6 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                 </div>
             )}
             
-            {/* Center Play Button (when paused) */}
             {!isPlaying && (
                 <div className="absolute inset-0 flex items-center justify-center z-20">
                     <button 
@@ -378,7 +374,6 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                 </div>
             )}
 
-            {/* UI Custom Overlay (Identical to VideoPlayer) */}
             <div 
                 className={`absolute inset-0 flex flex-col justify-end transition-opacity duration-300 z-30 ${showControls || !isPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
                 onClick={(e) => e.stopPropagation()}
@@ -392,8 +387,6 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                 )}
                 
                 <div className="relative p-3 md:p-4 space-y-2 md:space-y-3 z-40">
-                    {/* Progress bar removed for better TV experience */}
-
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1 md:gap-2">
                              <button onClick={triggerTogglePlay} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
@@ -406,7 +399,6 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                              </div>
                         </div>
                         <div className="flex items-center gap-1 md:gap-2">
-                            {/* Picture-in-Picture Button */}
                             <button 
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -659,7 +651,7 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
                                  </button>
                              )}
                         </div>
-                    </div>
+                         </div>
                     </div>
                 </div>
             </div>
