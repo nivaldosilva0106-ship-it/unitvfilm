@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Play, Search, Trash, Loader2, Link as LinkIcon, Download, DownloadIcon, CheckCircle2, Clapperboard, MonitorPlay, Sparkles, X, Plus, PlusCircle, Maximize, AlertTriangle, ShieldCheck, ChevronUp, ChevronDown, Save, Lock, Bell, Upload, Film, Tv, RefreshCw } from "lucide-react";
+import { Play, Search, Trash, Loader2, Link as LinkIcon, Download, DownloadIcon, CheckCircle2, Clapperboard, MonitorPlay, Sparkles, X, Plus, PlusCircle, Maximize, AlertTriangle, ShieldCheck, ChevronUp, ChevronDown, Save, Lock, Bell, Upload, Film, Tv, RefreshCw, Clipboard } from "lucide-react";
 import { toast } from "sonner";
 import { searchMovies, searchSeries, getImageUrl, getMovieTrailer, getSeriesTrailer, getMovieDetails, getSeriesDetails, getSeasonDetails } from "@/lib/tmdb";
 import { sendContentNotification, getAllContents, updateContent } from "@/lib/firebase";
@@ -233,6 +233,35 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
 
     setEditingContent(prev => ({ ...prev, episodes: ordered }));
     toast.success("Programação organizada (2 em 2)!");
+  };
+
+  const exportProgramming = () => {
+    if (!editingContent.episodes || editingContent.episodes.length === 0) {
+      toast.error("Não há episódios para exportar.");
+      return;
+    }
+
+    const text = editingContent.episodes.map((ep, i) => {
+      const speedLabel = ep.playback_speed === 1 ? "Normal" : `${ep.playback_speed || 1}x`;
+      return `${i + 1}
+x
+${ep.title || "Sem Título"}
+
+${speedLabel}
+${ep.post_video_intervals || 0}
+x
+${ep.post_video_ads || 0}
+x
+${ep.description || ""} 
+${ep.url || ""}`;
+    }).join('\n\n---\n\n');
+
+    navigator.clipboard.writeText(text).then(() => {
+      toast.success("Programação copiada para a área de transferência!");
+    }).catch(err => {
+      console.error('Falha ao copiar:', err);
+      toast.error("Erro ao copiar programação.");
+    });
   };
 
   const isNostalgia = editingContent.category === 'nostalgia';
@@ -1183,6 +1212,16 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
                   Ordem (2 em 2 Episódios)
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={exportProgramming}
+                  className="border-indigo-500/40 text-indigo-400 hover:bg-indigo-500/10"
+                >
+                  <Clipboard className="w-4 h-4 mr-2" />
+                  Exportar Programação
                 </Button>
               </div>
             )}

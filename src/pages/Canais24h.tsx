@@ -426,7 +426,6 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                         </div>
                     </div>
                 </div>
-                </div>
             </div>
         </div>
     );
@@ -661,11 +660,11 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
                              )}
                         </div>
                     </div>
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-);
+    );
 });
 SocialPlayer.displayName = "SocialPlayer";
 
@@ -1344,9 +1343,6 @@ export default function Canais24h() {
                                     onTimeUpdate={handleTimeUpdate}
                                     onEnded={handleEndedB}
                                     onToggleFullscreen={toggleFullscreen}
-                                    isFullscreen={isFullscreen}
-                                />
-
                                     isFullscreen={isFullscreen}
                                 />
 

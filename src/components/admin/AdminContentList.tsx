@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,20 +21,47 @@ export const AdminContentList = ({
   setEditingContent,
   handleDelete,
 }: AdminContentListProps) => {
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
-  // Filtra a lista de conteúdos com base na query de busca
+  const categories = [
+    { id: "all", label: "Todos" },
+    { id: "filme", label: "Filmes" },
+    { id: "serie", label: "Séries" },
+    { id: "tv", label: "TV Online" },
+    { id: "nostalgia", label: "Nostalgia" },
+    { id: "canais24h", label: "Canais 24h" },
+  ];
+
+  // Filtra a lista de conteúdos com base na categoria e search query
   const filteredContents = allContents.filter(content => {
-    if (listSearchQuery.trim() === "") return true;
-    const lowerCaseQuery = listSearchQuery.toLowerCase();
-    return (
-      content.title.toLowerCase().includes(lowerCaseQuery) ||
-      content.category.toLowerCase().includes(lowerCaseQuery)
-    );
+    const matchesCategory = selectedCategory === "all" || content.category === selectedCategory;
+    const matchesSearch = listSearchQuery.trim() === "" || 
+      content.title.toLowerCase().includes(listSearchQuery.toLowerCase()) ||
+      content.category.toLowerCase().includes(listSearchQuery.toLowerCase());
+    
+    return matchesCategory && matchesSearch;
   });
 
   return (
     <Card className="p-6 bg-card border-border flex flex-col h-full overflow-hidden">
-      <h2 className="text-xl font-semibold text-foreground mb-4">Conteúdos Cadastrados</h2>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+        <h2 className="text-xl font-semibold text-foreground">Conteúdos Cadastrados</h2>
+        
+        {/* Category Filters */}
+        <div className="flex flex-wrap gap-1.5 p-1 bg-muted/30 rounded-lg border border-border/50">
+          {categories.map((cat) => (
+            <Button
+              key={cat.id}
+              variant={selectedCategory === cat.id ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setSelectedCategory(cat.id)}
+              className={`h-7 px-2.5 text-[11px] font-medium transition-all ${selectedCategory === cat.id ? 'shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+            >
+              {cat.label}
+            </Button>
+          ))}
+        </div>
+      </div>
 
       <div className="relative mb-4">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
