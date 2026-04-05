@@ -467,7 +467,6 @@ export const VideoPlayer = ({
     >
       <video
         ref={videoRef}
-        poster={poster}
         className="w-full h-full object-cover"
         playsInline
         crossOrigin="anonymous"
@@ -483,6 +482,15 @@ export const VideoPlayer = ({
           />
         )}
       </video>
+
+      {/* Custom Poster Overlay - Fixes PiP native aspect ratio bug in Chromium */}
+      {poster && currentTime === 0 && !isPlaying && (
+        <img 
+          src={poster} 
+          alt="Poster" 
+          className="absolute inset-0 w-full h-full object-contain bg-black pointer-events-none z-10 opacity-70"
+        />
+      )}
 
       {/* Buffering Indicator */}
       {isBuffering && (
