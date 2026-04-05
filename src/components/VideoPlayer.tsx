@@ -81,8 +81,7 @@ export const VideoPlayer = ({
   const audioContextRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
-  const [isAmplified, setIsAmplified] = useState(true); // Enabled by default as per request
-  const boostLevel = 4.0; // Significant boost factor
+  const [isAmplified, setIsAmplified] = useState(false); // Can be toggled in settings
 
   // Detect stream type
   const isHLS = url.includes('.m3u8') || url.includes('m3u8');
@@ -260,13 +259,52 @@ export const VideoPlayer = ({
     };
   }, [onEnded, onTimeUpdate, playbackRate]);
 
-  // Sync volume with video element on mount and when volume/muted changes
+  // Create AudioContext only ONCE on first play to bypass browser autoplay rules
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+
+    const initAudioContext = () => {
+      try {
+        if (!audioContextRef.current) {
+          audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+          sourceNodeRef.current = audioContextRef.current.createMediaElementSource(video);
+          gainNodeRef.current = audioContextRef.current.createGain();
+
+          sourceNodeRef.current.connect(gainNodeRef.current);
+          gainNodeRef.current.connect(audioContextRef.current.destination);
+          
+          // Initial sync
+          if (gainNodeRef.current) {
+            gainNodeRef.current.gain.value = isMuted || volume === 0 ? 0 : (isAmplified ? volume * 4.0 : volume);
+          }
+        }
+      } catch (err) {
+        console.warn("AudioContext failed (CORS or unsupported):", err);
+      }
+    };
+
+    video.addEventListener('play', initAudioContext, { once: true });
+  }, []);
+
+  // Sync volume with native video AND Web Audio API
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    // Fallback: update native element volume
     video.volume = volume;
     video.muted = isMuted;
-  }, [volume, isMuted]);
+
+    // Update Web Audio API if active
+    if (gainNodeRef.current) {
+       if (isMuted || volume === 0) {
+           gainNodeRef.current.gain.value = 0;
+       } else {
+           gainNodeRef.current.gain.value = isAmplified ? volume * 4.0 : volume;
+       }
+    }
+  }, [volume, isMuted, isAmplified]);
 
   useEffect(() => {
     const handleFSChange = () => {
@@ -278,48 +316,7 @@ export const VideoPlayer = ({
     return () => document.removeEventListener('fullscreenchange', handleFSChange);
   }, [onToggleFullscreen]);
 
-  // Handle audio amplification
-  useEffect(() => {
-    const video = videoRef.current;
-    if (!video || !isAmplified) return;
 
-    const initAudio = () => {
-      try {
-        if (!audioContextRef.current) {
-          audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
-        }
-
-        const ctx = audioContextRef.current;
-
-        if (!sourceNodeRef.current) {
-          sourceNodeRef.current = ctx.createMediaElementSource(video);
-        }
-
-        if (!gainNodeRef.current) {
-          gainNodeRef.current = ctx.createGain();
-          gainNodeRef.current.gain.value = boostLevel;
-        }
-
-        const source = sourceNodeRef.current;
-        const gain = gainNodeRef.current;
-
-        source.connect(gain);
-        gain.connect(ctx.destination);
-
-        console.log("Audio amplification initialized with boost:", boostLevel);
-      } catch (err) {
-        console.error("Failed to initialize audio amplification:", err);
-      }
-    };
-
-    // Need to initialize on first interaction or when video is ready
-    video.addEventListener('play', initAudio, { once: true });
-
-    return () => {
-      // We don't necessarily want to disconnect everything on every render, 
-      // but if the component unmounts, we should cleanup.
-    };
-  }, [isAmplified, boostLevel]);
 
   // Hide controls on inactivity
   const resetHideTimer = useCallback(() => {
@@ -670,6 +667,20 @@ export const VideoPlayer = ({
                       <div className="h-px bg-white/10 my-1" />
                     </>
                   )}
+
+                  {/* Audio Volume Settings */}
+                  <div className="px-2 py-1.5 text-[10px] md:text-xs text-gray-400 font-semibold mt-1">Áudio</div>
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                       e.preventDefault(); // keep dropdown open when toggling
+                       setIsAmplified(!isAmplified);
+                    }}
+                    className={`text-white hover:bg-white/10 cursor-pointer text-xs md:text-sm ${isAmplified ? 'bg-primary/20' : ''}`}
+                  >
+                    Amplificador (400%)
+                    {isAmplified && <span className="ml-auto text-primary">✓</span>}
+                  </DropdownMenuItem>
+                  <div className="h-px bg-white/10 my-1" />
 
                   {/* Playback Speed */}
                   <div className="px-2 py-1.5 text-[10px] md:text-xs text-gray-400 font-semibold">Velocidade</div>
