@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Loader2, Film, Tv, Clock } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
-import { Volume2, VolumeX, Maximize, Minimize, Play, Pause, SkipBack, SkipForward } from "lucide-react";
+import { Volume2, VolumeX, Maximize, Minimize, Play, Pause, SkipBack, SkipForward, PictureInPicture } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
 declare global {
@@ -333,11 +333,24 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, playbackSpeed, onT
                                   </button>
                              </div>
                         </div>
-                        {onToggleFullscreen && (
-                             <button onClick={onToggleFullscreen} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
-                                  {isFullscreen ? <Minimize className="w-4 h-4 md:w-5 md:h-5 text-white" /> : <Maximize className="w-4 h-4 md:w-5 md:h-5 text-white" />}
-                             </button>
-                        )}
+                        <div className="flex items-center gap-1 md:gap-2">
+                            {/* Picture-in-Picture Button — Show only if browser supports it for iframes or provides a fallback */}
+                            {document.pictureInPictureEnabled && (
+                                <button 
+                                    onClick={() => toast.info("Para usar o Mini-Player no YouTube, utilize o menu de contexto do navegador (botão direito duas vezes ou pressionar longamente).")}
+                                    className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                                    title="Mini-Player"
+                                >
+                                    <PictureInPicture className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                                </button>
+                            )}
+
+                            {onToggleFullscreen && (
+                                <button onClick={onToggleFullscreen} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
+                                    {isFullscreen ? <Minimize className="w-4 h-4 md:w-5 md:h-5 text-white" /> : <Maximize className="w-4 h-4 md:w-5 md:h-5 text-white" />}
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
@@ -475,11 +488,23 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
                                   </button>
                              </div>
                         </div>
-                        {onToggleFullscreen && (
-                             <button onClick={onToggleFullscreen} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
-                                  {isFullscreen ? <Minimize className="w-4 h-4 md:w-5 md:h-5 text-white" /> : <Maximize className="w-4 h-4 md:w-5 md:h-5 text-white" />}
-                             </button>
-                        )}
+                        <div className="flex items-center gap-1 md:gap-2">
+                             {document.pictureInPictureEnabled && (
+                                 <button 
+                                     onClick={() => toast.info("Este leitor utiliza conteúdos externos. Utilize as opções nativas do seu dispositivo para o Mini-Player.")}
+                                     className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                                     title="Mini-Player"
+                                 >
+                                     <PictureInPicture className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                                 </button>
+                             )}
+
+                             {onToggleFullscreen && (
+                                 <button onClick={onToggleFullscreen} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
+                                      {isFullscreen ? <Minimize className="w-4 h-4 md:w-5 md:h-5 text-white" /> : <Maximize className="w-4 h-4 md:w-5 md:h-5 text-white" />}
+                                 </button>
+                             )}
+                        </div>
                     </div>
                 </div>
             </div>
