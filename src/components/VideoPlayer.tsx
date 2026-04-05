@@ -616,26 +616,26 @@ export const VideoPlayer = ({
             <div className="flex items-center gap-1 md:gap-2">
 
               {/* Picture-in-Picture (Mini-Player) */}
-              {document.pictureInPictureEnabled && (
-                <button
-                  onClick={async () => {
-                    if (!videoRef.current) return;
-                    try {
-                      if (document.pictureInPictureElement) {
-                        await document.exitPictureInPicture();
-                      } else {
-                        await videoRef.current.requestPictureInPicture();
-                      }
-                    } catch (e) {
-                      console.error("Picture-in-Picture failed:", e);
+              <button
+                onClick={async () => {
+                  if (!videoRef.current) return;
+                  try {
+                    if (document.pictureInPictureElement) {
+                      await document.exitPictureInPicture();
+                    } else if (videoRef.current.requestPictureInPicture) {
+                      await videoRef.current.requestPictureInPicture();
+                    } else {
+                       console.warn("Mini-Player não suportado nativamente neste navegador.");
                     }
-                  }}
-                  title="Mini-Player"
-                  className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
-                >
-                  <PictureInPicture className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                </button>
-              )}
+                  } catch (e) {
+                    console.error("Picture-in-Picture failed:", e);
+                  }
+                }}
+                title="Mini-Player"
+                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+              >
+                <PictureInPicture className="w-4 h-4 md:w-5 md:h-5 text-white" />
+              </button>
 
               {/* Settings Menu */}
               <DropdownMenu>

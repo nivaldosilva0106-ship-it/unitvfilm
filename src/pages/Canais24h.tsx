@@ -334,16 +334,14 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, playbackSpeed, onT
                              </div>
                         </div>
                         <div className="flex items-center gap-1 md:gap-2">
-                            {/* Picture-in-Picture Button — Show only if browser supports it for iframes or provides a fallback */}
-                            {document.pictureInPictureEnabled && (
-                                <button 
-                                    onClick={() => toast.info("Para usar o Mini-Player no YouTube, utilize o menu de contexto do navegador (botão direito duas vezes ou pressionar longamente).")}
-                                    className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
-                                    title="Mini-Player"
-                                >
-                                    <PictureInPicture className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                                </button>
-                            )}
+                            {/* Picture-in-Picture Button */}
+                            <button 
+                                onClick={() => toast.info("Para usar o Mini-Player no YouTube, utilize o menu de contexto do navegador (botão direito duas vezes ou pressionar longamente).")}
+                                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                                title="Mini-Player"
+                            >
+                                <PictureInPicture className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                            </button>
 
                             {onToggleFullscreen && (
                                 <button onClick={onToggleFullscreen} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
@@ -489,15 +487,13 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
                              </div>
                         </div>
                         <div className="flex items-center gap-1 md:gap-2">
-                             {document.pictureInPictureEnabled && (
-                                 <button 
-                                     onClick={() => toast.info("Este leitor utiliza conteúdos externos. Utilize as opções nativas do seu dispositivo para o Mini-Player.")}
-                                     className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
-                                     title="Mini-Player"
-                                 >
-                                     <PictureInPicture className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                                 </button>
-                             )}
+                             <button 
+                                 onClick={() => toast.info("Este leitor utiliza conteúdos externos. Utilize as opções nativas do seu dispositivo para o Mini-Player.")}
+                                 className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                                 title="Mini-Player"
+                             >
+                                 <PictureInPicture className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                             </button>
 
                              {onToggleFullscreen && (
                                  <button onClick={onToggleFullscreen} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
