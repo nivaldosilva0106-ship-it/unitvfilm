@@ -27,6 +27,7 @@ interface VideoPlayerProps {
   onToggleFullscreen?: () => void;
   isFullscreen?: boolean;
   initialPlaybackRate?: number;
+  watermarkUrl?: string;
 }
 
 const formatTime = (seconds: number): string => {
@@ -38,9 +39,7 @@ const formatTime = (seconds: number): string => {
     return `${hrs}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   }
   return `${mins}:${secs.toString().padStart(2, '0')}`;
-};
-
-export const VideoPlayer = ({
+};export const VideoPlayer = ({
   url,
   poster,
   title,
@@ -53,11 +52,15 @@ export const VideoPlayer = ({
   muted = false,
   onToggleFullscreen,
   isFullscreen: isFullscreenProp,
-  initialPlaybackRate = 1
+  initialPlaybackRate = 1,
+  watermarkUrl
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const pipWindowRef = useRef<any>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const [isPiP, setIsPiP] = useState(false);
+
   const hideControlsTimer = useRef<NodeJS.Timeout | null>(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
@@ -441,6 +444,89 @@ export const VideoPlayer = ({
     setPlaybackRate(rate);
   };
 
+  const toggleMiniPlayer = async () => {
+    const video = videoRef.current;
+    const container = containerRef.current;
+    if (!video || !container) return;
+
+    // Check if the experimental Document Picture-in-Picture API is available
+    // and if we are not already in PiP.
+    // This API allows us to move an entire HTML element into an always-on-top window.
+    if ("documentPictureInPicture" in window && !isPiP) {
+      try {
+        const pipOptions = {
+          width: container.clientWidth || 640,
+          height: container.clientHeight || 360,
+        };
+
+        // @ts-ignore
+        const pipWindow = await window.documentPictureInPicture.requestWindow(pipOptions);
+        pipWindowRef.current = pipWindow;
+
+        // Move the player container into the PiP window.
+        pipWindow.document.body.append(container);
+        setIsPiP(true);
+
+        // Copy styles from the main window into the PiP window's document.
+        [...document.styleSheets].forEach((styleSheet) => {
+          try {
+            if (styleSheet.cssRules) {
+              const newStyle = pipWindow.document.createElement("style");
+              [...styleSheet.cssRules].forEach((rule) => {
+                newStyle.appendChild(pipWindow.document.createTextNode(rule.cssText));
+              });
+              pipWindow.document.head.appendChild(newStyle);
+            } else if (styleSheet.href) {
+              const newLink = pipWindow.document.createElement("link");
+              newLink.rel = "stylesheet";
+              newLink.href = styleSheet.href;
+              pipWindow.document.head.appendChild(newLink);
+            }
+          } catch (e) {
+            // Some cross-origin stylesheets might throw. Fallback by creating a link.
+            if (styleSheet.href) {
+                const newLink = pipWindow.document.createElement("link");
+                newLink.rel = "stylesheet";
+                newLink.href = styleSheet.href;
+                pipWindow.document.head.appendChild(newLink);
+            }
+          }
+        });
+
+        // Ensure background is correct
+        pipWindow.document.body.style.backgroundColor = "black";
+        pipWindow.document.body.style.margin = "0";
+        pipWindow.document.body.style.overflow = "hidden";
+
+        // Returning from PiP: When the PiP window is closed by the user,
+        // move the container back to the main document.
+        pipWindow.addEventListener("pagehide", () => {
+          const originalParent = document.getElementById("video-player-container-root");
+          if (originalParent) {
+            originalParent.append(container);
+          }
+          setIsPiP(false);
+          pipWindowRef.current = null;
+        });
+
+      } catch (err) {
+        console.error("Document PiP failed, falling back to Video PiP:", err);
+        try {
+           if (video.requestPictureInPicture) await video.requestPictureInPicture();
+        } catch (e) { console.error("Native PiP fallback failed:", e); }
+      }
+    } else if (document.pictureInPictureElement) {
+       // Exit native PiP
+       await document.exitPictureInPicture();
+    } else if (isPiP && pipWindowRef.current) {
+       // Exit Document PiP
+       pipWindowRef.current.close();
+    } else if (video.requestPictureInPicture) {
+       // Fallback to native Video PiP if Document PiP isn't supported or active.
+       await video.requestPictureInPicture();
+    }
+  };
+
   const getQualityLabel = (height: number): string => {
     if (height >= 2160) return '4K';
     if (height >= 1440) return '1440p';
@@ -455,8 +541,9 @@ export const VideoPlayer = ({
 
   return (
     <div
+      id="video-player-container-root"
       ref={containerRef}
-      className="relative w-full h-full bg-black group"
+      className={`relative w-full h-full bg-black group ${isPiP ? 'fixed inset-0 z-[9999]' : ''}`}
       onMouseMove={resetHideTimer}
       onMouseLeave={() => isPlaying && setShowControls(false)}
       onClick={(e) => {
@@ -496,6 +583,17 @@ export const VideoPlayer = ({
       {isBuffering && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/30 z-20">
           <Loader2 className="w-16 h-16 text-primary animate-spin" />
+        </div>
+      )}
+
+      {/* Watermark Logo Overlay - Persistent visibility! */}
+      {watermarkUrl && (
+        <div className="absolute bottom-6 left-6 z-[25] pointer-events-none select-none transition-all duration-300 opacity-70">
+           <img 
+            src={watermarkUrl} 
+            alt="Watermark" 
+            className="h-8 md:h-12 w-auto object-contain filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" 
+           />
         </div>
       )}
 
@@ -622,20 +720,7 @@ export const VideoPlayer = ({
 
               {/* Picture-in-Picture (Mini-Player) */}
               <button
-                onClick={async () => {
-                  if (!videoRef.current) return;
-                  try {
-                    if (document.pictureInPictureElement) {
-                      await document.exitPictureInPicture();
-                    } else if (videoRef.current.requestPictureInPicture) {
-                      await videoRef.current.requestPictureInPicture();
-                    } else {
-                       console.warn("Mini-Player não suportado nativamente neste navegador.");
-                    }
-                  } catch (e) {
-                    console.error("Picture-in-Picture failed:", e);
-                  }
-                }}
+                onClick={toggleMiniPlayer}
                 title="Mini-Player"
                 className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
               >

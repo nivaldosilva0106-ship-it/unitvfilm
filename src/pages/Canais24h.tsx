@@ -17,24 +17,25 @@ declare global {
     }
 }
 
-// ============================================================
-// YOUTUBE PLAYER — STABLE. Only recreates when videoId changes.
-// Uses refs for callbacks to prevent iframe destruction loops.
-// ============================================================
-const YouTubePlayer = memo(({ videoId, id, startTime, active, playbackSpeed, onTimeUpdate, onEnded, onToggleFullscreen, isFullscreen, title }: {
+const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEnded, playbackSpeed, onToggleFullscreen, isFullscreen, title, watermarkUrl }: {
     videoId: string;
     id: string;
     startTime: number;
     active: boolean;
-    playbackSpeed?: number;
     onTimeUpdate: (time: number, duration?: number) => void;
     onEnded: () => void;
+    playbackSpeed?: number;
     onToggleFullscreen?: () => void;
     isFullscreen?: boolean;
     title?: string;
+    watermarkUrl?: string;
 }) => {
     const playerRef = useRef<any>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const pipWindowRef = useRef<any>(null);
+    const [isPiP, setIsPiP] = useState(false);
     const intervalRef = useRef<any>(null);
+
     const [isPlaying, setIsPlaying] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [volume, setVolume] = useState(100);
@@ -99,6 +100,65 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, playbackSpeed, onT
         controlsTimeoutRef.current = setTimeout(() => {
             if (isPlaying) setShowControls(false);
         }, 3000);
+    };
+
+    const toggleMiniPlayer = async () => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        if ("documentPictureInPicture" in window && !isPiP) {
+            try {
+                // @ts-ignore
+                const pipWindow = await window.documentPictureInPicture.requestWindow({
+                    width: container.clientWidth || 640,
+                    height: container.clientHeight || 360,
+                });
+                pipWindowRef.current = pipWindow;
+
+                pipWindow.document.body.append(container);
+                setIsPiP(true);
+
+                // Copy styles
+                [...document.styleSheets].forEach((styleSheet) => {
+                    try {
+                        if (styleSheet.cssRules) {
+                            const newStyle = pipWindow.document.createElement("style");
+                            [...styleSheet.cssRules].forEach((rule) => {
+                                newStyle.appendChild(pipWindow.document.createTextNode(rule.cssText));
+                            });
+                            pipWindow.document.head.appendChild(newStyle);
+                        } else if (styleSheet.href) {
+                            const newLink = pipWindow.document.createElement("link");
+                            newLink.rel = "stylesheet";
+                            newLink.href = styleSheet.href;
+                            pipWindow.document.head.appendChild(newLink);
+                        }
+                    } catch (e) {
+                         if (styleSheet.href) {
+                            const newLink = pipWindow.document.createElement("link");
+                            newLink.rel = "stylesheet";
+                            newLink.href = styleSheet.href;
+                            pipWindow.document.head.appendChild(newLink);
+                        }
+                    }
+                });
+
+                pipWindow.document.body.style.backgroundColor = "black";
+                pipWindow.document.body.style.margin = "0";
+
+                pipWindow.addEventListener("pagehide", () => {
+                    const originalParent = document.getElementById(`yt-slot-container-${id}-${videoId}`);
+                    if (originalParent) originalParent.append(container);
+                    setIsPiP(false);
+                    pipWindowRef.current = null;
+                });
+            } catch (err) {
+                console.error("Document PiP failed:", err);
+                toast.error("Erro ao abrir Mini-Player");
+            }
+        } else if (isPiP && pipWindowRef.current) {
+            pipWindowRef.current.close();
+        }
     };
 
     useEffect(() => {
@@ -271,11 +331,23 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, playbackSpeed, onT
 
     return (
         <div 
+            ref={containerRef}
+            id={`yt-slot-container-${id}-${videoId}`}
             className="w-full h-full overflow-hidden relative bg-black group"
             onMouseMove={handleMouseMove}
             onMouseLeave={() => isPlaying && setShowControls(false)}
             onClick={triggerTogglePlay}
         >
+            {/* Watermark Logo Overlay */}
+            {watermarkUrl && (
+                <div className="absolute bottom-6 left-6 z-[35] pointer-events-none select-none transition-all duration-300 opacity-70">
+                    <img 
+                        src={watermarkUrl} 
+                        alt="Watermark" 
+                        className="h-8 md:h-12 w-auto object-contain filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" 
+                    />
+                </div>
+            )}
             {/* Scaled iframe to crop YouTube branding */}
             <div className="absolute inset-[-15%] w-[130%] h-[130%]">
                 <div id={`yt-${id}-${videoId}`} className="w-full h-full" />
@@ -336,7 +408,10 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, playbackSpeed, onT
                         <div className="flex items-center gap-1 md:gap-2">
                             {/* Picture-in-Picture Button */}
                             <button 
-                                onClick={() => toast.info("Para usar o Mini-Player no YouTube, utilize o menu de contexto do navegador (botão direito duas vezes ou pressionar longamente).")}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleMiniPlayer();
+                                }}
                                 className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
                                 title="Mini-Player"
                             >
@@ -351,6 +426,7 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, playbackSpeed, onT
                         </div>
                     </div>
                 </div>
+                </div>
             </div>
         </div>
     );
@@ -363,20 +439,84 @@ YouTubePlayer.displayName = "YouTubePlayer";
 import ReactPlayerComponent from 'react-player';
 const ReactPlayer = ReactPlayerComponent as any;
 
-const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscreen, isFullscreen, title }: {
+const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscreen, isFullscreen, title, watermarkUrl }: {
     url: string;
     active: boolean;
-    onTimeUpdate: (time: number, duration?: number) => void;
+    onTimeUpdate: (time: number) => void;
     onEnded: () => void;
     onToggleFullscreen?: () => void;
     isFullscreen?: boolean;
     title?: string;
+    watermarkUrl?: string;
 }) => {
+    const [isPiP, setIsPiP] = useState(false);
+    const pipWindowRef = useRef<any>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
     const [isPlaying, setIsPlaying] = useState(active);
     const [isMuted, setIsMuted] = useState(true);
     const [volume, setVolume] = useState(1);
     const [showControls, setShowControls] = useState(false);
     const playerRef = useRef<any>(null);
+
+    const toggleMiniPlayer = async () => {
+        const container = containerRef.current;
+        if (!container) return;
+
+        if ("documentPictureInPicture" in window && !isPiP) {
+            try {
+                // @ts-ignore
+                const pipWindow = await window.documentPictureInPicture.requestWindow({
+                    width: container.clientWidth || 640,
+                    height: container.clientHeight || 360,
+                });
+                pipWindowRef.current = pipWindow;
+
+                pipWindow.document.body.append(container);
+                setIsPiP(true);
+
+                // Copy styles
+                [...document.styleSheets].forEach((styleSheet) => {
+                    try {
+                        if (styleSheet.cssRules) {
+                            const newStyle = pipWindow.document.createElement("style");
+                            [...styleSheet.cssRules].forEach((rule) => {
+                                newStyle.appendChild(pipWindow.document.createTextNode(rule.cssText));
+                            });
+                            pipWindow.document.head.appendChild(newStyle);
+                        } else if (styleSheet.href) {
+                            const newLink = pipWindow.document.createElement("link");
+                            newLink.rel = "stylesheet";
+                            newLink.href = styleSheet.href;
+                            pipWindow.document.head.appendChild(newLink);
+                        }
+                    } catch (e) {
+                         if (styleSheet.href) {
+                            const newLink = pipWindow.document.createElement("link");
+                            newLink.rel = "stylesheet";
+                            newLink.href = styleSheet.href;
+                            pipWindow.document.head.appendChild(newLink);
+                        }
+                    }
+                });
+
+                pipWindow.document.body.style.backgroundColor = "black";
+                pipWindow.document.body.style.margin = "0";
+
+                pipWindow.addEventListener("pagehide", () => {
+                    const originalParent = document.getElementById(`social-slot-container-${url}`);
+                    if (originalParent) originalParent.append(container);
+                    setIsPiP(false);
+                    pipWindowRef.current = null;
+                });
+            } catch (err) {
+                console.error("Document PiP failed:", err);
+                toast.error("Erro ao abrir Mini-Player");
+            }
+        } else if (isPiP && pipWindowRef.current) {
+            pipWindowRef.current.close();
+        }
+    };
+
 
     // Sync active state with playback
     useEffect(() => {
@@ -411,11 +551,27 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
 
     return (
         <div 
-            className="w-full h-full bg-black relative group overflow-hidden"
-            onMouseMove={handleMouseMove}
-            onMouseLeave={() => isPlaying && setShowControls(false)}
-            onClick={togglePlay}
+            id={`social-slot-container-${url}`}
+            className={`w-full h-full bg-black relative group overflow-hidden ${isPiP ? 'fixed inset-0 z-[9999]' : ''}`}
         >
+            <div 
+                ref={containerRef}
+                className="w-full h-full relative"
+                onMouseMove={handleMouseMove}
+                onMouseLeave={() => isPlaying && setShowControls(false)}
+                onClick={togglePlay}
+            >
+                {/* Watermark Logo Overlay */}
+                {watermarkUrl && (
+                    <div className="absolute bottom-6 left-6 z-[35] pointer-events-none select-none transition-all duration-300 opacity-70">
+                        <img 
+                            src={watermarkUrl} 
+                            alt="Watermark" 
+                            className="h-8 md:h-12 w-auto object-contain filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" 
+                        />
+                    </div>
+                )}
+
             {url.includes('facebook.com') || url.includes('fb.watch') ? (
                 <div className="absolute inset-0 bg-black flex items-center justify-center">
                     <iframe
@@ -488,7 +644,10 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
                         </div>
                         <div className="flex items-center gap-1 md:gap-2">
                              <button 
-                                 onClick={() => toast.info("Este leitor utiliza conteúdos externos. Utilize as opções nativas do seu dispositivo para o Mini-Player.")}
+                                 onClick={(e) => {
+                                     e.stopPropagation();
+                                     toggleMiniPlayer();
+                                 }}
                                  className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
                                  title="Mini-Player"
                              >
@@ -505,7 +664,8 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
                 </div>
             </div>
         </div>
-    );
+    </div>
+);
 });
 SocialPlayer.displayName = "SocialPlayer";
 
@@ -572,17 +732,18 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
     return (
         <div className={`absolute inset-0 w-full h-full transition-opacity duration-700 ease-in-out ${active ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"}`}>
             {ytId ? (
-                <YouTubePlayer
-                    id={id}
+                <YouTubePlayer 
                     videoId={ytId}
-                    startTime={content.startTime || 0}
+                    id={id}
+                    startTime={content.startTime}
                     active={active}
-                    playbackSpeed={content.playbackSpeed}
                     onTimeUpdate={onTimeUpdate || (() => {})}
                     onEnded={onEnded || (() => {})}
+                    playbackSpeed={content.playbackSpeed}
                     onToggleFullscreen={onToggleFullscreen}
                     isFullscreen={isFullscreen}
                     title={content.title}
+                    watermarkUrl={channelThumb}
                 />
             ) : isSocial ? (
                 <SocialPlayer
@@ -593,6 +754,7 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
                     onToggleFullscreen={onToggleFullscreen}
                     isFullscreen={isFullscreen}
                     title={content.title}
+                    watermarkUrl={channelThumb}
                 />
             ) : (
                 <VideoPlayer
@@ -608,6 +770,7 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
                     isFullscreen={isFullscreen}
                     muted={!active}
                     initialPlaybackRate={content.playbackSpeed}
+                    watermarkUrl={channelThumb}
                 />
             )}
         </div>
@@ -1184,20 +1347,8 @@ export default function Canais24h() {
                                     isFullscreen={isFullscreen}
                                 />
 
-                                {/* Logo Watermark - z-20 stays BEHIND controls (z-30) */}
-                                {currentChannel.channel_logo_url && (
-                                    <div
-                                        className={`absolute bottom-6 left-6 z-20 pointer-events-none select-none transition-all duration-300 ${
-                                            isFullscreen ? "opacity-90 scale-125" : "opacity-70"
-                                        }`}
-                                    >
-                                        <img
-                                            src={currentChannel.channel_logo_url}
-                                            alt="Logo"
-                                            className="h-8 md:h-14 w-auto object-contain filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]"
-                                        />
-                                    </div>
-                                )}
+                                    isFullscreen={isFullscreen}
+                                />
 
                                 {/* Live Badge - Moved to Top Right and Right-Aligned */}
                                 <div className="absolute top-6 right-6 z-50 flex flex-row-reverse items-center gap-2 pointer-events-none transition-all">
