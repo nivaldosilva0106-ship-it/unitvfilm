@@ -1302,7 +1302,7 @@ ${ep.url || ""}`;
               </div>
             )}
 
-            {isNostalgia && (
+            {(isNostalgia || isCanais24h) && (
               <div className="flex gap-2 items-center mb-4 p-4 bg-red-900/10 border border-red-900/20 rounded-lg">
                 <Input
                   placeholder="URL da Playlist do YouTube (Extrair vídeos automaticamente)"
