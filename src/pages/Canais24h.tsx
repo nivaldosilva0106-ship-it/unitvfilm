@@ -35,6 +35,7 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
     const intervalRef = useRef<any>(null);
 
     const [isPlaying, setIsPlaying] = useState(false);
+    const [hasError, setHasError] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [volume, setVolume] = useState(100);
     const [showControls, setShowControls] = useState(false);
@@ -107,6 +108,7 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
         let retryTimer: any = null;
         let safetyTimer: any = null;
         setIsPlaying(false);
+        setHasError(false);
 
         const initPlayer = (attempt = 0) => {
             if (destroyed) return;
@@ -187,6 +189,18 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                                 }
                             } catch {}
                         }, 1000);
+                    },
+                    onError: (e: any) => {
+                        if (destroyed) return;
+                        setHasError(true);
+                        setIsPlaying(false);
+                        
+                        // If it's a critical error (like blocked video), auto-skip
+                        if (activeRef.current) {
+                            setTimeout(() => {
+                                onEndedRef.current();
+                            }, 3000); // Wait 3 seconds showing the cover before skipping
+                        }
                     },
                     onStateChange: (e: any) => {
                         if (destroyed) return;
@@ -284,15 +298,15 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
             onMouseLeave={() => isPlaying && setShowControls(false)}
             onClick={triggerTogglePlay}
         >
-            <div className={`absolute inset-[-15%] w-[130%] h-[130%] transition-opacity duration-700 pointer-events-none ${isPlaying ? 'opacity-100' : 'opacity-0'}`}>
+            <div className={`absolute inset-[-15%] w-[130%] h-[130%] transition-opacity duration-700 pointer-events-none ${isPlaying && !hasError ? 'opacity-100' : 'opacity-0'}`}>
                 <div id={`yt-${id}-${videoId}`} className="w-full h-full" />
             </div>
             
             {/* Catch clicks so they don't go to iframe */}
             <div className="absolute inset-0 z-10 pointer-events-none" />
 
-            {/* Logo / Loading Overlay */}
-            {!isPlaying && (
+            {/* Logo / Loading / Error Overlay */}
+            {(!isPlaying || hasError) && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-20 gap-6">
                     {watermarkUrl ? (
                         <div className="animate-pulse">
@@ -302,12 +316,12 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                         <div className="w-16 h-16 border-4 border-white/20 border-t-primary rounded-full animate-spin" />
                     )}
                     <p className="text-white/70 font-bold text-xs md:text-sm animate-pulse tracking-[0.2em] uppercase px-4 text-center">
-                        A ligar à emissão...
+                        {hasError ? "Conteúdo Indisponível. A saltar..." : "A ligar à emissão..."}
                     </p>
                 </div>
             )}
 
-            {watermarkUrl && isPlaying && (
+            {watermarkUrl && isPlaying && !hasError && (
                 <div className="absolute bottom-6 left-6 z-[35] pointer-events-none select-none transition-all duration-300 opacity-70">
                     <img 
                         src={watermarkUrl} 
@@ -317,7 +331,7 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                 </div>
             )}
             
-            {!isPlaying && (
+            {(!isPlaying && !hasError) && (
                 <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
                     <button 
                         className="w-14 h-14 md:w-20 md:h-20 bg-primary/90 hover:bg-primary rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl scale-110 opacity-0 group-hover:opacity-100"
@@ -328,7 +342,7 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
             )}
 
             <div 
-                className={`absolute inset-0 flex flex-col justify-end transition-opacity duration-300 z-30 ${showControls || !isPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
+                className={`absolute inset-0 flex flex-col justify-end transition-opacity duration-300 z-30 ${(!hasError && (showControls || !isPlaying)) ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
                 onClick={(e) => e.stopPropagation()}
             >
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
