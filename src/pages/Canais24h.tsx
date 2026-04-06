@@ -1309,7 +1309,8 @@ export default function Canais24h() {
                                     <div className="bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded text-[11px] font-medium text-white/90 pointer-events-none">
                                         {isAdMode ? "INTERVALO" : "24h Online"}
                                     </div>
-                                    {!isPiP && (
+                                    {!isPiP && typeof window !== "undefined" && "documentPictureInPicture" in window && 
+                                     !(activeSlot === "A" ? slotA?.url : slotB?.url)?.includes("youtu") && (
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
@@ -1333,22 +1334,6 @@ export default function Canais24h() {
                                                 <span className="text-sm text-white font-bold max-w-[200px] truncate">{nowPlayingTitle}</span>
                                             </div>
                                         </div>
-                                    </div>
-                                )}
-
-                                {/* PiP Exit Button - shown inside PiP window */}
-                                {isPiP && (
-                                    <div className="absolute bottom-4 right-4 z-50">
-                                        <button
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                window.close();
-                                            }}
-                                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-600/90 hover:bg-red-500 backdrop-blur-sm text-white text-xs font-bold transition-colors shadow-lg border border-white/10"
-                                        >
-                                            <Maximize className="w-3.5 h-3.5" />
-                                            Voltar ao Player
-                                        </button>
                                     </div>
                                 )}
                             </>
