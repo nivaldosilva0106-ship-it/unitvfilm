@@ -264,6 +264,62 @@ ${ep.url || ""}`;
     });
   };
 
+  const importProgramming = () => {
+    const text = prompt("Cole aqui a programação exportada:");
+    if (!text) return;
+
+    try {
+      const blocks = text.split('---').map(b => b.trim()).filter(b => b);
+      const newEpisodes: Episode[] = [];
+
+      blocks.forEach((block) => {
+        const lines = block.split('\n').map(l => l.trim());
+        if (lines.length < 5) return; // Mínimo para ter título e URL básicos
+
+        // Extracting properties based on the export format
+        const title = lines[2] || "Sem Título";
+        
+        let speed = 1;
+        const speedText = lines[4] || "Normal";
+        if (speedText !== "Normal") {
+          speed = parseFloat(speedText.replace('x', '')) || 1;
+        }
+
+        const intervals = parseInt(lines[5]) || 0;
+        const ads = parseInt(lines[7]) || 0;
+        const description = lines[9] || "";
+        const url = lines[10] || "";
+
+        // Determine if it was series-like or channel-like
+        // 24h Channels specificly use these extra fields
+        newEpisodes.push({
+          season: 1,
+          episode: (editingContent.episodes?.length || 0) + newEpisodes.length + 1,
+          title,
+          url,
+          playback_speed: speed,
+          post_video_intervals: intervals,
+          post_video_ads: ads,
+          description,
+          downloads: []
+        });
+      });
+
+      if (newEpisodes.length > 0) {
+        setEditingContent(prev => ({
+          ...prev,
+          episodes: [...(prev.episodes || []), ...newEpisodes]
+        }));
+        toast.success(`${newEpisodes.length} blocos de programação importados e adicionados ao final!`);
+      } else {
+        toast.error("Nenhum bloco válido encontrado no texto colado.");
+      }
+    } catch (error) {
+      console.error("Erro ao importar programação:", error);
+      toast.error("Falha ao processar o texto da programação.");
+    }
+  };
+
   const isNostalgia = editingContent.category === 'nostalgia';
   const isTV = editingContent.category === 'tv';
   const isSeries = editingContent.category === 'series';
@@ -1222,6 +1278,16 @@ ${ep.url || ""}`;
                 >
                   <Clipboard className="w-4 h-4 mr-2" />
                   Exportar Programação
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={importProgramming}
+                  className="border-amber-500/40 text-amber-400 hover:bg-amber-500/10"
+                >
+                  <Upload className="w-4 h-4 mr-2" />
+                  Importar Programação
                 </Button>
               </div>
             )}
