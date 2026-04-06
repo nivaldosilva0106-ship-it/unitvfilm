@@ -275,18 +275,35 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
             ref={containerRef}
             id={`yt-slot-container-${id}-${videoId}`}
             data-slot-id={id}
-            className="w-full h-full overflow-hidden relative bg-black group"
+            className="w-full h-full overflow-hidden relative bg-black group pointer-events-auto"
             onMouseMove={handleMouseMove}
             onMouseLeave={() => isPlaying && setShowControls(false)}
             onClick={triggerTogglePlay}
         >
-            <div className="absolute inset-[-15%] w-[130%] h-[130%]">
+            <div className={`absolute inset-[-15%] w-[130%] h-[130%] transition-opacity duration-700 pointer-events-none ${isPlaying ? 'opacity-100' : 'opacity-0'}`}>
                 <div id={`yt-${id}-${videoId}`} className="w-full h-full" />
             </div>
             
-            <div className="absolute inset-0 z-20 pointer-events-none" />
+            {/* Catch clicks so they don't go to iframe */}
+            <div className="absolute inset-0 z-10 pointer-events-none" />
 
-            {watermarkUrl && (
+            {/* Logo / Loading Overlay */}
+            {!isPlaying && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-20 gap-6">
+                    {watermarkUrl ? (
+                        <div className="animate-pulse">
+                            <img src={watermarkUrl} alt="Channel" className="h-24 md:h-32 w-auto object-contain filter drop-shadow-2xl" />
+                        </div>
+                    ) : (
+                        <div className="w-16 h-16 border-4 border-white/20 border-t-primary rounded-full animate-spin" />
+                    )}
+                    <p className="text-white/70 font-bold text-xs md:text-sm animate-pulse tracking-[0.2em] uppercase px-4 text-center">
+                        A ligar à emissão...
+                    </p>
+                </div>
+            )}
+
+            {watermarkUrl && isPlaying && (
                 <div className="absolute bottom-6 left-6 z-[35] pointer-events-none select-none transition-all duration-300 opacity-70">
                     <img 
                         src={watermarkUrl} 
@@ -295,21 +312,11 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                     />
                 </div>
             )}
-
-            {!isPlaying && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 z-20 gap-4">
-                    <div className="w-10 h-10 border-2 border-white/20 border-t-white/80 rounded-full animate-spin" />
-                    <p className="text-white font-medium text-xs md:text-sm animate-pulse tracking-wide px-4 text-center">
-                        Aguarde, estamos a estabelecer a ligação da rede...
-                    </p>
-                </div>
-            )}
             
             {!isPlaying && (
-                <div className="absolute inset-0 flex items-center justify-center z-20">
+                <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
                     <button 
-                        onClick={triggerTogglePlay}
-                        className="w-14 h-14 md:w-20 md:h-20 bg-primary/90 hover:bg-primary rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-2xl"
+                        className="w-14 h-14 md:w-20 md:h-20 bg-primary/90 hover:bg-primary rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl scale-110 opacity-0 group-hover:opacity-100"
                     >
                         <Play className="w-6 h-6 md:w-10 md:h-10 text-white fill-white ml-1" />
                     </button>
