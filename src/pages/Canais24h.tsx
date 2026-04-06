@@ -333,11 +333,7 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
             >
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
                 
-                {title && (
-                    <div className="absolute top-4 left-4 right-4 z-40">
-                        <h2 className="text-white font-bold text-sm md:text-lg drop-shadow-lg line-clamp-1">{title}</h2>
-                    </div>
-                )}
+
                 
                 <div className="relative p-3 md:p-4 space-y-2 md:space-y-3 z-40">
                     <div className="flex items-center justify-between">
@@ -501,11 +497,7 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
             >
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
                 
-                {title && (
-                    <div className="absolute top-4 left-4 right-4 z-40">
-                        <h2 className="text-white font-bold text-sm md:text-lg drop-shadow-lg line-clamp-1">{title}</h2>
-                    </div>
-                )}
+
                 
                 <div className="relative p-3 md:p-4 space-y-2 md:space-y-3 z-40">
                     <div className="flex items-center justify-between">
@@ -610,7 +602,6 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
                     playbackSpeed={content.playbackSpeed}
                     onToggleFullscreen={onToggleFullscreen}
                     isFullscreen={isFullscreen}
-                    title={content.title}
                     watermarkUrl={channelThumb}
                 />
             ) : isSocial ? (
@@ -621,13 +612,11 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
                     onEnded={onEnded || (() => {})}
                     onToggleFullscreen={onToggleFullscreen}
                     isFullscreen={isFullscreen}
-                    title={content.title}
                     watermarkUrl={channelThumb}
                 />
             ) : (
                 <VideoPlayer
                     url={isTikTok ? tiktokUrl! : content.url}
-                    title={content.title}
                     poster={channelThumb}
                     autoPlay={true}
                     startTime={content.startTime}
@@ -1329,17 +1318,7 @@ export default function Canais24h() {
                                 </div>
 
                                 {/* Periodic Title Badge */}
-                                {nowPlayingTitle && !isAdMode && (realTime % 555 < 15) && (
-                                    <div className="absolute top-16 right-6 z-50 animate-in fade-in slide-in-from-right-4 duration-700 pointer-events-none">
-                                        <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10 shadow-xl flex items-center gap-3">
-                                            <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
-                                            <div className="flex flex-col text-right">
-                                                <span className="text-[10px] text-white/60 font-medium uppercase tracking-tight">Estás a ver:</span>
-                                                <span className="text-sm text-white font-bold max-w-[200px] truncate">{nowPlayingTitle}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
+
                             </>
                         )}
                     </div>
