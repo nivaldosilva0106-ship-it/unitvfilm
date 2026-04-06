@@ -1,5 +1,6 @@
 // ... (imports)
 import { useState, useEffect } from "react";
+import { Copy, Check } from "lucide-react";
 import { toast } from "sonner";
 import { getSiteSettings, updateSiteSettings } from "@/lib/firebase";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -20,6 +21,7 @@ export const AdminSettings = () => {
     const [youtubeApiKey, setYoutubeApiKey] = useState("");
     const [whatsappNumber, setWhatsappNumber] = useState("");
     const [loading, setLoading] = useState(true);
+    const [isCopied, setIsCopied] = useState(false);
 
     // Export/Import State
     const [exportFilters, setExportFilters] = useState({
@@ -76,6 +78,18 @@ export const AdminSettings = () => {
         } catch (error) {
             console.error("Error saving settings:", error);
             toast.error("Erro ao salvar configurações");
+        }
+    };
+    
+    const handleCopyApiKey = async () => {
+        if (!youtubeApiKey) return;
+        try {
+            await navigator.clipboard.writeText(youtubeApiKey);
+            setIsCopied(true);
+            toast.success("Chave API copiada!");
+            setTimeout(() => setIsCopied(false), 2000);
+        } catch (err) {
+            toast.error("Erro ao copiar chave");
         }
     };
 
@@ -215,14 +229,31 @@ export const AdminSettings = () => {
                     <form onSubmit={handleSave} className="space-y-4">
                         <div className="space-y-2">
                             <Label htmlFor="youtubeApiKey">API Key do YouTube Data v3</Label>
-                            <Input
-                                id="youtubeApiKey"
-                                type="password"
-                                placeholder="AIzaSy..."
-                                value={youtubeApiKey}
-                                onChange={(e) => setYoutubeApiKey(e.target.value)}
-                                className="bg-background/50 font-mono"
-                            />
+                            <div className="flex gap-2">
+                                <Input
+                                    id="youtubeApiKey"
+                                    type="password"
+                                    placeholder="AIzaSy..."
+                                    value={youtubeApiKey}
+                                    onChange={(e) => setYoutubeApiKey(e.target.value)}
+                                    className="bg-background/50 font-mono"
+                                />
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="icon"
+                                    onClick={handleCopyApiKey}
+                                    disabled={!youtubeApiKey}
+                                    className="shrink-0"
+                                    title="Copiar Chave API"
+                                >
+                                    {isCopied ? (
+                                        <Check className="h-4 w-4 text-green-500" />
+                                    ) : (
+                                        <Copy className="h-4 w-4" />
+                                    )}
+                                </Button>
+                            </div>
                             <p className="text-sm text-muted-foreground">
                                 Esta chave é usada para importar playlists do YouTube automaticamente no NostalgiaTube.
                                 <br />
