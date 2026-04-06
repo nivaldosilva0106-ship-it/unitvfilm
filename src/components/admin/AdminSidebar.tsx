@@ -78,9 +78,12 @@ export const AdminSidebarContent = ({
   );
 };
 
-export const AdminSidebar = () => {
-  const [collapsed, setCollapsed] = useState(false);
+interface AdminSidebarProps {
+  collapsed: boolean;
+  setCollapsed: (collapsed: boolean) => void;
+}
 
+export const AdminSidebar = ({ collapsed, setCollapsed }: AdminSidebarProps) => {
   return (
     <aside
       className={cn(

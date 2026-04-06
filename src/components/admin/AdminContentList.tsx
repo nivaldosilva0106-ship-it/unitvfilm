@@ -25,8 +25,8 @@ export const AdminContentList = ({
 
   const categories = [
     { id: "all", label: "Todos" },
-    { id: "filme", label: "Filmes" },
-    { id: "serie", label: "Séries" },
+    { id: "movie", label: "Filmes" },
+    { id: "series", label: "Séries" },
     { id: "tv", label: "TV Online" },
     { id: "nostalgia", label: "Nostalgia" },
     { id: "canais24h", label: "Canais 24h" },
