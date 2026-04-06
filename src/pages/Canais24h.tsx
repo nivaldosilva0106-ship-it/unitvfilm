@@ -32,8 +32,6 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
 }) => {
     const playerRef = useRef<any>(null);
     const containerRef = useRef<HTMLDivElement>(null);
-    const pipWindowRef = useRef<any>(null);
-    const [isPiP, setIsPiP] = useState(false);
     const intervalRef = useRef<any>(null);
 
     const [isPlaying, setIsPlaying] = useState(false);
@@ -102,64 +100,7 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
         }, 3000);
     };
 
-    const toggleMiniPlayer = async () => {
-        const container = containerRef.current;
-        if (!container) return;
 
-        if ("documentPictureInPicture" in window && !isPiP) {
-            try {
-                // @ts-ignore
-                const pipWindow = await window.documentPictureInPicture.requestWindow({
-                    width: container.clientWidth || 640,
-                    height: container.clientHeight || 360,
-                });
-                pipWindowRef.current = pipWindow;
-
-                pipWindow.document.body.append(container);
-                setIsPiP(true);
-
-                // Copy styles
-                [...document.styleSheets].forEach((styleSheet) => {
-                    try {
-                        if (styleSheet.cssRules) {
-                            const newStyle = pipWindow.document.createElement("style");
-                            [...styleSheet.cssRules].forEach((rule) => {
-                                newStyle.appendChild(pipWindow.document.createTextNode(rule.cssText));
-                            });
-                            pipWindow.document.head.appendChild(newStyle);
-                        } else if (styleSheet.href) {
-                            const newLink = pipWindow.document.createElement("link");
-                            newLink.rel = "stylesheet";
-                            newLink.href = styleSheet.href;
-                            pipWindow.document.head.appendChild(newLink);
-                        }
-                    } catch (e) {
-                         if (styleSheet.href) {
-                            const newLink = pipWindow.document.createElement("link");
-                            newLink.rel = "stylesheet";
-                            newLink.href = styleSheet.href;
-                            pipWindow.document.head.appendChild(newLink);
-                        }
-                    }
-                });
-
-                pipWindow.document.body.style.backgroundColor = "black";
-                pipWindow.document.body.style.margin = "0";
-
-                pipWindow.addEventListener("pagehide", () => {
-                    const originalParent = document.getElementById(`yt-slot-container-${id}-${videoId}`);
-                    if (originalParent) originalParent.append(container);
-                    setIsPiP(false);
-                    pipWindowRef.current = null;
-                });
-            } catch (err) {
-                console.error("Document PiP failed:", err);
-                toast.error("Erro ao abrir Mini-Player");
-            }
-        } else if (isPiP && pipWindowRef.current) {
-            pipWindowRef.current.close();
-        }
-    };
 
     useEffect(() => {
         let destroyed = false;
@@ -333,6 +274,7 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
         <div 
             ref={containerRef}
             id={`yt-slot-container-${id}-${videoId}`}
+            data-slot-id={id}
             className="w-full h-full overflow-hidden relative bg-black group"
             onMouseMove={handleMouseMove}
             onMouseLeave={() => isPlaying && setShowControls(false)}
@@ -399,16 +341,7 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                              </div>
                         </div>
                         <div className="flex items-center gap-1 md:gap-2">
-                            <button 
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleMiniPlayer();
-                                }}
-                                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
-                                title="Mini-Player"
-                            >
-                                <PictureInPicture className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                            </button>
+
 
                             {onToggleFullscreen && (
                                 <button onClick={onToggleFullscreen} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
@@ -440,8 +373,7 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
     title?: string;
     watermarkUrl?: string;
 }) => {
-    const [isPiP, setIsPiP] = useState(false);
-    const pipWindowRef = useRef<any>(null);
+
     const containerRef = useRef<HTMLDivElement>(null);
     const [isPlaying, setIsPlaying] = useState(active);
     const [isMuted, setIsMuted] = useState(true);
@@ -449,64 +381,7 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
     const [showControls, setShowControls] = useState(false);
     const playerRef = useRef<any>(null);
 
-    const toggleMiniPlayer = async () => {
-        const container = containerRef.current;
-        if (!container) return;
 
-        if ("documentPictureInPicture" in window && !isPiP) {
-            try {
-                // @ts-ignore
-                const pipWindow = await window.documentPictureInPicture.requestWindow({
-                    width: container.clientWidth || 640,
-                    height: container.clientHeight || 360,
-                });
-                pipWindowRef.current = pipWindow;
-
-                pipWindow.document.body.append(container);
-                setIsPiP(true);
-
-                // Copy styles
-                [...document.styleSheets].forEach((styleSheet) => {
-                    try {
-                        if (styleSheet.cssRules) {
-                            const newStyle = pipWindow.document.createElement("style");
-                            [...styleSheet.cssRules].forEach((rule) => {
-                                newStyle.appendChild(pipWindow.document.createTextNode(rule.cssText));
-                            });
-                            pipWindow.document.head.appendChild(newStyle);
-                        } else if (styleSheet.href) {
-                            const newLink = pipWindow.document.createElement("link");
-                            newLink.rel = "stylesheet";
-                            newLink.href = styleSheet.href;
-                            pipWindow.document.head.appendChild(newLink);
-                        }
-                    } catch (e) {
-                         if (styleSheet.href) {
-                            const newLink = pipWindow.document.createElement("link");
-                            newLink.rel = "stylesheet";
-                            newLink.href = styleSheet.href;
-                            pipWindow.document.head.appendChild(newLink);
-                        }
-                    }
-                });
-
-                pipWindow.document.body.style.backgroundColor = "black";
-                pipWindow.document.body.style.margin = "0";
-
-                pipWindow.addEventListener("pagehide", () => {
-                    const originalParent = document.getElementById(`social-slot-container-${url}`);
-                    if (originalParent) originalParent.append(container);
-                    setIsPiP(false);
-                    pipWindowRef.current = null;
-                });
-            } catch (err) {
-                console.error("Document PiP failed:", err);
-                toast.error("Erro ao abrir Mini-Player");
-            }
-        } else if (isPiP && pipWindowRef.current) {
-            pipWindowRef.current.close();
-        }
-    };
 
 
     // Sync active state with playback
@@ -543,7 +418,7 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
     return (
         <div 
             id={`social-slot-container-${url}`}
-            className={`w-full h-full bg-black relative group overflow-hidden ${isPiP ? 'fixed inset-0 z-[9999]' : ''}`}
+            className="w-full h-full bg-black relative group overflow-hidden"
         >
             <div 
                 ref={containerRef}
@@ -634,16 +509,7 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
                              </div>
                         </div>
                         <div className="flex items-center gap-1 md:gap-2">
-                             <button 
-                                 onClick={(e) => {
-                                     e.stopPropagation();
-                                     toggleMiniPlayer();
-                                 }}
-                                 className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
-                                 title="Mini-Player"
-                             >
-                                 <PictureInPicture className="w-4 h-4 md:w-5 md:h-5 text-white" />
-                             </button>
+
 
                              {onToggleFullscreen && (
                                  <button onClick={onToggleFullscreen} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
@@ -810,9 +676,12 @@ export default function Canais24h() {
     const [realTime, setRealTime] = useState(0);
     const [realDuration, setRealDuration] = useState(0);
     const [isFullscreen, setIsFullscreen] = useState(false);
+    const [isPiP, setIsPiP] = useState(false);
 
-    // Ref to player container for fullscreen
+    // Ref to player container for fullscreen and PiP
     const playerContainerRef = useRef<HTMLDivElement>(null);
+    const pipWindowRef = useRef<any>(null);
+    const playerContainerParentRef = useRef<HTMLElement | null>(null);
 
     // Track current program index
     const currentIndexRef = useRef(0);
@@ -1289,6 +1158,93 @@ export default function Canais24h() {
         return () => document.removeEventListener("fullscreenchange", onFSChange);
     }, []);
 
+    // ---- PiP (Mini-Player) at page level ----
+    const toggleMiniPlayer = useCallback(async () => {
+        const container = playerContainerRef.current;
+        if (!container) return;
+
+        if ("documentPictureInPicture" in window && !isPiP) {
+            try {
+                // Save the parent element so we can re-append later
+                playerContainerParentRef.current = container.parentElement;
+
+                // @ts-ignore
+                const pipWindow = await window.documentPictureInPicture.requestWindow({
+                    width: 640,
+                    height: 360,
+                });
+                pipWindowRef.current = pipWindow;
+
+                // Copy all stylesheets to PiP window
+                [...document.styleSheets].forEach((styleSheet) => {
+                    try {
+                        if (styleSheet.cssRules) {
+                            const newStyle = pipWindow.document.createElement("style");
+                            [...styleSheet.cssRules].forEach((rule: CSSRule) => {
+                                newStyle.appendChild(pipWindow.document.createTextNode(rule.cssText));
+                            });
+                            pipWindow.document.head.appendChild(newStyle);
+                        } else if (styleSheet.href) {
+                            const newLink = pipWindow.document.createElement("link");
+                            newLink.rel = "stylesheet";
+                            newLink.href = styleSheet.href;
+                            pipWindow.document.head.appendChild(newLink);
+                        }
+                    } catch (e) {
+                        if (styleSheet.href) {
+                            const newLink = pipWindow.document.createElement("link");
+                            newLink.rel = "stylesheet";
+                            newLink.href = styleSheet.href;
+                            pipWindow.document.head.appendChild(newLink);
+                        }
+                    }
+                });
+
+                pipWindow.document.body.style.backgroundColor = "black";
+                pipWindow.document.body.style.margin = "0";
+                pipWindow.document.body.style.overflow = "hidden";
+
+                // Move the ENTIRE player container into PiP
+                pipWindow.document.body.appendChild(container);
+                // Make it fill the PiP window
+                container.style.width = "100vw";
+                container.style.height = "100vh";
+                container.style.maxWidth = "none";
+                container.style.borderRadius = "0";
+                setIsPiP(true);
+
+                pipWindow.addEventListener("pagehide", () => {
+                    // Restore container back to main page
+                    const parent = playerContainerParentRef.current;
+                    if (parent) {
+                        parent.appendChild(container);
+                    }
+                    // Reset inline styles
+                    container.style.width = "";
+                    container.style.height = "";
+                    container.style.maxWidth = "";
+                    container.style.borderRadius = "";
+                    setIsPiP(false);
+                    pipWindowRef.current = null;
+                });
+            } catch (err) {
+                console.error("Document PiP failed:", err);
+                toast.error("Erro ao abrir Mini-Player");
+            }
+        } else if (isPiP && pipWindowRef.current) {
+            pipWindowRef.current.close();
+        }
+    }, [isPiP]);
+
+    // Cleanup PiP on unmount
+    useEffect(() => {
+        return () => {
+            if (pipWindowRef.current) {
+                try { pipWindowRef.current.close(); } catch {}
+            }
+        };
+    }, []);
+
     // ============================================================
     // RENDER
     // ============================================================
@@ -1338,19 +1294,29 @@ export default function Canais24h() {
                                     isFullscreen={isFullscreen}
                                 />
 
-                                {/* Live Badge - Moved to Top Right and Right-Aligned */}
-                                <div className="absolute top-6 right-6 z-50 flex flex-row-reverse items-center gap-2 pointer-events-none transition-all">
-                                    <div className="flex items-center gap-1.5 bg-red-600/90 backdrop-blur-sm px-2.5 py-1 rounded text-[11px] font-bold uppercase tracking-wider text-white animate-pulse">
+                                {/* Live Badge + Mini-Player button */}
+                                <div className="absolute top-6 right-6 z-50 flex flex-row-reverse items-center gap-2 transition-all">
+                                    <div className="flex items-center gap-1.5 bg-red-600/90 backdrop-blur-sm px-2.5 py-1 rounded text-[11px] font-bold uppercase tracking-wider text-white animate-pulse pointer-events-none">
                                         <div className="w-2 h-2 bg-white rounded-full" /> AO VIVO
                                     </div>
-                                    <div className="bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded text-[11px] font-medium text-white/90">
+                                    <div className="bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded text-[11px] font-medium text-white/90 pointer-events-none">
                                         {isAdMode ? "INTERVALO" : "24h Online"}
                                     </div>
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleMiniPlayer();
+                                        }}
+                                        className="p-1.5 rounded-lg bg-black/50 backdrop-blur-sm hover:bg-white/20 transition-colors border border-white/10 cursor-pointer"
+                                        title={isPiP ? "Voltar ao Player Original" : "Mini-Player"}
+                                    >
+                                        <PictureInPicture className="w-4 h-4 text-white" />
+                                    </button>
                                 </div>
 
-                                {/* Periodic Title Badge ("Você está assistindo") - Now appears slightly below the live badge if both are present, or we can just shift it left */}
+                                {/* Periodic Title Badge */}
                                 {nowPlayingTitle && !isAdMode && (realTime % 555 < 15) && (
-                                    <div className="absolute top-16 right-6 z-50 animate-in fade-in slide-in-from-right-4 duration-700">
+                                    <div className="absolute top-16 right-6 z-50 animate-in fade-in slide-in-from-right-4 duration-700 pointer-events-none">
                                         <div className="bg-black/60 backdrop-blur-md px-4 py-2 rounded-lg border border-white/10 shadow-xl flex items-center gap-3">
                                             <div className="w-1.5 h-1.5 bg-primary rounded-full animate-pulse" />
                                             <div className="flex flex-col text-right">
@@ -1358,6 +1324,22 @@ export default function Canais24h() {
                                                 <span className="text-sm text-white font-bold max-w-[200px] truncate">{nowPlayingTitle}</span>
                                             </div>
                                         </div>
+                                    </div>
+                                )}
+
+                                {/* PiP Exit Button - shown inside PiP window */}
+                                {isPiP && (
+                                    <div className="absolute bottom-4 right-4 z-50">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleMiniPlayer();
+                                            }}
+                                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-600/90 hover:bg-red-500 backdrop-blur-sm text-white text-xs font-bold transition-colors shadow-lg border border-white/10"
+                                        >
+                                            <Maximize className="w-3.5 h-3.5" />
+                                            Voltar ao Player
+                                        </button>
                                     </div>
                                 )}
                             </>
