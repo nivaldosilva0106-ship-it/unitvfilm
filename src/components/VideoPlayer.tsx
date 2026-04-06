@@ -87,7 +87,7 @@ const formatTime = (seconds: number): string => {
   const [isAmplified, setIsAmplified] = useState(true); // Enabled by default to boost low volume content like TikToks
 
   // Detect stream type
-  const isHLS = url.includes('.m3u8') || url.includes('m3u8');
+  const isHLS = url.includes('.m3u8') || url.includes('m3u8') || url.toLowerCase().includes('.txt') || url.includes('typezero.top');
   const isGoogleDrive = url.includes('googleapis.com/drive') || url.includes('drive.google.com');
 
   // Transform Google Drive URL if needed

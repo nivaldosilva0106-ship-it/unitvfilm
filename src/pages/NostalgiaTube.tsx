@@ -886,6 +886,24 @@ export default function NostalgiaTube(): JSX.Element {
                             </div>
                         )}
 
+                        {/* 1.1 Generic Video Engine (HLS .txt, .mp4, etc.) */}
+                        {!youtubeId && !isGoogleDriveApi && !tiktokId && videoUrl && (
+                            <div className="absolute inset-0 w-full h-full z-10 bg-black flex items-center justify-center">
+                                <VideoPlayer
+                                    url={videoUrl}
+                                    title={currentContent?.title || "Video"}
+                                    poster={getPosterImage()}
+                                    autoPlay={true}
+                                    onEnded={playNextEpisode}
+                                    onTimeUpdate={(time, dur) => {
+                                      setCurrentTime(time);
+                                      if (dur) setDuration(dur);
+                                    }}
+                                />
+                                <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-black/80 to-transparent pointer-events-none z-20"></div>
+                            </div>
+                        )}
+
                         {/* 2. Common UI Layer (Poster, Interaction, Controls) */}
                         {((youtubeId && !isGoogleDriveApi && !tiktokId) || (isGoogleDriveApi && !hasQuotaError)) && (
                             <>
