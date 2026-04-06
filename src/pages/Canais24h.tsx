@@ -1302,16 +1302,18 @@ export default function Canais24h() {
                                     <div className="bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded text-[11px] font-medium text-white/90 pointer-events-none">
                                         {isAdMode ? "INTERVALO" : "24h Online"}
                                     </div>
-                                    <button
-                                        onClick={(e) => {
-                                            e.stopPropagation();
-                                            toggleMiniPlayer();
-                                        }}
-                                        className="p-1.5 rounded-lg bg-black/50 backdrop-blur-sm hover:bg-white/20 transition-colors border border-white/10 cursor-pointer"
-                                        title={isPiP ? "Voltar ao Player Original" : "Mini-Player"}
-                                    >
-                                        <PictureInPicture className="w-4 h-4 text-white" />
-                                    </button>
+                                    {!isPiP && (
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                toggleMiniPlayer();
+                                            }}
+                                            className="p-1.5 rounded-lg bg-black/50 backdrop-blur-sm hover:bg-white/20 transition-colors border border-white/10 cursor-pointer"
+                                            title="Mini-Player"
+                                        >
+                                            <PictureInPicture className="w-4 h-4 text-white" />
+                                        </button>
+                                    )}
                                 </div>
 
                                 {/* Periodic Title Badge */}
@@ -1333,7 +1335,7 @@ export default function Canais24h() {
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
-                                                toggleMiniPlayer();
+                                                window.close();
                                             }}
                                             className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-600/90 hover:bg-red-500 backdrop-blur-sm text-white text-xs font-bold transition-colors shadow-lg border border-white/10"
                                         >

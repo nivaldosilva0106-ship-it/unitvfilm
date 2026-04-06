@@ -718,14 +718,6 @@ const formatTime = (seconds: number): string => {
             {/* Right Controls */}
             <div className="flex items-center gap-1 md:gap-2">
 
-              {/* Picture-in-Picture (Mini-Player) */}
-              <button
-                onClick={toggleMiniPlayer}
-                title="Mini-Player"
-                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
-              >
-                <PictureInPicture className="w-4 h-4 md:w-5 md:h-5 text-white" />
-              </button>
 
               {/* Settings Menu */}
               <DropdownMenu>
