@@ -191,9 +191,13 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                     onStateChange: (e: any) => {
                         if (destroyed) return;
                         const YTState = window.YT.PlayerState;
+                        
                         if (e.data === YTState.PLAYING) {
                             setIsPlaying(true);
+                        } else if (e.data === YTState.BUFFERING || e.data === YTState.PAUSED || e.data === YTState.UNSTARTED) {
+                            setIsPlaying(false);
                         }
+
                         if (e.data === YTState.ENDED) {
                             if (activeRef.current) onEndedRef.current();
                         }
