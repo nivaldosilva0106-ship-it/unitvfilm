@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { searchMovies, searchSeries, getImageUrl, getMovieTrailer, getSeriesTrailer, getMovieDetails, getSeriesDetails, getSeasonDetails } from "@/lib/tmdb";
 import { sendContentNotification, getAllContents, updateContent } from "@/lib/firebase";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import type { Content, Episode } from "@/types/content";
 import type { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { AdminBulkUpdate } from "./AdminBulkUpdate";
@@ -46,6 +47,10 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
 
   // --- Smart Import State ---
   const [smartConfigText, setSmartConfigText] = useState("");
+  
+  // --- Programming Import Modal State ---
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
+  const [importModalText, setImportModalText] = useState("");
 
   const handleSmartProcess = async () => {
     if (!smartConfigText.trim()) {
@@ -265,8 +270,16 @@ ${ep.url || ""}`;
   };
 
   const importProgramming = () => {
-    const text = prompt("Cole aqui a programação exportada:");
-    if (!text) return;
+    setImportModalText("");
+    setIsImportModalOpen(true);
+  };
+
+  const handleImportConfirm = () => {
+    const text = importModalText.trim();
+    if (!text) {
+      toast.error("Por favor, cole a programação.");
+      return;
+    }
 
     try {
       const blocks = text.split('---').map(b => b.trim()).filter(b => b);
@@ -274,9 +287,8 @@ ${ep.url || ""}`;
 
       blocks.forEach((block) => {
         const lines = block.split('\n').map(l => l.trim());
-        if (lines.length < 5) return; // Mínimo para ter título e URL básicos
+        if (lines.length < 5) return;
 
-        // Extracting properties based on the export format
         const title = lines[2] || "Sem Título";
         
         let speed = 1;
@@ -290,8 +302,6 @@ ${ep.url || ""}`;
         const description = lines[9] || "";
         const url = lines[10] || "";
 
-        // Determine if it was series-like or channel-like
-        // 24h Channels specificly use these extra fields
         newEpisodes.push({
           season: 1,
           episode: (editingContent.episodes?.length || 0) + newEpisodes.length + 1,
@@ -300,8 +310,7 @@ ${ep.url || ""}`;
           playback_speed: speed,
           post_video_intervals: intervals,
           post_video_ads: ads,
-          description,
-          downloads: []
+          description: description
         });
       });
 
@@ -310,13 +319,14 @@ ${ep.url || ""}`;
           ...prev,
           episodes: [...(prev.episodes || []), ...newEpisodes]
         }));
-        toast.success(`${newEpisodes.length} blocos de programação importados e adicionados ao final!`);
+        toast.success(`${newEpisodes.length} episódios importados com sucesso!`);
+        setIsImportModalOpen(false);
       } else {
-        toast.error("Nenhum bloco válido encontrado no texto colado.");
+        toast.error("Nenhum conteúdo válido encontrado para importar.");
       }
-    } catch (error) {
-      console.error("Erro ao importar programação:", error);
-      toast.error("Falha ao processar o texto da programação.");
+    } catch (err) {
+      console.error('Erro na importação:', err);
+      toast.error("Erro ao processar o texto de importação.");
     }
   };
 
@@ -2134,6 +2144,51 @@ ${ep.url || ""}`;
         <Save className="w-4 h-4 mr-2" />
         Salvar Conteúdo
       </Button>
+      <Dialog open={isImportModalOpen} onOpenChange={setIsImportModalOpen}>
+        <DialogContent className="max-w-4xl bg-zinc-900 border-zinc-800 text-white p-0 overflow-hidden">
+          <div className="p-6 space-y-6">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-2xl font-bold">
+                <Download className="w-6 h-6 text-primary" />
+                Importar Programação
+              </DialogTitle>
+              <p className="text-zinc-400 text-sm">
+                Cole abaixo o conteúdo que foi exportado. O sistema irá processar automaticamente todos os blocos de programação, incluindo títulos, URLs, velocidades e configurações de publicidade.
+              </p>
+            </DialogHeader>
+            
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-primary/20 to-blue-500/20 rounded-xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+              <Textarea
+                value={importModalText}
+                onChange={(e) => setImportModalText(e.target.value)}
+                placeholder="Cole aqui os blocos de programação... Ex: 
+1
+x
+Título do Bloco
+..."
+                className="relative min-h-[500px] bg-zinc-950 border-zinc-800 text-zinc-200 font-mono text-xs md:text-sm p-5 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all resize-none shadow-2xl rounded-xl overflow-y-auto"
+              />
+            </div>
+
+            <DialogFooter className="flex items-center justify-end gap-3 pt-2">
+              <DialogClose asChild>
+                <Button variant="ghost" className="text-zinc-400 hover:text-white hover:bg-zinc-800/50">
+                  <X className="w-4 h-4 mr-2" />
+                  Cancelar
+                </Button>
+              </DialogClose>
+              <Button 
+                onClick={handleImportConfirm}
+                className="bg-primary hover:bg-primary/90 text-white font-bold h-11 px-8 glow-effect-hover"
+              >
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Processar e Importar
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 };
