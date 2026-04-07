@@ -1120,14 +1120,21 @@ export default function Canais24h() {
 
         const remaining = (duration || 0) - time;
 
+        const activeSlotName = activeSlotRef.current;
+        const runningSlot = activeSlotName === "A" ? slotARef.current : slotBRef.current;
+
+        // PRE-EMPTIVE SWAP (Hides YouTube replay icon/end-cards)
+        // Programs: 5s lead time (YouTube safety)
+        // Ads/Intervals: 1s lead time (as requested)
+        const cutTime = runningSlot?.type === "program" ? 5 : 1;
+
         // WATCHDOG: Force end transition if stuck at end
         if (duration && duration > 0 && remaining <= 0.5 && !isTransitioningRef.current) {
             handleEndedRef.current(activeSlotRef.current);
             return;
         }
 
-        // PRE-EMPTIVE SWAP 5s before end (hides YouTube replay icon and respects transitions)
-        if (duration && remaining > 0 && remaining <= 5 && !isTransitioningRef.current) {
+        if (duration && remaining > 0 && remaining <= cutTime && !isTransitioningRef.current) {
             handleEndedRef.current(activeSlotRef.current);
             return;
         }
