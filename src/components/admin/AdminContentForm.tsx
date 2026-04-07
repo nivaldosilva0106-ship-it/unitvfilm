@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Play, Search, Trash, Loader2, Link as LinkIcon, Download, DownloadIcon, CheckCircle2, Clapperboard, MonitorPlay, Sparkles, X, Plus, PlusCircle, Maximize, AlertTriangle, ShieldCheck, ChevronUp, ChevronDown, Save, Lock, Bell, Upload, Film, Tv, RefreshCw, Clipboard } from "lucide-react";
+import { Play, Search, Trash, Loader2, Link as LinkIcon, Download, DownloadIcon, CheckCircle2, Clapperboard, MonitorPlay, Sparkles, X, Plus, PlusCircle, Maximize, AlertTriangle, ShieldCheck, ChevronUp, ChevronDown, Save, Lock, Bell, Upload, Film, Tv, RefreshCw, Clipboard, Clock, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { searchMovies, searchSeries, getImageUrl, getMovieTrailer, getSeriesTrailer, getMovieDetails, getSeriesDetails, getSeasonDetails } from "@/lib/tmdb";
 import { sendContentNotification, getAllContents, updateContent } from "@/lib/firebase";
@@ -1407,6 +1407,72 @@ ${ep.url || ""}`;
                   <Upload className="w-4 h-4 mr-2" />
                   Importar Programação
                 </Button>
+              </div>
+            )}
+
+            {isCanais24h && (
+              <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-xl mb-6 space-y-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Settings2 className="w-4 h-4 text-primary" />
+                  <h4 className="text-sm font-bold text-white uppercase tracking-wider">Configuração Robusta de Intervalos</h4>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-zinc-400">Frequência de Pausa (A cada X vídeos)</Label>
+                    <Input
+                      type="number"
+                      value={editingContent.break_frequency || 0}
+                      onChange={(e) => setEditingContent({ ...editingContent, break_frequency: parseInt(e.target.value) || 0 })}
+                      placeholder="Ex: 3"
+                      className="bg-black/40 border-zinc-800"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-zinc-400">Qtd. de Intervalos por Pausa</Label>
+                    <Input
+                      type="number"
+                      value={editingContent.global_intervals_count || 0}
+                      onChange={(e) => setEditingContent({ ...editingContent, global_intervals_count: parseInt(e.target.value) || 0 })}
+                      placeholder="Ex: 2"
+                      className="bg-black/40 border-zinc-800"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-xs text-zinc-400">Qtd. de Publicidades por Pausa</Label>
+                    <Input
+                      type="number"
+                      value={editingContent.global_ads_count || 0}
+                      onChange={(e) => setEditingContent({ ...editingContent, global_ads_count: parseInt(e.target.value) || 0 })}
+                      placeholder="Ex: 1"
+                      className="bg-black/40 border-zinc-800"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="text-xs text-zinc-400">URL do Vídeo de Logo (Bumper pós-intervalo)</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={editingContent.post_break_logo_url || ""}
+                      onChange={(e) => setEditingContent({ ...editingContent, post_break_logo_url: e.target.value })}
+                      placeholder="URL do vídeo (m3u8, mp4, youtube...)"
+                      className="bg-black/40 border-zinc-800"
+                    />
+                    <Button 
+                      type="button" 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => {
+                        const url = prompt("Cole a URL do vídeo de logo:");
+                        if (url) setEditingContent({ ...editingContent, post_break_logo_url: url });
+                      }}
+                    >
+                      Colar
+                    </Button>
+                  </div>
+                  <p className="text-[10px] text-zinc-500 italic">Este vídeo tocará sempre que um bloco de intervalos terminar, antes de voltar à programação principal.</p>
+                </div>
               </div>
             )}
 

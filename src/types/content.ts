@@ -80,4 +80,8 @@ export interface Content {
   ad_list?: MediaLink[];
   shuffle_intervals?: boolean;
   shuffle_ads?: boolean;
+  break_frequency?: number;
+  global_intervals_count?: number;
+  global_ads_count?: number;
+  post_break_logo_url?: string;
 }

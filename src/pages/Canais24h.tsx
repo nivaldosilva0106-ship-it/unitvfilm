@@ -689,11 +689,12 @@ interface QueueItem {
     url: string;
     startTime: number;
     title: string;
-    type: "program" | "interval" | "ad";
+    type: "program" | "interval" | "ad" | "logo";
     programIndex: number;
     playbackSpeed?: number;
     breakIndex?: number;
     description?: string;
+    programsSinceBreak?: number;
 }
 
 // ============================================================
@@ -924,91 +925,96 @@ export default function Canais24h() {
     const getNextItem = useCallback((currentItem: QueueItem): QueueItem => {
         const shuffleIntervals = currentChannel?.shuffle_intervals || false;
         const shuffleAds = currentChannel?.shuffle_ads || false;
-        const currentProg = programs[currentItem.programIndex] || programs[0];
-
-        const reqIntervals = currentProg?.post_video_intervals || 0;
-        const reqAds = currentProg?.post_video_ads || 0;
         
+        // Settings
+        const freq = currentChannel?.break_frequency || 0;
+        const globInt = currentChannel?.global_intervals_count || 0;
+        const globAds = currentChannel?.global_ads_count || 0;
+        const logoUrl = currentChannel?.post_break_logo_url;
+        
+        // Trackers
         let breakIdx = currentItem.breakIndex || 0;
+        let pSince = currentItem.programsSinceBreak || 0;
+
+        // Helper to get next random media link
+        const getRandom = (list: any[]) => list[Math.floor(Math.random() * list.length)];
+        const getLinear = (list: any[], idx: number) => list[idx % list.length];
         
-        if (currentItem.type === "program") {
-            if (reqIntervals > 0 && intervalList.length > 0) {
-                const urlObj = shuffleIntervals 
-                    ? intervalList[Math.floor(Math.random() * intervalList.length)] 
-                    : intervalList[0 % intervalList.length];
-                return {
-                    url: urlObj.url, startTime: 0, title: urlObj.title || "Intervalo",
-                    type: "interval", programIndex: currentItem.programIndex, breakIndex: 1
-                };
-            } else if (reqAds > 0 && adList.length > 0) {
-                 const urlObj = shuffleAds 
-                    ? adList[Math.floor(Math.random() * adList.length)] 
-                    : adList[0 % adList.length];
-                return {
-                    url: urlObj.url, startTime: 0, title: urlObj.title || "Publicidade",
-                    type: "ad", programIndex: currentItem.programIndex, breakIndex: 1
-                };
+        // Check if we need to enter a break block
+        let shouldBreak = false;
+        if (currentItem.type === "program" && freq > 0) {
+            pSince += 1; // We just finished a program
+            if (pSince >= freq) {
+                shouldBreak = true;
             }
-        } 
-        
-        if (currentItem.type === "interval") {
-             if (breakIdx < reqIntervals && intervalList.length > 0) {
-                  const urlObj = shuffleIntervals 
-                    ? intervalList[Math.floor(Math.random() * intervalList.length)] 
-                    : intervalList[breakIdx % intervalList.length];
-                  return {
-                      url: urlObj.url, startTime: 0, title: urlObj.title || "Intervalo",
-                      type: "interval", programIndex: currentItem.programIndex, breakIndex: breakIdx + 1
-                  };
-             } else if (reqAds > 0 && adList.length > 0) {
-                  const urlObj = shuffleAds 
-                    ? adList[Math.floor(Math.random() * adList.length)] 
-                    : adList[0 % adList.length];
-                  return {
-                      url: urlObj.url, startTime: 0, title: urlObj.title || "Publicidade",
-                      type: "ad", programIndex: currentItem.programIndex, breakIndex: 1
-                  };
-             }
         }
 
-        if (currentItem.type === "ad") {
-             if (breakIdx < reqAds && adList.length > 0) {
-                   const urlObj = shuffleAds 
-                    ? adList[Math.floor(Math.random() * adList.length)] 
-                    : adList[breakIdx % adList.length];
-                  return {
-                      url: urlObj.url, startTime: 0, title: urlObj.title || "Publicidade",
-                      type: "ad", programIndex: currentItem.programIndex, breakIndex: breakIdx + 1
-                  };
-             }
+        // 1. Transition FROM Program TO Break (if needed)
+        if (shouldBreak) {
+            if (globInt > 0 && intervalList.length > 0) {
+                const item = shuffleIntervals ? getRandom(intervalList) : getLinear(intervalList, 0);
+                return { url: item.url, startTime: 0, title: item.title || "Intervalo", type: "interval", programIndex: currentItem.programIndex, breakIndex: 1, programsSinceBreak: 0 };
+            } else if (globAds > 0 && adList.length > 0) {
+                const item = shuffleAds ? getRandom(adList) : getLinear(adList, 0);
+                return { url: item.url, startTime: 0, title: item.title || "Publicidade", type: "ad", programIndex: currentItem.programIndex, breakIndex: 1, programsSinceBreak: 0 };
+            } else if (logoUrl) {
+                return { url: logoUrl, startTime: 0, title: "Logo", type: "logo", programIndex: currentItem.programIndex, programsSinceBreak: 0 };
+            }
         }
 
-        // ---- 4. Determine next program (Intelligent Sequencing for Series/Novellas) ----
-        // If current title ends in a number, try to find the next item in that sequence
-        let nextIdx = (currentItem.programIndex + 1) % programs.length;
-        
-        const matchDigits = currentProg?.title?.match(/(\d+)/g);
-        if (matchDigits && matchDigits.length > 0) {
-            const lastMatch = matchDigits[matchDigits.length - 1];
-            const currentNum = parseInt(lastMatch);
-            const baseTitle = currentProg.title.replace(lastMatch, '').trim();
+        // 2. Play legacy breaks if global breaks are not active
+        if (currentItem.type === "program" && !shouldBreak && freq === 0) {
+            const currentProg = programs[currentItem.programIndex] || programs[0];
+            const reqInt = currentProg?.post_video_intervals || 0;
+            const reqAds = currentProg?.post_video_ads || 0;
             
-            // Search for next number in the same series
-            const seriesMatchIdx = programs.findIndex(p => {
-                const pDigits = p.title?.match(/(\d+)/g);
-                if (!pDigits) return false;
-                const pLastMatch = pDigits[pDigits.length - 1];
-                const pNum = parseInt(pLastMatch);
-                const pBase = p.title.replace(pLastMatch, '').trim();
-                return pBase === baseTitle && pNum === currentNum + 1;
-            });
-
-            if (seriesMatchIdx !== -1) {
-                nextIdx = seriesMatchIdx;
+            if (reqInt > 0 && intervalList.length > 0) {
+                const item = shuffleIntervals ? getRandom(intervalList) : getLinear(intervalList, 0);
+                return { url: item.url, startTime: 0, title: item.title || "Intervalo", type: "interval", programIndex: currentItem.programIndex, breakIndex: 1, programsSinceBreak: pSince };
+            } else if (reqAds > 0 && adList.length > 0) {
+                const item = shuffleAds ? getRandom(adList) : getLinear(adList, 0);
+                return { url: item.url, startTime: 0, title: item.title || "Publicidade", type: "ad", programIndex: currentItem.programIndex, breakIndex: 1, programsSinceBreak: pSince };
             }
         }
 
+        // 3. Continue Interval Block
+        if (currentItem.type === "interval") {
+            const targetInt = freq > 0 ? globInt : ((programs[currentItem.programIndex] || programs[0])?.post_video_intervals || 0);
+            const targetAds = freq > 0 ? globAds : ((programs[currentItem.programIndex] || programs[0])?.post_video_ads || 0);
+            
+            if (breakIdx < targetInt && intervalList.length > 0) {
+                const item = shuffleIntervals ? getRandom(intervalList) : getLinear(intervalList, breakIdx);
+                return { url: item.url, startTime: 0, title: item.title || "Intervalo", type: "interval", programIndex: currentItem.programIndex, breakIndex: breakIdx + 1, programsSinceBreak: 0 };
+            } else if (targetAds > 0 && adList.length > 0) {
+                const item = shuffleAds ? getRandom(adList) : getLinear(adList, 0);
+                return { url: item.url, startTime: 0, title: item.title || "Publicidade", type: "ad", programIndex: currentItem.programIndex, breakIndex: 1, programsSinceBreak: 0 };
+            } else if (freq > 0 && logoUrl) {
+                return { url: logoUrl, startTime: 0, title: "Logo", type: "logo", programIndex: currentItem.programIndex, programsSinceBreak: 0 };
+            }
+        }
+
+        // 4. Continue Ad Block
+        if (currentItem.type === "ad") {
+            const targetAds = freq > 0 ? globAds : ((programs[currentItem.programIndex] || programs[0])?.post_video_ads || 0);
+            
+            if (breakIdx < targetAds && adList.length > 0) {
+                const item = shuffleAds ? getRandom(adList) : getLinear(adList, breakIdx);
+                return { url: item.url, startTime: 0, title: item.title || "Publicidade", type: "ad", programIndex: currentItem.programIndex, breakIndex: breakIdx + 1, programsSinceBreak: 0 };
+            } else if (freq > 0 && logoUrl) {
+                return { url: logoUrl, startTime: 0, title: "Logo", type: "logo", programIndex: currentItem.programIndex, programsSinceBreak: 0 };
+            }
+        }
+
+        // 5. From Logo to Next Program
+        // Logo is the end of the break block. Or if there was no break but we just ended a program.
+        
+        // 6. Next Program (Strict sequential order honors standard "2by2" settings perfectly)
+        const nextIdx = (currentItem.programIndex + 1) % programs.length;
         const nextProg = programs[nextIdx];
+        
+        // If coming from logo or break, pSince is already 0. If coming from program, it increments naturally.
+        if (currentItem.type === "program" && !shouldBreak) pSince += 1;
+
         return {
             url: nextProg?.internal_player_url || nextProg?.url || "",
             startTime: 0,
@@ -1018,6 +1024,7 @@ export default function Canais24h() {
             playbackSpeed: nextProg?.playback_speed,
             breakIndex: 0,
             description: nextProg?.description || "",
+            programsSinceBreak: pSince,
         };
     }, [programs, currentChannel, intervalList, adList]);
 
