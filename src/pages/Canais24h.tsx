@@ -287,12 +287,19 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
         try {
             if (!playerRef.current) return;
             if (active) {
-                playerRef.current.unMute();
-                playerRef.current.setVolume(100);
-                // Ensure playing
-                if (playerRef.current.getPlayerState?.() !== 1) {
-                    playerRef.current.playVideo();
-                }
+                // Delayed unmuting for smoother transition
+                setTimeout(() => {
+                    try {
+                        if (!playerRef.current) return;
+                        playerRef.current.unMute();
+                        playerRef.current.setVolume(100);
+                        setIsMuted(false);
+                        // Ensure playing
+                        if (playerRef.current.getPlayerState?.() !== 1) {
+                            playerRef.current.playVideo();
+                        }
+                    } catch {}
+                }, 800);
             } else {
                 playerRef.current.mute();
                 playerRef.current.pauseVideo();
@@ -430,6 +437,19 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
             onTimeUpdate(state.playedSeconds);
         }
     };
+
+    // Auto-unmute when active
+    useEffect(() => {
+        if (active) {
+            const t = setTimeout(() => {
+                setIsMuted(false);
+                setVolume(1);
+            }, 800);
+            return () => clearTimeout(t);
+        } else {
+            setIsMuted(true);
+        }
+    }, [active]);
 
     const togglePlay = (e: React.MouseEvent) => {
         e.stopPropagation();

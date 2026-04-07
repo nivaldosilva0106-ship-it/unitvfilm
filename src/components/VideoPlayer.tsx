@@ -279,8 +279,17 @@ const formatTime = (seconds: number): string => {
       if (autoPlay && video.paused) {
         video.play().catch(() => {});
       }
+      // Delayed auto-unmute for smooth slot transition
+      const t = setTimeout(() => {
+        video.muted = false;
+        setIsMuted(false);
+        setVolume(1.0);
+      }, 800);
+      return () => clearTimeout(t);
     } else {
       video.pause();
+      video.muted = true;
+      setIsMuted(true);
     }
   }, [active, autoPlay]);
 
