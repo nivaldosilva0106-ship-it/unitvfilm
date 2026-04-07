@@ -27,7 +27,10 @@ interface VideoPlayerProps {
   onToggleFullscreen?: () => void;
   isFullscreen?: boolean;
   initialPlaybackRate?: number;
+  active?: boolean;
   watermarkUrl?: string;
+  watermarkPosition?: string;
+  watermarkSize?: number;
 }
 
 const formatTime = (seconds: number): string => {
@@ -53,7 +56,10 @@ const formatTime = (seconds: number): string => {
   onToggleFullscreen,
   isFullscreen: isFullscreenProp,
   initialPlaybackRate = 1,
-  watermarkUrl
+  active = true,
+  watermarkUrl,
+  watermarkPosition,
+  watermarkSize
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -164,7 +170,7 @@ const formatTime = (seconds: number): string => {
           .sort((a, b) => b.height - a.height);
         setQualities(levelsWithHeight);
 
-        if (autoPlay) {
+        if (autoPlay && active) {
           attemptPlay();
         }
       });
@@ -182,13 +188,13 @@ const formatTime = (seconds: number): string => {
     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
       // Safari native HLS
       video.src = videoUrl;
-      if (autoPlay) {
+      if (autoPlay && active) {
         attemptPlay();
       }
     } else {
       // Regular video (mp4, ts, etc.)
       video.src = videoUrl;
-      if (autoPlay) {
+      if (autoPlay && active) {
         attemptPlay();
       }
     }
@@ -224,6 +230,7 @@ const formatTime = (seconds: number): string => {
     if (!video) return;
 
     const handleTimeUpdate = () => {
+      if (!active) return;
       setCurrentTime(video.currentTime);
       onTimeUpdate?.(video.currentTime, video.duration);
     };
@@ -233,6 +240,7 @@ const formatTime = (seconds: number): string => {
     const handleWaiting = () => setIsBuffering(true);
     const handlePlaying = () => setIsBuffering(false);
     const handleEnded = () => {
+      if (!active) return;
       setIsPlaying(false);
       onEnded?.();
     };
@@ -260,7 +268,21 @@ const formatTime = (seconds: number): string => {
       video.removeEventListener('ended', handleEnded);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
     };
-  }, [onEnded, onTimeUpdate, playbackRate]);
+  }, [onEnded, onTimeUpdate, playbackRate, active]);
+
+  // Sync active state with playback (pause if inactive)
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    if (active) {
+      if (autoPlay && video.paused) {
+        video.play().catch(() => {});
+      }
+    } else {
+      video.pause();
+    }
+  }, [active, autoPlay]);
 
   // Create AudioContext only ONCE on first play to bypass browser autoplay rules
   useEffect(() => {
@@ -588,11 +610,17 @@ const formatTime = (seconds: number): string => {
 
       {/* Watermark Logo Overlay - Persistent visibility! */}
       {watermarkUrl && (
-        <div className="absolute bottom-6 left-6 z-[25] pointer-events-none select-none transition-all duration-300 opacity-70">
+        <div className={`absolute ${
+          watermarkPosition === 'top-left' ? 'top-6 left-6' :
+          watermarkPosition === 'top-right' ? 'top-6 right-6' :
+          watermarkPosition === 'bottom-right' ? 'bottom-6 right-6' :
+          'bottom-6 left-6'
+        } z-[25] pointer-events-none select-none transition-all duration-300 opacity-70`}>
            <img 
             src={watermarkUrl} 
             alt="Watermark" 
-            className="h-8 md:h-12 w-auto object-contain filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" 
+            style={{ height: `${(watermarkSize || 8) * 4}px` }}
+            className="w-auto object-contain filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" 
            />
         </div>
       )}

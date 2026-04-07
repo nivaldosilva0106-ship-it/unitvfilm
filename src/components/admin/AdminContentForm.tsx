@@ -1074,16 +1074,76 @@ ${ep.url || ""}`;
             )}
           </div>
           {isCanais24h && (
-            <div>
-              <Label className="text-primary">URL da Logo do Canal (Watermark) *</Label>
-              <Input
-                value={editingContent.channel_logo_url || ''}
-                onChange={(e) => setEditingContent(prev => ({ ...prev, channel_logo_url: e.target.value }))}
-                className="bg-input border-primary/30 focus:border-primary"
-                placeholder="https://... (Aparecerá no canto do player)"
-              />
+            <div className="space-y-4 p-4 border border-primary/20 rounded-lg bg-primary/5">
+              <Label className="text-primary font-semibold text-sm">🎨 Configuração da Logo (Watermark)</Label>
+              <div>
+                <Label className="text-xs text-zinc-400">URL da Logo do Canal *</Label>
+                <Input
+                  value={editingContent.channel_logo_url || ''}
+                  onChange={(e) => setEditingContent(prev => ({ ...prev, channel_logo_url: e.target.value }))}
+                  className="bg-input border-primary/30 focus:border-primary"
+                  placeholder="https://... (Aparecerá no canto do player)"
+                />
+                {editingContent.channel_logo_url && (
+                  <img src={editingContent.channel_logo_url} className="mt-2 h-12 w-auto object-contain rounded bg-black/40 p-1 border border-white/10" />
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-xs text-zinc-400">Posição da Logo</Label>
+                  <Select
+                    value={editingContent.watermark_position || 'bottom-left'}
+                    onValueChange={(v) => setEditingContent(prev => ({ ...prev, watermark_position: v as any }))}
+                  >
+                    <SelectTrigger className="bg-input border-border">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="top-left">↖ Superior Esquerdo</SelectItem>
+                      <SelectItem value="top-right">↗ Superior Direito</SelectItem>
+                      <SelectItem value="bottom-left">↙ Inferior Esquerdo</SelectItem>
+                      <SelectItem value="bottom-right">↘ Inferior Direito</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label className="text-xs text-zinc-400">Tamanho da Logo: {editingContent.watermark_size || 8}</Label>
+                  <Input
+                    type="range"
+                    min="2"
+                    max="30"
+                    step="1"
+                    value={editingContent.watermark_size || 8}
+                    onChange={(e) => setEditingContent(prev => ({ ...prev, watermark_size: parseInt(e.target.value) }))}
+                    className="w-full accent-primary mt-1"
+                  />
+                  <div className="flex justify-between text-[9px] text-zinc-500 mt-0.5">
+                    <span>Pequeno</span>
+                    <span>Grande</span>
+                  </div>
+                </div>
+              </div>
+
               {editingContent.channel_logo_url && (
-                <img src={editingContent.channel_logo_url} className="mt-2 h-12 w-auto object-contain rounded bg-black/40 p-1 border border-white/10" />
+                <div className="relative w-full aspect-video bg-zinc-900 rounded-lg border border-zinc-800 overflow-hidden">
+                  <p className="absolute top-1 left-1/2 -translate-x-1/2 text-[9px] text-zinc-600 font-mono">PRÉ-VISUALIZAÇÃO</p>
+                  <div
+                    className={`absolute z-10 pointer-events-none ${
+                      (editingContent.watermark_position || 'bottom-left') === 'top-left' ? 'top-3 left-3' :
+                      (editingContent.watermark_position || 'bottom-left') === 'top-right' ? 'top-3 right-3' :
+                      (editingContent.watermark_position || 'bottom-left') === 'bottom-right' ? 'bottom-3 right-3' :
+                      'bottom-3 left-3'
+                    }`}
+                  >
+                    <img
+                      src={editingContent.channel_logo_url}
+                      alt="Preview"
+                      style={{ height: `${(editingContent.watermark_size || 8) * 4}px` }}
+                      className="w-auto object-contain filter drop-shadow-lg opacity-70"
+                    />
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -1452,6 +1512,17 @@ ${ep.url || ""}`;
                         {isCanais24h && (
                           <div className="flex gap-4 p-3 border border-white/5 rounded-lg bg-black/20">
                             <div className="flex-1 flex flex-col gap-1">
+                              <Label className="text-[10px] text-zinc-400 font-bold uppercase">Duração (Segundos) *</Label>
+                              <Input
+                                type="number"
+                                placeholder="Padrão: 1800 (30m)"
+                                value={episode.duration || ''}
+                                onChange={(e) => updateEpisode(originalIndex, 'duration', parseInt(e.target.value) || 0)}
+                                className="bg-black/50 border-zinc-800 text-xs h-8"
+                                min="1"
+                              />
+                            </div>
+                            <div className="flex-1 flex flex-col gap-1">
                               <Label className="text-[10px] text-zinc-400 font-bold uppercase">Intervalos Pós-Vídeo (Qtd)</Label>
                               <Input
                                 type="number"
@@ -1667,6 +1738,18 @@ ${ep.url || ""}`;
                             </Button>
                           </div>
                         </div>
+                      </div>
+                      <div className="flex items-center pt-2">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeEpisode(originalIndex)}
+                          className="h-8 w-8 text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                          title="Remover este bloco"
+                        >
+                          <Trash className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
                   );

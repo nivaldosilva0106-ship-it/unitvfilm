@@ -17,7 +17,16 @@ declare global {
     }
 }
 
-const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEnded, playbackSpeed, onToggleFullscreen, isFullscreen, title, watermarkUrl }: {
+const getWatermarkClasses = (position?: string) => {
+    switch (position) {
+        case 'top-left': return 'top-6 left-6';
+        case 'top-right': return 'top-6 right-6';
+        case 'bottom-right': return 'bottom-6 right-6';
+        default: return 'bottom-6 left-6';
+    }
+};
+
+const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEnded, playbackSpeed, onToggleFullscreen, isFullscreen, title, watermarkUrl, watermarkPosition, watermarkSize }: {
     videoId: string;
     id: string;
     startTime: number;
@@ -29,6 +38,8 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
     isFullscreen?: boolean;
     title?: string;
     watermarkUrl?: string;
+    watermarkPosition?: string;
+    watermarkSize?: number;
 }) => {
     const playerRef = useRef<any>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -271,7 +282,7 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
         };
     }, [videoId, id]); // ONLY recreate when video changes
 
-    // Mute/unmute based on active state (does NOT recreate iframe)
+    // Mute/unmute AND play/pause based on active state (does NOT recreate iframe)
     useEffect(() => {
         try {
             if (!playerRef.current) return;
@@ -284,6 +295,7 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                 }
             } else {
                 playerRef.current.mute();
+                playerRef.current.pauseVideo();
             }
         } catch {}
     }, [active]);
@@ -322,11 +334,12 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
             )}
 
             {watermarkUrl && isPlaying && !hasError && (
-                <div className="absolute bottom-6 left-6 z-[35] pointer-events-none select-none transition-all duration-300 opacity-70">
+                <div className={`absolute ${getWatermarkClasses(watermarkPosition)} z-[35] pointer-events-none select-none transition-all duration-300 opacity-70`}>
                     <img 
                         src={watermarkUrl} 
                         alt="Watermark" 
-                        className="h-8 md:h-12 w-auto object-contain filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" 
+                        style={{ height: `${(watermarkSize || 8) * 4}px` }}
+                        className="w-auto object-contain filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" 
                     />
                 </div>
             )}
@@ -384,7 +397,7 @@ YouTubePlayer.displayName = "YouTubePlayer";
 import ReactPlayerComponent from 'react-player';
 const ReactPlayer = ReactPlayerComponent as any;
 
-const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscreen, isFullscreen, title, watermarkUrl }: {
+const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscreen, isFullscreen, title, watermarkUrl, watermarkPosition, watermarkSize }: {
     url: string;
     active: boolean;
     onTimeUpdate: (time: number) => void;
@@ -393,6 +406,8 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
     isFullscreen?: boolean;
     title?: string;
     watermarkUrl?: string;
+    watermarkPosition?: string;
+    watermarkSize?: number;
 }) => {
 
     const containerRef = useRef<HTMLDivElement>(null);
@@ -450,11 +465,12 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
             >
                 {/* Watermark Logo Overlay */}
                 {watermarkUrl && (
-                    <div className="absolute bottom-6 left-6 z-[35] pointer-events-none select-none transition-all duration-300 opacity-70">
+                    <div className={`absolute ${getWatermarkClasses(watermarkPosition)} z-[35] pointer-events-none select-none transition-all duration-300 opacity-70`}>
                         <img 
                             src={watermarkUrl} 
                             alt="Watermark" 
-                            className="h-8 md:h-12 w-auto object-contain filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" 
+                            style={{ height: `${(watermarkSize || 8) * 4}px` }}
+                            className="w-auto object-contain filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" 
                         />
                     </div>
                 )}
@@ -493,10 +509,14 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
                     width="100%"
                     height="100%"
                     playing={active && isPlaying}
-                    muted={isMuted}
+                    muted={!active || isMuted}
                     volume={volume}
-                    onProgress={handleProgress}
-                    onEnded={onEnded}
+                    onProgress={(state: any) => {
+                        if (active) handleProgress(state);
+                    }}
+                    onEnded={() => {
+                        if (active) onEnded();
+                    }}
                     onPlay={() => setIsPlaying(true)}
                     onPause={() => setIsPlaying(false)}
                     progressInterval={1000}
@@ -546,12 +566,14 @@ SocialPlayer.displayName = "SocialPlayer";
 // ============================================================
 // PLAYER SLOT — Renders YouTube or VideoPlayer
 // ============================================================
-const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeUpdate, onEnded, onToggleFullscreen, isFullscreen }: {
+const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, watermarkPosition, watermarkSize, onTimeUpdate, onEnded, onToggleFullscreen, isFullscreen }: {
     id: string;
     content: QueueItem | null;
     tiktokUrl: string | null;
     active: boolean;
     channelThumb?: string;
+    watermarkPosition?: string;
+    watermarkSize?: number;
     onTimeUpdate?: (time: number, duration?: number) => void;
     onEnded?: () => void;
     onToggleFullscreen?: () => void;
@@ -617,6 +639,8 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
                     onToggleFullscreen={onToggleFullscreen}
                     isFullscreen={isFullscreen}
                     watermarkUrl={channelThumb}
+                    watermarkPosition={watermarkPosition}
+                    watermarkSize={watermarkSize}
                 />
             ) : isSocial ? (
                 <SocialPlayer
@@ -627,6 +651,8 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
                     onToggleFullscreen={onToggleFullscreen}
                     isFullscreen={isFullscreen}
                     watermarkUrl={channelThumb}
+                    watermarkPosition={watermarkPosition}
+                    watermarkSize={watermarkSize}
                 />
             ) : (
                 <VideoPlayer
@@ -634,14 +660,21 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, onTimeU
                     poster={channelThumb}
                     autoPlay={true}
                     startTime={content.startTime}
+                    active={active}
                     isLive={true}
-                    onEnded={onEnded || (() => {})}
-                    onTimeUpdate={onTimeUpdate}
+                    onEnded={() => {
+                        if (active && onEnded) onEnded();
+                    }}
+                    onTimeUpdate={(t, d) => {
+                        if (active && onTimeUpdate) onTimeUpdate(t, d);
+                    }}
                     onToggleFullscreen={onToggleFullscreen}
                     isFullscreen={isFullscreen}
                     muted={!active}
                     initialPlaybackRate={content.playbackSpeed}
                     watermarkUrl={channelThumb}
+                    watermarkPosition={watermarkPosition}
+                    watermarkSize={watermarkSize}
                 />
             )}
         </div>
@@ -770,6 +803,12 @@ export default function Canais24h() {
                 const data = JSON.parse(savedSyncStr);
                 const elapsedSinceSave = Math.floor((Date.now() - data.realTimestamp) / 1000);
                 
+                // CRITICAL: If the programming length changed, ignore saved state to avoid index out of bounds or stale sync
+                if (data.programCount !== programs.length) {
+                    localStorage.removeItem(SAVED_STATE_KEY);
+                    throw new Error("Programming changed");
+                }
+
                 // If it's been less than 24 hours, we resume from where they were and skip forward logically
                 // to simulate they left the TV on. (Advances TV time correctly without looping) a true virtual broadcast tracking.
                 if (elapsedSinceSave >= 0 && elapsedSinceSave < 86400) {
@@ -1087,8 +1126,8 @@ export default function Canais24h() {
             return;
         }
 
-        // PRE-EMPTIVE SWAP 1.2s before end (hides YouTube replay icon)
-        if (duration && remaining > 0 && remaining <= 1.2 && !isTransitioningRef.current) {
+        // PRE-EMPTIVE SWAP 5s before end (hides YouTube replay icon and respects transitions)
+        if (duration && remaining > 0 && remaining <= 5 && !isTransitioningRef.current) {
             handleEndedRef.current(activeSlotRef.current);
             return;
         }
@@ -1314,6 +1353,8 @@ export default function Canais24h() {
                                     content={slotA}
                                     tiktokUrl={tiktokA}
                                     channelThumb={currentChannel.channel_logo_url}
+                                    watermarkPosition={currentChannel.watermark_position}
+                                    watermarkSize={currentChannel.watermark_size}
                                     onTimeUpdate={handleTimeUpdate}
                                     onEnded={handleEndedA}
                                     onToggleFullscreen={toggleFullscreen}
@@ -1325,6 +1366,8 @@ export default function Canais24h() {
                                     content={slotB}
                                     tiktokUrl={tiktokB}
                                     channelThumb={currentChannel.channel_logo_url}
+                                    watermarkPosition={currentChannel.watermark_position}
+                                    watermarkSize={currentChannel.watermark_size}
                                     onTimeUpdate={handleTimeUpdate}
                                     onEnded={handleEndedB}
                                     onToggleFullscreen={toggleFullscreen}
@@ -1370,9 +1413,28 @@ export default function Canais24h() {
                                 <span className="inline-block px-2 py-0.5 bg-primary/20 text-primary text-[9px] font-bold rounded mb-3 border border-primary/30 uppercase tracking-tighter italic">
                                     O que estás a ver
                                 </span>
-                                <h2 className="text-xl font-bold text-white mb-2 leading-tight">
-                                    {isAdMode ? "Intervalo Comercial" : (nowPlayingTitle || currentChannel?.title)}
-                                </h2>
+                                <div className="flex items-center justify-between mb-2">
+                                    <h2 className="text-xl font-bold text-white leading-tight">
+                                        {isAdMode ? "Intervalo Comercial" : (nowPlayingTitle || currentChannel?.title)}
+                                    </h2>
+                                    <button 
+                                        onClick={() => {
+                                            if (currentChannel) {
+                                                localStorage.removeItem(`tv_progression_${currentChannel.id}`);
+                                                window.location.reload();
+                                            }
+                                        }}
+                                        className="p-1.5 rounded-lg bg-zinc-700/50 hover:bg-zinc-600/50 transition-colors border border-white/5 group"
+                                        title="Sincronizar Programação"
+                                    >
+                                        <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 group-hover:text-white uppercase tracking-wider">
+                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                            </svg>
+                                            Sincronizar
+                                        </div>
+                                    </button>
+                                </div>
                                 {!isAdMode && activeSlotRef.current === "A" && slotA?.description && (
                                     <p className="text-xs text-zinc-400 mb-2 line-clamp-3">
                                         {slotA.description}

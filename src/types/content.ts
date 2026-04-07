@@ -71,6 +71,8 @@ export interface Content {
   google_drive_url?: string;
   tiktok_url?: string;
   channel_logo_url?: string;
+  watermark_position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+  watermark_size?: number; // height scale (default 8 = h-8)
   main_video_id?: string;
   interval_urls?: string[]; // Legacy
   ad_urls?: string[]; // Legacy
