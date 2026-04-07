@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { Content, Episode } from "@/types/content";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { toast } from "sonner";
-import { Loader2, Film, Tv, Clock, RefreshCw } from "lucide-react";
+import { Loader2, Film, Tv, Clock, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 import { Volume2, VolumeX, Maximize, Minimize, Play, Pause, SkipBack, SkipForward, PictureInPicture } from "lucide-react";
@@ -730,6 +730,7 @@ export default function Canais24h() {
     const playerContainerRef = useRef<HTMLDivElement>(null);
     const pipWindowRef = useRef<any>(null);
     const playerContainerParentRef = useRef<HTMLElement | null>(null);
+    const channelListRef = useRef<HTMLDivElement>(null);
 
     // Track current program index
     const currentIndexRef = useRef(0);
@@ -1215,6 +1216,13 @@ export default function Canais24h() {
         setCurrentChannel(channel);
         window.scrollTo({ top: 0, behavior: "smooth" });
     }, []);
+
+    const scrollChannels = (direction: "left" | "right") => {
+        if (!channelListRef.current) return;
+        const scrollAmount = direction === "left" ? -400 : 400;
+        channelListRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    };
+    
     
     // Manual refresh function
     const handleRefresh = useCallback(async () => {
@@ -1520,9 +1528,9 @@ export default function Canais24h() {
                                     <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
                                 </button>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="flex overflow-x-auto md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4 md:pb-0 scrollbar-hide snap-x">
                                 {getUpcomingPrograms().map((prog, idx) => (
-                                    <div key={idx} className="bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl group hover:border-primary/50 transition-colors">
+                                    <div key={idx} className="min-w-[280px] md:min-w-0 bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl group hover:border-primary/50 transition-colors snap-center">
                                         <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">
                                             {idx === 0 ? "Próximo" : "A seguir"}
                                         </span>
@@ -1543,17 +1551,38 @@ export default function Canais24h() {
                     </div>
                 </div>
 
-                {/* Channel List */}
-                <div className="w-full max-w-7xl mx-auto px-4 md:px-8">
-                    <div className="flex items-center gap-3 mb-8">
-                        <Tv className="w-6 h-6 text-primary" />
-                        <h2 className="text-2xl font-black uppercase tracking-tighter">Explorar Canais</h2>
+                <div className="w-full max-w-7xl mx-auto px-4 md:px-8 relative group/channels">
+                    <div className="flex items-center justify-between mb-8">
+                        <div className="flex items-center gap-3">
+                            <Tv className="w-6 h-6 text-primary" />
+                            <h2 className="text-2xl font-black uppercase tracking-tighter">Explorar Canais</h2>
+                        </div>
+                        
+                        {/* Desktop Navigation Arrows */}
+                        <div className="hidden md:flex items-center gap-2">
+                            <button 
+                                onClick={() => scrollChannels("left")}
+                                className="p-2 rounded-full bg-zinc-800/50 hover:bg-primary/20 border border-white/5 transition-all text-zinc-400 hover:text-primary"
+                            >
+                                <ChevronLeft className="w-5 h-5" />
+                            </button>
+                            <button 
+                                onClick={() => scrollChannels("right")}
+                                className="p-2 rounded-full bg-zinc-800/50 hover:bg-primary/20 border border-white/5 transition-all text-zinc-400 hover:text-primary"
+                            >
+                                <ChevronRight className="w-5 h-5" />
+                            </button>
+                        </div>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-6">
+
+                    <div 
+                        ref={channelListRef}
+                        className="flex overflow-x-auto gap-6 pb-6 md:pb-2 scrollbar-hide snap-x scroll-smooth"
+                    >
                         {contents.map((channel) => (
                             <div
                                 key={channel.id}
-                                className={`aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer group relative border-2 ${
+                                className={`flex-none w-[160px] md:w-[200px] aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer group relative border-2 snap-start transition-all ${
                                     currentChannel?.id === channel.id
                                         ? "border-primary shadow-[0_0_20px_rgba(229,9,20,0.3)]"
                                         : "border-zinc-800/50"
