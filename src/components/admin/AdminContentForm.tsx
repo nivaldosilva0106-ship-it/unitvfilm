@@ -1370,317 +1370,314 @@ ${ep.url || ""}`;
                 .map((episode, filteredIndex) => {
                   const originalIndex = (episode as any).originalIndex;
                   return (
-                <div key={originalIndex} className="flex gap-2 items-start p-3 bg-secondary/50 rounded-lg border border-white/5 hover:border-white/10 transition-colors">
-                  {isCanais24h && (
-                    <div className="flex flex-col gap-1 items-center justify-center pt-2">
-                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => moveEpisodeUp(originalIndex)} disabled={originalIndex === 0}>
-                        <ChevronUp className="w-4 h-4" />
-                      </Button>
-                      <span className="text-xs font-mono">{originalIndex + 1}</span>
-                      <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => moveEpisodeDown(originalIndex)} disabled={originalIndex === (editingContent.episodes || []).length - 1}>
-                        <ChevronDown className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  )}
-                  <div className="flex-1 space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <Input
-                        type="number"
-                        placeholder="Temp."
-                        value={episode.season || ''}
-                        onChange={(e) => updateEpisode(originalIndex, 'season', parseInt(e.target.value) || 1)}
-                        className={`bg-input border-border text-sm ${isCanais24h ? 'hidden' : ''}`}
-                        min="1"
-                      />
-                      <Input
-                        type="number"
-                        placeholder={isCanais24h ? "Ordem" : "Ep."}
-                        value={episode.episode || ''}
-                        onChange={(e) => updateEpisode(originalIndex, 'episode', parseInt(e.target.value) || 1)}
-                        className={`bg-input border-border text-sm ${isCanais24h ? 'col-span-2' : ''}`}
-                        min="1"
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder={isCanais24h ? "Nome do Bloco de Programação / Título" : "Título do episódio"}
-                        value={episode.title}
-                        onChange={(e) => {
-                          const newTitle = e.target.value;
-                          if (!editingContent.episodes) return;
-                          
-                          const newEps = [...editingContent.episodes];
-                          newEps[originalIndex] = { ...newEps[originalIndex], title: newTitle };
-
-                          // Auto sync description from existing blocks with this new title
-                          if (newTitle && newTitle.trim() !== '' && isCanais24h) {
-                             const existingEp = newEps.find((ep, i) => i !== originalIndex && ep.title === newTitle && ep.description);
-                             if (existingEp && existingEp.description) {
-                                 newEps[originalIndex].description = existingEp.description;
-                             }
-                          }
-
-                          setEditingContent(prev => ({ ...prev, episodes: newEps }));
-                        }}
-                        className="bg-input border-border text-sm flex-1"
-                      />
+                    <div key={originalIndex} className="flex gap-2 items-start p-3 bg-secondary/50 rounded-lg border border-white/5 hover:border-white/10 transition-colors">
                       {isCanais24h && (
-                        <Select
-                          value={(episode.playback_speed || 1).toString()}
-                          onValueChange={(v) => updateEpisode(originalIndex, 'playback_speed', parseFloat(v))}
-                        >
-                          <SelectTrigger className="w-[100px] h-9 text-xs bg-input border-border">
-                            <SelectValue placeholder="Vel." />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="0.25">0.25x</SelectItem>
-                            <SelectItem value="0.30">0.30x</SelectItem>
-                            <SelectItem value="0.45">0.45x</SelectItem>
-                            <SelectItem value="0.5">0.5x</SelectItem>
-                            <SelectItem value="0.55">0.55x</SelectItem>
-                            <SelectItem value="0.60">0.60x</SelectItem>
-                            <SelectItem value="0.65">0.65x</SelectItem>
-                            <SelectItem value="0.70">0.70x</SelectItem>
-                            <SelectItem value="0.75">0.75x</SelectItem>
-                            <SelectItem value="1">Normal</SelectItem>
-                            <SelectItem value="1.25">1.25x</SelectItem>
-                            <SelectItem value="1.5">1.5x</SelectItem>
-                            <SelectItem value="2">2x</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      )}
-                    </div>
-                    {isCanais24h && (
-                      <div className="flex gap-4 p-3 border border-white/5 rounded-lg bg-black/20">
-                        <div className="flex-1 flex flex-col gap-1">
-                          <Label className="text-[10px] text-zinc-400 font-bold uppercase">Intervalos Pós-Vídeo (Qtd)</Label>
-                          <Input
-                            type="number"
-                            placeholder="Ex: 3"
-                            value={episode.post_video_intervals || 0}
-                            onChange={(e) => updateEpisode(originalIndex, 'post_video_intervals', parseInt(e.target.value) || 0)}
-                            className="bg-black/50 border-zinc-800 text-xs h-8"
-                            min="0"
-                          />
-                        </div>
-                        <div className="flex-1 flex flex-col gap-1">
-                          <Label className="text-[10px] text-zinc-400 font-bold uppercase">Publicidades Pós-Vídeo (Qtd)</Label>
-                          <Input
-                            type="number"
-                            placeholder="Ex: 1"
-                            value={episode.post_video_ads || 0}
-                            onChange={(e) => updateEpisode(originalIndex, 'post_video_ads', parseInt(e.target.value) || 0)}
-                            className="bg-black/50 border-zinc-800 text-xs h-8"
-                            min="0"
-                          />
-                        </div>
-                      </div>
-                    )}
-                    {isCanais24h && (
-                      <Textarea
-                        placeholder="Descrição do Bloco de Programação (Opcional) - Sincroniza automaticamente com blocos com o mesmo título"
-                        value={episode.description || ''}
-                        onChange={(e) => {
-                          const newDesc = e.target.value;
-                          const currentTitle = episode.title;
-                          if (!editingContent.episodes) return;
-                          
-                          const newEps = [...editingContent.episodes];
-                          newEps[originalIndex] = { ...newEps[originalIndex], description: newDesc };
-
-                          if (currentTitle && currentTitle.trim() !== '') {
-                            newEps.forEach((ep, i) => {
-                               if (i !== originalIndex && ep.title === currentTitle) {
-                                  ep.description = newDesc;
-                               }
-                            });
-                          }
-                          setEditingContent(prev => ({ ...prev, episodes: newEps }));
-                        }}
-                        className="bg-input border-border text-xs min-h-[60px]"
-                      />
-                    )}
-                    <Input
-                      placeholder="URL do episódio (embed)"
-                      value={episode.url}
-                      onChange={(e) => updateEpisode(originalIndex, 'url', e.target.value)}
-                      className="bg-input border-border text-sm"
-                    />
-
-                    {isNostalgia && (
-                      <>
-                        <Input
-                          placeholder="URL API Google Drive (ex: https://www.googleapis.com/drive/v3/files/ID?alt=media&key=KEY)"
-                          value={(episode as any).google_drive_url || ''}
-                          onChange={(e) => updateEpisode(originalIndex, 'google_drive_url', e.target.value)}
-                          className="bg-input border-border text-sm border-blue-500/30"
-                        />
-                        <Input
-                          placeholder="Link do TikTok (ex: https://www.tiktok.com/@user/video/ID)"
-                          value={(episode as any).tiktok_url || ''}
-                          onChange={(e) => updateEpisode(originalIndex, 'tiktok_url', e.target.value)}
-                          className="bg-input border-border text-sm border-pink-500/30"
-                        />
-                      </>
-                    )}
-
-
-                    {!isNostalgia && (
-                      <>
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="URL Player Interno (m3u8, mp4, ts)"
-                            value={episode.internal_player_url || ''}
-                            onChange={(e) => updateEpisode(originalIndex, 'internal_player_url', e.target.value)}
-                            className="bg-input border-border text-sm flex-1"
-                          />
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="icon"
-                            onClick={() => {
-                              if (episode.internal_player_url) {
-                                setPreviewUrl(episode.internal_player_url);
-                                setShowPreview(true);
-                              } else {
-                                toast.error("Insira uma URL para visualizar");
-                              }
-                            }}
-                            className="border-primary text-primary hover:bg-primary/10 h-10 w-10 flex-shrink-0"
-                            title="Testar Player Interno"
-                          >
-                            <Play className="w-4 h-4" />
+                        <div className="flex flex-col gap-1 items-center justify-center pt-2">
+                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => moveEpisodeUp(originalIndex)} disabled={originalIndex === 0}>
+                            <ChevronUp className="w-4 h-4" />
+                          </Button>
+                          <span className="text-xs font-mono">{originalIndex + 1}</span>
+                          <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => moveEpisodeDown(originalIndex)} disabled={originalIndex === (editingContent.episodes || []).length - 1}>
+                            <ChevronDown className="w-4 h-4" />
                           </Button>
                         </div>
+                      )}
+                      <div className="flex-1 space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <Input
+                            type="number"
+                            placeholder="Temp."
+                            value={episode.season || ''}
+                            onChange={(e) => updateEpisode(originalIndex, 'season', parseInt(e.target.value) || 1)}
+                            className={`bg-input border-border text-sm ${isCanais24h ? 'hidden' : ''}`}
+                            min="1"
+                          />
+                          <Input
+                            type="number"
+                            placeholder={isCanais24h ? "Ordem" : "Ep."}
+                            value={episode.episode || ''}
+                            onChange={(e) => updateEpisode(originalIndex, 'episode', parseInt(e.target.value) || 1)}
+                            className={`bg-input border-border text-sm ${isCanais24h ? 'col-span-2' : ''}`}
+                            min="1"
+                          />
+                        </div>
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder={isCanais24h ? "Nome do Bloco de Programação / Título" : "Título do episódio"}
+                            value={episode.title}
+                            onChange={(e) => {
+                              const newTitle = e.target.value;
+                              if (!editingContent.episodes) return;
+                              
+                              const newEps = [...editingContent.episodes];
+                              newEps[originalIndex] = { ...newEps[originalIndex], title: newTitle };
+
+                              if (newTitle && newTitle.trim() !== '' && isCanais24h) {
+                                 const existingEp = newEps.find((ep, i) => i !== originalIndex && ep.title === newTitle && ep.description);
+                                 if (existingEp && existingEp.description) {
+                                     newEps[originalIndex].description = existingEp.description;
+                                 }
+                              }
+
+                              setEditingContent(prev => ({ ...prev, episodes: newEps }));
+                            }}
+                            className="bg-input border-border text-sm flex-1"
+                          />
+                          {isCanais24h && (
+                            <Select
+                              value={(episode.playback_speed || 1).toString()}
+                              onValueChange={(v) => updateEpisode(originalIndex, 'playback_speed', parseFloat(v))}
+                            >
+                              <SelectTrigger className="w-[100px] h-9 text-xs bg-input border-border">
+                                <SelectValue placeholder="Vel." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="0.25">0.25x</SelectItem>
+                                <SelectItem value="0.30">0.30x</SelectItem>
+                                <SelectItem value="0.45">0.45x</SelectItem>
+                                <SelectItem value="0.5">0.5x</SelectItem>
+                                <SelectItem value="0.55">0.55x</SelectItem>
+                                <SelectItem value="0.60">0.60x</SelectItem>
+                                <SelectItem value="0.65">0.65x</SelectItem>
+                                <SelectItem value="0.70">0.70x</SelectItem>
+                                <SelectItem value="0.75">0.75x</SelectItem>
+                                <SelectItem value="1">Normal</SelectItem>
+                                <SelectItem value="1.25">1.25x</SelectItem>
+                                <SelectItem value="1.5">1.5x</SelectItem>
+                                <SelectItem value="2">2x</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+                        {isCanais24h && (
+                          <div className="flex gap-4 p-3 border border-white/5 rounded-lg bg-black/20">
+                            <div className="flex-1 flex flex-col gap-1">
+                              <Label className="text-[10px] text-zinc-400 font-bold uppercase">Intervalos Pós-Vídeo (Qtd)</Label>
+                              <Input
+                                type="number"
+                                placeholder="Ex: 3"
+                                value={episode.post_video_intervals || 0}
+                                onChange={(e) => updateEpisode(originalIndex, 'post_video_intervals', parseInt(e.target.value) || 0)}
+                                className="bg-black/50 border-zinc-800 text-xs h-8"
+                                min="0"
+                              />
+                            </div>
+                            <div className="flex-1 flex flex-col gap-1">
+                              <Label className="text-[10px] text-zinc-400 font-bold uppercase">Publicidades Pós-Vídeo (Qtd)</Label>
+                              <Input
+                                type="number"
+                                placeholder="Ex: 1"
+                                value={episode.post_video_ads || 0}
+                                onChange={(e) => updateEpisode(originalIndex, 'post_video_ads', parseInt(e.target.value) || 0)}
+                                className="bg-black/50 border-zinc-800 text-xs h-8"
+                                min="0"
+                              />
+                            </div>
+                          </div>
+                        )}
+                        {isCanais24h && (
+                          <Textarea
+                            placeholder="Descrição do Bloco de Programação (Opcional) - Sincroniza automaticamente com blocos com o mesmo título"
+                            value={episode.description || ''}
+                            onChange={(e) => {
+                              const newDesc = e.target.value;
+                              const currentTitle = episode.title;
+                              if (!editingContent.episodes) return;
+                              
+                              const newEps = [...editingContent.episodes];
+                              newEps[originalIndex] = { ...newEps[originalIndex], description: newDesc };
+
+                              if (currentTitle && currentTitle.trim() !== '') {
+                                newEps.forEach((ep, i) => {
+                                   if (i !== originalIndex && ep.title === currentTitle) {
+                                      ep.description = newDesc;
+                                   }
+                                });
+                              }
+                              setEditingContent(prev => ({ ...prev, episodes: newEps }));
+                            }}
+                            className="bg-input border-border text-xs min-h-[60px]"
+                          />
+                        )}
                         <Input
-                          placeholder="URL da Legenda (VTT)"
-                          value={episode.subtitle_url || ''}
-                          onChange={(e) => updateEpisode(originalIndex, 'subtitle_url', e.target.value)}
+                          placeholder="URL do episódio (embed)"
+                          value={episode.url}
+                          onChange={(e) => updateEpisode(originalIndex, 'url', e.target.value)}
                           className="bg-input border-border text-sm"
                         />
-                        <Input
-                          placeholder="URL de download (opcional - legado)"
-                          value={episode.download_url || ''}
-                          onChange={(e) => updateEpisode(originalIndex, 'download_url', e.target.value)}
-                          className="bg-input border-border text-sm"
-                        />
-                      </>
-                    )}
 
-                    {/* Episode Download Configuration */}
-                    <div className="p-3 border border-white/10 rounded-lg bg-black/20 space-y-3">
-                      <Label className="text-xs font-semibold flex items-center gap-1">
-                        <DownloadIcon className="w-3 h-3" /> Configuração de Downloads (Episódio)
-                      </Label>
-
-                      <div className="flex gap-4 items-center">
-                        <Label className="text-xs">Modo:</Label>
-                        <Select
-                          value={episode.download_mode || 'direct'}
-                          onValueChange={(v) => updateEpisode(originalIndex, 'download_mode', v as any)}
-                        >
-                          <SelectTrigger className="w-[140px] h-8 text-xs bg-input border-border">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="direct">Direto</SelectItem>
-                            <SelectItem value="torrent">Torrent</SelectItem>
-                            <SelectItem value="mixed">Misto</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="space-y-2">
-                        {(episode.downloads || []).map((link, linkIdx) => (
-                          <div key={linkIdx} className="flex gap-2 items-start">
+                        {isNostalgia && (
+                          <>
                             <Input
-                              value={link.label}
-                              onChange={e => {
-                                const currentEp = editingContent.episodes?.[originalIndex];
-                                if (!currentEp) return;
-                                const newLinks = [...(currentEp.downloads || [])];
-                                newLinks[linkIdx] = { ...newLinks[linkIdx], label: e.target.value };
-                                updateEpisode(originalIndex, 'downloads', newLinks as any);
-                              }}
-                              placeholder="Título"
-                              className="w-1/3 bg-input border-border text-xs h-8"
+                              placeholder="URL API Google Drive (ex: https://www.googleapis.com/drive/v3/files/ID?alt=media&key=KEY)"
+                              value={(episode as any).google_drive_url || ''}
+                              onChange={(e) => updateEpisode(originalIndex, 'google_drive_url', e.target.value)}
+                              className="bg-input border-border text-sm border-blue-500/30"
                             />
                             <Input
-                              value={link.url}
-                              onChange={e => {
-                                const currentEp = editingContent.episodes?.[originalIndex];
-                                if (!currentEp) return;
-                                const newLinks = [...(currentEp.downloads || [])];
-                                newLinks[linkIdx] = { ...newLinks[linkIdx], url: e.target.value };
-                                updateEpisode(originalIndex, 'downloads', newLinks as any);
-                              }}
-                              placeholder="URL"
-                              className="flex-1 bg-input border-border text-xs h-8"
+                              placeholder="Link do TikTok (ex: https://www.tiktok.com/@user/video/ID)"
+                              value={(episode as any).tiktok_url || ''}
+                              onChange={(e) => updateEpisode(originalIndex, 'tiktok_url', e.target.value)}
+                              className="bg-input border-border text-sm border-pink-500/30"
                             />
-                            {episode.download_mode === 'mixed' && (
-                              <Select
-                                value={link.type || 'direct'}
-                                onValueChange={(v) => {
-                                  const currentEp = editingContent.episodes?.[originalIndex];
-                                  if (!currentEp) return;
-                                  const newLinks = [...(currentEp.downloads || [])];
-                                  newLinks[linkIdx] = { ...newLinks[linkIdx], type: v as any };
-                                  updateEpisode(originalIndex, 'downloads', newLinks as any);
+                          </>
+                        )}
+
+
+                        {!isNostalgia && (
+                          <>
+                            <div className="flex gap-2">
+                              <Input
+                                placeholder="URL Player Interno (m3u8, mp4, ts)"
+                                value={episode.internal_player_url || ''}
+                                onChange={(e) => updateEpisode(originalIndex, 'internal_player_url', e.target.value)}
+                                className="bg-input border-border text-sm flex-1"
+                              />
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                onClick={() => {
+                                  if (episode.internal_player_url) {
+                                    setPreviewUrl(episode.internal_player_url);
+                                    setShowPreview(true);
+                                  } else {
+                                    toast.error("Insira uma URL para visualizar");
+                                  }
                                 }}
+                                className="border-primary text-primary hover:bg-primary/10 h-10 w-10 flex-shrink-0"
+                                title="Testar Player Interno"
                               >
-                                <SelectTrigger className="w-[100px] h-8 text-xs bg-input border-zinc-700">
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="direct">Direto</SelectItem>
-                                  <SelectItem value="torrent">Torrent</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            )}
+                                <Play className="w-4 h-4" />
+                              </Button>
+                            </div>
+                            <Input
+                              placeholder="URL da Legenda (VTT)"
+                              value={episode.subtitle_url || ''}
+                              onChange={(e) => updateEpisode(originalIndex, 'subtitle_url', e.target.value)}
+                              className="bg-input border-border text-sm"
+                            />
+                            <Input
+                              placeholder="URL de download (opcional - legado)"
+                              value={episode.download_url || ''}
+                              onChange={(e) => updateEpisode(originalIndex, 'download_url', e.target.value)}
+                              className="bg-input border-border text-sm"
+                            />
+                          </>
+                        )}
+
+                        <div className="p-3 border border-white/10 rounded-lg bg-black/20 space-y-3">
+                          <Label className="text-xs font-semibold flex items-center gap-1">
+                            <DownloadIcon className="w-3 h-3" /> Configuração de Downloads (Episódio)
+                          </Label>
+
+                          <div className="flex gap-4 items-center">
+                            <Label className="text-xs">Modo:</Label>
+                            <Select
+                              value={episode.download_mode || 'direct'}
+                              onValueChange={(v) => updateEpisode(originalIndex, 'download_mode', v as any)}
+                            >
+                              <SelectTrigger className="w-[140px] h-8 text-xs bg-input border-border">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="direct">Direto</SelectItem>
+                                <SelectItem value="torrent">Torrent</SelectItem>
+                                <SelectItem value="mixed">Misto</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            {(episode.downloads || []).map((link, linkIdx) => (
+                              <div key={linkIdx} className="flex gap-2 items-start">
+                                <Input
+                                  value={link.label}
+                                  onChange={e => {
+                                    const currentEp = editingContent.episodes?.[originalIndex];
+                                    if (!currentEp) return;
+                                    const newLinks = [...(currentEp.downloads || [])];
+                                    newLinks[linkIdx] = { ...newLinks[linkIdx], label: e.target.value };
+                                    updateEpisode(originalIndex, 'downloads', newLinks as any);
+                                  }}
+                                  placeholder="Título"
+                                  className="w-1/3 bg-input border-border text-xs h-8"
+                                />
+                                <Input
+                                  value={link.url}
+                                  onChange={e => {
+                                    const currentEp = editingContent.episodes?.[originalIndex];
+                                    if (!currentEp) return;
+                                    const newLinks = [...(currentEp.downloads || [])];
+                                    newLinks[linkIdx] = { ...newLinks[linkIdx], url: e.target.value };
+                                    updateEpisode(originalIndex, 'downloads', newLinks as any);
+                                  }}
+                                  placeholder="URL"
+                                  className="flex-1 bg-input border-border text-xs h-8"
+                                />
+                                {episode.download_mode === 'mixed' && (
+                                  <Select
+                                    value={link.type || 'direct'}
+                                    onValueChange={(v) => {
+                                      const currentEp = editingContent.episodes?.[originalIndex];
+                                      if (!currentEp) return;
+                                      const newLinks = [...(currentEp.downloads || [])];
+                                      newLinks[linkIdx] = { ...newLinks[linkIdx], type: v as any };
+                                      updateEpisode(originalIndex, 'downloads', newLinks as any);
+                                    }}
+                                  >
+                                    <SelectTrigger className="w-[100px] h-8 text-xs bg-input border-zinc-700">
+                                      <SelectValue />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                      <SelectItem value="direct">Direto</SelectItem>
+                                      <SelectItem value="torrent">Torrent</SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                )}
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => {
+                                    const currentEp = editingContent.episodes?.[originalIndex];
+                                    if (!currentEp) return;
+                                    const newLinks = (currentEp.downloads || []).filter((_, i) => i !== linkIdx);
+                                    updateEpisode(originalIndex, 'downloads', newLinks as any);
+                                  }}
+                                  className="h-8 w-8 text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                                >
+                                  <Trash className="w-3 h-3" />
+                                </Button>
+                              </div>
+                            ))}
                             <Button
                               type="button"
-                              variant="ghost"
-                              size="icon"
+                              variant="outline"
+                              size="sm"
                               onClick={() => {
                                 const currentEp = editingContent.episodes?.[originalIndex];
                                 if (!currentEp) return;
-                                const newLinks = (currentEp.downloads || []).filter((_, i) => i !== linkIdx);
+                                const newLinks = [...(currentEp.downloads || []), { label: '', url: '', type: 'direct' }];
                                 updateEpisode(originalIndex, 'downloads', newLinks as any);
                               }}
-                              className="h-8 w-8 text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                              className="w-full text-[10px] h-7 dashed border-white/10 hover:bg-white/5"
                             >
-                              <Trash className="w-3 h-3" />
+                              <Plus className="w-3 h-3 mr-1" /> Adicionar Link de Download
                             </Button>
                           </div>
-                        ))}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            const currentEp = editingContent.episodes?.[originalIndex];
-                            if (!currentEp) return;
-                            const newLinks = [...(currentEp.downloads || []), { label: '', url: '', type: 'direct' }];
-                            updateEpisode(originalIndex, 'downloads', newLinks as any);
-                          }}
-                          className="w-full text-[10px] h-7 dashed border-white/10 hover:bg-white/5"
-                        >
-                          <Plus className="w-3 h-3 mr-1" /> Adicionar Link de Download
-                        </Button>
+                        </div>
                       </div>
                     </div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {
-                (!editingContent.episodes || editingContent.episodes.length === 0) && (
-                  <p className="text-sm text-muted-foreground text-center py-4">
-                    Nenhum episódio adicionado. Clique em "Adicionar Episódio" para começar.
-                  </p>
-                )
-              }
-            </div >
+                  );
+                })}
+
+              {(!editingContent.episodes || editingContent.episodes.length === 0) && (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Nenhum episódio adicionado. Clique em "Adicionar Episódio" para começar.
+                </p>
+              )}
+            </div>
             <div className="flex gap-2 mb-4">
               <Button onClick={addEpisode} className="bg-primary hover:bg-primary/90 flex-1">
                 <PlusCircle className="w-5 h-5 mr-2" />
