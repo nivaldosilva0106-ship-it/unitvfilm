@@ -4,7 +4,7 @@ import { Header } from "@/components/Header";
 import { Content, Episode } from "@/types/content";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { toast } from "sonner";
-import { Loader2, Film, Tv, Clock } from "lucide-react";
+import { Loader2, Film, Tv, Clock, RefreshCw } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
 
 import { Volume2, VolumeX, Maximize, Minimize, Play, Pause, SkipBack, SkipForward, PictureInPicture } from "lucide-react";
@@ -1108,7 +1108,7 @@ export default function Canais24h() {
                 loadTikTokForSlot(nextItem, "A");
             }
         }
-    }, [getNextItem, loadTikTokForSlot]);
+    }, [getNextItem, loadTikTokForSlot, currentChannel]);
 
     // ---- Channel click ----
     const handleChannelClick = useCallback((channel: Content) => {
@@ -1135,6 +1135,29 @@ export default function Canais24h() {
         setCurrentChannel(channel);
         window.scrollTo({ top: 0, behavior: "smooth" });
     }, []);
+    
+    // Manual refresh function
+    const handleRefresh = useCallback(async () => {
+        setLoading(true);
+        try {
+            const all = await getAllContents();
+            const canais = all.filter((c) => c.category === "canais24h");
+            setContents(canais);
+            if (currentChannel) {
+                const refreshed = canais.find(c => c.id === currentChannel.id);
+                if (refreshed) {
+                    setCurrentChannel(refreshed);
+                }
+            }
+            toast.success("Programação atualizada!");
+        } catch (err) {
+            console.error("Refresh error:", err);
+            toast.error("Erro ao atualizar!");
+        } finally {
+            setLoading(false);
+        }
+    }, [currentChannel]);
+
 
     // ---- UI Helpers ----
     const getRemainingTime = () => {
@@ -1377,11 +1400,20 @@ export default function Canais24h() {
 
                         {/* EPG */}
                         <div className="lg:col-span-8 flex flex-col gap-4">
-                            <div className="flex items-center gap-2">
-                                <Clock className="w-4 h-4 text-primary" />
-                                <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
-                                    Programação de Hoje
-                                </span>
+                            <div className="flex items-center justify-between gap-2">
+                                <div className="flex items-center gap-2">
+                                    <Clock className="w-4 h-4 text-primary" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                                        Programação de Hoje
+                                    </span>
+                                </div>
+                                <button 
+                                    onClick={handleRefresh}
+                                    title="Atualizar Programação"
+                                    className="p-1 hover:bg-white/10 rounded-full transition-colors text-zinc-500 hover:text-primary"
+                                >
+                                    <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+                                </button>
                             </div>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {getUpcomingPrograms().map((prog, idx) => (
