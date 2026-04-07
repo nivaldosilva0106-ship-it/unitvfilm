@@ -763,11 +763,7 @@ export default function Canais24h() {
     // Sort programs naturally (alphabetically but with awareness of numbers)
     // This allows "Ep 1, Ep 2, Ep 10" to be in correct order automatically.
     const programs = useMemo(() => {
-        const raw = currentChannel?.episodes || [];
-        if (raw.length === 0) return [];
-        
-        const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
-        return [...raw].sort((a, b) => collator.compare(a.title || '', b.title || ''));
+        return currentChannel?.episodes || [];
     }, [currentChannel?.episodes]);
     const intervalList = currentChannel?.interval_list || [];
     const adList = currentChannel?.ad_list || [];
