@@ -241,6 +241,16 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     toast.success("Programação organizada (2 em 2)!");
   };
 
+  const sortEpisodesNumerically = () => {
+    if (!editingContent.episodes) return;
+    const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+    const sorted = [...editingContent.episodes].sort((a, b) => 
+      collator.compare(a.title || '', b.title || '')
+    );
+    setEditingContent(prev => ({ ...prev, episodes: sorted }));
+    toast.success("Programação organizada por ordem numérica!");
+  };
+
   const exportProgramming = () => {
     if (!editingContent.episodes || editingContent.episodes.length === 0) {
       toast.error("Não há episódios para exportar.");
@@ -1366,6 +1376,16 @@ ${ep.url || ""}`;
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
                   Ordem (2 em 2 Episódios)
+                </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={sortEpisodesNumerically}
+                  className="border-blue-500/40 text-blue-400 hover:bg-blue-500/10"
+                >
+                  <Clock className="w-4 h-4 mr-2" />
+                  Organizar por Ordem Numérica
                 </Button>
                 <Button 
                   type="button" 

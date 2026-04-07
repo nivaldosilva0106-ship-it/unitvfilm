@@ -738,7 +738,15 @@ export default function Canais24h() {
     // Channel generation counter to invalidate stale TikTok promises
     const channelGenRef = useRef(0);
 
-    const programs = currentChannel?.episodes || [];
+    // Sort programs naturally (alphabetically but with awareness of numbers)
+    // This allows "Ep 1, Ep 2, Ep 10" to be in correct order automatically.
+    const programs = useMemo(() => {
+        const raw = currentChannel?.episodes || [];
+        if (raw.length === 0) return [];
+        
+        const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+        return [...raw].sort((a, b) => collator.compare(a.title || '', b.title || ''));
+    }, [currentChannel?.episodes]);
     const intervalList = currentChannel?.interval_list || [];
     const adList = currentChannel?.ad_list || [];
 
@@ -975,7 +983,31 @@ export default function Canais24h() {
              }
         }
 
-        const nextIdx = (currentItem.programIndex + 1) % programs.length;
+        // ---- 4. Determine next program (Intelligent Sequencing for Series/Novellas) ----
+        // If current title ends in a number, try to find the next item in that sequence
+        let nextIdx = (currentItem.programIndex + 1) % programs.length;
+        
+        const matchDigits = currentProg?.title?.match(/(\d+)/g);
+        if (matchDigits && matchDigits.length > 0) {
+            const lastMatch = matchDigits[matchDigits.length - 1];
+            const currentNum = parseInt(lastMatch);
+            const baseTitle = currentProg.title.replace(lastMatch, '').trim();
+            
+            // Search for next number in the same series
+            const seriesMatchIdx = programs.findIndex(p => {
+                const pDigits = p.title?.match(/(\d+)/g);
+                if (!pDigits) return false;
+                const pLastMatch = pDigits[pDigits.length - 1];
+                const pNum = parseInt(pLastMatch);
+                const pBase = p.title.replace(pLastMatch, '').trim();
+                return pBase === baseTitle && pNum === currentNum + 1;
+            });
+
+            if (seriesMatchIdx !== -1) {
+                nextIdx = seriesMatchIdx;
+            }
+        }
+
         const nextProg = programs[nextIdx];
         return {
             url: nextProg?.internal_player_url || nextProg?.url || "",
@@ -1123,18 +1155,13 @@ export default function Canais24h() {
         const activeSlotName = activeSlotRef.current;
         const runningSlot = activeSlotName === "A" ? slotARef.current : slotBRef.current;
 
-        // PRE-EMPTIVE SWAP (Hides YouTube replay icon/end-cards)
-        // Programs: 5s lead time (YouTube safety)
-        // Ads/Intervals: 1s lead time (as requested)
-        const cutTime = runningSlot?.type === "program" ? 5 : 1;
-
-        // WATCHDOG: Force end transition if stuck at end
+        // NATURAL END (Watchdog for stuck players)
         if (duration && duration > 0 && remaining <= 0.5 && !isTransitioningRef.current) {
             handleEndedRef.current(activeSlotRef.current);
             return;
         }
 
-        if (duration && remaining > 0 && remaining <= cutTime && !isTransitioningRef.current) {
+        if (duration && remaining > 0 && remaining <= 0.5 && !isTransitioningRef.current) {
             handleEndedRef.current(activeSlotRef.current);
             return;
         }
