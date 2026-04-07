@@ -1520,9 +1520,9 @@ export default function Canais24h() {
                                     <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
                                 </button>
                             </div>
-                            <div className="flex md:grid overflow-x-auto md:overflow-visible gap-4 pb-4 md:pb-0 modern-scrollbar">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {getUpcomingPrograms().map((prog, idx) => (
-                                    <div key={idx} className="bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl group hover:border-primary/50 transition-colors min-w-[260px] md:min-w-0 flex-shrink-0">
+                                    <div key={idx} className="bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl group hover:border-primary/50 transition-colors">
                                         <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">
                                             {idx === 0 ? "Próximo" : "A seguir"}
                                         </span>
@@ -1549,11 +1549,11 @@ export default function Canais24h() {
                         <Tv className="w-6 h-6 text-primary" />
                         <h2 className="text-2xl font-black uppercase tracking-tighter">Explorar Canais</h2>
                     </div>
-                    <div className="flex md:grid overflow-x-auto md:overflow-visible gap-6 pb-8 md:pb-0 modern-scrollbar">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-6">
                         {contents.map((channel) => (
                             <div
                                 key={channel.id}
-                                className={`aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer group relative border-2 flex-shrink-0 min-w-[150px] md:min-w-0 ${
+                                className={`aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer group relative border-2 ${
                                     currentChannel?.id === channel.id
                                         ? "border-primary shadow-[0_0_20px_rgba(229,9,20,0.3)]"
                                         : "border-zinc-800/50"
