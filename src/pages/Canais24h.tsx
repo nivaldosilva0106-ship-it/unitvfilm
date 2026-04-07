@@ -4,10 +4,8 @@ import { Header } from "@/components/Header";
 import { Content, Episode } from "@/types/content";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { toast } from "sonner";
-import { Loader2, Film, Tv, Clock, RefreshCw } from "lucide-react";
+import { Loader2, Film, Tv, Clock, RefreshCw, Volume2, VolumeX, Maximize, Minimize, Play, Pause, SkipBack, SkipForward, PictureInPicture, ChevronLeft, ChevronRight } from "lucide-react";
 import { useSearchParams } from "react-router-dom";
-
-import { Volume2, VolumeX, Maximize, Minimize, Play, Pause, SkipBack, SkipForward, PictureInPicture } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 
 declare global {
@@ -48,6 +46,28 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
     const [isPlaying, setIsPlaying] = useState(false);
     const [hasError, setHasError] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
+    const channelScrollRef = useRef<HTMLDivElement>(null);
+    const [showLeftArrow, setShowLeftArrow] = useState(false);
+    const [showRightArrow, setShowRightArrow] = useState(true);
+
+    const handleChannelScroll = () => {
+        if (channelScrollRef.current) {
+            setShowLeftArrow(channelScrollRef.current.scrollLeft > 10);
+            setShowRightArrow(
+                channelScrollRef.current.scrollLeft < 
+                channelScrollRef.current.scrollWidth - channelScrollRef.current.clientWidth - 10
+            );
+        }
+    };
+
+    const scrollChannels = (direction: 'left' | 'right') => {
+        if (channelScrollRef.current) {
+            const { scrollLeft, clientWidth } = channelScrollRef.current;
+            const scrollAmount = clientWidth * 0.8;
+            const scrollTo = direction === 'left' ? scrollLeft - scrollAmount : scrollLeft + scrollAmount;
+            channelScrollRef.current.scrollTo({ left: scrollTo, behavior: 'smooth' });
+        }
+    };
     const [volume, setVolume] = useState(100);
     const [showControls, setShowControls] = useState(false);
     const [currentTime, setCurrentTime] = useState(startTime || 0);
@@ -1520,9 +1540,9 @@ export default function Canais24h() {
                                     <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
                                 </button>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="flex md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-x-auto md:overflow-visible scrollbar-hide snap-x px-1 py-1">
                                 {getUpcomingPrograms().map((prog, idx) => (
-                                    <div key={idx} className="bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl group hover:border-primary/50 transition-colors">
+                                    <div key={idx} className="flex-shrink-0 w-[280px] md:w-auto bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl group hover:border-primary/50 transition-colors snap-center">
                                         <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">
                                             {idx === 0 ? "Próximo" : "A seguir"}
                                         </span>
@@ -1549,27 +1569,53 @@ export default function Canais24h() {
                         <Tv className="w-6 h-6 text-primary" />
                         <h2 className="text-2xl font-black uppercase tracking-tighter">Explorar Canais</h2>
                     </div>
-                    <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-6">
-                        {contents.map((channel) => (
-                            <div
-                                key={channel.id}
-                                className={`aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer group relative border-2 ${
-                                    currentChannel?.id === channel.id
-                                        ? "border-primary shadow-[0_0_20px_rgba(229,9,20,0.3)]"
-                                        : "border-zinc-800/50"
-                                }`}
-                                onClick={() => handleChannelClick(channel)}
+                    <div className="relative group/carousel">
+                        {showLeftArrow && (
+                            <button 
+                                onClick={() => scrollChannels('left')}
+                                className="absolute left-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/60 rounded-full hover:bg-primary transition-colors border border-white/10 opacity-0 group-hover/carousel:opacity-100 hidden md:block"
+                                title="Scroll Esquerda"
                             >
-                                <img
-                                    src={channel.thumbnail_url}
-                                    alt={channel.title}
-                                    className="w-full h-full object-contain bg-zinc-900 p-4 group-hover:scale-110 transition-transform duration-500"
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                                    <span className="text-xs font-bold text-white truncate">{channel.title}</span>
+                                <ChevronLeft className="w-6 h-6" />
+                            </button>
+                        )}
+                        
+                        <div 
+                            ref={channelScrollRef}
+                            onScroll={handleChannelScroll}
+                            className="flex overflow-x-auto gap-6 pb-6 scrollbar-hide snap-x pt-2"
+                        >
+                            {contents.map((channel) => (
+                                <div
+                                    key={channel.id}
+                                    className={`flex-shrink-0 w-48 sm:w-56 aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer group relative border-2 snap-start transition-all duration-300 ${
+                                        currentChannel?.id === channel.id
+                                            ? "border-primary shadow-[0_0_20px_rgba(229,9,20,0.3)] scale-[1.02]"
+                                            : "border-zinc-800/50 hover:border-zinc-600"
+                                    }`}
+                                    onClick={() => handleChannelClick(channel)}
+                                >
+                                    <img
+                                        src={channel.thumbnail_url}
+                                        alt={channel.title}
+                                        className="w-full h-full object-contain bg-zinc-900 p-4 group-hover:scale-110 transition-transform duration-500"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex flex-col justify-end p-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <span className="text-xs font-bold text-white truncate">{channel.title}</span>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))}
+                        </div>
+
+                        {showRightArrow && (
+                            <button 
+                                onClick={() => scrollChannels('right')}
+                                className="absolute right-0 top-1/2 -translate-y-1/2 z-10 p-2 bg-black/60 rounded-full hover:bg-primary transition-colors border border-white/10 opacity-0 group-hover/carousel:opacity-100 hidden md:block"
+                                title="Scroll Direita"
+                            >
+                                <ChevronRight className="w-6 h-6" />
+                            </button>
+                        )}
                     </div>
                 </div>
             </main>
