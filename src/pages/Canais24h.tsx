@@ -1420,10 +1420,12 @@ export default function Canais24h() {
                                 <span className="inline-block px-2 py-0.5 bg-primary/20 text-primary text-[9px] font-bold rounded mb-3 border border-primary/30 uppercase tracking-tighter italic">
                                     O que estás a ver
                                 </span>
-                                <div className="flex items-center justify-between mb-2">
-                                    <h2 className="text-xl font-bold text-white leading-tight">
-                                        {isAdMode ? "Intervalo Comercial" : (nowPlayingTitle || currentChannel?.title)}
-                                    </h2>
+                                <div className="flex items-center justify-between mb-2 overflow-hidden">
+                                    <div className="flex-1 overflow-hidden mr-4">
+                                        <h2 className="text-xl font-bold text-white leading-tight whitespace-nowrap animate-marquee hover:pause-animation">
+                                            {isAdMode ? "Intervalo Comercial" : (nowPlayingTitle || currentChannel?.title)}
+                                        </h2>
+                                    </div>
                                     <button 
                                         onClick={() => {
                                             if (currentChannel) {
@@ -1454,7 +1456,7 @@ export default function Canais24h() {
                                 )}
                                 <div className="mt-6 flex flex-col gap-2">
                                     <div className="flex justify-between items-end text-[10px] font-medium text-zinc-400 mb-1">
-                                        <span>Tempo Restante</span>
+                                        <span>Emissão</span>
                                         <span className="text-primary font-black tracking-tight">{getRemainingTime()}</span>
                                     </div>
                                     <div className="h-2 w-full bg-zinc-950 rounded-full overflow-hidden p-[1px] border border-zinc-800">
@@ -1490,9 +1492,11 @@ export default function Canais24h() {
                                         <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">
                                             {idx === 0 ? "Próximo" : "A seguir"}
                                         </span>
-                                        <h3 className="text-sm font-bold text-zinc-300 mt-2 truncate group-hover:text-white">
-                                            {prog.title}
-                                        </h3>
+                                        <div className="overflow-hidden mt-2">
+                                            <h3 className="text-sm font-bold text-zinc-300 whitespace-nowrap animate-marquee group-hover:text-white hover:pause-animation">
+                                                {prog.title}
+                                            </h3>
+                                        </div>
                                         {prog.duration && (
                                             <span className="text-[10px] text-zinc-500 mt-1 block">
                                                 {Math.floor(prog.duration / 60)} min

@@ -110,6 +110,10 @@ All colors MUST be HSL.
     animation: marquee 15s linear infinite;
   }
 
+  .hover\:pause-animation:hover {
+    animation-play-state: paused;
+  }
+
   /* Play Flash Animation — appears briefly on play click */
   @keyframes play-flash {
     0% {
