@@ -373,56 +373,83 @@ ${ep.url || ""}`;
         return;
       }
 
-      // Load YouTube API Key from Firebase settings
-      const { getSiteSettings } = await import('@/lib/firebase');
-      const settings = await getSiteSettings();
-      const API_KEY = settings.youtubeApiKey || "";
+      let newEpisodes: Episode[] = [];
 
-      if (!API_KEY) {
-        toast.error("API Key do YouTube não configurada. Configure nas Configurações do Site.");
-        setIsImportingPlaylist(false);
-        return;
-      }
-
-      let allItems: any[] = [];
-      let nextPageToken = "";
-      let hasNextPage = true;
-
-      while (hasNextPage) {
-        const tokenParam = nextPageToken ? `&pageToken=${nextPageToken}` : "";
-        const response: Response = await fetch(
-          `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${API_KEY}${tokenParam}`
-        );
-
+      if (playlistId.startsWith("RD")) {
+        // --- YouTube Mix Handling ---
+        const response = await fetch(`/api/youtube-mix?url=${encodeURIComponent(playlistUrl)}`);
+        
         if (!response.ok) {
-          throw new Error("Falha ao buscar playlist do YouTube");
+           throw new Error("Falha ao buscar Mix do YouTube");
         }
-
+        
         const data = await response.json();
-
-        if (data.items) {
-          allItems = [...allItems, ...data.items];
+        if (!data.items || data.items.length === 0) {
+           toast.error("Nenhum vídeo encontrado no Mix");
+           return;
         }
 
-        if (data.nextPageToken) {
-          nextPageToken = data.nextPageToken;
-        } else {
-          hasNextPage = false;
+        newEpisodes = data.items.map((item: any, index: number) => ({
+          season: 1,
+          episode: (editingContent.episodes?.length || 0) + index + 1,
+          title: item.title,
+          url: `https://www.youtube.com/watch?v=${item.videoId}`,
+          downloads: []
+        }));
+
+      } else {
+        // --- Standard YouTube Playlist Handling ---
+        // Load YouTube API Key from Firebase settings
+        const { getSiteSettings } = await import('@/lib/firebase');
+        const settings = await getSiteSettings();
+        const API_KEY = settings.youtubeApiKey || "";
+
+        if (!API_KEY) {
+          toast.error("API Key do YouTube não configurada. Configure nas Configurações do Site.");
+          setIsImportingPlaylist(false);
+          return;
         }
-      }
 
-      if (allItems.length === 0) {
-        toast.error("Nenhum vídeo encontrado na playlist");
-        return;
-      }
+        let allItems: any[] = [];
+        let nextPageToken = "";
+        let hasNextPage = true;
 
-      const newEpisodes: Episode[] = allItems.map((item: any, index: number) => ({
-        season: 1,
-        episode: (editingContent.episodes?.length || 0) + index + 1,
-        title: item.snippet.title,
-        url: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
-        downloads: []
-      }));
+        while (hasNextPage) {
+          const tokenParam = nextPageToken ? `&pageToken=${nextPageToken}` : "";
+          const response: Response = await fetch(
+            `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=50&playlistId=${playlistId}&key=${API_KEY}${tokenParam}`
+          );
+
+          if (!response.ok) {
+            throw new Error("Falha ao buscar playlist do YouTube");
+          }
+
+          const data = await response.json();
+
+          if (data.items) {
+            allItems = [...allItems, ...data.items];
+          }
+
+          if (data.nextPageToken) {
+            nextPageToken = data.nextPageToken;
+          } else {
+            hasNextPage = false;
+          }
+        }
+
+        if (allItems.length === 0) {
+          toast.error("Nenhum vídeo encontrado na playlist");
+          return;
+        }
+
+        newEpisodes = allItems.map((item: any, index: number) => ({
+          season: 1,
+          episode: (editingContent.episodes?.length || 0) + index + 1,
+          title: item.snippet.title,
+          url: `https://www.youtube.com/watch?v=${item.snippet.resourceId.videoId}`,
+          downloads: []
+        }));
+      }
 
       setEditingContent(prev => ({
         ...prev,
