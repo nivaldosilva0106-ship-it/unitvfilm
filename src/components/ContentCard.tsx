@@ -24,7 +24,7 @@ interface ContentCardProps {
   hasInternalPlayer?: boolean;
   hasDownload?: boolean;
   hideDownloadIcon?: boolean;
-  watch_provider?: 'netflix' | 'amazon' | 'hbo' | 'disney' | 'other';
+  watch_provider?: 'netflix' | 'amazon' | 'hbo' | 'disney' | 'apple' | 'hulu' | 'paramount' | 'starplus' | 'globoplay' | 'crunchyroll' | 'skyshowtime' | 'youtube' | 'other';
 }
 
 export const ContentCard = ({
@@ -92,6 +92,30 @@ export const ContentCard = ({
           )}
           {watch_provider === 'disney' && (
             <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg" alt="Disney+" className="h-4 w-auto object-contain invert" />
+          )}
+          {watch_provider === 'apple' && (
+            <img src="https://upload.wikimedia.org/wikipedia/commons/2/28/Apple_TV_Plus_Logo.svg" alt="Apple TV+" className="h-4 w-auto object-contain invert" />
+          )}
+          {watch_provider === 'hulu' && (
+            <img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Hulu_Logo.svg" alt="Hulu" className="h-4 w-auto object-contain" />
+          )}
+          {watch_provider === 'paramount' && (
+            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Paramount_Plus_logo.svg" alt="Paramount+" className="h-4 w-auto object-contain invert" />
+          )}
+          {watch_provider === 'starplus' && (
+            <img src="https://upload.wikimedia.org/wikipedia/commons/e/e0/Star_Plus_logo.svg" alt="Star+" className="h-4 w-auto object-contain invert" />
+          )}
+          {watch_provider === 'globoplay' && (
+            <img src="https://upload.wikimedia.org/wikipedia/commons/a/af/Globoplay_logo.svg" alt="Globoplay" className="h-4 w-auto object-contain" />
+          )}
+          {watch_provider === 'crunchyroll' && (
+            <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Crunchyroll_Logo.svg" alt="Crunchyroll" className="h-4 w-auto object-contain" />
+          )}
+          {watch_provider === 'skyshowtime' && (
+            <img src="https://upload.wikimedia.org/wikipedia/commons/d/de/SkyShowtime_logo.svg" alt="SkyShowtime" className="h-4 w-auto object-contain invert" />
+          )}
+          {watch_provider === 'youtube' && (
+            <img src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg" alt="YouTube" className="h-4 w-auto object-contain" />
           )}
         </div>
       )}

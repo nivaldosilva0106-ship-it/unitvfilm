@@ -508,11 +508,19 @@ ${ep.url || ""}`;
         const br = providersData.BR;
         const allProviders = [...(br.flatrate || []), ...(br.rent || []), ...(br.buy || [])];
         
-        // Priority mapping: Netflix > Disney+ > Amazon Prime > HBO
+        // Priority mapping: Netflix > Disney+ > Amazon Prime > HBO > Apple > Hulu > Paramount > Star+ > Globoplay > Crunchyroll > SkyShowtime > YouTube
         if (allProviders.some(p => p.provider_id === 8)) watchProvider = 'netflix';
         else if (allProviders.some(p => p.provider_id === 337)) watchProvider = 'disney';
         else if (allProviders.some(p => [119, 9].includes(p.provider_id))) watchProvider = 'amazon';
         else if (allProviders.some(p => [384, 1899].includes(p.provider_id))) watchProvider = 'hbo';
+        else if (allProviders.some(p => [2, 350].includes(p.provider_id))) watchProvider = 'apple';
+        else if (allProviders.some(p => p.provider_id === 15)) watchProvider = 'hulu';
+        else if (allProviders.some(p => [531, 444].includes(p.provider_id))) watchProvider = 'paramount';
+        else if (allProviders.some(p => p.provider_id === 619)) watchProvider = 'starplus';
+        else if (allProviders.some(p => p.provider_id === 307)) watchProvider = 'globoplay';
+        else if (allProviders.some(p => p.provider_id === 283)) watchProvider = 'crunchyroll';
+        else if (allProviders.some(p => p.provider_id === 1773)) watchProvider = 'skyshowtime';
+        else if (allProviders.some(p => [192].includes(p.provider_id))) watchProvider = 'youtube';
       }
     } catch (e) {
       console.error("Erro ao buscar provedores:", e);
@@ -2357,6 +2365,14 @@ ${ep.url || ""}`;
             <SelectItem value="amazon">Amazon Prime Video</SelectItem>
             <SelectItem value="hbo">HBO / Max</SelectItem>
             <SelectItem value="disney">Disney+</SelectItem>
+            <SelectItem value="apple">Apple TV+</SelectItem>
+            <SelectItem value="hulu">Hulu</SelectItem>
+            <SelectItem value="paramount">Paramount+</SelectItem>
+            <SelectItem value="starplus">Star+</SelectItem>
+            <SelectItem value="globoplay">Globoplay</SelectItem>
+            <SelectItem value="crunchyroll">Crunchyroll</SelectItem>
+            <SelectItem value="skyshowtime">SkyShowtime</SelectItem>
+            <SelectItem value="youtube">YouTube</SelectItem>
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">Isso exibirá a logo do streaming no card do conteúdo.</p>
