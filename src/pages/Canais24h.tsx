@@ -760,6 +760,10 @@ export default function Canais24h() {
     // Channel generation counter to invalidate stale TikTok promises
     const channelGenRef = useRef(0);
 
+    // --- SMART ROTATION SYSTEM ---
+    const recentTitlesRef = useRef<string[]>([]);
+    const consecutiveTitleCountRef = useRef(0);
+
     // Sort programs naturally (alphabetically but with awareness of numbers)
     // This allows "Ep 1, Ep 2, Ep 10" to be in correct order automatically.
     const programs = useMemo(() => {
@@ -1025,10 +1029,67 @@ export default function Canais24h() {
         // 5. From Logo to Next Program
         // Logo is the end of the break block. Or if there was no break but we just ended a program.
         
-        // 6. Next Program (Strict sequential order honors standard "2by2" settings perfectly)
-        const nextIdx = (currentItem.programIndex + 1) % programs.length;
-        const nextProg = programs[nextIdx];
-        
+        // 6. Next Program (Smart Rotation Logic)
+        let nextIdx = (currentItem.programIndex + 1) % programs.length;
+        let nextProg = programs[nextIdx];
+
+        // VARIETY CHECK: If it's the same title and we've reached a repetition limit (e.g. 2 in a row)
+        // OR if the next title is already in our recent history (to ensure mix)
+        const currentTitle = currentItem.title || "";
+        const nextTitle = nextProg?.title || "";
+        const history = recentTitlesRef.current;
+
+        // Determine if we should seek variety
+        // We allow 2 consecutive plays (to support 2x2 mode) but seek variety if it would be the 3rd or if it's already in recent history
+        let needsVariety = false;
+        if (nextTitle === currentTitle) {
+            if (consecutiveTitleCountRef.current >= 1) { // 0-indexed, so 1 means we've already played it twice (initial + 1 repeat)
+                needsVariety = true;
+            }
+        } else if (history.includes(nextTitle) && programs.length > history.length + 1) {
+            // If the title is in recent history and we have enough other programs to choose from, skip it
+            needsVariety = true;
+        }
+
+        if (needsVariety && programs.length > 1) {
+            // Find a different title, prioritizing the END of the list as requested
+            let foundVariety = false;
+            // Search backwards from the end
+            for (let i = programs.length - 1; i >= 0; i--) {
+                const candidate = programs[i];
+                const candTitle = candidate.title || "";
+                if (candTitle !== currentTitle && !history.includes(candTitle)) {
+                    nextIdx = i;
+                    nextProg = candidate;
+                    foundVariety = true;
+                    break;
+                }
+            }
+
+            // Fallback: if no "perfect" variety found, just pick the next one that isn't the current title
+            if (!foundVariety) {
+                for (let i = 0; i < programs.length; i++) {
+                    const idx = (nextIdx + i) % programs.length;
+                    const candidate = programs[idx];
+                    if (candidate.title !== currentTitle) {
+                        nextIdx = idx;
+                        nextProg = candidate;
+                        break;
+                    }
+                }
+            }
+        }
+
+        // Update tracking state
+        if (nextTitle === currentTitle) {
+            consecutiveTitleCountRef.current += 1;
+        } else {
+            consecutiveTitleCountRef.current = 0;
+            // Update history
+            const newHistory = [nextTitle, ...history.filter(t => t !== nextTitle)].slice(0, 5);
+            recentTitlesRef.current = newHistory;
+        }
+
         // If coming from logo or break, pSince is already 0. If coming from program, it increments naturally.
         if (currentItem.type === "program" && !shouldBreak) pSince += 1;
 
@@ -1082,6 +1143,10 @@ export default function Canais24h() {
         setRealTime(initial.item.startTime);
         setLoading(false);
         setTiktokB(null);
+        
+        // --- SMART ROTATION INIT ---
+        recentTitlesRef.current = [initial.item.title];
+        consecutiveTitleCountRef.current = 0;
 
         loadTikTokForSlot(initial.item, "A");
     }, [currentChannel, programs, getInitialState, loadTikTokForSlot]);
