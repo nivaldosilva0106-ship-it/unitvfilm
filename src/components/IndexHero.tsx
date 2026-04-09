@@ -2,6 +2,7 @@ import React, { useRef, useEffect } from "react";
 import { Volume2, VolumeX, Play, Info, Plus, Check, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Content } from "@/types/content";
+import { getProviderConfig } from "@/lib/providers";
 
 interface IndexHeroProps {
     currentTrailer: Content | null;
@@ -148,7 +149,16 @@ export const IndexHero = ({
                             </div>
                             <div className="flex-1 min-w-0 flex flex-col justify-between h-full w-full text-center sm:text-left">
                                 <div className="mb-4 sm:mb-0">
-                                    <div className="flex items-center justify-center sm:justify-start gap-2 mb-2 flex-wrap">
+                                    <div className="flex items-center justify-center sm:justify-start gap-2 mb-2 flex-wrap text-center sm:text-left">
+                                        {activeContent.watch_provider && getProviderConfig(activeContent.watch_provider) && (
+                                            <div className="bg-black/40 backdrop-blur-md px-1.5 py-0.5 rounded border border-white/10 flex items-center justify-center h-6">
+                                                <img 
+                                                    src={getProviderConfig(activeContent.watch_provider)?.logo} 
+                                                    alt="" 
+                                                    className="h-full w-auto object-contain"
+                                                />
+                                            </div>
+                                        )}
                                         <span className="bg-primary/90 text-white px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shadow-sm">
                                             Assista agora
                                         </span>

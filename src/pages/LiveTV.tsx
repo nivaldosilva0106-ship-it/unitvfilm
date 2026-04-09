@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from "@/contexts/AuthContext";
+import { getProviderConfig } from "@/lib/providers";
 
 // LiveTV Component - Updated Access Control - Deploy: 2026-01-24T17:19
 const LiveTV = () => {
@@ -185,9 +186,20 @@ const LiveTV = () => {
                                         )}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <h3 className={`font-medium text-sm truncate ${activeChannel?.id === channel.id ? 'text-primary' : 'text-zinc-300'}`}>
-                                            {channel.title}
-                                        </h3>
+                                        <div className="flex items-center gap-2">
+                                            <h3 className={`font-medium text-sm truncate ${activeChannel?.id === channel.id ? 'text-primary' : 'text-zinc-300'}`}>
+                                                {channel.title}
+                                            </h3>
+                                            {channel.watch_provider && getProviderConfig(channel.watch_provider) && (
+                                                <div className="flex-shrink-0 bg-black/40 px-1 py-0.5 rounded border border-white/5 h-4 flex items-center">
+                                                    <img 
+                                                        src={getProviderConfig(channel.watch_provider)?.logo} 
+                                                        alt="" 
+                                                        className="h-full w-auto object-contain brightness-75"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                     {activeChannel?.id === channel.id && <Play className="w-3 h-3 text-primary" />}
                                 </div>

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import type { Content } from '@/types/content';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
+import { getProviderConfig } from '@/lib/providers';
 
 interface QuickViewModalProps {
     content: Content | null;
@@ -137,9 +138,18 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
                 <div className="p-8 pt-0 grid grid-cols-3 gap-8">
                     <div className="col-span-2 space-y-4">
                         <div className="flex items-center gap-3 text-sm font-medium">
-                            <span className="text-green-500 font-bold">New</span>
+                            {content.watch_provider && getProviderConfig(content.watch_provider) && (
+                                <div className="bg-black/40 backdrop-blur-md px-1.5 py-0.5 rounded border border-white/10 flex items-center justify-center h-6">
+                                    <img 
+                                        src={getProviderConfig(content.watch_provider)?.logo} 
+                                        alt="" 
+                                        className="h-full w-auto object-contain"
+                                    />
+                                </div>
+                            )}
+                            <span className="text-green-500 font-bold">Novo</span>
                             <span className="text-zinc-400">{content.year || '2024'}</span>
-                            <div className={cn("px-2 py-0.5 rounded textxs font-bold text-white", getClassificationColor(content.classification))}>
+                            <div className={cn("px-2 py-0.5 rounded text-xs font-bold text-white", getClassificationColor(content.classification))}>
                                 {content.classification || 'L'}
                             </div>
                             <span className="text-zinc-400">{content.duration || '1h 30m'}</span>

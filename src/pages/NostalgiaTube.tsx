@@ -4,6 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { getAllContents, saveUserProgress, getUserProgress } from "@/lib/firebase";
 import { Header } from "@/components/Header";
 import { Content } from "@/types/content";
+import { getProviderConfig } from "@/lib/providers";
 import { Play, Pause, Volume2, VolumeX, Maximize, ChevronLeft, ChevronRight, ChevronDown, Settings, RotateCw, ThumbsUp, ThumbsDown, Download, Check, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -1268,12 +1269,21 @@ export default function NostalgiaTube(): JSX.Element {
                                     className="bg-zinc-900/50 rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-300 border border-white/5 hover:border-primary/50 group/card min-w-[200px] md:min-w-[260px] snap-start relative z-10"
                                     onClick={(e) => handlePostClick(e, content)}
                                 >
-                                    <div className="aspect-[2/3] rounded-lg overflow-hidden border border-white/5 transition-transform duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-primary/20 pointer-events-none">
+                                    <div className="aspect-[2/3] rounded-lg overflow-hidden border border-white/5 transition-transform duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-primary/20 pointer-events-none relative">
                                         <img
                                             src={content.thumbnail_url}
                                             alt={content.title}
                                             className="w-full h-full object-cover pointer-events-none"
                                         />
+                                        {content.watch_provider && getProviderConfig(content.watch_provider) && (
+                                            <div className="absolute top-2 left-2 z-10 bg-black/40 backdrop-blur-md p-1 rounded-lg border border-white/10 shadow-xl pointer-events-none">
+                                                <img 
+                                                    src={getProviderConfig(content.watch_provider)?.logo} 
+                                                    alt="" 
+                                                    className="h-6 w-auto object-contain" 
+                                                />
+                                            </div>
+                                        )}
                                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                                             <Play className="w-10 h-10 md:w-12 md:h-12 text-white fill-current drop-shadow-lg scale-0 group-hover:scale-100 transition-transform duration-300 delay-75" />
                                         </div>

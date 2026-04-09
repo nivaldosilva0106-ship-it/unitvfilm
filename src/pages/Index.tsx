@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { MyListItem } from "@/types/user";
 import { IndexHero } from "@/components/IndexHero";
+import { STREAMING_PROVIDERS, getProviderConfig } from "@/lib/providers";
 
 // Lazy load heavy components
 const EpisodeSelector = React.lazy(() => import("@/components/EpisodeSelector").then(module => ({ default: module.EpisodeSelector })));
@@ -44,6 +45,7 @@ const Index = () => {
   const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string, internalUrl?: string, nextEpisode?: any }>({ open: false, url: '', title: '', isPremium: false });
   const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, downloads?: { label: string; url: string; type?: 'direct' | 'torrent' }[], download_mode?: 'direct' | 'torrent' | 'mixed', title: string, thumbnail: string }>({ open: false, url: '', title: '', thumbnail: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
+  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [quickViewContent, setQuickViewContent] = useState<Content | null>(null);
   const [showCinemaModal, setShowCinemaModal] = useState(false);
   const [pendingPlayerState, setPendingPlayerState] = useState<any>(null);
@@ -131,6 +133,11 @@ const Index = () => {
     const nostalgia = allContentData.filter(c => c.category === 'nostalgia');
     const canais24h = allContentData.filter(c => c.category === 'canais24h');
 
+    // Provider filter
+    const providerFiltered = selectedProvider 
+      ? allContentData.filter(c => getProviderConfig(c.watch_provider)?.id === selectedProvider)
+      : [];
+
     // Additional filtered categories for the UI
     const actionAdventure = allContentData.filter(c => c.genre?.some(g => g.toLowerCase().includes('ação') || g.toLowerCase().includes('aventura')));
     const comedyHorror = allContentData.filter(c => c.genre?.some(g => g.toLowerCase().includes('comédia') || g.toLowerCase().includes('terror')));
@@ -147,7 +154,11 @@ const Index = () => {
     let singleRow: Content[] | null = null;
     let singleRowTitle = '';
 
-    if (selectedCategory !== 'Todos') {
+    if (selectedProvider) {
+      singleRow = providerFiltered;
+      const config = STREAMING_PROVIDERS.find(p => p.id === selectedProvider);
+      singleRowTitle = `Conteúdos ${config?.name || 'Provedor'}`;
+    } else if (selectedCategory !== 'Todos') {
       if (selectedCategory === 'Filmes') {
         singleRow = movies;
         singleRowTitle = 'Filmes';
@@ -163,11 +174,11 @@ const Index = () => {
       }
     }
 
-    return { featured, topRated, movies, series, tvChannels, nostalgia, canais24h, actionAdventure, comedyHorror, recentReleases, dramaCrime, comedyRomance, singleRow, singleRowTitle };
-  }, [allContentData, selectedCategory]);
+    return { featured, topRated, movies, series, tvChannels, nostalgia, canais24h, actionAdventure, comedyHorror, recentReleases, dramaCrime, comedyRomance, singleRow, singleRowTitle, providerFiltered };
+  }, [allContentData, selectedCategory, selectedProvider]);
 
   const randomSections = useMemo(() => {
-    if (selectedCategory !== 'Todos') return [];
+    if (selectedCategory !== 'Todos' || selectedProvider) return [];
 
     const featuredSection = {
       id: 'featured',
@@ -345,8 +356,8 @@ const Index = () => {
 
   if (loading) return <LoadingScreen />;
 
-  const showAllRows = selectedCategory === 'Todos';
-  const showSingleRow = !showAllRows && categorizedContent.singleRow;
+  const showAllRows = selectedCategory === 'Todos' && !selectedProvider;
+  const showSingleRow = (selectedCategory !== 'Todos' || selectedProvider) && !!categorizedContent.singleRow;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -374,6 +385,62 @@ const Index = () => {
       />
 
       <div className="pt-4 pb-16">
+        {/* Streaming Providers Section - ALWAYS FIRST as requested */}
+        {!selectedProvider && selectedCategory === 'Todos' && (
+          <div className="mb-12 px-4 sm:px-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-1.5 h-8 bg-primary rounded-full" />
+              <h2 className="text-2xl font-bold text-foreground uppercase tracking-tighter italic">Provedores de Streaming</h2>
+            </div>
+            <div className="grid grid-cols-3 xs:grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-3 sm:gap-4">
+              {STREAMING_PROVIDERS.map((provider) => (
+                <div
+                  key={provider.id}
+                  onClick={() => {
+                    setSelectedProvider(provider.id);
+                    window.scrollTo({ top: 400, behavior: 'smooth' });
+                  }}
+                  className="aspect-square bg-zinc-900/50 rounded-2xl border border-white/5 p-3 flex items-center justify-center cursor-pointer hover:bg-zinc-800 hover:border-primary/50 hover:scale-105 transition-all duration-300 shadow-lg group"
+                >
+                  <img
+                    src={provider.logo}
+                    alt={provider.name}
+                    className="w-full h-full object-contain filter group-hover:brightness-110"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Filtered Results Header */}
+        {selectedProvider && (
+          <div className="mb-8 px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="aspect-square w-16 bg-zinc-900 rounded-xl p-3 border border-primary/20">
+                <img 
+                  src={STREAMING_PROVIDERS.find(p => p.id === selectedProvider)?.logo} 
+                  alt="" 
+                  className="w-full h-full object-contain"
+                />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-white uppercase italic tracking-tighter">
+                  {STREAMING_PROVIDERS.find(p => p.id === selectedProvider)?.name}
+                </h2>
+                <p className="text-sm text-zinc-400">Mostrando todos os conteúdos deste provedor</p>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              onClick={() => setSelectedProvider(null)}
+              className="bg-zinc-900 border-zinc-800 text-white hover:bg-zinc-800 gap-2 px-6"
+            >
+              <Info className="w-4 h-4 rotate-180" /> Voltar para o Início
+            </Button>
+          </div>
+        )}
+
         {showAllRows && (
           <>
             {randomSections.map((section, index) => (
@@ -441,13 +508,40 @@ const Index = () => {
         )}
 
         {showSingleRow && (
-          <MarqueeContentRow
-            title={categorizedContent.singleRowTitle || 'Conteúdo Filtrado'}
-            contents={categorizedContent.singleRow || []}
-            onPlayContent={handlePlayContent}
-            onInfoContent={handleInfoContent}
-            onDownloadContent={handleDownloadContent}
-          />
+          <div className="px-4 sm:px-8">
+            {selectedProvider ? (
+              <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4 sm:gap-6">
+                {(categorizedContent.singleRow || []).map((content) => (
+                  <ContentCard
+                    key={content.id}
+                    title={content.title}
+                    thumbnail={content.thumbnail_url}
+                    onPlay={() => handlePlayContent(content)}
+                    onInfo={() => handleInfoContent(content)}
+                    onDetails={() => handleDetailsContent(content)}
+                    onTrailer={content.trailer_url ? () => setPlayerModal({ open: true, url: content.trailer_url!, title: `Trailer: ${content.title}` }) : undefined}
+                    onDownload={() => handleDownloadContent(content)}
+                    isPremium={content.isPremium}
+                    isNew={content.is_new}
+                    newSince={content.new_since}
+                    category={content.category}
+                    hasDownloads={!!(content.download_url || (content.downloads && content.downloads.length > 0))}
+                    internal_player_url={content.internal_player_url}
+                    classification={content.classification}
+                    watch_provider={content.watch_provider}
+                  />
+                ))}
+              </div>
+            ) : (
+              <MarqueeContentRow
+                title={categorizedContent.singleRowTitle || 'Conteúdo Filtrado'}
+                contents={categorizedContent.singleRow || []}
+                onPlayContent={handlePlayContent}
+                onInfoContent={handleInfoContent}
+                onDownloadContent={handleDownloadContent}
+              />
+            )}
+          </div>
         )}
       </div>
 

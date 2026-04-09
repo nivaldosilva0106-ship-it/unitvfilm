@@ -5,6 +5,7 @@ import { useRef } from "react";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { isContentAllowedForProfile } from "@/lib/utils";
+import { getProviderConfig } from "@/lib/providers";
 
 interface ContentCardProps {
   title: string;
@@ -78,44 +79,13 @@ export const ContentCard = ({
         </div>
       )}
 
-      {watch_provider && (
+      {watch_provider && getProviderConfig(watch_provider) && (
         <div className="absolute top-2 left-2 z-10 bg-black/40 backdrop-blur-md p-1.5 rounded-lg border border-white/10 shadow-xl transition-transform group-hover:scale-110">
-          {watch_provider === 'netflix' && (
-            <img src="/icons/providers/netflix.png" alt="Netflix" className="h-8 w-auto object-contain" />
-          )}
-          {watch_provider === 'amazon' && (
-            <img src="/icons/providers/amazon.png" alt="Prime Video" className="h-8 w-auto object-contain" />
-          )}
-          {watch_provider === 'hbo' && (
-            <img src="/icons/providers/hbo.png" alt="HBO" className="h-8 w-auto object-contain" />
-          )}
-          {watch_provider === 'disney' && (
-            <img src="/icons/providers/disney.png" alt="Disney+" className="h-8 w-auto object-contain" />
-          )}
-          {watch_provider === 'apple' && (
-            <img src="/icons/providers/apple.png" alt="Apple TV+" className="h-8 w-auto object-contain" />
-          )}
-          {watch_provider === 'hulu' && (
-            <img src="/icons/providers/hulu.png" alt="Hulu" className="h-8 w-auto object-contain" />
-          )}
-          {watch_provider === 'paramount' && (
-            <img src="/icons/providers/paramount.png" alt="Paramount+" className="h-8 w-auto object-contain" />
-          )}
-          {watch_provider === 'starplus' && (
-            <img src="/icons/providers/starplus.png" alt="Star+" className="h-8 w-auto object-contain" />
-          )}
-          {watch_provider === 'globoplay' && (
-            <img src="/icons/providers/globoplay.png" alt="Globoplay" className="h-8 w-auto object-contain" />
-          )}
-          {watch_provider === 'crunchyroll' && (
-            <img src="/icons/providers/crunchyroll.png" alt="Crunchyroll" className="h-8 w-auto object-contain" />
-          )}
-          {watch_provider === 'skyshowtime' && (
-            <img src="/icons/providers/skyshowtime.png" alt="SkyShowtime" className="h-8 w-auto object-contain" />
-          )}
-          {watch_provider === 'youtube' && (
-            <img src="/icons/providers/youtube.png" alt="YouTube" className="h-8 w-auto object-contain" />
-          )}
+          <img 
+            src={getProviderConfig(watch_provider)?.logo} 
+            alt={getProviderConfig(watch_provider)?.name} 
+            className="h-8 w-auto object-contain" 
+          />
         </div>
       )}
 
