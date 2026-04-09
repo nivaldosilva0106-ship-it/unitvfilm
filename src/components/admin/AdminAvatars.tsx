@@ -1,17 +1,30 @@
 import { useState, useEffect } from 'react';
-import { getAvatars, addAvatar, deleteAvatar } from '@/lib/firebase';
+import { getAvatars, addAvatar, deleteAvatar, getSiteSettings, updateSiteSettings } from '@/lib/firebase';
 import { Avatar } from '@/types/user';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { Trash2, Plus, Image as ImageIcon } from 'lucide-react';
+import { Trash2, Plus, Image as ImageIcon, Save, Tv } from 'lucide-react';
+import { STREAMING_PROVIDERS } from '@/lib/providers';
 
 export const AdminAvatars = () => {
     const [avatars, setAvatars] = useState<Avatar[]>([]);
     const [newUrl, setNewUrl] = useState('');
     const [loading, setLoading] = useState(false);
+    const [providerLogos, setProviderLogos] = useState<Record<string, string>>({});
+    const [savingProviders, setSavingProviders] = useState(false);
 
-    useEffect(() => { loadAvatars(); }, []);
+    useEffect(() => { 
+        loadAvatars(); 
+        loadProviderLogos();
+    }, []);
+
+    const loadProviderLogos = async () => {
+        const settings = await getSiteSettings();
+        if (settings.providerLogos) {
+            setProviderLogos(settings.providerLogos);
+        }
+    };
 
     const loadAvatars = async () => {
         try {
@@ -49,6 +62,22 @@ export const AdminAvatars = () => {
             }
         }
     }
+
+    const handleUpdateProviderLogo = (id: string, url: string) => {
+        setProviderLogos(prev => ({ ...prev, [id]: url }));
+    };
+
+    const handleSaveProviders = async () => {
+        setSavingProviders(true);
+        try {
+            await updateSiteSettings({ providerLogos });
+            toast.success('Logotipos dos provedores atualizados!');
+        } catch (e) {
+            toast.error('Erro ao salvar logotipos');
+        } finally {
+            setSavingProviders(false);
+        }
+    };
 
     return (
         <div className="p-6 md:p-10 space-y-8 animate-in fade-in duration-500">
@@ -105,6 +134,56 @@ export const AdminAvatars = () => {
                             Nenhum avatar cadastrado.
                         </div>
                     )}
+                </div>
+            </div>
+            <div className="pt-8 border-t border-border space-y-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 bg-primary/10 rounded-lg">
+                            <Tv className="w-6 h-6 text-primary" />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-white">Logotipos dos Provedores</h2>
+                            <p className="text-sm text-muted-foreground">Personalize os ícones dos serviços de streaming</p>
+                        </div>
+                    </div>
+                    <Button 
+                        onClick={handleSaveProviders} 
+                        disabled={savingProviders}
+                        className="bg-primary hover:bg-primary/90 gap-2"
+                    >
+                        <Save className="w-4 h-4" />
+                        {savingProviders ? 'Salvando...' : 'Salvar Alterações'}
+                    </Button>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    {STREAMING_PROVIDERS.map(provider => (
+                        <div key={provider.id} className="bg-card/50 border border-border rounded-xl p-4 space-y-4 hover:border-primary/30 transition-all">
+                            <div className="flex items-center gap-4">
+                                <div className="aspect-square w-16 bg-black/40 rounded-lg p-2 border border-border flex items-center justify-center overflow-hidden">
+                                    <img 
+                                        src={providerLogos[provider.id] || provider.logo} 
+                                        alt={provider.name} 
+                                        className="w-full h-full object-contain"
+                                    />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-white uppercase italic tracking-tighter">{provider.name}</h3>
+                                    <p className="text-[10px] text-muted-foreground uppercase">{provider.id}</p>
+                                </div>
+                            </div>
+                            <div className="space-y-1.5">
+                                <label className="text-[10px] uppercase font-black text-zinc-500 ml-1">URL Personalizada</label>
+                                <Input 
+                                    value={providerLogos[provider.id] || ''}
+                                    onChange={(e) => handleUpdateProviderLogo(provider.id, e.target.value)}
+                                    placeholder="https://..."
+                                    className="bg-black/20 border-border focus:border-primary/50 text-xs h-9"
+                                />
+                            </div>
+                        </div>
+                    ))}
                 </div>
             </div>
         </div>

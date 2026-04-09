@@ -13,18 +13,12 @@ interface MarqueeContentRowProps {
     onDownloadContent: (content: Content) => void;
     showNumbers?: boolean;
     hideDownloadIcon?: boolean;
+    providerLogos?: Record<string, string>;
 }
 
-export const MarqueeContentRow = ({
-    title,
-    contents,
-    onPlayContent,
-    onInfoContent,
-    onDetailsContent,
-    onTrailerContent,
-    onDownloadContent,
     showNumbers = false,
     hideDownloadIcon = false,
+    providerLogos = {},
 }: MarqueeContentRowProps) => {
     const [scrollPosition, setScrollPosition] = useState(0);
     const itemWidth = 200; // Approximate width of each card
@@ -101,6 +95,7 @@ export const MarqueeContentRow = ({
                                     internal_player_url={content.internal_player_url}
                                     hideDownloadIcon={hideDownloadIcon}
                                     watch_provider={content.watch_provider}
+                                    providerLogos={providerLogos}
                                 />
                                 {showNumbers && (
                                     <div className="absolute -left-4 sm:-left-6 top-0 bottom-0 flex items-end pb-2 sm:pb-4 z-30 pointer-events-none">

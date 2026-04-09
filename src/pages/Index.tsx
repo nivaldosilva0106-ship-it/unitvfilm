@@ -8,7 +8,7 @@ import { ContentRow } from "@/components/ContentRow";
 import { MarqueeContentRow } from "@/components/MarqueeContentRow";
 import { CategoryNavigation } from "@/components/CategoryNavigation";
 import { Content } from "@/types/content";
-import { getAllContents, getMyList, addToMyList, removeFromMyList, getSliderSettings, type SliderSettings } from "@/lib/firebase";
+import { getAllContents, getMyList, addToMyList, removeFromMyList, getSliderSettings, getSiteSettings, type SliderSettings, type SiteSettings } from "@/lib/firebase";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -57,6 +57,7 @@ const Index = () => {
   const [heroTextVisible, setHeroTextVisible] = useState(true);
   const [showVideo, setShowVideo] = useState(false);
   const [myList, setMyList] = useState<MyListItem[]>([]);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
 
   useEffect(() => {
     if (!authLoading && user && !currentProfile) {
@@ -65,11 +66,18 @@ const Index = () => {
   }, [user, currentProfile, authLoading, navigate]);
 
   useEffect(() => {
-    loadContent();
+    loadInitialData();
+  }, [user, currentProfile]);
+
+  const loadInitialData = async () => {
+    await loadContent();
+    const settings = await getSiteSettings();
+    setSiteSettings(settings);
+    
     if (user && currentProfile) {
       loadMyList();
     }
-  }, [user, currentProfile]);
+  };
 
   const loadContent = async () => {
     try {
@@ -127,15 +135,15 @@ const Index = () => {
     const featuredPool = allContentData.filter(c => c.is_new || (c.rating && c.rating >= 7));
     const featured = [...featuredPool].sort(() => 0.5 - Math.random()).slice(0, 15);
     const topRated = allContentData.filter(c => c.rating && c.rating >= 8).sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 10);
-    const movies = allContentData.filter(c => c.category === 'movie');
-    const series = allContentData.filter(c => c.category === 'series');
+    const movies = allContentData.filter(c => c.category === 'movie' || c.category === 'Filme');
+    const series = allContentData.filter(c => c.category === 'series' || c.category === 'Série');
     const tvChannels = allContentData.filter(c => c.category === 'tv');
     const nostalgia = allContentData.filter(c => c.category === 'nostalgia');
     const canais24h = allContentData.filter(c => c.category === 'canais24h');
 
     // Provider filter
     const providerFiltered = selectedProvider 
-      ? allContentData.filter(c => getProviderConfig(c.watch_provider)?.id === selectedProvider)
+      ? allContentData.filter(c => getProviderConfig(c.watch_provider, siteSettings?.providerLogos)?.id === selectedProvider)
       : [];
 
     // Additional filtered categories for the UI
@@ -357,7 +365,8 @@ const Index = () => {
   if (loading) return <LoadingScreen />;
 
   const showAllRows = selectedCategory === 'Todos' && !selectedProvider;
-  const showSingleRow = (selectedCategory !== 'Todos' || selectedProvider) && !!categorizedContent.singleRow;
+  // Ensure we have a single row content OR we are in a selected state (which might be empty, but we'll handle the UI)
+  const showSingleRow = (selectedCategory !== 'Todos' || !!selectedProvider);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -382,6 +391,7 @@ const Index = () => {
         handlePlayContent={handlePlayContent}
         handleInfoContent={handleInfoContent}
         handleToggleMyList={currentTrailer ? () => handleToggleMyList(currentTrailer) : () => { }}
+        providerLogos={siteSettings?.providerLogos}
       />
 
       <div className="pt-4 pb-16">
@@ -403,7 +413,7 @@ const Index = () => {
                   className="aspect-square bg-zinc-900/50 rounded-2xl border border-white/5 p-3 flex items-center justify-center cursor-pointer hover:bg-zinc-800 hover:border-primary/50 hover:scale-105 transition-all duration-300 shadow-lg group"
                 >
                   <img
-                    src={provider.logo}
+                    src={siteSettings?.providerLogos?.[provider.id] || provider.logo}
                     alt={provider.name}
                     className="w-full h-full object-contain filter group-hover:brightness-110"
                   />
@@ -419,7 +429,7 @@ const Index = () => {
             <div className="flex items-center gap-4">
               <div className="aspect-square w-16 bg-zinc-900 rounded-xl p-3 border border-primary/20">
                 <img 
-                  src={STREAMING_PROVIDERS.find(p => p.id === selectedProvider)?.logo} 
+                  src={siteSettings?.providerLogos?.[selectedProvider] || STREAMING_PROVIDERS.find(p => p.id === selectedProvider)?.logo} 
                   alt="" 
                   className="w-full h-full object-contain"
                 />
@@ -428,7 +438,11 @@ const Index = () => {
                 <h2 className="text-2xl font-bold text-white uppercase italic tracking-tighter">
                   {STREAMING_PROVIDERS.find(p => p.id === selectedProvider)?.name}
                 </h2>
-                <p className="text-sm text-zinc-400">Mostrando todos os conteúdos deste provedor</p>
+                <p className="text-sm text-zinc-400">
+                  {categorizedContent.singleRow?.length === 0 
+                    ? 'Nenhum vídeo disponível para esta provedora' 
+                    : 'Mostrando todos os conteúdos deste provedor'}
+                </p>
               </div>
             </div>
             <Button 
@@ -455,6 +469,7 @@ const Index = () => {
                     onDownloadContent={handleDownloadContent}
                     showNumbers={section.showNumbers}
                     hideDownloadIcon={true}
+                    providerLogos={siteSettings?.providerLogos}
                   />
                 ) : section.type === 'channels' ? (
                   <div className="mb-12">
@@ -496,6 +511,7 @@ const Index = () => {
                     onDetailsContent={handleDetailsContent}
                     onDownloadContent={handleDownloadContent}
                     hideDownloadIcon={true}
+                    providerLogos={siteSettings?.providerLogos}
                   />
                 )}
                 {/* Insert Ad after the 2nd item (index 1) */}
@@ -511,7 +527,7 @@ const Index = () => {
           <div className="px-4 sm:px-8">
             {selectedProvider ? (
               <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4 sm:gap-6">
-                {(categorizedContent.singleRow || []).map((content) => (
+                {categorizedContent.singleRow?.map((content: Content) => (
                   <ContentCard
                     key={content.id}
                     title={content.title}
@@ -529,6 +545,7 @@ const Index = () => {
                     internal_player_url={content.internal_player_url}
                     classification={content.classification}
                     watch_provider={content.watch_provider}
+                    providerLogos={siteSettings?.providerLogos}
                   />
                 ))}
               </div>
@@ -539,6 +556,7 @@ const Index = () => {
                 onPlayContent={handlePlayContent}
                 onInfoContent={handleInfoContent}
                 onDownloadContent={handleDownloadContent}
+                providerLogos={siteSettings?.providerLogos}
               />
             )}
           </div>

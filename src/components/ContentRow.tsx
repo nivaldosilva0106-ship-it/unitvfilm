@@ -14,9 +14,10 @@ interface ContentRowProps {
   onTrailerContent?: (content: Content) => void;
   onDownloadContent?: (content: Content) => void;
   hideDownloadIcon?: boolean;
+  providerLogos?: Record<string, string>;
 }
 
-export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDetailsContent, onTrailerContent, onDownloadContent, hideDownloadIcon }: ContentRowProps) => {
+export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDetailsContent, onTrailerContent, onDownloadContent, hideDownloadIcon, providerLogos }: ContentRowProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
@@ -108,6 +109,7 @@ export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDe
                 hasDownload={!!(content.download_url || (content.downloads && content.downloads.length > 0))}
                 hideDownloadIcon={hideDownloadIcon}
                 watch_provider={content.watch_provider}
+                providerLogos={providerLogos}
               />
             </div>
           ))}

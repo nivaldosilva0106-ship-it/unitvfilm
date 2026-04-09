@@ -22,6 +22,7 @@ interface IndexHeroProps {
     handlePlayContent: (content: Content) => void;
     handleInfoContent: (content: Content) => void;
     handleToggleMyList: (content: Content) => void;
+    providerLogos?: Record<string, string>;
 }
 
 export const IndexHero = ({
@@ -41,7 +42,8 @@ export const IndexHero = ({
     toggleAudio,
     handlePlayContent,
     handleInfoContent,
-    handleToggleMyList
+    handleToggleMyList,
+    providerLogos
 }: IndexHeroProps) => {
     const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -150,10 +152,10 @@ export const IndexHero = ({
                             <div className="flex-1 min-w-0 flex flex-col justify-between h-full w-full text-center sm:text-left">
                                 <div className="mb-4 sm:mb-0">
                                     <div className="flex items-center justify-center sm:justify-start gap-2 mb-2 flex-wrap text-center sm:text-left">
-                                        {activeContent.watch_provider && getProviderConfig(activeContent.watch_provider) && (
+                                        {activeContent.watch_provider && getProviderConfig(activeContent.watch_provider, providerLogos) && (
                                             <div className="bg-black/40 backdrop-blur-md px-1.5 py-0.5 rounded border border-white/10 flex items-center justify-center h-6">
                                                 <img 
-                                                    src={getProviderConfig(activeContent.watch_provider)?.logo} 
+                                                    src={getProviderConfig(activeContent.watch_provider, providerLogos)?.logo} 
                                                     alt="" 
                                                     className="h-full w-auto object-contain"
                                                 />

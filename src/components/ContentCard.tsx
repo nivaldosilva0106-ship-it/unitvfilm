@@ -26,6 +26,7 @@ interface ContentCardProps {
   hasDownload?: boolean;
   hideDownloadIcon?: boolean;
   watch_provider?: 'netflix' | 'amazon' | 'hbo' | 'disney' | 'apple' | 'hulu' | 'paramount' | 'starplus' | 'globoplay' | 'crunchyroll' | 'skyshowtime' | 'youtube' | 'other';
+  providerLogos?: Record<string, string>;
 }
 
 export const ContentCard = ({
@@ -46,7 +47,8 @@ export const ContentCard = ({
   hasInternalPlayer,
   hasDownload,
   hideDownloadIcon,
-  watch_provider
+  watch_provider,
+  providerLogos
 }: ContentCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -79,11 +81,11 @@ export const ContentCard = ({
         </div>
       )}
 
-      {watch_provider && getProviderConfig(watch_provider) && (
+      {watch_provider && getProviderConfig(watch_provider, providerLogos) && (
         <div className="absolute top-2 left-2 z-10 bg-black/40 backdrop-blur-md p-1.5 rounded-lg border border-white/10 shadow-xl transition-transform group-hover:scale-110">
           <img 
-            src={getProviderConfig(watch_provider)?.logo} 
-            alt={getProviderConfig(watch_provider)?.name} 
+            src={getProviderConfig(watch_provider, providerLogos)?.logo} 
+            alt={getProviderConfig(watch_provider, providerLogos)?.name} 
             className="h-8 w-auto object-contain" 
           />
         </div>

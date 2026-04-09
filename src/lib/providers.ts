@@ -19,7 +19,7 @@ export const STREAMING_PROVIDERS: ProviderConfig[] = [
   { id: 'youtube', name: 'YouTube', logo: '/icons/providers/youtube.png' },
 ];
 
-export const getProviderConfig = (providerName?: string): ProviderConfig | null => {
+export const getProviderConfig = (providerName?: string, overrides?: Record<string, string>): ProviderConfig | null => {
   if (!providerName) return null;
   
   const searchName = providerName.toLowerCase();
@@ -32,6 +32,10 @@ export const getProviderConfig = (providerName?: string): ProviderConfig | null 
     (p.id === 'hbo' && searchName.includes('max')) ||
     (p.id === 'disney' && searchName.includes('plus'))
   );
+  
+  if (provider && overrides && overrides[provider.id]) {
+    return { ...provider, logo: overrides[provider.id] };
+  }
   
   return provider || null;
 };

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getAllContents } from "@/lib/firebase";
+import { getAllContents, getSiteSettings, type SiteSettings } from "@/lib/firebase";
 import { Content } from "@/types/content";
 import { Header } from "@/components/Header";
 import { ShieldCheck, Tv, Play, Search, X, Lock, Crown, AlertTriangle, Monitor } from 'lucide-react';
@@ -23,13 +23,17 @@ const LiveTV = () => {
     const [iframeKey, setIframeKey] = useState(0);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
+    const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
 
     const [searchParams] = useSearchParams();
     const channelIdParam = searchParams.get('channelId');
 
     useEffect(() => {
-        const fetchChannels = async () => {
+        const fetchInitialData = async () => {
             try {
+                const settings = await getSiteSettings();
+                setSiteSettings(settings);
+
                 const allContent = await getAllContents();
                 const tvChannels = allContent.filter(c => c.category === 'tv');
                 setChannels(tvChannels);
@@ -48,7 +52,7 @@ const LiveTV = () => {
                 setLoading(false);
             }
         };
-        fetchChannels();
+        fetchInitialData();
     }, [channelIdParam]);
 
     const filteredChannels = channels.filter(c =>
@@ -186,17 +190,20 @@ const LiveTV = () => {
                                         )}
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2">
-                                            <h3 className={`font-medium text-sm truncate ${activeChannel?.id === channel.id ? 'text-primary' : 'text-zinc-300'}`}>
+                                        <div className="flex flex-col min-w-0">
+                                            <span className={`font-bold transition-colors truncate ${activeChannel?.id === channel.id ? 'text-primary' : 'text-zinc-200'}`}>
                                                 {channel.title}
-                                            </h3>
-                                            {channel.watch_provider && getProviderConfig(channel.watch_provider) && (
-                                                <div className="flex-shrink-0 bg-black/40 px-1 py-0.5 rounded border border-white/5 h-4 flex items-center">
+                                            </span>
+                                            {channel.watch_provider && getProviderConfig(channel.watch_provider, siteSettings?.providerLogos) && (
+                                                <div className="flex items-center gap-1 mt-0.5">
                                                     <img 
-                                                        src={getProviderConfig(channel.watch_provider)?.logo} 
+                                                        src={getProviderConfig(channel.watch_provider, siteSettings?.providerLogos)?.logo} 
                                                         alt="" 
-                                                        className="h-full w-auto object-contain brightness-75"
+                                                        className="h-3 w-auto object-contain opacity-70"
                                                     />
+                                                    <span className="text-[9px] text-zinc-500 uppercase font-bold tracking-wider">
+                                                        {getProviderConfig(channel.watch_provider, siteSettings?.providerLogos)?.name}
+                                                    </span>
                                                 </div>
                                             )}
                                         </div>

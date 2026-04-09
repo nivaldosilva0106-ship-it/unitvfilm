@@ -396,6 +396,7 @@ export interface SiteSettings {
   freeTrialMode?: boolean;
   whatsappNumber?: string;
   officialSiteUrl?: string;
+  providerLogos?: Record<string, string>;
 }
 
 export const getSiteSettings = async (): Promise<SiteSettings> => {

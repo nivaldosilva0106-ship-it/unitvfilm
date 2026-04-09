@@ -1,7 +1,7 @@
 // NostalgiaTube page - cache bust 2026-01-22-v2
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { getAllContents, saveUserProgress, getUserProgress } from "@/lib/firebase";
+import { getAllContents, saveUserProgress, getUserProgress, getSiteSettings, type SiteSettings } from "@/lib/firebase";
 import { Header } from "@/components/Header";
 import { Content } from "@/types/content";
 import { getProviderConfig } from "@/lib/providers";
@@ -73,6 +73,7 @@ export default function NostalgiaTube(): JSX.Element {
     const [waitingForSelection, setWaitingForSelection] = useState(false); // New state for prompt
     const [lastProgress, setLastProgress] = useState<any>(null); // Last watched episode progress
     const [tiktokVideoUrl, setTiktokVideoUrl] = useState<string | null>(null); // Fetched TikTok link
+    const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
 
     // Quality labels mapping - MUST be before any conditional returns
     const qualityLabels: { [key: string]: string } = useMemo(() => ({
@@ -110,31 +111,49 @@ export default function NostalgiaTube(): JSX.Element {
 
             setLoading(true);
             try {
-                const all = await getAllContents();
-                const nostalgiaItems = all.filter(c => c.category === 'nostalgia');
+    const loadInitialProgress = async (contentId: string) => {
+        if (currentProfile) {
+            const { getUserAllProgress } = await import("@/lib/firebase");
+            const allProgress = await getUserAllProgress(currentProfile.id);
+            const contentProgress = allProgress
+                .filter(p => p.contentId === contentId)
+                .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
-                // Randomize content only if not already loaded or searching for specific id
-                if (contents.length === 0) {
-                    const shuffled = [...nostalgiaItems].sort(() => 0.5 - Math.random());
-                    setContents(shuffled);
-                }
+            if (contentProgress.length > 0) {
+                setLastProgress(contentProgress[0]);
+            } else {
+                setLastProgress(null);
+            }
+        }
+    };
+
+    // Fetch data
+    useEffect(() => {
+        const fetchInitialData = async () => {
+            try {
+                const settings = await getSiteSettings();
+                setSiteSettings(settings);
+
+                const data = await getAllContents();
+                const nostalgiaContent = data.filter(c => c.category === 'nostalgia');
+                setContents(nostalgiaContent);
 
                 if (id) {
-                    const found = nostalgiaItems.find(c => c.id === id);
-                    if (found) {
-                        setCurrentContent(found);
-                        setCurrentEpisodeIndex(0);
-                        setUserInteracted(true);
+                    const content = nostalgiaContent.find(c => c.id === id);
+                    if (content) {
+                        setCurrentContent(content);
+                        loadInitialProgress(content.id);
                     }
                 }
             } catch (error) {
-                console.error("Error fetching nostalgia content:", error);
+                console.error("Error fetching content:", error);
+                toast.error("Erro ao carregar conteúdo");
             } finally {
                 setLoading(false);
             }
         };
-        fetchContent();
-    }, [id]); // Remove navigate from deps if not strictly needed for fetch
+        fetchInitialData();
+    }, [id]);
 
     // Check scroll position for arrows
     const checkScroll = () => {
@@ -1275,15 +1294,29 @@ export default function NostalgiaTube(): JSX.Element {
                                             alt={content.title}
                                             className="w-full h-full object-cover pointer-events-none"
                                         />
-                                        {content.watch_provider && getProviderConfig(content.watch_provider) && (
-                                            <div className="absolute top-2 left-2 z-10 bg-black/40 backdrop-blur-md p-1 rounded-lg border border-white/10 shadow-xl pointer-events-none">
-                                                <img 
-                                                    src={getProviderConfig(content.watch_provider)?.logo} 
-                                                    alt="" 
-                                                    className="h-6 w-auto object-contain" 
-                                                />
-                                            </div>
-                                        )}
+                                        <div className="absolute top-2 left-2 z-10 flex flex-col gap-1">
+                                            {content.watch_provider && getProviderConfig(content.watch_provider, siteSettings?.providerLogos) && (
+                                                <div className="bg-black/40 backdrop-blur-md p-1.5 rounded-lg border border-white/10 shadow-xl">
+                                                    <img 
+                                                        src={getProviderConfig(content.watch_provider, siteSettings?.providerLogos)?.logo} 
+                                                        alt="" 
+                                                        className="h-5 w-auto object-contain" 
+                                                    />
+                                                </div>
+                                            )}
+                                            {content.classification && (
+                                                <div className={`px-1.5 py-0.5 rounded text-[10px] font-bold text-white shadow-sm w-fit
+                                                    ${content.classification === 'L' ? 'bg-green-500' :
+                                                        content.classification === '10' ? 'bg-blue-400' :
+                                                            content.classification === '12' ? 'bg-yellow-400' :
+                                                                content.classification === '14' ? 'bg-orange-400' :
+                                                                    content.classification === '16' ? 'bg-red-500' :
+                                                                        content.classification === '18' ? 'bg-black' : 'bg-zinc-500'
+                                                    }`}>
+                                                    {content.classification}
+                                                </div>
+                                            )}
+                                        </div>
                                         <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
                                             <Play className="w-10 h-10 md:w-12 md:h-12 text-white fill-current drop-shadow-lg scale-0 group-hover:scale-100 transition-transform duration-300 delay-75" />
                                         </div>
