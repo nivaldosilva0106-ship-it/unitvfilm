@@ -45,7 +45,6 @@ const Index = () => {
   const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string, internalUrl?: string, nextEpisode?: any }>({ open: false, url: '', title: '', isPremium: false });
   const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, downloads?: { label: string; url: string; type?: 'direct' | 'torrent' }[], download_mode?: 'direct' | 'torrent' | 'mixed', title: string, thumbnail: string }>({ open: false, url: '', title: '', thumbnail: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
-  const [selectedProvider, setSelectedProvider] = useState<string | null>(null);
   const [quickViewContent, setQuickViewContent] = useState<Content | null>(null);
   const [showCinemaModal, setShowCinemaModal] = useState(false);
   const [pendingPlayerState, setPendingPlayerState] = useState<any>(null);
@@ -78,6 +77,14 @@ const Index = () => {
       loadMyList();
     }
   };
+
+  useEffect(() => {
+    // Hide "Bem-vindo" text after 4 seconds
+    const timer = setTimeout(() => {
+      setHeroTextVisible(false);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const loadContent = async () => {
     try {
@@ -141,10 +148,7 @@ const Index = () => {
     const nostalgia = allContentData.filter(c => c.category === 'nostalgia');
     const canais24h = allContentData.filter(c => c.category === 'canais24h');
 
-    // Provider filter
-    const providerFiltered = selectedProvider 
-      ? allContentData.filter(c => getProviderConfig(c.watch_provider, siteSettings?.providerLogos)?.id === selectedProvider)
-      : [];
+    const canais24h = allContentData.filter(c => c.category === 'canais24h');
 
     // Additional filtered categories for the UI
     const actionAdventure = allContentData.filter(c => c.genre?.some(g => g.toLowerCase().includes('ação') || g.toLowerCase().includes('aventura')));
@@ -162,11 +166,7 @@ const Index = () => {
     let singleRow: Content[] | null = null;
     let singleRowTitle = '';
 
-    if (selectedProvider) {
-      singleRow = providerFiltered;
-      const config = STREAMING_PROVIDERS.find(p => p.id === selectedProvider);
-      singleRowTitle = `Conteúdos ${config?.name || 'Provedor'}`;
-    } else if (selectedCategory !== 'Todos') {
+    if (selectedCategory !== 'Todos') {
       if (selectedCategory === 'Filmes') {
         singleRow = movies;
         singleRowTitle = 'Filmes';
@@ -182,11 +182,11 @@ const Index = () => {
       }
     }
 
-    return { featured, topRated, movies, series, tvChannels, nostalgia, canais24h, actionAdventure, comedyHorror, recentReleases, dramaCrime, comedyRomance, singleRow, singleRowTitle, providerFiltered };
-  }, [allContentData, selectedCategory, selectedProvider]);
+    return { featured, topRated, movies, series, tvChannels, nostalgia, canais24h, actionAdventure, comedyHorror, recentReleases, dramaCrime, comedyRomance, singleRow, singleRowTitle };
+  }, [allContentData, selectedCategory, siteSettings]);
 
   const randomSections = useMemo(() => {
-    if (selectedCategory !== 'Todos' || selectedProvider) return [];
+    if (selectedCategory !== 'Todos') return [];
 
     const featuredSection = {
       id: 'featured',
@@ -364,9 +364,9 @@ const Index = () => {
 
   if (loading) return <LoadingScreen />;
 
-  const showAllRows = selectedCategory === 'Todos' && !selectedProvider;
+  const showAllRows = selectedCategory === 'Todos';
   // Ensure we have a single row content OR we are in a selected state (which might be empty, but we'll handle the UI)
-  const showSingleRow = (selectedCategory !== 'Todos' || !!selectedProvider);
+  const showSingleRow = (selectedCategory !== 'Todos');
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -396,7 +396,7 @@ const Index = () => {
 
       <div className="pt-4 pb-16">
         {/* Streaming Providers Section - ALWAYS FIRST as requested */}
-        {!selectedProvider && selectedCategory === 'Todos' && (
+        {selectedCategory === 'Todos' && (
           <div className="mb-12 px-4 sm:px-8">
             <div className="flex items-center gap-3 mb-6">
               <div className="w-1.5 h-8 bg-primary rounded-full" />
@@ -407,8 +407,7 @@ const Index = () => {
                 <div
                   key={provider.id}
                   onClick={() => {
-                    setSelectedProvider(provider.id);
-                    window.scrollTo({ top: 400, behavior: 'smooth' });
+                    navigate(`/provider/${provider.id}`);
                   }}
                   className="aspect-square bg-zinc-900/50 rounded-2xl border border-white/5 p-3 flex items-center justify-center cursor-pointer hover:bg-zinc-800 hover:border-primary/50 hover:scale-105 transition-all duration-300 shadow-lg group"
                 >
@@ -423,35 +422,6 @@ const Index = () => {
           </div>
         )}
 
-        {/* Filtered Results Header */}
-        {selectedProvider && (
-          <div className="mb-8 px-4 sm:px-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="aspect-square w-16 bg-zinc-900 rounded-xl p-3 border border-primary/20">
-                <img 
-                  src={siteSettings?.providerLogos?.[selectedProvider] || STREAMING_PROVIDERS.find(p => p.id === selectedProvider)?.logo} 
-                  alt="" 
-                  className="w-full h-full object-contain"
-                />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-white uppercase italic tracking-tighter">
-                  {STREAMING_PROVIDERS.find(p => p.id === selectedProvider)?.name}
-                </h2>
-                <p className="text-sm text-zinc-400">
-                  {categorizedContent.singleRow?.length === 0 
-                    ? 'Nenhum vídeo disponível para esta provedora' 
-                    : 'Mostrando todos os conteúdos deste provedor'}
-                </p>
-              </div>
-            </div>
-            <Button 
-              variant="outline" 
-              onClick={() => setSelectedProvider(null)}
-              className="bg-zinc-900 border-zinc-800 text-white hover:bg-zinc-800 gap-2 px-6"
-            >
-              <Info className="w-4 h-4 rotate-180" /> Voltar para o Início
-            </Button>
           </div>
         )}
 
@@ -525,32 +495,7 @@ const Index = () => {
 
         {showSingleRow && (
           <div className="px-4 sm:px-8">
-            {selectedProvider ? (
-              <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-4 sm:gap-6">
-                {categorizedContent.singleRow?.map((content: Content) => (
-                  <ContentCard
-                    key={content.id}
-                    title={content.title}
-                    thumbnail={content.thumbnail_url}
-                    onPlay={() => handlePlayContent(content)}
-                    onInfo={() => handleInfoContent(content)}
-                    onDetails={() => handleDetailsContent(content)}
-                    onTrailer={content.trailer_url ? () => setPlayerModal({ open: true, url: content.trailer_url!, title: `Trailer: ${content.title}` }) : undefined}
-                    onDownload={() => handleDownloadContent(content)}
-                    isPremium={content.isPremium}
-                    isNew={content.is_new}
-                    newSince={content.new_since}
-                    category={content.category}
-                    hasDownloads={!!(content.download_url || (content.downloads && content.downloads.length > 0))}
-                    internal_player_url={content.internal_player_url}
-                    classification={content.classification}
-                    watch_provider={content.watch_provider}
-                    providerLogos={siteSettings?.providerLogos}
-                  />
-                ))}
-              </div>
-            ) : (
-              <MarqueeContentRow
+            <MarqueeContentRow
                 title={categorizedContent.singleRowTitle || 'Conteúdo Filtrado'}
                 contents={categorizedContent.singleRow || []}
                 onPlayContent={handlePlayContent}
