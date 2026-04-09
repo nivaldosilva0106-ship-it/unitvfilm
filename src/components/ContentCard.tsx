@@ -78,44 +78,43 @@ export const ContentCard = ({
         </div>
       )}
 
-      {/* Watch Provider Icon */}
       {watch_provider && (
         <div className="absolute top-2 left-2 z-10 bg-black/40 backdrop-blur-md p-1.5 rounded-lg border border-white/10 shadow-xl transition-transform group-hover:scale-110">
           {watch_provider === 'netflix' && (
-            <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" alt="Netflix" className="h-4 w-auto object-contain" />
+            <img src="/icons/providers/netflix.png" alt="Netflix" className="h-4 w-auto object-contain" />
           )}
           {watch_provider === 'amazon' && (
-            <img src="https://upload.wikimedia.org/wikipedia/commons/f/f1/Prime_Video.png" alt="Prime Video" className="h-4 w-auto object-contain grayscale invert" />
+            <img src="/icons/providers/amazon.png" alt="Prime Video" className="h-4 w-auto object-contain" />
           )}
           {watch_provider === 'hbo' && (
-            <img src="https://upload.wikimedia.org/wikipedia/commons/1/17/HBO_Max_Logo.svg" alt="HBO" className="h-4 w-auto object-contain invert" />
+            <img src="/icons/providers/hbo.png" alt="HBO" className="h-4 w-auto object-contain" />
           )}
           {watch_provider === 'disney' && (
-            <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg" alt="Disney+" className="h-4 w-auto object-contain invert" />
+            <img src="/icons/providers/disney.png" alt="Disney+" className="h-4 w-auto object-contain" />
           )}
           {watch_provider === 'apple' && (
-            <img src="https://upload.wikimedia.org/wikipedia/commons/2/28/Apple_TV_Plus_Logo.svg" alt="Apple TV+" className="h-4 w-auto object-contain invert" />
+            <img src="/icons/providers/apple.png" alt="Apple TV+" className="h-4 w-auto object-contain" />
           )}
           {watch_provider === 'hulu' && (
-            <img src="https://upload.wikimedia.org/wikipedia/commons/e/e4/Hulu_Logo.svg" alt="Hulu" className="h-4 w-auto object-contain" />
+            <img src="/icons/providers/hulu.png" alt="Hulu" className="h-4 w-auto object-contain" />
           )}
           {watch_provider === 'paramount' && (
             <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Paramount_Plus_logo.svg" alt="Paramount+" className="h-4 w-auto object-contain invert" />
           )}
           {watch_provider === 'starplus' && (
-            <img src="https://upload.wikimedia.org/wikipedia/commons/e/e0/Star_Plus_logo.svg" alt="Star+" className="h-4 w-auto object-contain invert" />
+            <img src="/icons/providers/starplus.png" alt="Star+" className="h-4 w-auto object-contain" />
           )}
           {watch_provider === 'globoplay' && (
-            <img src="https://upload.wikimedia.org/wikipedia/commons/a/af/Globoplay_logo.svg" alt="Globoplay" className="h-4 w-auto object-contain" />
+            <img src="/icons/providers/globoplay.png" alt="Globoplay" className="h-4 w-auto object-contain" />
           )}
           {watch_provider === 'crunchyroll' && (
-            <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Crunchyroll_Logo.svg" alt="Crunchyroll" className="h-4 w-auto object-contain" />
+            <img src="/icons/providers/crunchyroll.png" alt="Crunchyroll" className="h-4 w-auto object-contain" />
           )}
           {watch_provider === 'skyshowtime' && (
-            <img src="https://upload.wikimedia.org/wikipedia/commons/d/de/SkyShowtime_logo.svg" alt="SkyShowtime" className="h-4 w-auto object-contain invert" />
+            <img src="/icons/providers/skyshowtime.png" alt="SkyShowtime" className="h-4 w-auto object-contain" />
           )}
           {watch_provider === 'youtube' && (
-            <img src="https://upload.wikimedia.org/wikipedia/commons/0/09/YouTube_full-color_icon_%282017%29.svg" alt="YouTube" className="h-4 w-auto object-contain" />
+            <img src="/icons/providers/youtube.png" alt="YouTube" className="h-4 w-auto object-contain" />
           )}
         </div>
       )}
