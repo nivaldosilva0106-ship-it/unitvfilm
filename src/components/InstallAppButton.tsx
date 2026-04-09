@@ -2,11 +2,13 @@ import { useState, useEffect } from 'react';
 import { Download } from 'lucide-react';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
+import { AppInstallDialog } from './AppInstallDialog';
 
 export const InstallAppButton = ({ className, text, variant = 'default' }: { className?: string, text?: string, variant?: 'default' | 'icon' }) => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   useEffect(() => {
     const isIOS = () => {
@@ -21,7 +23,7 @@ export const InstallAppButton = ({ className, text, variant = 'default' }: { cla
     const checkInstalled = () => {
       const installed = isStandalone();
       setIsInstalled(installed);
-      setIsVisible(!installed && (isIOS() || !!deferredPrompt || !!(window as any).deferredPrompt));
+      setIsVisible(!installed);
     };
 
     const handler = (e: any) => {
@@ -49,9 +51,12 @@ export const InstallAppButton = ({ className, text, variant = 'default' }: { cla
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, [deferredPrompt]);
 
-  const handleInstallClick = async (e?: React.MouseEvent) => {
+  const handleInstallClick = (e?: React.MouseEvent) => {
     if (e) e.preventDefault();
-    
+    setIsDialogOpen(true);
+  };
+
+  const onInstallPWA = async () => {
     const isIOS = () => {
       const ua = window.navigator.userAgent.toLowerCase();
       return /iphone|ipad|ipod/.test(ua);
@@ -64,6 +69,7 @@ export const InstallAppButton = ({ className, text, variant = 'default' }: { cla
         const choice = await promptEvent.userChoice;
         if (choice.outcome === "accepted") {
           toast.success("Instalação iniciada");
+          setIsDialogOpen(false);
         } else {
           toast.info("Instalação cancelada");
         }
@@ -74,36 +80,42 @@ export const InstallAppButton = ({ className, text, variant = 'default' }: { cla
       }
     } else if (isIOS() && !isInstalled) {
       toast.info("No iOS: toque em Compartilhar (Share) e depois em 'Adicionar à Tela de Início' (Add to Home Screen).", { duration: 6000 });
-    } else if (isInstalled) {
-      toast.info("Aplicativo já instalado.");
+      setIsDialogOpen(false);
     } else {
-      toast.info("Instalação PWA não suportada neste navegador.");
+      toast.info("Instalação PWA não disponível. Pode usar o menu do seu navegador.");
+      setIsDialogOpen(false);
     }
   };
 
   if (!isVisible) return null;
 
-  if (variant === 'icon') {
-    return (
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={handleInstallClick}
-        className={className || "text-gray-300 hover:text-white"}
-        title="Instalar aplicativo"
-      >
-        <Download className="h-5 w-5" />
-      </Button>
-    );
-  }
-
   return (
-    <button
-      onClick={handleInstallClick}
-      className={className || "flex items-center gap-3 text-lg font-medium text-[#0aff7a] hover:text-[#0aff7a]/80 transition-colors p-2 rounded-lg hover:bg-[#0aff7a]/20 border border-[#0aff7a]/30 bg-[#0aff7a]/10"}
-    >
-      <Download className="w-5 h-5" />
-      {text || "Instalar App"}
-    </button>
+    <>
+      {variant === 'icon' ? (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleInstallClick}
+          className={className || "text-gray-300 hover:text-white"}
+          title="Instalar aplicativo"
+        >
+          <Download className="h-5 w-5" />
+        </Button>
+      ) : (
+        <button
+          onClick={handleInstallClick}
+          className={className || "flex items-center gap-3 text-lg font-medium text-[#0aff7a] hover:text-[#0aff7a]/80 transition-colors p-2 rounded-lg hover:bg-[#0aff7a]/20 border border-[#0aff7a]/30 bg-[#0aff7a]/10"}
+        >
+          <Download className="w-5 h-5" />
+          {text || "Instalar App"}
+        </button>
+      )}
+
+      <AppInstallDialog 
+        open={isDialogOpen} 
+        onClose={() => setIsDialogOpen(false)} 
+        onInstallPWA={onInstallPWA}
+      />
+    </>
   );
 };

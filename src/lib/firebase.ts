@@ -397,6 +397,10 @@ export interface SiteSettings {
   whatsappNumber?: string;
   officialSiteUrl?: string;
   providerLogos?: Record<string, string>;
+  pwaIconUrl?: string;
+  apkDownloadUrl?: string;
+  enableApkDownload?: boolean;
+  enablePwaInstall?: boolean;
 }
 
 export const getSiteSettings = async (): Promise<SiteSettings> => {

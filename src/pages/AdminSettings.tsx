@@ -1,6 +1,6 @@
 // ... (imports)
 import { useState, useEffect } from "react";
-import { Copy, Check, AlertTriangle, Globe, Info } from "lucide-react";
+import { Copy, Check, AlertTriangle, Globe, Info, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { getSiteSettings, updateSiteSettings } from "@/lib/firebase";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -21,6 +21,10 @@ export const AdminSettings = () => {
     const [youtubeApiKey, setYoutubeApiKey] = useState("");
     const [whatsappNumber, setWhatsappNumber] = useState("");
     const [officialSiteUrl, setOfficialSiteUrl] = useState("");
+    const [pwaIconUrl, setPwaIconUrl] = useState("");
+    const [apkDownloadUrl, setApkDownloadUrl] = useState("");
+    const [enableApkDownload, setEnableApkDownload] = useState(false);
+    const [enablePwaInstall, setEnablePwaInstall] = useState(false);
     const [loading, setLoading] = useState(true);
     const [isCopied, setIsCopied] = useState(false);
 
@@ -58,6 +62,10 @@ export const AdminSettings = () => {
             setYoutubeApiKey(settings.youtubeApiKey || "");
             setWhatsappNumber(settings.whatsappNumber || "");
             setOfficialSiteUrl(settings.officialSiteUrl || "");
+            setPwaIconUrl(settings.pwaIconUrl || "");
+            setApkDownloadUrl(settings.apkDownloadUrl || "");
+            setEnableApkDownload(settings.enableApkDownload || false);
+            setEnablePwaInstall(settings.enablePwaInstall || false);
         } catch (error) {
             console.error("Error loading settings:", error);
             toast.error("Erro ao carregar configurações");
@@ -75,7 +83,11 @@ export const AdminSettings = () => {
                 holidayDecorationsType,
                 youtubeApiKey,
                 whatsappNumber,
-                officialSiteUrl
+                officialSiteUrl,
+                pwaIconUrl,
+                apkDownloadUrl,
+                enableApkDownload,
+                enablePwaInstall
             });
             toast.success("Configurações salvas com sucesso!");
         } catch (error) {
@@ -304,6 +316,84 @@ export const AdminSettings = () => {
                                     </span>
                                 </p>
                             </div>
+                        </div>
+                    </div>
+
+                    {/* App Installation Configuration (PWA / APK) */}
+                    <div className="bg-card border border-border rounded-lg p-6">
+                        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
+                            <Smartphone className="w-5 h-5 text-purple-500" />
+                            Configuração do Aplicativo (PWA / APK)
+                        </h2>
+                        <div className="space-y-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-0.5">
+                                            <Label htmlFor="pwa-toggle">Instalação PWA</Label>
+                                            <p className="text-sm text-muted-foreground">
+                                                Permitir instalar via navegador
+                                            </p>
+                                        </div>
+                                        <Switch
+                                            id="pwa-toggle"
+                                            checked={enablePwaInstall}
+                                            onCheckedChange={setEnablePwaInstall}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="pwaIcon">URL do Ícone PWA (Diálogo)</Label>
+                                        <Input
+                                            id="pwaIcon"
+                                            placeholder="https://exemplo.com/logo.png"
+                                            value={pwaIconUrl}
+                                            onChange={(e) => setPwaIconUrl(e.target.value)}
+                                            className="bg-background/50"
+                                        />
+                                        <p className="text-[10px] text-muted-foreground">
+                                            Este ícone será exibido no diálogo de instalação dentro do site.
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="space-y-0.5">
+                                            <Label htmlFor="apk-toggle">Download APK</Label>
+                                            <p className="text-sm text-muted-foreground">
+                                                Oferecer download do APK Android
+                                            </p>
+                                        </div>
+                                        <Switch
+                                            id="apk-toggle"
+                                            checked={enableApkDownload}
+                                            onCheckedChange={setEnableApkDownload}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="apkUrl">Link Direto do APK</Label>
+                                        <Input
+                                            id="apkUrl"
+                                            placeholder="https://exemplo.com/app.apk"
+                                            value={apkDownloadUrl}
+                                            onChange={(e) => setApkDownloadUrl(e.target.value)}
+                                            className="bg-background/50"
+                                        />
+                                        <p className="text-[10px] text-muted-foreground">
+                                            O link para onde o usuário será redirecionado ao baixar o APK.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {(pwaIconUrl) && (
+                                <div className="pt-4 border-t border-border">
+                                    <Label className="mb-2 block">Pré-visualização do Ícone</Label>
+                                    <div className="w-16 h-16 rounded-xl bg-zinc-900 border border-white/10 p-2 flex items-center justify-center">
+                                        <img src={pwaIconUrl} alt="App Icon" className="w-full h-full object-contain" />
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
 
