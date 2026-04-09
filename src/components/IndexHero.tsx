@@ -136,7 +136,7 @@ export const IndexHero = ({
                 {activeContent && (
                     <div className="w-full max-w-3xl mx-auto z-50 relative animate-in fade-in zoom-in duration-700">
                         <div className="bg-black/70 backdrop-blur-xl border border-white/10 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5 shadow-2xl hover:bg-black/80 transition-all">
-                            <div
+                            <div 
                                 className="relative group shrink-0 w-32 sm:w-auto cursor-pointer"
                                 onClick={() => handlePlayContent(activeContent)}
                             >
@@ -145,6 +145,30 @@ export const IndexHero = ({
                                     alt={activeContent.title}
                                     className="w-full sm:w-28 sm:h-42 object-cover rounded-lg shadow-xl group-hover:scale-105 transition-transform duration-300 ring-1 ring-white/10"
                                 />
+                                
+                                {activeContent.watch_provider && getProviderConfig(activeContent.watch_provider, providerLogos) && (
+                                    <div className="absolute top-1.5 left-1.5 z-10 bg-black/40 backdrop-blur-md p-1 rounded-md border border-white/10 shadow-lg">
+                                        <img 
+                                            src={getProviderConfig(activeContent.watch_provider, providerLogos)?.logo} 
+                                            alt="" 
+                                            className="h-5 w-auto object-contain" 
+                                        />
+                                    </div>
+                                )}
+
+                                {activeContent.classification && (
+                                    <div className={`absolute ${activeContent.watch_provider ? 'top-[34px]' : 'top-1.5'} left-1.5 z-10 px-1 py-0.5 rounded text-[8px] font-bold text-white shadow-sm
+                                        ${activeContent.classification === 'L' ? 'bg-green-500' :
+                                        activeContent.classification === '10' ? 'bg-blue-400' :
+                                        activeContent.classification === '12' ? 'bg-yellow-400' :
+                                        activeContent.classification === '14' ? 'bg-orange-400' :
+                                        activeContent.classification === '16' ? 'bg-red-500' :
+                                        activeContent.classification === '18' ? 'bg-black' : 'bg-zinc-500'
+                                    }`}>
+                                        {activeContent.classification}
+                                    </div>
+                                )}
+
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
                                     <Play className="w-8 h-8 text-white fill-current" />
                                 </div>
@@ -152,18 +176,11 @@ export const IndexHero = ({
                             <div className="flex-1 min-w-0 flex flex-col justify-between h-full w-full text-center sm:text-left">
                                 <div className="mb-4 sm:mb-0">
                                     <div className="flex items-center justify-center sm:justify-start gap-2 mb-2 flex-wrap text-center sm:text-left">
-                                        {activeContent.watch_provider && getProviderConfig(activeContent.watch_provider, providerLogos) && (
-                                            <div className="bg-black/40 backdrop-blur-md px-1.5 py-0.5 rounded border border-white/10 flex items-center justify-center h-6">
-                                                <img 
-                                                    src={getProviderConfig(activeContent.watch_provider, providerLogos)?.logo} 
-                                                    alt="" 
-                                                    className="h-full w-auto object-contain"
-                                                />
-                                            </div>
+                                        {activeContent.isPremium && (
+                                            <span className="bg-primary/90 text-white px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shadow-sm">
+                                                Assista agora
+                                            </span>
                                         )}
-                                        <span className="bg-primary/90 text-white px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shadow-sm">
-                                            Assista agora
-                                        </span>
                                         <div className="flex items-center gap-1 bg-yellow-500/10 border border-yellow-500/20 px-1.5 py-0.5 rounded text-yellow-500 text-xs font-bold">
                                             <Star className="w-3 h-3 fill-current" />
                                             {activeContent.rating ? activeContent.rating.toFixed(1) : "N/A"}

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useMemo } from "react";
 import { useParams, useSearchParams, useNavigate } from "react-router-dom";
-import { getAllContents, incrementDailyUsage, saveUserProgress, getUserProgress, getUserAllProgress, addToMyList, removeFromMyList, getMyList } from "@/lib/firebase";
+import { getAllContents, incrementDailyUsage, saveUserProgress, getUserProgress, getUserAllProgress, addToMyList, removeFromMyList, getMyList, getSiteSettings, type SiteSettings } from "@/lib/firebase";
+import { getProviderConfig } from "@/lib/providers";
 import { Content } from "@/types/content";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -47,6 +48,7 @@ const Player = () => {
     const [suggestionCountdown, setSuggestionCountdown] = useState(10);
     const [continueWatchingList, setContinueWatchingList] = useState<any[]>([]); // Progress + Content data
     const [isContinueWatchingOpen, setIsContinueWatchingOpen] = useState(false);
+    const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
 
     // My List State
     const [isInMyList, setIsInMyList] = useState(false);
@@ -116,25 +118,60 @@ const Player = () => {
                     if (found.adBlockFriendly) {
                         setShowAdBlockModal(true);
                     }
-
-                    // Fetch Suggestions (Random 3, excluding current)
-                    const otherContents = contents.filter(c => c.id !== found.id);
-                    const randomSuggestions = otherContents.sort(() => 0.5 - Math.random()).slice(0, 3);
-                    setSuggestions(randomSuggestions);
-
-                } else {
+                setLoading(true);
+                const [allContents, settings] = await Promise.all([
+                    getAllContents(),
+                    getSiteSettings()
+                ]);
+                setSiteSettings(settings);
+                
+                const found = allContents.find(c => c.id === id);
+                if (!found) {
                     toast.error("Conteúdo não encontrado");
                     navigate("/");
+                    return;
+                }
+                setContent(found);
+                
+                // Shuffle recommendations
+                const filtered = allContents.filter(c => c.id !== found.id && c.category !== 'canais24h');
+                setSuggestions(filtered.sort(() => 0.5 - Math.random()).slice(0, 15));
+
+                if (found.category === 'series' && found.episodes) {
+                    const season = parseInt(seasonParam || '1');
+                    const episode = parseInt(episodeParam || '1');
+                    const ep = found.episodes.find(e => e.season === season && e.episode === episode);
+                    
+                    if (ep) {
+                        setVideoUrl(ep.url);
+                        setCurrentTitle(`${found.title} - T${season} E${episode}: ${ep.title}`);
+                        
+                        // Find next episode
+                        const sorted = [...found.episodes].sort((a,b) => (a.season - b.season) || (a.episode - b.episode));
+                        const currIdx = sorted.findIndex(e => e.season === season && e.episode === episode);
+                        if (currIdx !== -1 && currIdx < sorted.length - 1) {
+                            setNextEpisode(sorted[currIdx + 1]);
+                        }
+                    } else if (found.episodes.length > 0) {
+                        // Fallback to first episode
+                        const first = found.episodes[0];
+                        setVideoUrl(first.url);
+                        setCurrentTitle(`${found.title} - T${first.season} E${first.episode}: ${first.title}`);
+                    }
+                } else {
+                    setVideoUrl(found.video_url || "");
+                    setCurrentTitle(found.title);
                 }
             } catch (error) {
-                console.error("Erro ao carregar conteúdo:", error);
-                toast.error("Erro ao carregar conteúdo");
+                console.error("Error loading data:", error);
+                toast.error("Erro ao carregar dados do player");
             } finally {
                 setLoading(false);
             }
         };
-        fetchContent();
-    }, [id, navigate]);
+
+        loadInitialData();
+    }, [id, seasonParam, episodeParam]);
 
     // Added check for content protection
     useEffect(() => {
@@ -816,11 +853,22 @@ const Player = () => {
                                         onClick={() => navigate(`/watch/${suggestion.id}`)}
                                         className="relative flex items-center gap-3 p-2 rounded-lg hover:bg-white/10 cursor-pointer transition-colors group/item"
                                     >
-                                        <img
-                                            src={suggestion.thumbnail_url}
-                                            alt={suggestion.title}
-                                            className="w-12 h-16 object-cover rounded-md shadow-md group-hover/item:scale-105 transition-transform"
-                                        />
+                                        <div className="relative w-12 h-16 shrink-0">
+                                            <img
+                                                src={suggestion.thumbnail_url}
+                                                alt={suggestion.title}
+                                                className="w-full h-full object-cover rounded-md shadow-md group-hover/item:scale-105 transition-transform"
+                                            />
+                                            {suggestion.watch_provider && getProviderConfig(suggestion.watch_provider, siteSettings?.providerLogos) && (
+                                                <div className="absolute top-0.5 left-0.5 z-10 bg-black/40 backdrop-blur-sm p-0.5 rounded border border-white/10 shadow-lg">
+                                                    <img 
+                                                        src={getProviderConfig(suggestion.watch_provider, siteSettings?.providerLogos)?.logo} 
+                                                        alt="" 
+                                                        className="h-3 w-auto object-contain" 
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
                                         <div className="flex flex-col min-w-0">
                                             <h4 className="text-white text-xs font-bold line-clamp-2 leading-tight group-hover/item:text-primary transition-colors">{suggestion.title}</h4>
                                             {suggestion.rating && (
@@ -923,6 +971,29 @@ const Player = () => {
                                             className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-110"
                                             alt={item.content.title}
                                         />
+
+                                        {item.content.watch_provider && getProviderConfig(item.content.watch_provider, siteSettings?.providerLogos) && (
+                                            <div className="absolute top-2 left-2 z-10 bg-black/40 backdrop-blur-md p-1 rounded-md border border-white/10 shadow-lg">
+                                                <img 
+                                                    src={getProviderConfig(item.content.watch_provider, siteSettings?.providerLogos)?.logo} 
+                                                    alt="" 
+                                                    className="h-5 w-auto object-contain" 
+                                                />
+                                            </div>
+                                        )}
+
+                                        {item.content.classification && (
+                                            <div className={`absolute ${item.content.watch_provider ? 'top-[34px]' : 'top-2'} left-2 z-10 px-1 py-0.5 rounded text-[8px] font-bold text-white shadow-sm
+                                                ${item.content.classification === 'L' ? 'bg-green-500' :
+                                                item.content.classification === '10' ? 'bg-blue-400' :
+                                                item.content.classification === '12' ? 'bg-yellow-400' :
+                                                item.content.classification === '14' ? 'bg-orange-400' :
+                                                item.content.classification === '16' ? 'bg-red-500' :
+                                                item.content.classification === '18' ? 'bg-black' : 'bg-zinc-500'
+                                            }`}>
+                                                {item.content.classification}
+                                            </div>
+                                        )}
                                         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-60"></div>
 
                                         {/* Play Overlay */}

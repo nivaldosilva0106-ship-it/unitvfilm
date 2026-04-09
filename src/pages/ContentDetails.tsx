@@ -9,7 +9,8 @@ import { ContentRow } from "@/components/ContentRow";
 
 import { AdManager } from "@/components/AdManager";
 import { Play, Download, ArrowLeft, Calendar, Globe, Star, Film, Heart, Clock, Users, AlertTriangle } from "lucide-react";
-import { getAllContents, addToMyList, removeFromMyList, getMyList } from "@/lib/firebase";
+import { getAllContents, addToMyList, removeFromMyList, getMyList, getSiteSettings, type SiteSettings } from "@/lib/firebase";
+import { getProviderConfig } from "@/lib/providers";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import type { Content } from "@/types/content";
@@ -35,6 +36,7 @@ const ContentDetails = () => {
   const [showCinemaModal, setShowCinemaModal] = useState(false);
   const [pendingPlayerState, setPendingPlayerState] = useState<any>(null);
   const [relatedContents, setRelatedContents] = useState<Content[]>([]);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
 
   useEffect(() => {
     loadContent();
@@ -72,7 +74,12 @@ const ContentDetails = () => {
 
   const loadContent = async () => {
     try {
-      const contents = await getAllContents();
+      const [contents, settings] = await Promise.all([
+        getAllContents(),
+        getSiteSettings()
+      ]);
+      setSiteSettings(settings);
+      
       const found = contents.find((c) => c.id === id);
       if (found) {
         if (found.category === 'nostalgia') {
@@ -266,11 +273,37 @@ const ContentDetails = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
             <div className="flex flex-col items-center lg:items-start gap-4">
-              <img
-                src={content.thumbnail_url || "/placeholder.svg"}
-                alt={content.title}
-                className="w-48 sm:w-64 lg:w-full rounded-lg shadow-2xl"
-              />
+              <div className="relative group w-48 sm:w-64 lg:w-full">
+                <img
+                  src={content.thumbnail_url || "/placeholder.svg"}
+                  alt={content.title}
+                  className="w-full rounded-lg shadow-2xl"
+                />
+                
+                {content.watch_provider && getProviderConfig(content.watch_provider, siteSettings?.providerLogos) && (
+                  <div className="absolute top-3 left-3 z-10 bg-black/40 backdrop-blur-md p-2 rounded-xl border border-white/10 shadow-2xl">
+                    <img 
+                      src={getProviderConfig(content.watch_provider, siteSettings?.providerLogos)?.logo} 
+                      alt="" 
+                      className="h-10 w-auto object-contain" 
+                    />
+                  </div>
+                )}
+
+                {/* Classification Badge on Poster */}
+                {content.classification && (
+                  <div className={`absolute ${content.watch_provider ? 'top-[62px]' : 'top-3'} left-3 z-10 px-2 py-1 rounded text-xs font-bold text-white shadow-lg
+                    ${content.classification === 'L' ? 'bg-green-500' :
+                    content.classification === '10' ? 'bg-blue-400' :
+                    content.classification === '12' ? 'bg-yellow-400' :
+                    content.classification === '14' ? 'bg-orange-400' :
+                    content.classification === '16' ? 'bg-red-500' :
+                    content.classification === '18' ? 'bg-black' : 'bg-zinc-500'
+                  }`}>
+                    {content.classification}
+                  </div>
+                )}
+              </div>
               {/* Sidebar Ad */}
               <AdManager placement="sidebar" className="w-full max-w-xs" />
             </div>
@@ -440,6 +473,7 @@ const ContentDetails = () => {
                     onPlayContent={(c) => navigate(`/watch/${c.id}`)}
                     onInfoContent={(c) => navigate(`/content/${c.id}`)}
                     onDetailsContent={(c) => navigate(`/content/${c.id}`)}
+                    providerLogos={siteSettings?.providerLogos}
                   />
                 </div>
               )}

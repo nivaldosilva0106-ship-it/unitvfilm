@@ -4,7 +4,7 @@ import { Header } from '@/components/Header';
 import { ContentCard } from '@/components/ContentCard';
 import { ContentPlayerModal } from '@/components/ContentPlayerModal';
 import { useAuth } from '@/contexts/AuthContext';
-import { getMyList, removeFromMyList, getAllContents, addToMyList } from '@/lib/firebase';
+import { getMyList, removeFromMyList, getAllContents, addToMyList, getSiteSettings, type SiteSettings } from '@/lib/firebase';
 import { QuickViewModal } from '@/components/QuickViewModal';
 import { toast } from 'sonner';
 import { Heart, Trash2 } from 'lucide-react';
@@ -24,6 +24,7 @@ const MyList = () => {
   const [selectedSeries, setSelectedSeries] = useState<Content | null>(null);
   const [showCinemaModal, setShowCinemaModal] = useState(false);
   const [pendingPlayerState, setPendingPlayerState] = useState<any>(null);
+  const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
 
 
   useEffect(() => {
@@ -40,13 +41,16 @@ const MyList = () => {
     if (!user) return;
 
     try {
-      const items = await getMyList(user.uid);
+      const [items, settings, allContent] = await Promise.all([
+        getMyList(user.uid),
+        getSiteSettings(),
+        getAllContents()
+      ]);
+      
       setMyList(items);
+      setSiteSettings(settings);
 
-      // Load suggestions (all content)
-      const allContent = await getAllContents();
-      // Filter out items already in my list to make suggestions more relevant
-      // Or just shuffle all
+      // Filter out items already in my list for suggestions
       const inListIds = items.map(i => i.contentId);
       const potentialSuggestions = allContent.filter(c => !inListIds.includes(c.id));
       setSuggestions(potentialSuggestions.sort(() => 0.5 - Math.random()).slice(0, 10));
@@ -146,7 +150,7 @@ const MyList = () => {
           <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 gap-3 sm:gap-4">
             {myList.map((item) => (
               <div key={item.id} className="relative group">
-                <ContentCard
+                 <ContentCard
                   title={item.content.title}
                   thumbnail={item.content.thumbnail_url}
                   onPlay={() => handlePlayContent(item)}
@@ -155,6 +159,7 @@ const MyList = () => {
                   isPremium={item.content.isPremium}
                   classification={item.content.classification}
                   watch_provider={item.content.watch_provider}
+                  providerLogos={siteSettings?.providerLogos}
                 />
                 <button
                   onClick={() => handleRemove(item.id)}
