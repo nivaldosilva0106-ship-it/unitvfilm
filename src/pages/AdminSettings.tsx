@@ -302,8 +302,9 @@ export const AdminSettings = () => {
                                     Nota: Use o formato internacional (ex: 244944016791)
                                 </span>
                             </p>
+                        </div>
+                    </form>
                 </div>
-            </div>
 
             {/* Site Domain / Redirection */}
             <div className="bg-card border border-border rounded-lg p-6">
