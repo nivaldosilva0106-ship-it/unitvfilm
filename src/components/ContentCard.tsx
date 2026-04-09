@@ -1,7 +1,7 @@
 import { Play, Info, Download, ShieldCheck, Crown } from "lucide-react";
 import { Button } from "./ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useRef } from "react";
+import { useRef, memo } from "react";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { isContentAllowedForProfile } from "@/lib/utils";
@@ -29,7 +29,7 @@ interface ContentCardProps {
   providerLogos?: Record<string, string>;
 }
 
-export const ContentCard = ({
+export const ContentCard = memo(({
   title,
   thumbnail,
   onPlay,
@@ -82,7 +82,7 @@ export const ContentCard = ({
       )}
 
       {watch_provider && getProviderConfig(watch_provider, providerLogos) && (
-        <div className="absolute top-2 left-2 z-10 bg-black/40 backdrop-blur-md p-1.5 rounded-lg border border-white/10 shadow-xl transition-transform group-hover:scale-110">
+        <div className="absolute top-2 left-2 z-10 bg-black/70 p-1.5 rounded-lg border border-white/10 shadow-xl transition-transform group-hover:scale-110">
           <img 
             src={getProviderConfig(watch_provider, providerLogos)?.logo} 
             alt={getProviderConfig(watch_provider, providerLogos)?.name} 
@@ -108,12 +108,12 @@ export const ContentCard = ({
       {/* Badges Row - Internal Player & Download */}
       <div className="absolute bottom-2 left-2 z-10 flex gap-1.5">
         {internal_player_url && !isRestricted && (
-          <div className="bg-primary/90 backdrop-blur-sm p-1.5 rounded-full shadow-lg" title="Player Interno Disponível">
+          <div className="bg-primary/90 p-1.5 rounded-full shadow-lg" title="Player Interno Disponível">
             <Play className="w-3 h-3 text-primary-foreground fill-primary-foreground" />
           </div>
         )}
         {hasDownloads && !isRestricted && !hideDownloadIcon && (
-          <div className="bg-emerald-500/90 backdrop-blur-sm p-1.5 rounded-full shadow-lg" title="Download Disponível">
+          <div className="bg-emerald-500/90 p-1.5 rounded-full shadow-lg" title="Download Disponível">
             <Download className="w-3 h-3 text-white" />
           </div>
         )}
@@ -216,4 +216,6 @@ export const ContentCard = ({
       </div>
     </div>
   );
-};
+});
+
+ContentCard.displayName = 'ContentCard';

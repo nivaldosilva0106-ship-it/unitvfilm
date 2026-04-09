@@ -35,7 +35,7 @@ declare global {
 
 export const Header = () => {
   const navigate = useNavigate();
-  const { user, profile, plan, isAdmin, logout } = useAuth();
+  const { user, profile, plan, isAdmin, logout, currentProfile } = useAuth();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Content[]>([]);
@@ -83,9 +83,6 @@ export const Header = () => {
 
     checkInstalled();
 
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onBeforeInstall);
-    };
     return () => {
       window.removeEventListener("beforeinstallprompt", onBeforeInstall);
     };
@@ -427,7 +424,7 @@ export const Header = () => {
                   <div className="flex items-center gap-1 sm:gap-2 cursor-pointer group">
                     <div className="w-8 h-8 rounded overflow-hidden border border-transparent group-hover:border-white transition-all">
                       <img
-                        src={useAuth().currentProfile?.avatarUrl || "https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png"}
+                        src={currentProfile?.avatarUrl || "https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png"}
                         alt="Profile"
                         className="w-full h-full object-cover"
                       />
@@ -439,10 +436,10 @@ export const Header = () => {
                   <DropdownMenuLabel className="text-gray-400 text-xs uppercase tracking-wider">Conta</DropdownMenuLabel>
                   <div className="px-2 py-1 flex items-center gap-2 mb-2">
                     <img
-                      src={useAuth().currentProfile?.avatarUrl || "https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png"}
+                      src={currentProfile?.avatarUrl || "https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png"}
                       className="w-6 h-6 rounded object-cover"
                     />
-                    <span className="text-sm font-bold truncate">{useAuth().currentProfile?.name || "Usuário"}</span>
+                    <span className="text-sm font-bold truncate">{currentProfile?.name || "Usuário"}</span>
                   </div>
                   <DropdownMenuSeparator className="bg-white/10" />
                   <DropdownMenuItem onClick={() => navigate("/profiles")} className="focus:bg-white/10 cursor-pointer">

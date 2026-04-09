@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useRef } from "react";
+import React, { useEffect, useState, useMemo, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
@@ -140,7 +140,7 @@ const Index = () => {
   const categorizedContent = useMemo(() => {
     // Featured section shows random mix of new or high rated content for variety
     const featuredPool = allContentData.filter(c => c.is_new || (c.rating && c.rating >= 7));
-    const featured = [...featuredPool].sort(() => 0.5 - Math.random()).slice(0, 15);
+    const featured = [...featuredPool].sort(() => 0.5 - Math.random()).slice(0, 10);
     const topRated = allContentData.filter(c => c.rating && c.rating >= 8).sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 10);
     const movies = allContentData.filter(c => c.category === 'movie' || c.category === 'Filme');
     const series = allContentData.filter(c => c.category === 'series' || c.category === 'Série');
@@ -262,7 +262,7 @@ const Index = () => {
 
   const toggleAudio = () => setIsMuted(!isMuted);
 
-  const handlePlayContent = (content: Content) => {
+  const handlePlayContent = useCallback((content: Content) => {
     if (content.category === 'canais24h') {
       navigate(`/canais24h?channelId=${content.id}`);
       return;
@@ -291,12 +291,12 @@ const Index = () => {
     }
   };
 
-  const handleInfoContent = (content: Content) => {
+  const handleInfoContent = useCallback((content: Content) => {
     setQuickViewContent(content);
-  };
+  }, []);
 
   // When clicking the card itself (not the play button)
-  const handleDetailsContent = (content: Content) => {
+  const handleDetailsContent = useCallback((content: Content) => {
     if (content.category === 'canais24h') {
       navigate(`/canais24h?channelId=${content.id}`);
       return;
@@ -310,9 +310,9 @@ const Index = () => {
       return;
     }
     navigate(`/content/${content.id}`);
-  };
+  }, [navigate]);
 
-  const handleDownloadContent = (content: Content) => {
+  const handleDownloadContent = useCallback((content: Content) => {
     setDownloadModal({
       open: true,
       url: content.video_url || '',
@@ -321,9 +321,9 @@ const Index = () => {
       title: content.title,
       thumbnail: content.thumbnail_url
     });
-  };
+  }, []);
 
-  const handleToggleMyList = async (content: Content) => {
+  const handleToggleMyList = useCallback(async (content: Content) => {
     if (!currentProfile) {
       toast.error("Faça login para salvar na lista");
       return;
@@ -343,7 +343,7 @@ const Index = () => {
     } catch (error) {
       toast.error("Erro ao atualizar lista");
     }
-  };
+  }, [currentProfile, myList]);
 
   const getNextEpisode = (series: Content, currentSeason: number, currentEpisodeNum: number) => {
     if (!series.episodes) return null;
@@ -413,6 +413,7 @@ const Index = () => {
                     src={siteSettings?.providerLogos?.[provider.id] || provider.logo}
                     alt={provider.name}
                     className="w-full h-full object-contain filter group-hover:brightness-110"
+                    loading="lazy"
                   />
                 </div>
               ))}

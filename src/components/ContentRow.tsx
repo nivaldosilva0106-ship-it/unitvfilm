@@ -1,6 +1,6 @@
 import { ContentCard } from "./ContentCard";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useCallback, memo } from "react";
 import { Button } from "./ui/button";
 
 import { Content } from "@/types/content";
@@ -17,39 +17,42 @@ interface ContentRowProps {
   providerLogos?: Record<string, string>;
 }
 
-export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDetailsContent, onTrailerContent, onDownloadContent, hideDownloadIcon, providerLogos }: ContentRowProps) => {
+export const ContentRow = memo(({ title, contents, onPlayContent, onInfoContent, onDetailsContent, onTrailerContent, onDownloadContent, hideDownloadIcon, providerLogos }: ContentRowProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
 
-  // Função para verificar o estado das setas de scroll
-  const checkScrollArrows = () => {
+  // Debounced scroll arrow check
+  const checkScrollArrows = useCallback(() => {
     if (scrollRef.current) {
       const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
       setShowLeftArrow(scrollLeft > 0);
-      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 1); // -1 para tolerância
+      setShowRightArrow(scrollLeft < scrollWidth - clientWidth - 1);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    // Monitorar scroll para mostrar/esconder setas
     const currentRef = scrollRef.current;
     if (currentRef) {
-      currentRef.addEventListener('scroll', checkScrollArrows);
-      // Inicializa o estado das setas após a renderização
+      currentRef.addEventListener('scroll', checkScrollArrows, { passive: true });
       checkScrollArrows();
     }
 
-    // Adiciona um listener para redimensionamento para recalcular as setas
-    window.addEventListener('resize', checkScrollArrows);
+    let resizeTimer: ReturnType<typeof setTimeout>;
+    const handleResize = () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(checkScrollArrows, 200);
+    };
+    window.addEventListener('resize', handleResize, { passive: true });
 
     return () => {
       if (currentRef) {
         currentRef.removeEventListener('scroll', checkScrollArrows);
       }
-      window.removeEventListener('resize', checkScrollArrows);
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(resizeTimer);
     };
-  }, [contents]); // Recalcula se o conteúdo mudar
+  }, [contents, checkScrollArrows]);
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
@@ -129,4 +132,6 @@ export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDe
       </div>
     </div>
   );
-};
+});
+
+ContentRow.displayName = 'ContentRow';

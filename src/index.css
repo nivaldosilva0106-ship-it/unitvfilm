@@ -63,20 +63,21 @@ All colors MUST be HSL.
 
 @layer utilities {
   .glow-effect {
-    box-shadow: 0 0 20px hsl(var(--glow) / 0.3);
+    box-shadow: 0 0 12px hsl(var(--glow) / 0.2);
   }
 
   .glow-effect-hover:hover {
-    box-shadow: 0 0 30px hsl(var(--glow) / 0.5);
+    box-shadow: 0 0 20px hsl(var(--glow) / 0.35);
   }
 
   .card-hover {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    will-change: transform;
   }
 
   .card-hover:hover {
-    transform: scale(1.05);
-    box-shadow: 0 8px 40px hsl(var(--glow) / 0.4);
+    transform: scale(1.03);
+    box-shadow: 0 4px 20px hsl(var(--glow) / 0.25);
   }
 
   .scrollbar-hide::-webkit-scrollbar {
@@ -137,6 +138,7 @@ All colors MUST be HSL.
     pointer-events: none;
     z-index: 9999;
     overflow: hidden;
+    contain: strict;
   }
 
   .corner-decoration {
@@ -357,8 +359,8 @@ All colors MUST be HSL.
       rgba(10, 25, 18, 0.85) 0%,
       rgba(8, 20, 14, 0.97) 100%
     );
-    backdrop-filter: blur(20px) saturate(1.6);
-    -webkit-backdrop-filter: blur(20px) saturate(1.6);
+    backdrop-filter: blur(10px) saturate(1.4);
+    -webkit-backdrop-filter: blur(10px) saturate(1.4);
     border-top: 1px solid hsl(var(--primary) / 0.15);
     padding: 6px 8px calc(env(safe-area-inset-bottom, 6px) + 6px) 8px;
     justify-content: space-around;
@@ -448,5 +450,32 @@ All colors MUST be HSL.
 
   .mobile-bottom-nav-item.active .mobile-bottom-nav-label {
     color: hsl(var(--primary));
+  }
+
+  /* ===== Performance: Reduced Motion ===== */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+
+    .card-hover:hover {
+      transform: none;
+    }
+
+    .animate-marquee {
+      animation: none;
+    }
+
+    .animate-pulse {
+      animation: none;
+    }
+  }
+
+  /* ===== Improve painting performance for content grids ===== */
+  .content-card-item {
+    contain: layout style;
   }
 }

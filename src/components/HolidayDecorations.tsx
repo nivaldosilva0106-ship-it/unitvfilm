@@ -6,31 +6,26 @@ export const HolidayDecorations = () => {
     const [type, setType] = useState<'christmas' | 'newyear' | 'both'>('christmas');
 
     useEffect(() => {
-        // Load settings from Firebase
+        let cancelled = false;
         const loadSettings = async () => {
             try {
                 const settings = await getSiteSettings();
-                console.log('Holiday decorations settings loaded:', settings);
+                if (cancelled) return;
                 setEnabled(settings.holidayDecorationsEnabled || false);
                 setType(settings.holidayDecorationsType || 'christmas');
             } catch (error) {
-                console.error('Error loading holiday decoration settings:', error);
+                // Silently fail — decorations are non-critical
             }
         };
 
         loadSettings();
 
-        // Poll for settings changes every 5 seconds
-        const interval = setInterval(loadSettings, 5000);
-        return () => clearInterval(interval);
+        // Poll only every 60 seconds instead of 5
+        const interval = setInterval(loadSettings, 60000);
+        return () => { cancelled = true; clearInterval(interval); };
     }, []);
 
-    useEffect(() => {
-        console.log('Holiday decorations state:', { enabled, type });
-    }, [enabled, type]);
-
     if (!enabled) {
-        console.log('Holiday decorations are disabled');
         return null;
     }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ContentCard } from './ContentCard';
 import { Content } from '@/types/content';
@@ -15,7 +15,7 @@ interface MarqueeContentRowProps {
     hideDownloadIcon?: boolean;
     providerLogos?: Record<string, string>;
 }
-export const MarqueeContentRow = ({
+export const MarqueeContentRow = memo(({
     title,
     contents,
     onPlayContent,
@@ -52,7 +52,7 @@ export const MarqueeContentRow = ({
                 }
                 return prev + 1;
             });
-        }, 3000); // Scroll every 3 seconds
+        }, 6000); // Scroll every 6 seconds (reduced from 3s for lighter performance)
 
         return () => clearInterval(interval);
     }, [maxScroll, contents.length, visibleItems]);
@@ -79,7 +79,7 @@ export const MarqueeContentRow = ({
                 {/* Content Container */}
                 <div className="overflow-x-auto md:overflow-hidden scrollbar-hide snap-x snap-mandatory">
                     <div
-                        className="flex gap-2.5 sm:gap-4 transition-transform duration-500 ease-out"
+                        className="flex gap-2.5 sm:gap-4 transition-transform duration-500 ease-out will-change-transform"
                         style={{
                             transform: `translateX(-${scrollPosition * (itemWidth + 16)}px)`,
                         }}
@@ -139,4 +139,6 @@ export const MarqueeContentRow = ({
             </div>
         </div >
     );
-};
+});
+
+MarqueeContentRow.displayName = 'MarqueeContentRow';

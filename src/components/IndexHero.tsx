@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, memo } from "react";
 import { Volume2, VolumeX, Play, Info, Plus, Check, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Content } from "@/types/content";
@@ -25,7 +25,7 @@ interface IndexHeroProps {
     providerLogos?: Record<string, string>;
 }
 
-export const IndexHero = ({
+export const IndexHero = memo(({
     currentTrailer,
     showVideo,
     getYouTubeId,
@@ -59,7 +59,7 @@ export const IndexHero = ({
     }, [isMuted, currentTrailer]);
 
     return (
-        <div className="relative py-12 flex items-center justify-center overflow-hidden min-h-[400px] md:min-h-[500px] lg:min-h-[600px] w-full">
+        <div className="relative py-12 flex items-center justify-center overflow-hidden min-h-[350px] md:min-h-[450px] lg:min-h-[550px] w-full">
             {/* Hero Background: Image first (15s), then Video */}
             {!playerModalOpen && !quickViewContentOpen && !selectedSeriesOpen && currentTrailer && currentTrailer.trailer_url && showVideo && getYouTubeId(currentTrailer.trailer_url) ? (
                 <div className="absolute inset-0 z-0 pointer-events-none">
@@ -67,8 +67,9 @@ export const IndexHero = ({
                         <iframe
                             ref={iframeRef}
                             key={currentTrailer.id}
-                            className={`absolute top-[35%] left-1/2 w-[300%] h-[300%] md:top-1/2 md:w-[150%] md:h-[150%] -translate-x-1/2 -translate-y-1/2 transition-opacity duration-1000 ${isTransitioning ? 'opacity-0' : 'opacity-60'}`}
+                            className={`absolute top-[40%] left-1/2 w-[200%] h-[200%] md:top-1/2 md:w-[130%] md:h-[130%] -translate-x-1/2 -translate-y-1/2 transition-opacity duration-700 will-change-[opacity] ${isTransitioning ? 'opacity-0' : 'opacity-50'}`}
                             src={`https://www.youtube.com/embed/${getYouTubeId(currentTrailer.trailer_url)}?autoplay=1&mute=0&controls=0&enablejsapi=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&end=90&loop=1&playlist=${getYouTubeId(currentTrailer.trailer_url)}`}
+                            loading="lazy"
                             title="Hero Video"
                             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                             style={{ border: 'none' }}
@@ -85,28 +86,12 @@ export const IndexHero = ({
                                 src={currentTrailer.backdrop_url || currentTrailer.thumbnail_url}
                                 alt=""
                                 className="w-full h-full object-cover"
+                                loading="lazy"
                             />
                             <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/95" />
                         </>
                     ) : (
-                        allContentData.length > 0 && (
-                            <>
-                                {allContentData.map((content, index) => (
-                                    <div
-                                        key={content.id}
-                                        className={`absolute inset-0 transition-opacity duration-1000 ${index === currentImageIndex ? 'opacity-100' : 'opacity-0'
-                                            }`}
-                                    >
-                                        <img
-                                            src={content.backdrop_url || content.thumbnail_url}
-                                            alt=""
-                                            className="w-full h-full object-cover"
-                                        />
-                                    </div>
-                                ))}
-                                <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/95" />
-                            </>
-                        )
+                        <div className="absolute inset-0 bg-gradient-to-b from-background to-background/80" />
                     )}
                 </div>
             )}
@@ -140,7 +125,7 @@ export const IndexHero = ({
                             {/* Animated Border Glow */}
                             <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-white/5 to-primary/30 opacity-40 group-hover/hero-info:opacity-70 transition-opacity blur-sm" />
                             
-                            <div className="relative bg-zinc-950/40 backdrop-blur-3xl rounded-[calc(1.5rem-2px)] p-6 sm:p-8 flex flex-col md:flex-row items-center md:items-start gap-8 shadow-[0_0_50px_-12px_rgba(0,0,0,0.8)] border border-white/5">
+                            <div className="relative bg-zinc-950/80 rounded-[calc(1.5rem-2px)] p-6 sm:p-8 flex flex-col md:flex-row items-center md:items-start gap-8 shadow-2xl border border-white/5">
                                 
                                 {/* Poster Area with Floating Effect */}
                                 <div 
@@ -151,7 +136,8 @@ export const IndexHero = ({
                                         <img
                                             src={activeContent.thumbnail_url}
                                             alt={activeContent.title}
-                                            className="w-full aspect-[2/3] object-cover rounded-2xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.7)] group-hover/poster:shadow-primary/20 ring-1 ring-white/10"
+                                            loading="lazy"
+                                            className="w-full aspect-[2/3] object-cover rounded-2xl shadow-2xl ring-1 ring-white/10"
                                         />
                                         
                                         {/* Provider Logo Overlay */}
@@ -256,4 +242,6 @@ export const IndexHero = ({
             </div>
         </div>
     );
-};
+});
+
+IndexHero.displayName = 'IndexHero';
