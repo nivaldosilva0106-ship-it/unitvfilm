@@ -72,31 +72,29 @@ export const ContentCard = ({
       className="relative group min-w-[140px] sm:min-w-[160px] cursor-pointer card-hover rounded-lg transition-all"
       onClick={() => onDetails?.()}
     >
-      {/* Top Right Badges */}
-      <div className="absolute top-2 right-2 z-20 flex flex-col items-end gap-2 px-1">
-        {isPremium && (
-          <div className="bg-gradient-to-r from-orange-500 to-amber-500 backdrop-blur-sm p-1.5 rounded-lg flex items-center justify-center shadow-lg shadow-orange-500/30 transition-transform hover:scale-110">
-            <Crown className="w-3.5 h-3.5 text-white drop-shadow-sm" />
-          </div>
-        )}
+      {isPremium && (
+        <div className="absolute top-2 right-2 z-10 bg-gradient-to-r from-orange-500 to-amber-500 backdrop-blur-sm p-1.5 rounded-lg flex items-center justify-center shadow-lg shadow-orange-500/30">
+          <Crown className="w-3.5 h-3.5 text-white drop-shadow-sm" />
+        </div>
+      )}
 
-        {watch_provider && (
-          <div className="bg-black/40 backdrop-blur-md p-1.5 rounded-lg border border-white/10 shadow-xl transition-transform hover:scale-110">
-            {watch_provider === 'netflix' && (
-              <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" alt="Netflix" className="h-5 w-auto object-contain" />
-            )}
-            {watch_provider === 'amazon' && (
-              <img src="https://upload.wikimedia.org/wikipedia/commons/f/f1/Prime_Video.png" alt="Prime Video" className="h-5 w-auto object-contain grayscale invert" />
-            )}
-            {watch_provider === 'hbo' && (
-              <img src="https://upload.wikimedia.org/wikipedia/commons/1/17/HBO_Max_Logo.svg" alt="HBO" className="h-5 w-auto object-contain invert" />
-            )}
-            {watch_provider === 'disney' && (
-              <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg" alt="Disney+" className="h-5 w-auto object-contain invert" />
-            )}
-          </div>
-        )}
-      </div>
+      {/* Watch Provider Icon */}
+      {watch_provider && (
+        <div className={`absolute ${isActuallyNew ? 'bottom-8' : 'bottom-2'} right-2 z-10 bg-black/40 backdrop-blur-md p-1.5 rounded-lg border border-white/10 shadow-xl transition-transform group-hover:scale-110`}>
+          {watch_provider === 'netflix' && (
+            <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" alt="Netflix" className="h-5 w-auto object-contain" />
+          )}
+          {watch_provider === 'amazon' && (
+            <img src="https://upload.wikimedia.org/wikipedia/commons/f/f1/Prime_Video.png" alt="Prime Video" className="h-5 w-auto object-contain grayscale invert" />
+          )}
+          {watch_provider === 'hbo' && (
+            <img src="https://upload.wikimedia.org/wikipedia/commons/1/17/HBO_Max_Logo.svg" alt="HBO" className="h-5 w-auto object-contain invert" />
+          )}
+          {watch_provider === 'disney' && (
+            <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg" alt="Disney+" className="h-5 w-auto object-contain invert" />
+          )}
+        </div>
+      )}
 
       {/* Classification Badge */}
       {classification && (
