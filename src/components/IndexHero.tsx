@@ -134,99 +134,120 @@ export const IndexHero = ({
                 </div>
 
                 {activeContent && (
-                    <div className="w-full max-w-3xl mx-auto z-50 relative animate-in fade-in zoom-in duration-700">
-                        <div className="bg-black/70 backdrop-blur-xl border border-white/10 rounded-xl p-4 sm:p-5 flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-5 shadow-2xl hover:bg-black/80 transition-all">
-                            <div 
-                                className="relative group shrink-0 w-32 sm:w-auto cursor-pointer"
-                                onClick={() => handlePlayContent(activeContent)}
-                            >
-                                <img
-                                    src={activeContent.thumbnail_url}
-                                    alt={activeContent.title}
-                                    className="w-full sm:w-28 sm:h-42 object-cover rounded-lg shadow-xl group-hover:scale-105 transition-transform duration-300 ring-1 ring-white/10"
-                                />
+                    <div className="w-full max-w-4xl mx-auto z-50 relative mt-8 group/hero-info animate-in fade-in slide-in-from-bottom-8 duration-1000">
+                        {/* The Ultra-Modern Glass Card */}
+                        <div className="relative overflow-hidden rounded-3xl p-0.5 transition-all duration-500 hover:scale-[1.01] active:scale-[0.99]">
+                            {/* Animated Border Glow */}
+                            <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-white/5 to-primary/30 opacity-40 group-hover/hero-info:opacity-70 transition-opacity blur-sm" />
+                            
+                            <div className="relative bg-zinc-950/40 backdrop-blur-3xl rounded-[calc(1.5rem-2px)] p-6 sm:p-8 flex flex-col md:flex-row items-center md:items-start gap-8 shadow-[0_0_50px_-12px_rgba(0,0,0,0.8)] border border-white/5">
                                 
-                                {activeContent.watch_provider && getProviderConfig(activeContent.watch_provider, providerLogos) && (
-                                    <div className="absolute top-1.5 left-1.5 z-10 bg-black/40 backdrop-blur-md p-1 rounded-md border border-white/10 shadow-lg">
-                                        <img 
-                                            src={getProviderConfig(activeContent.watch_provider, providerLogos)?.logo} 
-                                            alt="" 
-                                            className="h-5 w-auto object-contain" 
+                                {/* Poster Area with Floating Effect */}
+                                <div 
+                                    className="relative group/poster shrink-0 w-40 sm:w-48 cursor-pointer perspective-1000"
+                                    onClick={() => handlePlayContent(activeContent)}
+                                >
+                                    <div className="relative transition-all duration-500 transform-gpu group-hover/poster:scale-105 group-hover/poster:-rotate-y-12 group-hover/poster:translate-z-10">
+                                        <img
+                                            src={activeContent.thumbnail_url}
+                                            alt={activeContent.title}
+                                            className="w-full aspect-[2/3] object-cover rounded-2xl shadow-[0_20px_40px_-10px_rgba(0,0,0,0.7)] group-hover/poster:shadow-primary/20 ring-1 ring-white/10"
                                         />
-                                    </div>
-                                )}
+                                        
+                                        {/* Provider Logo Overlay */}
+                                        {activeContent.watch_provider && getProviderConfig(activeContent.watch_provider, providerLogos) && (
+                                            <div className="absolute top-3 left-3 z-10 bg-black/60 backdrop-blur-md p-2 rounded-xl border border-white/10 shadow-2xl transition-transform duration-300 group-hover/poster:scale-110">
+                                                <img 
+                                                    src={getProviderConfig(activeContent.watch_provider, providerLogos)?.logo} 
+                                                    alt="" 
+                                                    className="h-7 w-auto object-contain" 
+                                                />
+                                            </div>
+                                        )}
 
-                                {activeContent.classification && (
-                                    <div className={`absolute ${activeContent.watch_provider ? 'top-[34px]' : 'top-1.5'} left-1.5 z-10 px-1 py-0.5 rounded text-[8px] font-bold text-white shadow-sm
-                                        ${activeContent.classification === 'L' ? 'bg-green-500' :
-                                        activeContent.classification === '10' ? 'bg-blue-400' :
-                                        activeContent.classification === '12' ? 'bg-yellow-400' :
-                                        activeContent.classification === '14' ? 'bg-orange-400' :
-                                        activeContent.classification === '16' ? 'bg-red-500' :
-                                        activeContent.classification === '18' ? 'bg-black' : 'bg-zinc-500'
-                                    }`}>
-                                        {activeContent.classification}
-                                    </div>
-                                )}
+                                        {/* Age Classification Badge */}
+                                        {activeContent.classification && (
+                                            <div className={`absolute ${activeContent.watch_provider ? 'top-[62px]' : 'top-3'} left-3 z-10 px-2.5 py-1 rounded-lg text-xs font-black text-white shadow-xl transition-all duration-300 group-hover/poster:scale-110
+                                                ${activeContent.classification === 'L' ? 'bg-green-500 hover:bg-green-400' :
+                                                activeContent.classification === '10' ? 'bg-blue-400 hover:bg-blue-300' :
+                                                activeContent.classification === '12' ? 'bg-yellow-400 hover:bg-yellow-300' :
+                                                activeContent.classification === '14' ? 'bg-orange-400 hover:bg-orange-300' :
+                                                activeContent.classification === '16' ? 'bg-red-500 hover:bg-red-400' :
+                                                activeContent.classification === '18' ? 'bg-black ring-1 ring-white/20' : 'bg-zinc-600'
+                                            }`}>
+                                                {activeContent.classification}
+                                            </div>
+                                        )}
 
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-lg">
-                                    <Play className="w-8 h-8 text-white fill-current" />
+                                        {/* Play Hover Overlay */}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent opacity-0 group-hover/poster:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
+                                            <div className="w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center shadow-lg shadow-primary/30 scale-0 group-hover/poster:scale-100 transition-transform duration-300">
+                                                <Play className="w-8 h-8 text-white fill-current ml-1" />
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                            <div className="flex-1 min-w-0 flex flex-col justify-between h-full w-full text-center sm:text-left">
-                                <div className="mb-4 sm:mb-0">
-                                    <div className="flex items-center justify-center sm:justify-start gap-2 mb-2 flex-wrap text-center sm:text-left">
+
+                                {/* Content Details */}
+                                <div className="flex-1 min-w-0 flex flex-col justify-center h-full w-full text-center md:text-left">
+                                    <div className="flex items-center justify-center md:justify-start gap-3 mb-4 flex-wrap">
                                         {activeContent.isPremium && (
-                                            <span className="bg-primary/90 text-white px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider shadow-sm">
+                                            <span className="bg-primary text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.1em] shadow-[0_0_15px_-3px_rgba(var(--primary),0.5)] animate-pulse">
                                                 Assista agora
                                             </span>
                                         )}
-                                        <div className="flex items-center gap-1 bg-yellow-500/10 border border-yellow-500/20 px-1.5 py-0.5 rounded text-yellow-500 text-xs font-bold">
-                                            <Star className="w-3 h-3 fill-current" />
+                                        <div className="flex items-center gap-1.5 bg-yellow-500/10 border border-yellow-500/30 px-2.5 py-1 rounded-full text-yellow-500 text-xs font-black">
+                                            <Star className="w-3.5 h-3.5 fill-current" />
                                             {activeContent.rating ? activeContent.rating.toFixed(1) : "N/A"}
                                         </div>
-                                        <span className="text-[10px] text-gray-300 uppercase border border-white/20 px-1.5 py-0.5 rounded font-medium bg-white/5">
-                                            {activeContent.category === 'movie' ? 'Filme' : activeContent.category === 'series' ? 'Série' : 'TV'}
+                                        <span className="text-[10px] text-zinc-300 uppercase bg-white/5 border border-white/10 px-2.5 py-1 rounded-full font-bold tracking-widest backdrop-blur-sm">
+                                            {activeContent.category === 'movie' ? 'Cinematográfico' : activeContent.category === 'series' ? 'Série Original' : 'TV Ao Vivo'}
                                         </span>
                                     </div>
 
-                                    <h3 className="text-xl sm:text-2xl font-bold text-white mb-2 truncate leading-tight">
+                                    <h3 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-4 tracking-tighter leading-none drop-shadow-2xl">
                                         {activeContent.title}
                                     </h3>
-                                    <p className="text-sm text-gray-300 line-clamp-2 sm:line-clamp-2 md:line-clamp-3 mb-4 leading-relaxed">
-                                        {activeContent.description || "Sem descrição disponível."}
+                                    
+                                    <p className="text-sm sm:text-base text-zinc-300/90 line-clamp-3 mb-8 leading-relaxed font-medium max-w-2xl mx-auto md:mx-0">
+                                        {activeContent.description || "Inicie sua jornada cinematográfica agora com este conteúdo exclusivo."}
                                     </p>
-                                </div>
 
-                                <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 mt-auto">
-                                    <Button
-                                        onClick={() => handlePlayContent(activeContent)}
-                                        className="bg-primary hover:bg-primary/90 text-white font-semibold h-9 px-5 rounded-md transition-all hover:scale-105 shadow-lg shadow-primary/20 text-sm flex-1 sm:flex-none"
-                                    >
-                                        <Play className="w-4 h-4 mr-1.5 fill-current" /> Assistir
-                                    </Button>
+                                    {/* Action Buttons */}
+                                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
+                                        <button
+                                            onClick={() => handlePlayContent(activeContent)}
+                                            className="group/btn relative bg-primary hover:bg-primary-hover text-white font-black h-14 px-10 rounded-2xl transition-all duration-300 hover:scale-105 active:scale-95 shadow-[0_10px_20px_-5px_rgba(var(--primary),0.3)] flex items-center justify-center gap-2 text-base overflow-hidden flex-1 sm:flex-none"
+                                        >
+                                            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700 ease-in-out" />
+                                            <Play className="w-5 h-5 fill-current" /> 
+                                            Reproduzir
+                                        </button>
 
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => handleInfoContent(activeContent)}
-                                        className="bg-transparent border-white/20 text-white hover:bg-white/10 hover:border-white h-9 px-4 rounded-md backdrop-blur-sm transition-all text-sm flex-1 sm:flex-none"
-                                    >
-                                        <Info className="w-4 h-4 mr-1.5" /> Detalhes
-                                    </Button>
+                                        <button
+                                            onClick={() => handleInfoContent(activeContent)}
+                                            className="bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold h-14 px-8 rounded-2xl backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 text-base flex-1 sm:flex-none shadow-xl"
+                                        >
+                                            <Info className="w-5 h-5" /> 
+                                            Explorar
+                                        </button>
 
-                                    <Button
-                                        variant="ghost"
-                                        onClick={() => handleToggleMyList(activeContent)}
-                                        className="text-white hover:bg-white/10 h-9 w-9 rounded-full border border-white/10 flex-shrink-0"
-                                        title={isInList ? "Remover da lista" : "Adicionar à lista"}
-                                    >
-                                        {isInList ? (
-                                            <Check className="w-5 h-5 text-green-400" />
-                                        ) : (
-                                            <Plus className="w-5 h-5" />
-                                        )}
-                                        <span className="sr-only">Minha Lista</span>
-                                    </Button>
+                                        <button
+                                            onClick={() => handleToggleMyList(activeContent)}
+                                            className={`group/list h-14 w-14 rounded-2xl border flex items-center justify-center backdrop-blur-md transition-all duration-500 hover:scale-110 active:rotate-12 flex-shrink-0 shadow-xl
+                                                ${isInList 
+                                                    ? 'bg-primary/20 border-primary text-primary shadow-primary/20' 
+                                                    : 'bg-white/5 border-white/10 text-white hover:border-white/40'
+                                                }`}
+                                            title={isInList ? "Remover da lista" : "Adicionar à lista"}
+                                        >
+                                            {isInList ? (
+                                                <Check className="w-6 h-6 animate-in zoom-in duration-300" />
+                                            ) : (
+                                                <Plus className="w-6 h-6 group-hover/list:rotate-180 transition-transform duration-500" />
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -108,16 +108,8 @@ const Player = () => {
     // 1. Load Content
     // 1. Load Content & Intro Timer
     useEffect(() => {
-        const fetchContent = async () => {
+        const loadContentData = async () => {
             try {
-                const contents = await getAllContents();
-                const found = contents.find((c) => c.id === id);
-                if (found) {
-                    setContent(found);
-
-                    if (found.adBlockFriendly) {
-                        setShowAdBlockModal(true);
-                    }
                 setLoading(true);
                 const [allContents, settings] = await Promise.all([
                     getAllContents(),
@@ -133,6 +125,10 @@ const Player = () => {
                 }
                 setContent(found);
                 
+                if (found.adBlockFriendly) {
+                    setShowAdBlockModal(true);
+                }
+
                 // Shuffle recommendations
                 const filtered = allContents.filter(c => c.id !== found.id && c.category !== 'canais24h');
                 setSuggestions(filtered.sort(() => 0.5 - Math.random()).slice(0, 15));
@@ -170,8 +166,8 @@ const Player = () => {
             }
         };
 
-        loadInitialData();
-    }, [id, seasonParam, episodeParam]);
+        loadContentData();
+    }, [id, navigate, seasonParam, episodeParam]);
 
     // Added check for content protection
     useEffect(() => {
