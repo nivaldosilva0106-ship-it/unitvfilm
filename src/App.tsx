@@ -13,6 +13,7 @@ import { HolidayDecorations } from "@/components/HolidayDecorations";
 import FocusNavigator from "@/components/FocusNavigator";
 import GlobalContentProtection from "@/components/GlobalContentProtection";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { RedirectManager } from "@/components/RedirectManager";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +62,7 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <TooltipProvider>
+        <RedirectManager />
         <Toaster />
         <Sonner />
         <BrowserRouter>

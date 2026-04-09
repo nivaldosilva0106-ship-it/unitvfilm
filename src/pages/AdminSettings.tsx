@@ -1,6 +1,6 @@
 // ... (imports)
 import { useState, useEffect } from "react";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, AlertTriangle, Globe, Info } from "lucide-react";
 import { toast } from "sonner";
 import { getSiteSettings, updateSiteSettings } from "@/lib/firebase";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -20,6 +20,7 @@ export const AdminSettings = () => {
     const [holidayDecorationsType, setHolidayDecorationsType] = useState<'christmas' | 'newyear' | 'both'>('christmas');
     const [youtubeApiKey, setYoutubeApiKey] = useState("");
     const [whatsappNumber, setWhatsappNumber] = useState("");
+    const [officialSiteUrl, setOfficialSiteUrl] = useState("");
     const [loading, setLoading] = useState(true);
     const [isCopied, setIsCopied] = useState(false);
 
@@ -56,6 +57,7 @@ export const AdminSettings = () => {
             setHolidayDecorationsType(settings.holidayDecorationsType || 'christmas');
             setYoutubeApiKey(settings.youtubeApiKey || "");
             setWhatsappNumber(settings.whatsappNumber || "");
+            setOfficialSiteUrl(settings.officialSiteUrl || "");
         } catch (error) {
             console.error("Error loading settings:", error);
             toast.error("Erro ao carregar configurações");
@@ -72,7 +74,8 @@ export const AdminSettings = () => {
                 holidayDecorationsEnabled,
                 holidayDecorationsType,
                 youtubeApiKey,
-                whatsappNumber
+                whatsappNumber,
+                officialSiteUrl
             });
             toast.success("Configurações salvas com sucesso!");
         } catch (error) {
@@ -299,9 +302,55 @@ export const AdminSettings = () => {
                                     Nota: Use o formato internacional (ex: 244944016791)
                                 </span>
                             </p>
-                        </div>
-                    </form>
                 </div>
+            </div>
+
+            {/* Site Domain / Redirection */}
+            <div className="bg-card border border-border rounded-lg p-6">
+                <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
+                    <Globe className="w-5 h-5 text-blue-500" />
+                    Domínio do Site / Redirecionamento
+                </h2>
+                <div className="space-y-4">
+                    <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                        <div className="text-sm">
+                            <p className="text-amber-500 font-bold mb-1">Atenção: Risco de Bloqueio</p>
+                            <p className="text-muted-foreground leading-relaxed">
+                                Ao definir um domínio oficial, **todos os usuários** que entrarem por qualquer outra URL (ex: vercel.app) serão redirecionados. 
+                                Certifique-se de que a URL inserida está correta e ativa.
+                            </p>
+                            <div className="mt-3 p-2 bg-black/40 rounded border border-white/10 font-mono text-[10px]">
+                                <p className="text-blue-400 mb-1 font-bold">Modo de Segurança (Caso algo corra mal):</p>
+                                <p className="text-zinc-400">Adicione <span className="text-white">?bypass_redirect=true</span> ao final de qualquer URL para ignorar o redirecionamento.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-2">
+                        <Label htmlFor="officialUrl">URL Oficial do Site</Label>
+                        <Input
+                            id="officialUrl"
+                            placeholder="https://meudominio.com"
+                            value={officialSiteUrl}
+                            onChange={(e) => setOfficialSiteUrl(e.target.value)}
+                            className="bg-background/50 font-mono"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            Exemplo: https://unitvfilms.vercel.app ou https://meusite.com
+                        </p>
+                    </div>
+
+                    {officialSiteUrl && (
+                        <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg flex items-center gap-2">
+                            <Info className="w-4 h-4 text-blue-500" />
+                            <p className="text-[11px] text-blue-400">
+                                Redirecionamento ativo para usuários fora do domínio oficial.
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </div>
 
                 {/* Content Server Management */}
                 <div className="bg-card border border-border rounded-lg p-6">

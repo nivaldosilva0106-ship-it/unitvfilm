@@ -395,6 +395,7 @@ export interface SiteSettings {
   youtubeApiKey?: string;
   freeTrialMode?: boolean;
   whatsappNumber?: string;
+  officialSiteUrl?: string;
 }
 
 export const getSiteSettings = async (): Promise<SiteSettings> => {
