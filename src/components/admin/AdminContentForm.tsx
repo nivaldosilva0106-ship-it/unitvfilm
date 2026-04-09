@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Play, Search, Trash, Loader2, Link as LinkIcon, Download, DownloadIcon, CheckCircle2, Clapperboard, MonitorPlay, Sparkles, X, Plus, PlusCircle, Maximize, AlertTriangle, ShieldCheck, ChevronUp, ChevronDown, Save, Lock, Bell, Upload, Film, Tv, RefreshCw, Clipboard, Clock, Settings2 } from "lucide-react";
 import { toast } from "sonner";
-import { searchMovies, searchSeries, getImageUrl, getMovieTrailer, getSeriesTrailer, getMovieDetails, getSeriesDetails, getSeasonDetails } from "@/lib/tmdb";
+import { searchMovies, searchSeries, getImageUrl, getMovieTrailer, getSeriesTrailer, getMovieDetails, getSeriesDetails, getSeasonDetails, getWatchProviders } from "@/lib/tmdb";
 import { sendContentNotification, getAllContents, updateContent } from "@/lib/firebase";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
@@ -500,6 +500,24 @@ ${ep.url || ""}`;
       console.error("Erro ao buscar detalhes fundamentais:", e);
     }
 
+    // --- WATCH PROVIDER INTEGRATION ---
+    let watchProvider: any = undefined;
+    try {
+      const providersData = await getWatchProviders(item.id, isActuallySeries ? 'tv' : 'movie');
+      if (providersData && providersData.BR) {
+        const br = providersData.BR;
+        const allProviders = [...(br.flatrate || []), ...(br.rent || []), ...(br.buy || [])];
+        
+        // Priority mapping: Netflix > Disney+ > Amazon Prime > HBO
+        if (allProviders.some(p => p.provider_id === 8)) watchProvider = 'netflix';
+        else if (allProviders.some(p => p.provider_id === 337)) watchProvider = 'disney';
+        else if (allProviders.some(p => [119, 9].includes(p.provider_id))) watchProvider = 'amazon';
+        else if (allProviders.some(p => [384, 1899].includes(p.provider_id))) watchProvider = 'hbo';
+      }
+    } catch (e) {
+      console.error("Erro ao buscar provedores:", e);
+    }
+
     console.log("Detalhes extraídos:", details);
 
     const cast = details?.credits?.cast?.slice(0, 5).map((c: any) => c.name).join(', ') || '';
@@ -598,6 +616,7 @@ ${ep.url || ""}`;
       release_date: releaseDate,
       rating: item.vote_average,
       tmdb_id: item.id,
+      watch_provider: watchProvider || prev.watch_provider,
       // New Fields
       cast,
       cast_members: castMembers,
@@ -2321,6 +2340,26 @@ ${ep.url || ""}`;
             className="bg-input border-border"
           />
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label>Provedor de Streaming (Icone no Card)</Label>
+        <Select 
+          value={editingContent.watch_provider || "none"} 
+          onValueChange={(v) => setEditingContent(prev => ({ ...prev, watch_provider: v === "none" ? undefined : v as any }))}
+        >
+          <SelectTrigger className="bg-input border-border h-11 text-foreground">
+            <SelectValue placeholder="Selecione o provedor (opcional)" />
+          </SelectTrigger>
+          <SelectContent className="bg-zinc-900 border-zinc-800 text-white">
+            <SelectItem value="none">Nenhum / Automático</SelectItem>
+            <SelectItem value="netflix">Netflix</SelectItem>
+            <SelectItem value="amazon">Amazon Prime Video</SelectItem>
+            <SelectItem value="hbo">HBO / Max</SelectItem>
+            <SelectItem value="disney">Disney+</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">Isso exibirá a logo do streaming no card do conteúdo.</p>
       </div>
 
       {/* Notification Toggle */}

@@ -154,6 +154,7 @@ const MyList = () => {
                   onDetails={() => handleDetailsContent(item)}
                   isPremium={item.content.isPremium}
                   classification={item.content.classification}
+                  watch_provider={item.content.watch_provider}
                 />
                 <button
                   onClick={() => handleRemove(item.id)}

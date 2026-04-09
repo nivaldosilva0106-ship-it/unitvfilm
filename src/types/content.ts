@@ -84,4 +84,5 @@ export interface Content {
   global_intervals_count?: number;
   global_ads_count?: number;
   post_break_logo_url?: string;
+  watch_provider?: 'netflix' | 'amazon' | 'hbo' | 'disney' | 'other';
 }

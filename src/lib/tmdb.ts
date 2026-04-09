@@ -168,3 +168,13 @@ export const getSeasonDetails = async (seriesId: number, seasonNumber: number) =
     }
   }
 };
+
+export const getWatchProviders = async (id: number, type: 'movie' | 'tv') => {
+  try {
+    const response = await tmdbApi.get(`/${type}/${id}/watch/providers`);
+    return response.data.results;
+  } catch (e) {
+    console.error(`Error fetching providers for ${type} ${id}:`, e);
+    return null;
+  }
+};

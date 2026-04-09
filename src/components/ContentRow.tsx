@@ -107,6 +107,7 @@ export const ContentRow = ({ title, contents, onPlayContent, onInfoContent, onDe
                 hasInternalPlayer={!!content.internal_player_url}
                 hasDownload={!!(content.download_url || (content.downloads && content.downloads.length > 0))}
                 hideDownloadIcon={hideDownloadIcon}
+                watch_provider={content.watch_provider}
               />
             </div>
           ))}

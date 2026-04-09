@@ -17,13 +17,14 @@ interface ContentCardProps {
   isPremium?: boolean;
   isNew?: boolean;
   newSince?: string;
-  category?: 'movie' | 'series' | 'tv' | 'nostalgia';
+  category?: 'movie' | 'series' | 'tv' | 'nostalgia' | 'canais24h';
   classification?: string; // e.g. '10', '12', '16', '18', 'L'
   internal_player_url?: string;
   hasDownloads?: boolean;
   hasInternalPlayer?: boolean;
   hasDownload?: boolean;
   hideDownloadIcon?: boolean;
+  watch_provider?: 'netflix' | 'amazon' | 'hbo' | 'disney' | 'other';
 }
 
 export const ContentCard = ({
@@ -43,7 +44,8 @@ export const ContentCard = ({
   hasDownloads,
   hasInternalPlayer,
   hasDownload,
-  hideDownloadIcon
+  hideDownloadIcon,
+  watch_provider
 }: ContentCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -74,6 +76,24 @@ export const ContentCard = ({
         <div className="absolute top-2 right-2 z-10 bg-gradient-to-r from-orange-500 to-amber-500 backdrop-blur-sm px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-lg shadow-orange-500/30">
           <Crown className="w-3.5 h-3.5 text-white drop-shadow-sm" />
           <span className="text-xs font-bold text-white tracking-wide">Premium</span>
+        </div>
+      )}
+
+      {/* Watch Provider Icon */}
+      {watch_provider && (
+        <div className={`absolute ${isPremium ? 'top-10' : 'top-2'} right-2 z-10 bg-black/40 backdrop-blur-md p-1.5 rounded-lg border border-white/10 shadow-xl transition-transform group-hover:scale-110`}>
+          {watch_provider === 'netflix' && (
+            <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" alt="Netflix" className="h-3 w-auto object-contain" />
+          )}
+          {watch_provider === 'amazon' && (
+            <img src="https://upload.wikimedia.org/wikipedia/commons/f/f1/Prime_Video.png" alt="Prime Video" className="h-3 w-auto object-contain grayscale invert" />
+          )}
+          {watch_provider === 'hbo' && (
+            <img src="https://upload.wikimedia.org/wikipedia/commons/1/17/HBO_Max_Logo.svg" alt="HBO" className="h-3 w-auto object-contain invert" />
+          )}
+          {watch_provider === 'disney' && (
+            <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg" alt="Disney+" className="h-3 w-auto object-contain invert" />
+          )}
         </div>
       )}
 

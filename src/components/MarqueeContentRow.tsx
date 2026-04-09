@@ -100,6 +100,7 @@ export const MarqueeContentRow = ({
                                     hasDownloads={!!(content.download_url || (content.downloads && content.downloads.length > 0))}
                                     internal_player_url={content.internal_player_url}
                                     hideDownloadIcon={hideDownloadIcon}
+                                    watch_provider={content.watch_provider}
                                 />
                                 {showNumbers && (
                                     <div className="absolute -left-4 sm:-left-6 top-0 bottom-0 flex items-end pb-2 sm:pb-4 z-30 pointer-events-none">
