@@ -81,47 +81,47 @@ export const ContentCard = ({
       {watch_provider && (
         <div className="absolute top-2 left-2 z-10 bg-black/40 backdrop-blur-md p-1.5 rounded-lg border border-white/10 shadow-xl transition-transform group-hover:scale-110">
           {watch_provider === 'netflix' && (
-            <img src="/icons/providers/netflix.png" alt="Netflix" className="h-4 w-auto object-contain" />
+            <img src="/icons/providers/netflix.png" alt="Netflix" className="h-8 w-auto object-contain" />
           )}
           {watch_provider === 'amazon' && (
-            <img src="/icons/providers/amazon.png" alt="Prime Video" className="h-4 w-auto object-contain" />
+            <img src="/icons/providers/amazon.png" alt="Prime Video" className="h-8 w-auto object-contain" />
           )}
           {watch_provider === 'hbo' && (
-            <img src="/icons/providers/hbo.png" alt="HBO" className="h-4 w-auto object-contain" />
+            <img src="/icons/providers/hbo.png" alt="HBO" className="h-8 w-auto object-contain" />
           )}
           {watch_provider === 'disney' && (
-            <img src="/icons/providers/disney.png" alt="Disney+" className="h-4 w-auto object-contain" />
+            <img src="/icons/providers/disney.png" alt="Disney+" className="h-8 w-auto object-contain" />
           )}
           {watch_provider === 'apple' && (
-            <img src="/icons/providers/apple.png" alt="Apple TV+" className="h-4 w-auto object-contain" />
+            <img src="/icons/providers/apple.png" alt="Apple TV+" className="h-8 w-auto object-contain" />
           )}
           {watch_provider === 'hulu' && (
-            <img src="/icons/providers/hulu.png" alt="Hulu" className="h-4 w-auto object-contain" />
+            <img src="/icons/providers/hulu.png" alt="Hulu" className="h-8 w-auto object-contain" />
           )}
           {watch_provider === 'paramount' && (
-            <img src="https://upload.wikimedia.org/wikipedia/commons/a/a5/Paramount_Plus_logo.svg" alt="Paramount+" className="h-4 w-auto object-contain invert" />
+            <img src="/icons/providers/paramount.png" alt="Paramount+" className="h-8 w-auto object-contain" />
           )}
           {watch_provider === 'starplus' && (
-            <img src="/icons/providers/starplus.png" alt="Star+" className="h-4 w-auto object-contain" />
+            <img src="/icons/providers/starplus.png" alt="Star+" className="h-8 w-auto object-contain" />
           )}
           {watch_provider === 'globoplay' && (
-            <img src="/icons/providers/globoplay.png" alt="Globoplay" className="h-4 w-auto object-contain" />
+            <img src="/icons/providers/globoplay.png" alt="Globoplay" className="h-8 w-auto object-contain" />
           )}
           {watch_provider === 'crunchyroll' && (
-            <img src="/icons/providers/crunchyroll.png" alt="Crunchyroll" className="h-4 w-auto object-contain" />
+            <img src="/icons/providers/crunchyroll.png" alt="Crunchyroll" className="h-8 w-auto object-contain" />
           )}
           {watch_provider === 'skyshowtime' && (
-            <img src="/icons/providers/skyshowtime.png" alt="SkyShowtime" className="h-4 w-auto object-contain" />
+            <img src="/icons/providers/skyshowtime.png" alt="SkyShowtime" className="h-8 w-auto object-contain" />
           )}
           {watch_provider === 'youtube' && (
-            <img src="/icons/providers/youtube.png" alt="YouTube" className="h-4 w-auto object-contain" />
+            <img src="/icons/providers/youtube.png" alt="YouTube" className="h-8 w-auto object-contain" />
           )}
         </div>
       )}
 
       {/* Classification Badge */}
       {classification && (
-        <div className={`absolute ${watch_provider ? 'top-11' : 'top-2'} left-2 z-10 px-1.5 py-0.5 rounded text-[10px] font-bold text-white shadow-sm
+        <div className={`absolute ${watch_provider ? 'top-[54px]' : 'top-2'} left-2 z-10 px-1.5 py-0.5 rounded text-[10px] font-bold text-white shadow-sm
                 ${classification === 'L' ? 'bg-green-500' :
             classification === '10' ? 'bg-blue-400' :
               classification === '12' ? 'bg-yellow-400' :
