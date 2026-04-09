@@ -82,16 +82,16 @@ export const ContentCard = ({
       {watch_provider && (
         <div className={`absolute ${isActuallyNew ? 'bottom-8' : 'bottom-2'} right-2 z-10 bg-black/40 backdrop-blur-md p-1.5 rounded-lg border border-white/10 shadow-xl transition-transform group-hover:scale-110`}>
           {watch_provider === 'netflix' && (
-            <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" alt="Netflix" className="h-3 w-auto object-contain" />
+            <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" alt="Netflix" className="h-5 w-auto object-contain" />
           )}
           {watch_provider === 'amazon' && (
-            <img src="https://upload.wikimedia.org/wikipedia/commons/f/f1/Prime_Video.png" alt="Prime Video" className="h-3 w-auto object-contain grayscale invert" />
+            <img src="https://upload.wikimedia.org/wikipedia/commons/f/f1/Prime_Video.png" alt="Prime Video" className="h-5 w-auto object-contain grayscale invert" />
           )}
           {watch_provider === 'hbo' && (
-            <img src="https://upload.wikimedia.org/wikipedia/commons/1/17/HBO_Max_Logo.svg" alt="HBO" className="h-3 w-auto object-contain invert" />
+            <img src="https://upload.wikimedia.org/wikipedia/commons/1/17/HBO_Max_Logo.svg" alt="HBO" className="h-5 w-auto object-contain invert" />
           )}
           {watch_provider === 'disney' && (
-            <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg" alt="Disney+" className="h-3 w-auto object-contain invert" />
+            <img src="https://upload.wikimedia.org/wikipedia/commons/3/3e/Disney%2B_logo.svg" alt="Disney+" className="h-5 w-auto object-contain invert" />
           )}
         </div>
       )}
