@@ -204,6 +204,18 @@ export const isInMyList = async (userId: string, contentId: string): Promise<boo
   return false;
 };
 
+export const subscribeToMyList = (userId: string, callback: (items: MyListItem[]) => void) => {
+  const myListRef = ref(database, `myList/${userId}`);
+  return onValue(myListRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const data = snapshot.val();
+      callback(Object.values(data));
+    } else {
+      callback([]);
+    }
+  });
+};
+
 // Ad Management functions
 export const addAd = async (ad: Omit<Ad, 'id'>) => {
   const adRef = ref(database, 'ads');
