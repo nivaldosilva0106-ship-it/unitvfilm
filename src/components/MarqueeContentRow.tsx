@@ -15,7 +15,14 @@ interface MarqueeContentRowProps {
     hideDownloadIcon?: boolean;
     providerLogos?: Record<string, string>;
 }
-
+export const MarqueeContentRow = ({
+    title,
+    contents,
+    onPlayContent,
+    onInfoContent,
+    onDetailsContent,
+    onTrailerContent,
+    onDownloadContent,
     showNumbers = false,
     hideDownloadIcon = false,
     providerLogos = {},
