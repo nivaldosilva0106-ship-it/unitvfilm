@@ -105,24 +105,22 @@ export default function NostalgiaTube(): JSX.Element {
         }
     }, []);
 
-    useEffect(() => {
-        const fetchContent = async () => {
-            if (contents.length > 0 && !id) return; // Already loaded root
-
-            setLoading(true);
-            try {
     const loadInitialProgress = async (contentId: string) => {
         if (currentProfile) {
-            const { getUserAllProgress } = await import("@/lib/firebase");
-            const allProgress = await getUserAllProgress(currentProfile.id);
-            const contentProgress = allProgress
-                .filter(p => p.contentId === contentId)
-                .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+            try {
+                const { getUserAllProgress } = await import("@/lib/firebase");
+                const allProgress = await getUserAllProgress(currentProfile.id);
+                const contentProgress = allProgress
+                    .filter(p => p.contentId === contentId)
+                    .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
 
-            if (contentProgress.length > 0) {
-                setLastProgress(contentProgress[0]);
-            } else {
-                setLastProgress(null);
+                if (contentProgress.length > 0) {
+                    setLastProgress(contentProgress[0]);
+                } else {
+                    setLastProgress(null);
+                }
+            } catch (err) {
+                console.error("Error loading progress:", err);
             }
         }
     };
@@ -130,19 +128,28 @@ export default function NostalgiaTube(): JSX.Element {
     // Fetch data
     useEffect(() => {
         const fetchInitialData = async () => {
+            setLoading(true);
             try {
                 const settings = await getSiteSettings();
                 setSiteSettings(settings);
 
                 const data = await getAllContents();
                 const nostalgiaContent = data.filter(c => c.category === 'nostalgia');
-                setContents(nostalgiaContent);
+                
+                // Shuffle if it's the first load
+                if (contents.length === 0) {
+                    const shuffled = [...nostalgiaContent].sort(() => 0.5 - Math.random());
+                    setContents(shuffled);
+                } else {
+                    setContents(nostalgiaContent);
+                }
 
                 if (id) {
                     const content = nostalgiaContent.find(c => c.id === id);
                     if (content) {
                         setCurrentContent(content);
                         loadInitialProgress(content.id);
+                        setUserInteracted(true);
                     }
                 }
             } catch (error) {
