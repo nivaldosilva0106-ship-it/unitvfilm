@@ -148,8 +148,6 @@ const Index = () => {
     const nostalgia = allContentData.filter(c => c.category === 'nostalgia');
     const canais24h = allContentData.filter(c => c.category === 'canais24h');
 
-    const canais24h = allContentData.filter(c => c.category === 'canais24h');
-
     // Additional filtered categories for the UI
     const actionAdventure = allContentData.filter(c => c.genre?.some(g => g.toLowerCase().includes('ação') || g.toLowerCase().includes('aventura')));
     const comedyHorror = allContentData.filter(c => c.genre?.some(g => g.toLowerCase().includes('comédia') || g.toLowerCase().includes('terror')));
@@ -422,9 +420,6 @@ const Index = () => {
           </div>
         )}
 
-          </div>
-        )}
-
         {showAllRows && (
           <>
             {randomSections.map((section, index) => (
@@ -503,7 +498,6 @@ const Index = () => {
                 onDownloadContent={handleDownloadContent}
                 providerLogos={siteSettings?.providerLogos}
               />
-            )}
           </div>
         )}
       </div>
