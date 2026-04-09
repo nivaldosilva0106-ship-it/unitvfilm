@@ -400,14 +400,14 @@ const Index = () => {
               <div className="w-1.5 h-8 bg-primary rounded-full" />
               <h2 className="text-2xl font-bold text-foreground uppercase tracking-tighter italic">Provedores de Streaming</h2>
             </div>
-            <div className="grid grid-cols-3 xs:grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 gap-3 sm:gap-4">
+            <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 sm:grid sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-12 sm:gap-4 sm:overflow-visible">
               {STREAMING_PROVIDERS.map((provider) => (
                 <div
                   key={provider.id}
                   onClick={() => {
                     navigate(`/provider/${provider.id}`);
                   }}
-                  className="aspect-square bg-zinc-900/50 rounded-2xl border border-white/5 p-3 flex items-center justify-center cursor-pointer hover:bg-zinc-800 hover:border-primary/50 hover:scale-105 transition-all duration-300 shadow-lg group"
+                  className="flex-shrink-0 w-[72px] h-[72px] sm:w-auto sm:h-auto sm:aspect-square bg-zinc-900/50 rounded-2xl border border-white/5 p-3 flex items-center justify-center cursor-pointer hover:bg-zinc-800 hover:border-primary/50 hover:scale-105 transition-all duration-300 shadow-lg group"
                 >
                   <img
                     src={siteSettings?.providerLogos?.[provider.id] || provider.logo}
