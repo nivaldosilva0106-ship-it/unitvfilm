@@ -289,7 +289,7 @@ const Index = () => {
     } else {
       navigate(`/watch/${content.id}`);
     }
-  };
+  }, [navigate]);
 
   const handleInfoContent = useCallback((content: Content) => {
     setQuickViewContent(content);
