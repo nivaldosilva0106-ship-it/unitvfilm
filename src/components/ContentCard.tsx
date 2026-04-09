@@ -73,15 +73,14 @@ export const ContentCard = ({
       onClick={() => onDetails?.()}
     >
       {isPremium && (
-        <div className="absolute top-2 right-2 z-10 bg-gradient-to-r from-orange-500 to-amber-500 backdrop-blur-sm px-2.5 py-1 rounded-lg flex items-center gap-1.5 shadow-lg shadow-orange-500/30">
+        <div className="absolute top-2 right-2 z-10 bg-gradient-to-r from-orange-500 to-amber-500 backdrop-blur-sm p-1.5 rounded-lg flex items-center justify-center shadow-lg shadow-orange-500/30">
           <Crown className="w-3.5 h-3.5 text-white drop-shadow-sm" />
-          <span className="text-xs font-bold text-white tracking-wide">Premium</span>
         </div>
       )}
 
       {/* Watch Provider Icon */}
       {watch_provider && (
-        <div className={`absolute ${isPremium ? 'top-10' : 'top-2'} right-2 z-10 bg-black/40 backdrop-blur-md p-1.5 rounded-lg border border-white/10 shadow-xl transition-transform group-hover:scale-110`}>
+        <div className={`absolute ${isActuallyNew ? 'bottom-8' : 'bottom-2'} right-2 z-10 bg-black/40 backdrop-blur-md p-1.5 rounded-lg border border-white/10 shadow-xl transition-transform group-hover:scale-110`}>
           {watch_provider === 'netflix' && (
             <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" alt="Netflix" className="h-3 w-auto object-contain" />
           )}
