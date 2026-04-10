@@ -83,7 +83,11 @@ const Index = () => {
     const timer = setTimeout(() => {
       setHeroTextVisible(false);
     }, 4000);
-    return () => clearTimeout(timer);
+    // Delay hero video load for 8s to allow the page to render first (perf optimization for weaker devices)
+    const videoTimer = setTimeout(() => {
+      setShowVideo(true);
+    }, 8000);
+    return () => { clearTimeout(timer); clearTimeout(videoTimer); };
   }, []);
 
   const loadContent = async () => {
@@ -115,7 +119,7 @@ const Index = () => {
       } else {
         // Pure random on every refresh
         const featuredCandidates = data.filter(c => c.backdrop_url && c.category !== 'tv');
-        setTrailerContents([...featuredCandidates].sort(() => 0.5 - Math.random()).slice(0, 10));
+        setTrailerContents([...featuredCandidates].sort(() => 0.5 - Math.random()).slice(0, 5));
       }
 
       setRandomContent([...data].sort(() => 0.5 - Math.random()));
@@ -373,7 +377,7 @@ const Index = () => {
 
       <IndexHero
         currentTrailer={currentTrailer}
-        showVideo={true}
+        showVideo={showVideo}
         getYouTubeId={getYouTubeId}
         isTransitioning={isTransitioning}
         isMuted={isMuted}

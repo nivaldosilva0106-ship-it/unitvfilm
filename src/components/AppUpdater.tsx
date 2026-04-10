@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { getSiteSettings } from '@/lib/firebase';
-import { App as CapacitorApp } from '@capacitor/app';
 import { Capacitor } from '@capacitor/core';
 import { Download, AlertCircle } from 'lucide-react';
 import { Button } from './ui/button';
@@ -14,14 +13,13 @@ export function AppUpdater() {
             if (!Capacitor.isNativePlatform()) return;
 
             try {
+                // Dynamic import so Rollup doesn't try to bundle @capacitor/app for web builds
+                const { App: CapacitorApp } = await import('@capacitor/app');
+                
                 const settings = await getSiteSettings();
                 const requiredVersion = settings.requiredAppVersion || 1;
                 
                 const info = await CapacitorApp.getInfo();
-                const currentVersion = parseInt(info.version || '1'); // Native App VersionCode or just VersionName
-                
-                // Compare numeric versions (for Android versionCode)
-                // App.getInfo().build provides versionCode on Android
                 const currentBuild = parseInt(info.build || '1');
 
                 if (currentBuild < requiredVersion) {

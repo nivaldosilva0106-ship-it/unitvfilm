@@ -19,8 +19,25 @@ interface ContentRowProps {
 
 export const ContentRow = memo(({ title, contents, onPlayContent, onInfoContent, onDetailsContent, onTrailerContent, onDownloadContent, hideDownloadIcon, providerLogos }: ContentRowProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
   const [showRightArrow, setShowRightArrow] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
+
+  // Lazy-render: only render the cards when the row is near the viewport
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsVisible(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px 0px' } // Start rendering 200px before entering viewport
+    );
+    if (containerRef.current) observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
 
   // Debounced scroll arrow check
   const checkScrollArrows = useCallback(() => {
@@ -32,6 +49,7 @@ export const ContentRow = memo(({ title, contents, onPlayContent, onInfoContent,
   }, []);
 
   useEffect(() => {
+    if (!isVisible) return;
     const currentRef = scrollRef.current;
     if (currentRef) {
       currentRef.addEventListener('scroll', checkScrollArrows, { passive: true });
@@ -52,7 +70,7 @@ export const ContentRow = memo(({ title, contents, onPlayContent, onInfoContent,
       window.removeEventListener('resize', handleResize);
       clearTimeout(resizeTimer);
     };
-  }, [contents, checkScrollArrows]);
+  }, [contents, checkScrollArrows, isVisible]);
 
   const scroll = (direction: "left" | "right") => {
     if (scrollRef.current) {
@@ -66,14 +84,16 @@ export const ContentRow = memo(({ title, contents, onPlayContent, onInfoContent,
         left: newScrollPosition,
         behavior: "smooth",
       });
-
-      // O checkScrollArrows será chamado pelo evento 'scroll'
     }
   };
 
   return (
-    <div className="mb-8">
+    <div className="mb-8" ref={containerRef}>
       <h2 className="text-2xl font-bold text-foreground mb-4 px-4 sm:px-8">{title}</h2>
+      {!isVisible ? (
+        // Lightweight placeholder while off-screen
+        <div className="h-[260px] px-4 sm:px-8" />
+      ) : (
       <div className="relative group/row">
         {showLeftArrow && (
           <Button
@@ -130,8 +150,9 @@ export const ContentRow = memo(({ title, contents, onPlayContent, onInfoContent,
           </Button>
         )}
       </div>
+      )}
     </div>
   );
 });
 
-ContentRow.displayName = 'ContentRow';
+ContentRow.displayName = 'ContentRow';

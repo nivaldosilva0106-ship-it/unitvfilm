@@ -12,7 +12,6 @@ import { toast } from "sonner";
 import { isContentAllowedForProfile } from "@/lib/utils";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { Capacitor } from '@capacitor/core';
-import { ScreenOrientation } from '@capacitor/screen-orientation';
 
 const Player = () => {
     const { id } = useParams();
@@ -466,6 +465,7 @@ const Player = () => {
             
             try {
                 if (Capacitor.isNativePlatform()) {
+                    const { ScreenOrientation } = await import('@capacitor/screen-orientation');
                     if (isFull) {
                         await ScreenOrientation.lock({ orientation: 'landscape' });
                     } else {
@@ -647,7 +647,7 @@ const Player = () => {
                 <AdManager placement="player" className="absolute top-20 left-1/2 -translate-x-1/2 z-40" />
 
                 {/* Controls Container */}
-                <div ref={playerContainerRef} className="relative w-full h-full group">
+                <div ref={playerContainerRef} className="relative w-full h-full group bg-black overflow-hidden">
 
                     {/* Resume Playback Prompt */}
                     {showResumePrompt && (
