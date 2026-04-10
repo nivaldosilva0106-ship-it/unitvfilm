@@ -932,14 +932,22 @@ export default function Canais24h() {
         const timeoutId = setTimeout(() => controller.abort(), 8000);
         try {
             // No Capacitor, URLs relativas falham porque não há servidor Node rodando. Fallback para URL de prod.
-            const baseUrl = import.meta.env.VITE_SITE_URL || 'https://unitvfilms.vercel.app';
+            const baseUrl = import.meta.env.VITE_SITE_URL || 'https://unitvfilm.vercel.app';
+            console.log(`Resolving TikTok: ${url} using base: ${baseUrl}`);
             const r = await fetch(`${baseUrl}/api/tiktok?url=${encodeURIComponent(url)}`, { signal: controller.signal });
             clearTimeout(timeoutId);
-            // If channel changed since we started, discard result
+            
             if (channelGenRef.current !== gen) return "stale";
+            
+            if (!r.ok) {
+                console.error(`TikTok resolve failed: ${r.status} ${r.statusText}`);
+                return "error";
+            }
+            
             const d = await r.json();
             return d.url || "error";
-        } catch {
+        } catch (err) {
+            console.error('TikTok resolution catch:', err);
             return "error";
         }
     }, []);

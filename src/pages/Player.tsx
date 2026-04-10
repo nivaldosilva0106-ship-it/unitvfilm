@@ -647,7 +647,15 @@ const Player = () => {
                 <AdManager placement="player" className="absolute top-20 left-1/2 -translate-x-1/2 z-40" />
 
                 {/* Controls Container */}
-                <div ref={playerContainerRef} className="relative w-full h-full group bg-black overflow-hidden">
+                <div 
+                    ref={playerContainerRef} 
+                    className={`group bg-black overflow-hidden transition-all duration-300 ${
+                        isFullscreen 
+                        ? 'fixed inset-0 z-[100] w-screen h-[100vh] m-0 p-0 left-0 top-0' 
+                        : 'relative w-full h-full'
+                    }`}
+                    style={isFullscreen ? { width: '100vw', height: '100vh', left: 0, top: 0 } : {}}
+                >
 
                     {/* Resume Playback Prompt */}
                     {showResumePrompt && (
