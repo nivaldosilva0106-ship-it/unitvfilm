@@ -110,7 +110,7 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-card border-border">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-card border-border premium-scrollbar">
         <DialogHeader>
           <DialogTitle className="text-2xl text-foreground">{title}</DialogTitle>
         </DialogHeader>

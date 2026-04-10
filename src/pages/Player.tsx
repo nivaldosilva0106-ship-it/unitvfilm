@@ -681,52 +681,62 @@ const Player = () => {
 
                     {/* Header Controls (Close, Title, etc) */}
                     <div className="absolute top-0 left-0 right-0 p-2 sm:p-6 flex justify-between items-start z-50 pointer-events-none transition-opacity duration-300 opacity-0 group-hover:opacity-100">
-                        <div className="pointer-events-auto flex items-center gap-2 sm:gap-4 max-w-[70%] sm:max-w-none">
+                        <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-4 max-w-[65%] sm:max-w-none">
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => navigate(-1)}
-                                className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 flex-shrink-0"
+                                className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 flex-shrink-0"
                             >
-                                <ArrowLeft className="w-4 h-4 sm:w-6 sm:h-6" />
+                                <ArrowLeft className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
                             </Button>
 
-                            <div className="px-2 sm:px-4 py-1 sm:py-2 bg-black/50 backdrop-blur-md rounded-full border border-white/20 flex items-center gap-2 sm:gap-3 min-w-0">
+                            <div className="px-2 sm:px-4 py-1 sm:py-2 bg-black/50 backdrop-blur-md rounded-full border border-white/20 flex items-center gap-1.5 sm:gap-3 min-w-0 overflow-hidden">
                                 {/* Logo */}
-                                <div className="flex items-center gap-1.5 sm:gap-2 border-r border-white/20 pr-2 sm:pr-3 mr-1 flex-shrink-0">
+                                <div className="flex items-center gap-1 sm:gap-2 border-r border-white/20 pr-1.5 sm:pr-3 mr-0.5 flex-shrink-0">
                                     <div className="bg-primary p-0.5 sm:p-1 rounded">
-                                        <Film className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />
+                                        <Film className="w-2 h-2 sm:w-3 sm:h-3 text-white" />
                                     </div>
-                                    <span className="text-white font-bold text-[9px] sm:text-sm hidden sm:inline">Uni<span className="text-primary">Tv</span>Film</span>
+                                    <span className="text-white font-bold text-[8px] sm:text-sm hidden sm:inline">Uni<span className="text-primary">Tv</span>Film</span>
                                 </div>
 
                                 {/* Circular Poster */}
                                 {content?.thumbnail_url && (
                                     <img
                                         src={content.thumbnail_url}
-                                        className="w-5 h-5 sm:w-8 sm:h-8 rounded-full object-cover border border-white/20 shadow-sm flex-shrink-0"
+                                        className="w-4 h-4 sm:w-7 sm:h-7 rounded-full object-cover border border-white/20 shadow-sm flex-shrink-0"
                                         alt="Poster"
                                     />
                                 )}
 
-                                {/* Title */}
-                                <span className="text-white font-bold text-[10px] sm:text-base truncate">{currentTitle}</span>
+                                {/* Title - with marquee for long titles */}
+                                <div className="overflow-hidden min-w-0 max-w-[120px] sm:max-w-[300px] md:max-w-[400px]">
+                                    {currentTitle.length > 30 ? (
+                                        <div className="animate-marquee-title whitespace-nowrap hover:pause-animation">
+                                            <span className="text-white font-bold text-[9px] sm:text-sm">{currentTitle}</span>
+                                            <span className="text-white font-bold text-[9px] sm:text-sm mx-8 opacity-50">•</span>
+                                            <span className="text-white font-bold text-[9px] sm:text-sm">{currentTitle}</span>
+                                        </div>
+                                    ) : (
+                                        <span className="text-white font-bold text-[9px] sm:text-sm whitespace-nowrap">{currentTitle}</span>
+                                    )}
+                                </div>
                             </div>
                         </div>
 
-                        <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-4">
+                        <div className="pointer-events-auto flex items-center gap-1 sm:gap-3">
                             {allSources.length > 1 && (
                                 <div className="relative">
                                     <Button
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => setShowSourceMenu(!showSourceMenu)}
-                                        className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                        className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
                                     >
-                                        <List className="w-4 h-4 sm:w-6 sm:h-6" />
+                                        <List className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
                                     </Button>
                                     {showSourceMenu && (
-                                        <div className="absolute top-10 sm:top-14 right-0 bg-black/90 backdrop-blur-md rounded-lg shadow-xl border border-white/20 overflow-hidden min-w-[150px]">
+                                        <div className="absolute top-9 sm:top-12 right-0 bg-black/90 backdrop-blur-md rounded-lg shadow-xl border border-white/20 overflow-hidden min-w-[150px]">
                                             {allSources.map((source, index) => (
                                                 <button
                                                     key={index}
@@ -749,28 +759,28 @@ const Player = () => {
                                 variant="ghost"
                                 size="icon"
                                 onClick={handleToggleMyList}
-                                className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
                                 title={isInMyList ? "Remover da lista" : "Assistir mais tarde"}
                             >
-                                {isInMyList ? <Check className="w-4 h-4 sm:w-6 sm:h-6" /> : <Plus className="w-4 h-4 sm:w-6 sm:h-6" />}
+                                {isInMyList ? <Check className="w-3.5 h-3.5 sm:w-5 sm:h-5" /> : <Plus className="w-3.5 h-3.5 sm:w-5 sm:h-5" />}
                             </Button>
 
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={toggleFullscreen}
-                                className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
                             >
-                                {isFullscreen ? <Minimize className="w-4 h-4 sm:w-6 sm:h-6" /> : <Maximize className="w-4 h-4 sm:w-6 sm:h-6" />}
+                                {isFullscreen ? <Minimize className="w-3.5 h-3.5 sm:w-5 sm:h-5" /> : <Maximize className="w-3.5 h-3.5 sm:w-5 sm:h-5" />}
                             </Button>
 
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => navigate('/')}
-                                className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-red-600 backdrop-blur-md border border-white/20"
+                                className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-red-600 backdrop-blur-md border border-white/20"
                             >
-                                <X className="w-4 h-4 sm:w-6 sm:h-6" />
+                                <X className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
                             </Button>
                         </div>
                     </div>
@@ -825,7 +835,7 @@ const Player = () => {
                                 className={`relative z-20 flex flex-row items-center gap-2 bg-black/60 backdrop-blur-md px-2 py-3 rounded-full border border-white/20 cursor-pointer shadow-xl transition-all duration-300 hover:bg-primary/90 hover:scale-110 ${isSuggestionsOpen ? 'bg-primary border-primary' : ''}`}
                             >
                                 <span className="writing-vertical-rl text-[10px] font-bold text-white uppercase tracking-widest opacity-90 transition-opacity">
-                                    {isSuggestionsOpen ? 'Fechar' : 'Sugestões'}
+                                    {isSuggestionsOpen ? 'FECHAR' : 'Sugestões'}
                                 </span>
                                 <div className="flex flex-col gap-0.5">
                                     <div className="w-0.5 h-0.5 rounded-full bg-white animate-pulse" />
@@ -834,49 +844,42 @@ const Player = () => {
                                 </div>
                             </div>
 
-                            {/* Suggestions Panel (Expands to Right) */}
-                            <div className={`absolute left-full ml-4 top-1/2 -translate-y-1/2 flex flex-col gap-3 transition-all duration-500 ease-out bg-black/80 backdrop-blur-xl p-4 rounded-2xl border border-white/10 shadow-2xl min-w-[200px] ${isSuggestionsOpen ? 'opacity-100 translate-x-0 scale-100 pointer-events-auto' : 'opacity-0 -translate-x-10 scale-95 pointer-events-none'}`}>
-                                <div className="flex items-center justify-between mb-2 border-b border-white/10 pb-2">
+                            {/* Suggestions Panel (Expands to Right) — max 5 items, hidden scrollbar */}
+                            <div className={`absolute left-full ml-4 top-1/2 -translate-y-1/2 flex flex-col transition-all duration-500 ease-out bg-black/80 backdrop-blur-xl p-3 rounded-2xl border border-white/10 shadow-2xl w-[200px] sm:w-[230px] max-h-[350px] sm:max-h-[420px] ${isSuggestionsOpen ? 'opacity-100 translate-x-0 scale-100 pointer-events-auto' : 'opacity-0 -translate-x-10 scale-95 pointer-events-none'}`}>
+                                <div className="flex items-center justify-between mb-2 border-b border-white/10 pb-2 flex-shrink-0">
                                     <p className="text-white text-[10px] font-bold uppercase tracking-wider">Recomendados</p>
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-6 h-6 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-4 h-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
                                         <span className="text-primary text-[10px] font-bold">{suggestionCountdown}s</span>
                                     </div>
                                 </div>
-                                {suggestions.map((suggestion) => (
-                                    <div
-                                        key={suggestion.id}
-                                        onClick={() => navigate(`/watch/${suggestion.id}`)}
-                                        className="relative flex items-center gap-3 p-2 rounded-lg hover:bg-white/10 cursor-pointer transition-colors group/item"
-                                    >
-                                        <div className="relative w-12 h-16 shrink-0">
-                                            <img
-                                                src={suggestion.thumbnail_url}
-                                                alt={suggestion.title}
-                                                className="w-full h-full object-cover rounded-md shadow-md group-hover/item:scale-105 transition-transform"
-                                            />
-                                            {suggestion.watch_provider && getProviderConfig(suggestion.watch_provider, siteSettings?.providerLogos) && (
-                                                <div className="absolute top-0.5 left-0.5 z-10 bg-black/40 backdrop-blur-sm p-0.5 rounded border border-white/10 shadow-lg">
-                                                    <img 
-                                                        src={getProviderConfig(suggestion.watch_provider, siteSettings?.providerLogos)?.logo} 
-                                                        alt="" 
-                                                        className="h-3 w-auto object-contain" 
-                                                    />
-                                                </div>
-                                            )}
+                                <div className="flex flex-col gap-1.5 overflow-y-auto scrollbar-hide">
+                                    {suggestions.slice(0, 5).map((suggestion) => (
+                                        <div
+                                            key={suggestion.id}
+                                            onClick={() => navigate(`/watch/${suggestion.id}`)}
+                                            className="relative flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-white/10 cursor-pointer transition-colors group/item"
+                                        >
+                                            <div className="relative w-10 h-14 shrink-0">
+                                                <img
+                                                    src={suggestion.thumbnail_url}
+                                                    alt={suggestion.title}
+                                                    className="w-full h-full object-cover rounded-md shadow-md group-hover/item:scale-105 transition-transform"
+                                                />
+                                            </div>
+                                            <div className="flex flex-col min-w-0 flex-1">
+                                                <h4 className="text-white text-[11px] font-bold line-clamp-2 leading-tight group-hover/item:text-primary transition-colors">{suggestion.title}</h4>
+                                                {suggestion.rating && (
+                                                    <div className="flex items-center gap-1 mt-0.5">
+                                                        <Star className="w-2.5 h-2.5 text-yellow-500 fill-yellow-500" />
+                                                        <span className="text-yellow-500 text-[9px] font-medium">{suggestion.rating.toFixed(1)}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                            <Play className="w-3.5 h-3.5 text-primary opacity-0 group-hover/item:opacity-100 absolute right-1.5 transition-opacity" />
                                         </div>
-                                        <div className="flex flex-col min-w-0">
-                                            <h4 className="text-white text-xs font-bold line-clamp-2 leading-tight group-hover/item:text-primary transition-colors">{suggestion.title}</h4>
-                                            {suggestion.rating && (
-                                                <div className="flex items-center gap-1 mt-1">
-                                                    <Star className="w-2.5 h-2.5 text-yellow-500 fill-yellow-500" />
-                                                    <span className="text-yellow-500 text-[10px] font-medium">{suggestion.rating.toFixed(1)}</span>
-                                                </div>
-                                            )}
-                                        </div>
-                                        <Play className="w-4 h-4 text-primary opacity-0 group-hover/item:opacity-100 absolute right-2 transition-opacity" />
-                                    </div>
-                                ))}
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     )}
