@@ -23,6 +23,7 @@ export const AdminSettings = () => {
     const [officialSiteUrl, setOfficialSiteUrl] = useState("");
     const [pwaIconUrl, setPwaIconUrl] = useState("");
     const [apkDownloadUrl, setApkDownloadUrl] = useState("");
+    const [requiredAppVersion, setRequiredAppVersion] = useState<number>(1);
     const [enableApkDownload, setEnableApkDownload] = useState(false);
     const [enablePwaInstall, setEnablePwaInstall] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -64,6 +65,7 @@ export const AdminSettings = () => {
             setOfficialSiteUrl(settings.officialSiteUrl || "");
             setPwaIconUrl(settings.pwaIconUrl || "");
             setApkDownloadUrl(settings.apkDownloadUrl || "");
+            setRequiredAppVersion(settings.requiredAppVersion || 1);
             setEnableApkDownload(settings.enableApkDownload || false);
             setEnablePwaInstall(settings.enablePwaInstall || false);
         } catch (error) {
@@ -86,6 +88,7 @@ export const AdminSettings = () => {
                 officialSiteUrl,
                 pwaIconUrl,
                 apkDownloadUrl,
+                requiredAppVersion,
                 enableApkDownload,
                 enablePwaInstall
             });
@@ -381,6 +384,21 @@ export const AdminSettings = () => {
                                         />
                                         <p className="text-[10px] text-muted-foreground">
                                             O link para onde o usuário será redirecionado ao baixar o APK.
+                                        </p>
+                                    </div>
+                                    <div className="space-y-2 pt-2">
+                                        <Label htmlFor="requiredAppVersion">Versão Mínima Exigida (App Update)</Label>
+                                        <Input
+                                            id="requiredAppVersion"
+                                            type="number"
+                                            min="1"
+                                            placeholder="1"
+                                            value={requiredAppVersion}
+                                            onChange={(e) => setRequiredAppVersion(parseInt(e.target.value) || 1)}
+                                            className="bg-background/50"
+                                        />
+                                        <p className="text-[10px] text-muted-foreground">
+                                            Insira o número da versão (ex: 2). Se a versão instalada for menor, o usuário será obrigado a atualizar.
                                         </p>
                                     </div>
                                 </div>

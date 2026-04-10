@@ -413,6 +413,7 @@ export interface SiteSettings {
   apkDownloadUrl?: string;
   enableApkDownload?: boolean;
   enablePwaInstall?: boolean;
+  requiredAppVersion?: number;
 }
 
 export const getSiteSettings = async (): Promise<SiteSettings> => {

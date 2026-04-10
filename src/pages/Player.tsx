@@ -11,6 +11,8 @@ import { useContentProtection } from "@/hooks/useContentProtection";
 import { toast } from "sonner";
 import { isContentAllowedForProfile } from "@/lib/utils";
 import { VideoPlayer } from "@/components/VideoPlayer";
+import { Capacitor } from '@capacitor/core';
+import { ScreenOrientation } from '@capacitor/screen-orientation';
 
 const Player = () => {
     const { id } = useParams();
@@ -458,15 +460,27 @@ const Player = () => {
 
     // Fullscreen
     useEffect(() => {
-        const handleFullscreenChange = () => {
+        const handleFullscreenChange = async () => {
             const isFull = !!document.fullscreenElement;
             setIsFullscreen(isFull);
-
-            // Auto-rotate on mobile when fullscreen
-            if (isFull && screen.orientation && (screen.orientation as any).lock) {
-                (screen.orientation as any).lock('landscape').catch((e: any) => console.log('Orientation lock failed:', e));
-            } else if (!isFull && screen.orientation && (screen.orientation as any).unlock) {
-                (screen.orientation as any).unlock();
+            
+            try {
+                if (Capacitor.isNativePlatform()) {
+                    if (isFull) {
+                        await ScreenOrientation.lock({ orientation: 'landscape' });
+                    } else {
+                        await ScreenOrientation.unlock();
+                    }
+                } else {
+                    // Browser fallback
+                    if (isFull && screen.orientation && (screen.orientation as any).lock) {
+                        (screen.orientation as any).lock('landscape').catch((e: any) => console.log('Orientation lock failed:', e));
+                    } else if (!isFull && screen.orientation && (screen.orientation as any).unlock) {
+                        (screen.orientation as any).unlock();
+                    }
+                }
+            } catch (err) {
+                console.log('Screen orientation error:', err);
             }
         };
         document.addEventListener("fullscreenchange", handleFullscreenChange);
