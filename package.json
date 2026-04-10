@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@capacitor/android": "^7.4.5",
+    "@capacitor/app": "^7.0.0",
     "@capacitor/core": "^7.4.5",
     "@capacitor/ios": "^7.4.5",
     "@capacitor/screen-orientation": "^7.0.0",
