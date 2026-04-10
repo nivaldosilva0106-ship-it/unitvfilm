@@ -413,16 +413,14 @@ All colors MUST be HSL.
     z-index: 9998;
     background: linear-gradient(
       180deg,
-      rgba(10, 25, 18, 0.85) 0%,
-      rgba(8, 20, 14, 0.97) 100%
+      rgba(10, 25, 18, 0.95) 0%,
+      rgba(8, 20, 14, 0.98) 100%
     );
-    backdrop-filter: blur(10px) saturate(1.4);
-    -webkit-backdrop-filter: blur(10px) saturate(1.4);
     border-top: 1px solid hsl(var(--primary) / 0.15);
     padding: 6px 8px calc(env(safe-area-inset-bottom, 6px) + 6px) 8px;
     justify-content: space-around;
     align-items: center;
-    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.4), 0 -1px 0 hsl(var(--primary) / 0.1);
+    box-shadow: 0 -4px 30px rgba(0, 0, 0, 0.6), 0 -1px 0 hsl(var(--primary) / 0.1);
   }
 
   .mobile-bottom-nav-item {
