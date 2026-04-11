@@ -1,14 +1,15 @@
 name: Build Android APK
 
 on:
-  # push:
-  #   branches:
-  #     - main
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        mode: [standard, lite]
+      fail-fast: false
 
     steps:
       - name: Checkout Repository
@@ -28,7 +29,12 @@ jobs:
         run: pnpm install --no-frozen-lockfile
 
       - name: Build Web App
-        run: pnpm run build
+        run: |
+          if [ "${{ matrix.mode }}" = "lite" ]; then
+            pnpm run build:tv
+          else
+            pnpm run build
+          fi
 
       - name: Sync Capacitor
         run: |
@@ -52,5 +58,5 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: UniTvFilm-app-debug.apk
+          name: UniTvFilm-${{ matrix.mode }}-debug.apk
           path: android/app/build/outputs/apk/debug/app-debug.apk
