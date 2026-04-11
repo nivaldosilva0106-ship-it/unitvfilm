@@ -4,8 +4,9 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useRef, memo } from "react";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { useAuth } from "@/contexts/AuthContext";
-import { isContentAllowedForProfile } from "@/lib/utils";
+import { isContentAllowedForProfile, getOptimizedImageUrl } from "@/lib/utils";
 import { getProviderConfig } from "@/lib/providers";
+import { useAppConfig } from "@/hooks/useAppConfig";
 
 interface ContentCardProps {
   title: string;
@@ -54,9 +55,11 @@ export const ContentCard = memo(({
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { playNavigationSound } = useKeyboardNavigation({ enabled: false });
   const { currentProfile } = useAuth();
+  const { isLiteMode, imageQuality, enableTooltips, enableBackdropBlur } = useAppConfig();
 
   const isRestricted = !isContentAllowedForProfile(classification, currentProfile?.isKids || false);
   const isActuallyNew = isNew && newSince && (new Date().getTime() - new Date(newSince).getTime() < 86400000);
+  const enableAnimations = !isLiteMode;
 
   const handleButtonClick = (cb?: () => void) => (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -76,7 +79,7 @@ export const ContentCard = memo(({
       onClick={() => onDetails?.()}
     >
       {isPremium && (
-        <div className="absolute top-2 right-2 z-10 bg-gradient-to-r from-orange-500 to-amber-500 backdrop-blur-sm p-1.5 rounded-lg flex items-center justify-center shadow-lg shadow-orange-500/30">
+        <div className={`absolute top-2 right-2 z-10 bg-gradient-to-r from-orange-500 to-amber-500 ${enableBackdropBlur ? 'backdrop-blur-sm' : ''} p-1.5 rounded-lg flex items-center justify-center shadow-lg shadow-orange-500/30`}>
           <Crown className="w-3.5 h-3.5 text-white drop-shadow-sm" />
         </div>
       )}
@@ -121,9 +124,9 @@ export const ContentCard = memo(({
 
       <div className="relative overflow-hidden rounded-lg">
         <img
-          src={thumbnail || "/placeholder.svg"}
+          src={getOptimizedImageUrl(thumbnail, 'poster', imageQuality)}
           alt={title}
-          className={`w-full h-[200px] sm:h-[240px] object-cover ${isRestricted ? 'grayscale-[0.5] blur-[1px]' : ''}`}
+          className={`w-full h-[200px] sm:h-[240px] object-cover ${isRestricted ? 'grayscale-[0.5] blur-[1px]' : ''} ${!isLiteMode ? 'transition-transform duration-500 group-hover:scale-110' : ''}`}
           loading="lazy"
         />
 
@@ -140,25 +143,38 @@ export const ContentCard = memo(({
           <div className="w-full space-y-2">
             <h3 className="text-foreground font-semibold text-sm mb-2 line-clamp-2">{title}</h3>
             <div className="flex justify-center gap-2">
-              <TooltipProvider delayDuration={300}>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      onClick={handleButtonClick(onPlay)}
-                      onFocus={handleButtonFocus}
-                      size="icon"
-                      disabled={isRestricted}
-                      className={`bg-primary hover:bg-primary/90 text-primary-foreground h-8 w-8 glow-effect-hover rounded-full ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''} ${internal_player_url ? 'animate-pulse ring-2 ring-primary/50' : ''}`}
-                      tabIndex={0}
-                    >
-                      {isRestricted ? <ShieldCheck className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>{isRestricted ? 'Bloqueado' : internal_player_url ? 'Player Interno Disponível' : 'Assistir'}</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              {enableTooltips ? (
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        onClick={handleButtonClick(onPlay)}
+                        onFocus={handleButtonFocus}
+                        size="icon"
+                        disabled={isRestricted}
+                        className={`bg-primary hover:bg-primary/90 text-primary-foreground h-8 w-8 ${enableAnimations ? 'glow-effect-hover' : ''} rounded-full ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''} ${internal_player_url && !isLiteMode ? 'animate-pulse ring-2 ring-primary/50' : ''}`}
+                        tabIndex={0}
+                      >
+                        {isRestricted ? <ShieldCheck className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>{isRestricted ? 'Bloqueado' : internal_player_url ? 'Player Interno Disponível' : 'Assistir'}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <Button
+                  onClick={handleButtonClick(onPlay)}
+                  onFocus={handleButtonFocus}
+                  size="icon"
+                  disabled={isRestricted}
+                  className={`bg-primary hover:bg-primary/90 text-primary-foreground h-8 w-8 rounded-full ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  tabIndex={0}
+                >
+                  {isRestricted ? <ShieldCheck className="w-4 h-4" /> : <Play className="w-4 h-4" />}
+                </Button>
+              )}
               <Button
                 onClick={handleButtonClick(onInfo)}
                 onMouseEnter={() => {
@@ -182,25 +198,38 @@ export const ContentCard = memo(({
               </Button>
 
               {(onDownload || hasDownloads) && (
-                <TooltipProvider delayDuration={300}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        onClick={handleButtonClick(onDownload)}
-                        onFocus={handleButtonFocus}
-                        size="icon"
-                        variant="outline"
-                        className="h-8 w-8 rounded-full"
-                        tabIndex={0}
-                      >
-                        {hasDownloads ? <Download className="w-4 h-4 text-green-400" /> : <Download className="w-4 h-4" />}
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>{hasDownloads ? 'Download Disponível' : 'Download'}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
+                enableTooltips ? (
+                  <TooltipProvider delayDuration={300}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          onClick={handleButtonClick(onDownload)}
+                          onFocus={handleButtonFocus}
+                          size="icon"
+                          variant="outline"
+                          className="h-8 w-8 rounded-full"
+                          tabIndex={0}
+                        >
+                          {hasDownloads ? <Download className="w-4 h-4 text-green-400" /> : <Download className="w-4 h-4" />}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>{hasDownloads ? 'Download Disponível' : 'Download'}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                ) : (
+                  <Button
+                    onClick={handleButtonClick(onDownload)}
+                    onFocus={handleButtonFocus}
+                    size="icon"
+                    variant="outline"
+                    className="h-8 w-8 rounded-full"
+                    tabIndex={0}
+                  >
+                    {hasDownloads ? <Download className="w-4 h-4 text-green-400" /> : <Download className="w-4 h-4" />}
+                  </Button>
+                )
               )}
             </div>
           </div>

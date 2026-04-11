@@ -3,6 +3,8 @@ import { Volume2, VolumeX, Play, Info, Plus, Check, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Content } from "@/types/content";
 import { getProviderConfig } from "@/lib/providers";
+import { useAppConfig } from "@/hooks/useAppConfig";
+import { getOptimizedImageUrl } from "@/lib/utils";
 
 interface IndexHeroProps {
     currentTrailer: Content | null;
@@ -46,6 +48,7 @@ export const IndexHero = memo(({
     providerLogos
 }: IndexHeroProps) => {
     const iframeRef = useRef<HTMLIFrameElement>(null);
+    const { isLiteMode, imageQuality, enableBackdropBlur } = useAppConfig();
 
     // Audio command to iframe
     useEffect(() => {
@@ -83,7 +86,7 @@ export const IndexHero = memo(({
                     {currentTrailer ? (
                         <>
                             <img
-                                src={currentTrailer.backdrop_url || currentTrailer.thumbnail_url}
+                                src={getOptimizedImageUrl(currentTrailer.backdrop_url || currentTrailer.thumbnail_url, 'backdrop', imageQuality)}
                                 alt=""
                                 className="w-full h-full object-cover"
                                 loading="lazy"
@@ -121,20 +124,20 @@ export const IndexHero = memo(({
                 {activeContent && (
                     <div className="w-full max-w-4xl mx-auto z-50 relative mt-8 group/hero-info animate-in fade-in slide-in-from-bottom-8 duration-1000">
                         {/* The Ultra-Modern Glass Card */}
-                        <div className="relative overflow-hidden rounded-3xl p-0.5 transition-all duration-500 hover:scale-[1.01] active:scale-[0.99]">
+                        <div className={`relative overflow-hidden rounded-3xl p-0.5 transition-all duration-500 ${!isLiteMode ? 'hover:scale-[1.01] active:scale-[0.99]' : ''}`}>
                             {/* Animated Border Glow */}
-                            <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-white/5 to-primary/30 opacity-40 group-hover/hero-info:opacity-70 transition-opacity blur-sm" />
+                            {!isLiteMode && <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-white/5 to-primary/30 opacity-40 group-hover/hero-info:opacity-70 transition-opacity blur-sm" />}
                             
-                            <div className="relative bg-zinc-950/80 rounded-[calc(1.5rem-2px)] p-6 sm:p-8 flex flex-col md:flex-row items-center md:items-start gap-8 shadow-2xl border border-white/5">
+                            <div className={`relative bg-zinc-950/80 rounded-[calc(1.5rem-2px)] p-6 sm:p-8 flex flex-col md:flex-row items-center md:items-start gap-8 shadow-2xl border border-white/5 ${enableBackdropBlur ? 'backdrop-blur-md' : ''}`}>
                                 
                                 {/* Poster Area with Floating Effect */}
                                 <div 
                                     className="relative group/poster shrink-0 w-40 sm:w-48 cursor-pointer perspective-1000"
                                     onClick={() => handlePlayContent(activeContent)}
                                 >
-                                    <div className="relative transition-all duration-500 transform-gpu group-hover/poster:scale-105 group-hover/poster:-rotate-y-12 group-hover/poster:translate-z-10">
+                                    <div className={`relative transition-all duration-500 transform-gpu ${!isLiteMode ? 'group-hover/poster:scale-105 group-hover/poster:-rotate-y-12 group-hover/poster:translate-z-10' : ''}`}>
                                         <img
-                                            src={activeContent.thumbnail_url}
+                                            src={getOptimizedImageUrl(activeContent.thumbnail_url, 'poster', imageQuality)}
                                             alt={activeContent.title}
                                             loading="lazy"
                                             className="w-full aspect-[2/3] object-cover rounded-2xl shadow-2xl ring-1 ring-white/10"

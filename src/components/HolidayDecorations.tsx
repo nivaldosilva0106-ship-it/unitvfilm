@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { getSiteSettings } from '@/lib/firebase';
+import { useAppConfig } from '@/hooks/useAppConfig';
 
 export const HolidayDecorations = () => {
     const [enabled, setEnabled] = useState(false);
     const [type, setType] = useState<'christmas' | 'newyear' | 'both'>('christmas');
+    const { isLiteMode } = useAppConfig();
 
     useEffect(() => {
         let cancelled = false;
@@ -11,7 +13,8 @@ export const HolidayDecorations = () => {
             try {
                 const settings = await getSiteSettings();
                 if (cancelled) return;
-                setEnabled(settings.holidayDecorationsEnabled || false);
+                // Auto-disable decorations in Lite mode to save RAM/CPU unless explicitly requested (optional logic)
+                setEnabled(!isLiteMode && (settings.holidayDecorationsEnabled || false));
                 setType(settings.holidayDecorationsType || 'christmas');
             } catch (error) {
                 // Silently fail — decorations are non-critical
@@ -23,7 +26,7 @@ export const HolidayDecorations = () => {
         // Poll only every 60 seconds instead of 5
         const interval = setInterval(loadSettings, 60000);
         return () => { cancelled = true; clearInterval(interval); };
-    }, []);
+    }, [isLiteMode]);
 
     if (!enabled) {
         return null;

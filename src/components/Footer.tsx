@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Smartphone, Monitor, Apple } from 'lucide-react';
 import { Button } from './ui/button';
+import { useAppConfig } from '@/hooks/useAppConfig';
 
 export function Footer() {
     const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+    const { enableBackdropBlur } = useAppConfig();
 
     useEffect(() => {
         const handler = (e: any) => {
@@ -38,7 +40,7 @@ export function Footer() {
     };
 
     return (
-        <footer className="w-full bg-black/40 border-t border-white/5 py-8 mt-auto backdrop-blur-sm">
+        <footer className={`w-full ${enableBackdropBlur ? 'bg-black/40 backdrop-blur-sm' : 'bg-black'} border-t border-white/5 py-8 mt-auto`}>
             <div className="container mx-auto px-4">
                 <div className="flex flex-col md:flex-row items-center justify-between gap-6">
                     {/* Left side - Brand & Copyright with Install Icons */}

@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import type { Content } from "@/types/content";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { InstallAppButton } from '@/components/InstallAppButton';
+import { useAppConfig } from "@/hooks/useAppConfig";
 
 declare global {
   interface BeforeInstallPromptEvent extends Event {
@@ -36,6 +37,7 @@ declare global {
 export const Header = () => {
   const navigate = useNavigate();
   const { user, profile, plan, isAdmin, logout, currentProfile } = useAuth();
+  const { enableBackdropBlur } = useAppConfig();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Content[]>([]);
@@ -176,7 +178,7 @@ export const Header = () => {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-background/95 to-transparent backdrop-blur-sm border-b border-border/40">
+    <header className={`fixed top-0 left-0 right-0 z-50 bg-gradient-to-b ${enableBackdropBlur ? 'from-background/95 backdrop-blur-sm' : 'from-background/100'} to-transparent border-b border-border/40`}>
       <div className="container mx-auto px-4 sm:px-8 py-3 sm:py-4">
         <div className="flex items-center justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-2 sm:gap-4">

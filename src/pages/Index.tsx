@@ -12,6 +12,7 @@ import { getAllContents, getMyList, addToMyList, removeFromMyList, getSliderSett
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAppConfig } from "@/hooks/useAppConfig";
 import { MyListItem } from "@/types/user";
 import { IndexHero } from "@/components/IndexHero";
 import { STREAMING_PROVIDERS, getProviderConfig } from "@/lib/providers";
@@ -36,6 +37,7 @@ const getYouTubeId = (url: string | undefined | null) => {
 const Index = () => {
   const navigate = useNavigate();
   const { user, currentProfile, loading: authLoading } = useAuth();
+  const { isLiteMode, enableVideoHero, maxCardsInRow } = useAppConfig();
 
   const [allContentData, setAllContentData] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
@@ -85,7 +87,9 @@ const Index = () => {
     }, 4000);
     // Delay hero video load for 8s to allow the page to render first (perf optimization for weaker devices)
     const videoTimer = setTimeout(() => {
-      setShowVideo(true);
+      if (enableVideoHero) {
+        setShowVideo(true);
+      }
     }, 8000);
     return () => { clearTimeout(timer); clearTimeout(videoTimer); };
   }, []);
@@ -232,6 +236,16 @@ const Index = () => {
 
     // Return Featured first + Shuffled sections + Canais 24h + TV ALWAYS LAST
     const finalSections = [featuredSection, ...shuffled];
+    
+    // Apply item limits for Lite mode
+    if (isLiteMode) {
+      finalSections.forEach(s => {
+        if (s.data.length > maxCardsInRow) {
+          s.data = s.data.slice(0, maxCardsInRow);
+        }
+      });
+    }
+
     if (canais24hSection.data.length > 0) {
       finalSections.push(canais24hSection);
     }
@@ -252,6 +266,7 @@ const Index = () => {
   useEffect(() => {
     if (trailerContents.length > 0 && !playerModal.open) {
       const interval = setInterval(() => {
+        if (isLiteMode) return; // Don't auto-transition hero in Lite mode
         setIsTransitioning(true);
         setTimeout(() => {
           setCurrentTrailerIndex((prev) => (prev + 1) % trailerContents.length);
