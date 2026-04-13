@@ -30,6 +30,7 @@ const Player = () => {
     const [lastPositionSeconds, setLastPositionSeconds] = useState<number>(0);
     const [showResumePrompt, setShowResumePrompt] = useState(false);
     const [isResuming, setIsResuming] = useState(false);
+    const [showResumeArrow, setShowResumeArrow] = useState(false);
     const sessionStartTimestamp = useRef<number>(Date.now());
     const progressSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -365,6 +366,36 @@ const Player = () => {
 
     const currentSource = allSources[currentSourceIndex] || allSources[0];
 
+    const estimatedDuration = useMemo(() => {
+        if (!content) return 5400;
+        if (content.category === 'series') {
+            if (seasonParam && episodeParam && content.episodes) {
+                const ep = content.episodes.find(e => e.season === parseInt(seasonParam) && e.episode === parseInt(episodeParam));
+                if (ep?.duration) return ep.duration * 60;
+            }
+            return 2400; // 40 minutes as fallback
+        }
+        if (content.duration) {
+            const dStr = content.duration.toString().toLowerCase();
+            let mins = 0;
+            if (dStr.includes('h') && dStr.includes('m')) {
+                const parts = dStr.split('h');
+                mins = parseInt(parts[0]) * 60 + parseInt(parts[1].replace(/[^0-9]/g, ''));
+            } else if (dStr.match(/[0-9]+/)) {
+                mins = parseInt(dStr.replace(/[^0-9]/g, ''));
+            }
+            if (!isNaN(mins) && mins > 0) return mins * 60;
+        }
+        return 5400; // 90 minutes fallback
+    }, [content, seasonParam, episodeParam]);
+
+    useEffect(() => {
+        if (showResumeArrow) {
+            const timer = setTimeout(() => setShowResumeArrow(false), 20000);
+            return () => clearTimeout(timer);
+        }
+    }, [showResumeArrow]);
+
     const secureVideoUrl = useMemo(() => {
         if (!currentSource || currentSource.type !== 'embed') return '';
         const url = currentSource.url;
@@ -507,6 +538,7 @@ const Player = () => {
             setLastPositionSeconds(0);
             setIsResuming(false);
             setShowResumePrompt(false);
+            setShowResumeArrow(false);
             sessionStartTimestamp.current = Date.now();
             setTimeout(() => setShowSuggestionsCard(true), 7500);
         }
@@ -679,6 +711,9 @@ const Player = () => {
                                             setIsResuming(true);
                                             setShowResumePrompt(false);
                                             sessionStartTimestamp.current = Date.now();
+                                            if (currentSource?.type === 'embed') {
+                                                setShowResumeArrow(true);
+                                            }
                                         }}
                                         className="bg-primary hover:bg-primary/90 text-white font-bold py-5 sm:py-6 rounded-xl text-sm sm:text-base w-full"
                                     >
@@ -689,6 +724,7 @@ const Player = () => {
                                         onClick={() => {
                                             setIsResuming(false);
                                             setShowResumePrompt(false);
+                                            setShowResumeArrow(false);
                                             setLastPositionSeconds(0);
                                             sessionStartTimestamp.current = Date.now();
                                         }}
@@ -907,6 +943,19 @@ const Player = () => {
                     )}
 
                     {/* VIDEO PLAYER */}
+                    {showResumeArrow && currentSource.type === 'embed' && (
+                        <div 
+                            className="absolute bottom-[45px] sm:bottom-[60px] z-[70] animate-bounce pointer-events-none flex flex-col items-center drop-shadow-2xl"
+                            style={{ left: `${Math.min(Math.max((lastPositionSeconds / estimatedDuration) * 100, 2), 98)}%`, transform: 'translateX(-50%)' }}
+                        >
+                            <div className="bg-primary px-3 py-1.5 rounded-lg text-white text-xs font-bold whitespace-nowrap mb-1.5 shadow-2xl border border-white/20 text-center">
+                                <span>Parou em: {formatTime(lastPositionSeconds)}</span>
+                                <div className="text-[10px] sm:text-xs font-medium opacity-90 mt-0.5">Clique na barra abaixo ➔</div>
+                            </div>
+                            <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[10px] border-l-transparent border-r-transparent border-t-primary filter drop-shadow-[0_4px_4px_rgba(220,38,38,0.5)]" />
+                        </div>
+                    )}
+
                     {currentSource.type === 'internal' ? (
                         <div className="absolute inset-0 w-full h-full bg-black">
                             <VideoPlayer
