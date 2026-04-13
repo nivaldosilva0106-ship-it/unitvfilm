@@ -6,6 +6,7 @@ import { Header } from "@/components/Header";
 import { Content } from "@/types/content";
 import { getProviderConfig } from "@/lib/providers";
 import { Play, Pause, Volume2, VolumeX, Maximize, ChevronLeft, ChevronRight, ChevronDown, Settings, RotateCw, ThumbsUp, ThumbsDown, Download, Check, Film } from "lucide-react";
+import { getBaseUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
@@ -296,7 +297,8 @@ export default function NostalgiaTube(): JSX.Element {
 
             setIsLoadingVideo(true);
             try {
-                const res = await fetch(`/api/tiktok?url=${encodeURIComponent(tiktokUrl)}`);
+                const baseUrl = getBaseUrl();
+                const res = await fetch(`${baseUrl}/api/tiktok?url=${encodeURIComponent(tiktokUrl)}`);
                 const data = await res.json();
                 if (data.url) {
                     setTiktokVideoUrl(data.url);

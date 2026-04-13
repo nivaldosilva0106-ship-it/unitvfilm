@@ -5,6 +5,7 @@ import { Content, Episode } from "@/types/content";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { toast } from "sonner";
 import { Loader2, Film, Tv, Clock, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { getBaseUrl } from "@/lib/api";
 import { useSearchParams } from "react-router-dom";
 
 import { Volume2, VolumeX, Maximize, Minimize, Play, Pause, SkipBack, SkipForward, PictureInPicture } from "lucide-react";
@@ -931,8 +932,7 @@ export default function Canais24h() {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 8000);
         try {
-            // No Capacitor, URLs relativas falham porque não há servidor Node rodando. Fallback para URL de prod.
-            const baseUrl = import.meta.env.VITE_SITE_URL || 'https://unitvfilm.vercel.app';
+            const baseUrl = getBaseUrl();
             console.log(`Resolving TikTok: ${url} using base: ${baseUrl}`);
             const r = await fetch(`${baseUrl}/api/tiktok?url=${encodeURIComponent(url)}`, { signal: controller.signal });
             clearTimeout(timeoutId);
