@@ -178,3 +178,27 @@ export const getWatchProviders = async (id: number, type: 'movie' | 'tv') => {
     return null;
   }
 };
+
+export const getTmdbLogoUrl = async (id: number, type: 'movie' | 'tv'): Promise<string | null> => {
+  try {
+    const response = await tmdbApi.get(`/${type}/${id}`, {
+      params: { append_to_response: 'images', include_image_language: 'pt,en,null' }
+    });
+    
+    if (response.data && response.data.images && response.data.images.logos) {
+      const logos = response.data.images.logos;
+      if (logos.length > 0) {
+        // Preferred: Portuguese, then English, then whatever has the least text/is first
+        const ptLogo = logos.find((l: any) => l.iso_639_1 === 'pt');
+        const enLogo = logos.find((l: any) => l.iso_639_1 === 'en');
+        const bestLogo = ptLogo || enLogo || logos[0];
+        
+        return getImageUrl(bestLogo.file_path);
+      }
+    }
+    return null;
+  } catch (e) {
+    console.error(`Error fetching logo for ${type} ${id}:`, e);
+    return null;
+  }
+};

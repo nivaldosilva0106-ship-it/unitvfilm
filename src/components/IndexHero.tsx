@@ -1,10 +1,18 @@
-import React, { useRef, useEffect, memo } from "react";
+import React, { useRef, useEffect, useState, memo } from "react";
 import { Volume2, VolumeX, Play, Info, Plus, Check, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Content } from "@/types/content";
 import { getProviderConfig } from "@/lib/providers";
 import { useAppConfig } from "@/hooks/useAppConfig";
 import { getOptimizedImageUrl } from "@/lib/utils";
+import { getTmdbLogoUrl } from "@/lib/tmdb";
+
+declare global {
+    interface Window {
+        YT: any;
+        onYouTubeIframeAPIReady: () => void;
+    }
+}
 
 interface IndexHeroProps {
     currentTrailer: Content | null;
@@ -47,198 +55,260 @@ export const IndexHero = memo(({
     handleToggleMyList,
     providerLogos
 }: IndexHeroProps) => {
-    const iframeRef = useRef<HTMLIFrameElement>(null);
-    const { isLiteMode, imageQuality, enableBackdropBlur } = useAppConfig();
+    const { isLiteMode, imageQuality } = useAppConfig();
+    const playerRef = useRef<any>(null);
+    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+    const [tmdbLogo, setTmdbLogo] = useState<string | null>(null);
 
-    // Audio command to iframe
+    // Fetch TMDB Logo
     useEffect(() => {
-        if (iframeRef.current && iframeRef.current.contentWindow) {
-            const action = isMuted ? "mute" : "unMute";
-            iframeRef.current.contentWindow.postMessage(
-                JSON.stringify({ event: "command", func: action, args: [] }),
-                "*"
-            );
+        if (activeContent && activeContent.tmdb_id) {
+            getTmdbLogoUrl(activeContent.tmdb_id, activeContent.category === 'movie' ? 'movie' : 'tv')
+                .then(setTmdbLogo)
+                .catch(() => setTmdbLogo(null));
+        } else {
+            setTmdbLogo(null);
         }
-    }, [isMuted, currentTrailer]);
+    }, [activeContent]);
+
+    // YouTube Player System (Stealth Mode)
+    useEffect(() => {
+        if (!currentTrailer || !currentTrailer.trailer_url || !showVideo || playerModalOpen || quickViewContentOpen || selectedSeriesOpen) {
+            setIsVideoPlaying(false);
+            if (playerRef.current) {
+                try { playerRef.current.pauseVideo(); } catch {}
+            }
+            return;
+        }
+
+        const ytId = getYouTubeId(currentTrailer.trailer_url);
+        if (!ytId) return;
+
+        let destroyed = false;
+        
+        const initPlayer = () => {
+             if (destroyed) return;
+             if (!window.YT?.Player) return; // wait for script
+             
+             const el = document.getElementById(`hero-yt-player`);
+             if (!el) return;
+             
+             try { playerRef.current?.destroy(); } catch {}
+             playerRef.current = null;
+             
+             playerRef.current = new window.YT.Player(`hero-yt-player`, {
+                 videoId: ytId,
+                 playerVars: {
+                     autoplay: 1,
+                     controls: 0,
+                     disablekb: 1,
+                     fs: 0,
+                     modestbranding: 1,
+                     rel: 0,
+                     showinfo: 0,
+                     iv_load_policy: 3,
+                     origin: window.location.origin,
+                     playsinline: 1,
+                     playlist: ytId // For proper looping
+                 },
+                 events: {
+                     onReady: (e: any) => {
+                         if (destroyed) return;
+                         e.target.mute(); // Secure autoplay
+                         e.target.playVideo();
+                         if (!isMuted) {
+                             setTimeout(() => {
+                                 try { e.target.unMute(); } catch {}
+                             }, 500);
+                         }
+                     },
+                     onStateChange: (e: any) => {
+                         if (destroyed) return;
+                         if (e.data === window.YT.PlayerState.PLAYING) {
+                             setIsVideoPlaying(true);
+                         } else {
+                             setIsVideoPlaying(false);
+                         }
+                     }
+                 }
+             });
+        };
+
+        setIsVideoPlaying(false);
+
+        if (!window.YT) {
+            if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+                const tag = document.createElement("script");
+                tag.src = "https://www.youtube.com/iframe_api";
+                document.body.appendChild(tag);
+            }
+            const prevReady = window.onYouTubeIframeAPIReady;
+            window.onYouTubeIframeAPIReady = () => {
+                if (prevReady) prevReady();
+                initPlayer();
+            };
+        } else {
+            setTimeout(initPlayer, 100);
+        }
+
+        return () => {
+            destroyed = true;
+            try { playerRef.current?.destroy(); } catch {}
+            playerRef.current = null;
+            setIsVideoPlaying(false);
+        };
+    }, [currentTrailer, showVideo, getYouTubeId, playerModalOpen, quickViewContentOpen, selectedSeriesOpen]);
+
+    // Handle Mute from UI toggle
+    useEffect(() => {
+        if (playerRef.current && playerRef.current.unMute && playerRef.current.mute) {
+            try {
+                if (isMuted) {
+                    playerRef.current.mute();
+                } else {
+                    playerRef.current.unMute();
+                }
+            } catch {}
+        }
+    }, [isMuted]);
 
     return (
-        <div className="relative py-12 flex items-center justify-center overflow-hidden min-h-[350px] md:min-h-[450px] lg:min-h-[550px] w-full">
-            {/* Hero Background: Image first (15s), then Video */}
-            {!playerModalOpen && !quickViewContentOpen && !selectedSeriesOpen && currentTrailer && currentTrailer.trailer_url && showVideo && getYouTubeId(currentTrailer.trailer_url) ? (
-                <div className="absolute inset-0 z-0 pointer-events-none">
-                    <div className="relative w-full h-full overflow-hidden">
-                        <iframe
-                            ref={iframeRef}
-                            key={currentTrailer.id}
-                            className={`absolute top-[40%] left-1/2 w-[200%] h-[200%] md:top-1/2 md:w-[130%] md:h-[130%] -translate-x-1/2 -translate-y-1/2 transition-opacity duration-700 will-change-[opacity] ${isTransitioning ? 'opacity-0' : 'opacity-50'}`}
-                            src={`https://www.youtube.com/embed/${getYouTubeId(currentTrailer.trailer_url)}?autoplay=1&mute=0&controls=0&enablejsapi=1&modestbranding=1&rel=0&showinfo=0&iv_load_policy=3&end=90&loop=1&playlist=${getYouTubeId(currentTrailer.trailer_url)}`}
-                            loading="lazy"
-                            title="Hero Video"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            style={{ border: 'none' }}
-                        />
-                        <div className="absolute inset-0 z-10 bg-transparent pointer-events-auto cursor-default" />
-                        <div className="absolute inset-0 bg-gradient-to-b from-background/80 via-transparent to-background" />
-                    </div>
+        <div className="relative py-12 flex items-center justify-start overflow-hidden min-h-[50vh] md:min-h-[75vh] lg:min-h-[85vh] w-full">
+            {/* Background Architecture */}
+            <div className="absolute inset-0 z-0 bg-black">
+                {/* Backdrop Image - Smooth fade out when video is actually playing */}
+                {currentTrailer && (
+                    <img
+                        src={getOptimizedImageUrl(currentTrailer.backdrop_url || currentTrailer.thumbnail_url, 'backdrop', imageQuality)}
+                        alt=""
+                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out ${isVideoPlaying ? 'opacity-0 scale-105' : 'opacity-100 scale-100'}`}
+                        loading="lazy"
+                    />
+                )}
+                
+                {/* Embedded Video Player */}
+                <div 
+                    className={`absolute inset-0 transition-opacity duration-[1500ms] ease-in-out ${isVideoPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                >
+                     <div className="relative w-full h-full overflow-hidden pointer-events-none">
+                          <div 
+                              id="hero-yt-player" 
+                              className="absolute top-1/2 left-1/2 w-[300%] h-[300%] md:w-[150%] md:h-[150%] lg:w-[130%] lg:h-[130%] -translate-x-1/2 -translate-y-1/2 pointer-events-none" 
+                          />
+                     </div>
                 </div>
-            ) : (
-                <div className="absolute inset-0 z-0">
-                    {currentTrailer ? (
-                        <>
-                            <img
-                                src={getOptimizedImageUrl(currentTrailer.backdrop_url || currentTrailer.thumbnail_url, 'backdrop', imageQuality)}
-                                alt=""
-                                className="w-full h-full object-cover"
-                                loading="lazy"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-b from-background/90 via-background/70 to-background/95" />
-                        </>
-                    ) : (
-                        <div className="absolute inset-0 bg-gradient-to-b from-background to-background/80" />
+
+                {/* Overlays to isolate text visually */}
+                <div className="absolute inset-0 z-10 bg-gradient-to-r from-background via-background/60 to-transparent pointer-events-none w-[90%] md:w-[70%]" />
+                <div className="absolute inset-0 z-10 bg-gradient-to-b from-transparent via-transparent to-background/95 pointer-events-none" />
+                <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-background to-transparent h-48 pointer-events-none" />
+            </div>
+
+            {/* Audio & Classification controls on the Right Edge (Netflix style) */}
+            {!playerModalOpen && currentTrailer && currentTrailer.trailer_url && isVideoPlaying && (
+                <div className="absolute right-0 bottom-32 z-50 flex items-center gap-4 animate-in fade-in slide-in-from-right-8 duration-1000">
+                    <button
+                        onClick={toggleAudio}
+                        className="p-3 rounded-full bg-black/40 hover:bg-black/60 text-white border border-white/20 transition-all backdrop-blur-md shadow-lg mr-4"
+                        aria-label={isMuted ? "Ativar som" : "Mudo"}
+                    >
+                        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                    </button>
+                    {activeContent?.classification && (
+                        <div className="bg-black/60 border-l-[3px] border-white backdrop-blur-md text-white py-2 px-6 text-xl font-black shadow-2xl flex items-center h-12 rounded-l-[4px]">
+                            {activeContent.classification}
+                        </div>
                     )}
                 </div>
             )}
 
-            {!playerModalOpen && currentTrailer && currentTrailer.trailer_url && (
-                <div className="absolute right-8 bottom-32 z-50 hidden md:block">
-                    <button
-                        onClick={toggleAudio}
-                        className="p-3 rounded-full bg-black/60 hover:bg-black/80 text-white border border-white/20 transition-all backdrop-blur-md shadow-lg"
-                        aria-label={isMuted ? "Ativar som" : "Mudo"}
-                    >
-                        {isMuted ? <VolumeX className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
-                    </button>
-                </div>
-            )}
-
-            <div className="relative z-20 text-center px-4 max-w-5xl mx-auto w-full flex flex-col items-center">
-                <div className={`transition-opacity duration-1000 ${heroTextVisible ? 'opacity-100' : 'opacity-0'}`}>
-                    <h1 className="text-4xl md:text-6xl font-bold text-foreground mb-3 drop-shadow-lg pt-8">
-                        Bem-vindo ao Uni<span className="text-primary glow-effect">Tv</span>Film
-                    </h1>
-                    <p className="text-lg text-foreground/90 drop-shadow-md mb-8">
-                        Sua plataforma de streaming com os melhores filmes, séries e canais de TV
-                    </p>
-                </div>
-
+            {/* Main Content Info (Left Aligned) */}
+            <div className="relative z-20 px-6 sm:px-12 md:px-16 w-full max-w-[90%] md:max-w-[50%] mt-[10vh] md:mt-0 flex flex-col items-start gap-4 md:gap-6">
                 {activeContent && (
-                    <div className="w-full max-w-4xl mx-auto z-50 relative mt-8 group/hero-info animate-in fade-in slide-in-from-bottom-8 duration-1000">
-                        {/* The Ultra-Modern Glass Card */}
-                        <div className={`relative overflow-hidden rounded-3xl p-0.5 transition-all duration-500 ${!isLiteMode ? 'hover:scale-[1.01] active:scale-[0.99]' : ''}`}>
-                            {/* Animated Border Glow */}
-                            {!isLiteMode && <div className="absolute inset-0 bg-gradient-to-r from-primary/30 via-white/5 to-primary/30 opacity-40 group-hover/hero-info:opacity-70 transition-opacity blur-sm" />}
-                            
-                            <div className={`relative bg-zinc-950/80 rounded-[calc(1.5rem-2px)] p-6 sm:p-8 flex flex-col md:flex-row items-center md:items-start gap-8 shadow-2xl border border-white/5 ${enableBackdropBlur ? 'backdrop-blur-md' : ''}`}>
-                                
-                                {/* Poster Area with Floating Effect */}
-                                <div 
-                                    className="relative group/poster shrink-0 w-40 sm:w-48 cursor-pointer perspective-1000"
-                                    onClick={() => handlePlayContent(activeContent)}
-                                >
-                                    <div className={`relative transition-all duration-500 transform-gpu ${!isLiteMode ? 'group-hover/poster:scale-105 group-hover/poster:-rotate-y-12 group-hover/poster:translate-z-10' : ''}`}>
-                                        <img
-                                            src={getOptimizedImageUrl(activeContent.thumbnail_url, 'poster', imageQuality)}
-                                            alt={activeContent.title}
-                                            loading="lazy"
-                                            className="w-full aspect-[2/3] object-cover rounded-2xl shadow-2xl ring-1 ring-white/10"
-                                        />
-                                        
-                                        {/* Provider Logo Overlay */}
-                                        {activeContent.watch_provider && getProviderConfig(activeContent.watch_provider, providerLogos) && (
-                                            <div className="absolute top-3 left-3 z-10 bg-black/60 backdrop-blur-md p-2 rounded-xl border border-white/10 shadow-2xl transition-transform duration-300 group-hover/poster:scale-110">
-                                                <img 
-                                                    src={getProviderConfig(activeContent.watch_provider, providerLogos)?.logo} 
-                                                    alt="" 
-                                                    className="h-7 w-auto object-contain" 
-                                                />
-                                            </div>
-                                        )}
-
-                                        {/* Age Classification Badge */}
-                                        {activeContent.classification && (
-                                            <div className={`absolute ${activeContent.watch_provider ? 'top-[62px]' : 'top-3'} left-3 z-10 px-2.5 py-1 rounded-lg text-xs font-black text-white shadow-xl transition-all duration-300 group-hover/poster:scale-110
-                                                ${activeContent.classification === 'L' ? 'bg-green-500 hover:bg-green-400' :
-                                                activeContent.classification === '10' ? 'bg-blue-400 hover:bg-blue-300' :
-                                                activeContent.classification === '12' ? 'bg-yellow-400 hover:bg-yellow-300' :
-                                                activeContent.classification === '14' ? 'bg-orange-400 hover:bg-orange-300' :
-                                                activeContent.classification === '16' ? 'bg-red-500 hover:bg-red-400' :
-                                                activeContent.classification === '18' ? 'bg-black ring-1 ring-white/20' : 'bg-zinc-600'
-                                            }`}>
-                                                {activeContent.classification}
-                                            </div>
-                                        )}
-
-                                        {/* Play Hover Overlay */}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-primary/40 to-transparent opacity-0 group-hover/poster:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
-                                            <div className="w-16 h-16 rounded-full bg-primary/90 flex items-center justify-center shadow-lg shadow-primary/30 scale-0 group-hover/poster:scale-100 transition-transform duration-300">
-                                                <Play className="w-8 h-8 text-white fill-current ml-1" />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Content Details */}
-                                <div className="flex-1 min-w-0 flex flex-col justify-center h-full w-full text-center md:text-left">
-                                    <div className="flex items-center justify-center md:justify-start gap-3 mb-4 flex-wrap">
-                                        {activeContent.isPremium && (
-                                            <span className="bg-primary text-white px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.1em] shadow-[0_0_15px_-3px_rgba(var(--primary),0.5)] animate-pulse">
-                                                Assista agora
-                                            </span>
-                                        )}
-                                        <div className="flex items-center gap-1.5 bg-yellow-500/10 border border-yellow-500/30 px-2.5 py-1 rounded-full text-yellow-500 text-xs font-black">
-                                            <Star className="w-3.5 h-3.5 fill-current" />
-                                            {activeContent.rating ? activeContent.rating.toFixed(1) : "N/A"}
-                                        </div>
-                                        <span className="text-[10px] text-zinc-300 uppercase bg-white/5 border border-white/10 px-2.5 py-1 rounded-full font-bold tracking-widest backdrop-blur-sm">
-                                            {activeContent.category === 'movie' ? 'Cinematográfico' : activeContent.category === 'series' ? 'Série Original' : 'TV Ao Vivo'}
-                                        </span>
-                                    </div>
-
-                                    <h3 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-4 tracking-tighter leading-none drop-shadow-2xl">
-                                        {activeContent.title}
-                                    </h3>
-                                    
-                                    <p className="text-sm sm:text-base text-zinc-300/90 line-clamp-3 mb-8 leading-relaxed font-medium max-w-2xl mx-auto md:mx-0">
-                                        {activeContent.description || "Inicie sua jornada cinematográfica agora com este conteúdo exclusivo."}
-                                    </p>
-
-                                    {/* Action Buttons */}
-                                    <div className="flex flex-wrap items-center justify-center md:justify-start gap-4">
-                                        <button
-                                            onClick={() => handlePlayContent(activeContent)}
-                                            className="group/btn relative bg-primary hover:bg-primary-hover text-white font-black h-14 px-10 rounded-2xl transition-all duration-300 hover:scale-105 active:scale-95 shadow-[0_10px_20px_-5px_rgba(var(--primary),0.3)] flex items-center justify-center gap-2 text-base overflow-hidden flex-1 sm:flex-none"
-                                        >
-                                            <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover/btn:translate-x-[100%] transition-transform duration-700 ease-in-out" />
-                                            <Play className="w-5 h-5 fill-current" /> 
-                                            Reproduzir
-                                        </button>
-
-                                        <button
-                                            onClick={() => handleInfoContent(activeContent)}
-                                            className="bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold h-14 px-8 rounded-2xl backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 text-base flex-1 sm:flex-none shadow-xl"
-                                        >
-                                            <Info className="w-5 h-5" /> 
-                                            Explorar
-                                        </button>
-
-                                        <button
-                                            onClick={() => handleToggleMyList(activeContent)}
-                                            className={`group/list h-14 w-14 rounded-2xl border flex items-center justify-center backdrop-blur-md transition-all duration-500 hover:scale-110 active:rotate-12 flex-shrink-0 shadow-xl
-                                                ${isInList 
-                                                    ? 'bg-primary/20 border-primary text-primary shadow-primary/20' 
-                                                    : 'bg-white/5 border-white/10 text-white hover:border-white/40'
-                                                }`}
-                                            title={isInList ? "Remover da lista" : "Adicionar à lista"}
-                                        >
-                                            {isInList ? (
-                                                <Check className="w-6 h-6 animate-in zoom-in duration-300" />
-                                            ) : (
-                                                <Plus className="w-6 h-6 group-hover/list:rotate-180 transition-transform duration-500" />
-                                            )}
-                                        </button>
-                                    </div>
-                                </div>
+                    <div className={`transition-all duration-1000 flex flex-col gap-4 w-full ${isTransitioning ? 'opacity-0 -translate-x-8' : 'opacity-100 translate-x-0'}`}>
+                        
+                        {/* Title Logo or Fallback */}
+                        {tmdbLogo ? (
+                            <div className="w-full max-w-[280px] sm:max-w-[350px] md:max-w-[450px]">
+                                <img 
+                                    src={tmdbLogo} 
+                                    alt={activeContent.title}
+                                    className="w-full h-auto max-h-[160px] object-contain object-left filter drop-shadow-2xl"
+                                />
+                                {activeContent.isPremium && (
+                                    <span className="mt-6 inline-block bg-primary text-white px-3 py-1 rounded-sm text-xs font-black uppercase tracking-[0.1em] shadow-[0_0_15px_-3px_rgba(var(--primary),0.5)]">
+                                        Novo
+                                    </span>
+                                )}
                             </div>
+                        ) : (
+                            <div className="flex flex-col items-start">
+                                {activeContent.isPremium && (
+                                    <span className="mb-4 bg-primary text-white px-3 py-1 rounded-sm text-xs font-black uppercase tracking-[0.1em] shadow-[0_0_15px_-3px_rgba(var(--primary),0.5)] animate-pulse">
+                                        Novo
+                                    </span>
+                                )}
+                                <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black text-white leading-tight drop-shadow-2xl tracking-tighter">
+                                    {activeContent.title}
+                                </h1>
+                            </div>
+                        )}
+
+                        {/* Metadata Row */}
+                        <div className="flex flex-wrap items-center gap-3 drop-shadow-xl text-sm md:text-base font-bold mt-2">
+                            <div className="text-green-500 font-black">
+                                {activeContent.rating ? `${(activeContent.rating * 10).toFixed(0)}% Relevância` : "Recomendado"}
+                            </div>
+                            
+                            {activeContent.year && (
+                                <span className="text-white/80">{activeContent.year}</span>
+                            )}
+
+                            {activeContent.classification && (!isVideoPlaying || window.innerWidth < 768) && (
+                                <span className={`px-1.5 py-0.5 rounded-[3px] border font-bold text-xs
+                                    ${activeContent.classification === 'L' ? 'bg-green-500 text-white border-green-500' :
+                                    activeContent.classification === '10' ? 'bg-blue-400 text-white border-blue-400' :
+                                    activeContent.classification === '12' ? 'bg-yellow-400 text-black border-yellow-400' :
+                                    activeContent.classification === '14' ? 'bg-orange-400 text-white border-orange-400' :
+                                    activeContent.classification === '16' ? 'bg-red-500 text-white border-red-500' :
+                                    'bg-black text-white border-white/50'}`}>
+                                    {activeContent.classification}
+                                </span>
+                            )}
+                            
+                            {activeContent.duration && (
+                                <span className="text-white/80">{activeContent.duration}</span>
+                            )}
+
+                            {activeContent.category === 'movie' ? (
+                                <span className="border border-white/40 px-1 rounded-sm text-white/80 text-[10px] font-bold uppercase">
+                                    HD
+                                </span>
+                            ) : null}
+                        </div>
+
+                        {/* Description */}
+                        <p className="text-base sm:text-lg text-white/90 line-clamp-3 md:line-clamp-4 max-w-xl leading-snug drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] font-medium mt-1">
+                            {activeContent.description}
+                        </p>
+
+                        {/* Action Buttons */}
+                        <div className="flex flex-wrap items-center gap-4 mt-4">
+                            <button
+                                onClick={() => handlePlayContent(activeContent)}
+                                className="group/btn relative bg-white hover:bg-white/80 text-black font-bold h-12 md:h-14 px-6 md:px-8 rounded-[4px] transition-all duration-300 hover:scale-105 active:scale-95 shadow-xl flex items-center justify-center gap-3 text-lg md:text-xl"
+                            >
+                                <Play className="w-6 h-6 md:w-8 md:h-8 fill-current" /> 
+                                Assistir
+                            </button>
+
+                            <button
+                                onClick={() => handleInfoContent(activeContent)}
+                                className="bg-zinc-500/50 hover:bg-zinc-500/40 text-white font-bold h-12 md:h-14 px-6 md:px-8 rounded-[4px] backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-3 text-lg md:text-xl shadow-xl"
+                            >
+                                <Info className="w-6 h-6 md:w-7 md:h-7" /> 
+                                Mais informações
+                            </button>
                         </div>
                     </div>
                 )}
