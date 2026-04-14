@@ -95,6 +95,22 @@
       <p class="loader-text">CARREGANDO</p>
       <div class="loader-spinner"></div>
     </div>
+    <script>
+      // Detect Capacitor to apply immediately for the APK
+      if (window.Capacitor || window.location.href.includes('capacitor://') || window.location.href.includes('http://localhost')) {
+        const loader = document.getElementById('root-loader');
+        if (loader) {
+          loader.style.backgroundColor = '#000000';
+          // Hide logo and text for APK as requested "only black loading screen"
+          const icon = loader.querySelector('.loader-icon');
+          const title = loader.querySelector('.loader-title');
+          const text = loader.querySelector('.loader-text');
+          if (icon) icon.style.display = 'none';
+          if (title) title.style.display = 'none';
+          if (text) text.style.display = 'none';
+        }
+      }
+    </script>
   </div>
   <script type="module" src="/src/main.tsx"></script>
 </body>

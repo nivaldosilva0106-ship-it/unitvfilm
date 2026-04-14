@@ -107,7 +107,9 @@ export const PWAInstallBanner = () => {
     localStorage.setItem('pwa_banner_dismissed', 'true');
   };
 
-  if (!showBanner || isInstalled) return null;
+  const isNative = typeof window !== 'undefined' && (window as any).Capacitor?.isNativePlatform();
+
+  if (!showBanner || isInstalled || isNative) return null;
 
   const appIcon = settings?.pwaIconUrl || "/favicon.png";
 

@@ -17,7 +17,7 @@ const hiddenPaths = ["/admin", "/login", "/signup", "/watch/", "/profiles"];
 export const MobileBottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentProfile } = useAuth();
+  const { currentProfile, user } = useAuth();
   
   const [listCount, setListCount] = useState(0);
   const [hasNewHome, setHasNewHome] = useState(false);
@@ -25,7 +25,7 @@ export const MobileBottomNav = () => {
   const [hideNewBadges, setHideNewBadges] = useState(false);
   const [showLiveModal, setShowLiveModal] = useState(false);
 
-  const shouldHide = hiddenPaths.some((p) => location.pathname.startsWith(p));
+  const shouldHide = !user || hiddenPaths.some((p) => location.pathname.startsWith(p));
 
   useEffect(() => {
     if (shouldHide) {
