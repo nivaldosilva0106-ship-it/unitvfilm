@@ -88,3 +88,12 @@ export interface UserContentProgress {
   durationSeconds?: number;
   updatedAt: string; // ISO String
 }
+export interface TransferItem {
+  id: string;
+  userId: string;
+  contentId: string;
+  title: string;
+  thumbnailUrl?: string;
+  url: string;
+  addedAt: string; // ISO String
+}

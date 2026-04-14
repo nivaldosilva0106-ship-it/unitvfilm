@@ -617,6 +617,41 @@ export const signInAnonymously = async () => {
   return result;
 };
 
+// ==========================================
+// Transfer Management (My Transfers)
+// ==========================================
+import type { TransferItem } from '@/types/user';
+
+export const addTransfer = async (userId: string, item: Omit<TransferItem, 'id' | 'userId' | 'addedAt'>) => {
+  const transfersRef = ref(database, `transfers/${userId}`);
+  const newTransferRef = push(transfersRef);
+  
+  const transfer: TransferItem = {
+    ...item,
+    id: newTransferRef.key!,
+    userId,
+    addedAt: new Date().toISOString(),
+  };
+
+  const cleaned = removeUndefinedDeep(transfer);
+  await set(newTransferRef, cleaned);
+  return transfer;
+};
+
+export const getUserTransfers = async (userId: string): Promise<TransferItem[]> => {
+  const transfersRef = ref(database, `transfers/${userId}`);
+  const snapshot = await get(transfersRef);
+  if (snapshot.exists()) {
+    const data = snapshot.val();
+    // Sort by addedAt descending
+    return (Object.values(data) as TransferItem[]).sort((a, b) => 
+      new Date(b.addedAt).getTime() - new Date(a.addedAt).getTime()
+    );
+  }
+  return [];
+};
+
+
 // Plan Management
 export const getPlans = async (): Promise<Plan[]> => {
   const plansRef = ref(database, 'plans');

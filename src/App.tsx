@@ -49,6 +49,7 @@ const About = React.lazy(() => import("./pages/About").catch(() => {
 }));
 const TermsOfUse = React.lazy(() => import("./pages/TermsOfUse"));
 const PrivacyPolicy = React.lazy(() => import("./pages/PrivacyPolicy"));
+const Transfers = React.lazy(() => import("./pages/Transfers"));
 
 // Lazy load admin components
 const AdminUsers = React.lazy(() => import("@/components/admin/AdminUsers").then(module => ({ default: module.AdminUsers })));
@@ -107,6 +108,7 @@ const App = () => (
                 <Route path="/terms" element={<TermsOfUse />} />
                 <Route path="/privacy" element={<PrivacyPolicy />} />
                 <Route path="/verify-code" element={<VerifyCode />} />
+                <Route path="/transfers" element={<Transfers />} />
 
                 <Route path="/admin/users" element={
                   <AdminLayout title="Gerenciar Usuários">

@@ -215,23 +215,11 @@ export const Header = () => {
                     </button>
 
                     <button
-                      onClick={() => { navigate("/canais24h"); }}
+                      onClick={() => { navigate("/transfers"); }}
                       className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
                     >
-                      <Film className="w-5 h-5 text-red-500" />
-                      Transmissão 24h
-                      <div className="flex items-center gap-1.5 ml-auto px-2 py-0.5 bg-red-600/20 border border-red-600/30 rounded text-[10px] font-bold text-red-500 tracking-wider">
-                        <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]"></div>
-                        LIVE
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => { window.open("https://unitvfbox.vercel.app/", "_blank"); }}
-                      className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
-                    >
-                      <Tv className="w-5 h-5 text-primary" />
-                      UniTvBox
+                      <Download className="w-5 h-5" />
+                      Minhas Transferências
                     </button>
                     <button
                       onClick={() => { navigate("/about"); }}
@@ -290,20 +278,9 @@ export const Header = () => {
                 <span className="flex h-1.5 w-1.5 rounded-full bg-red-600 animate-pulse" />
               </button>
 
-              <button onClick={() => navigate("/canais24h")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors flex items-center gap-1.5">
-                Transmissão 24h
-                <div className="flex items-center gap-1 px-1.5 py-0.5 bg-red-600/20 border border-red-600/30 rounded text-[9px] font-bold text-red-500 tracking-wider">
-                  <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(239,68,68,0.8)]"></div>
-                  LIVE
-                </div>
-              </button>
-
-              <button
-                onClick={() => window.open("https://unitvfbox.vercel.app/", "_blank")}
-                className="text-sm font-medium text-gray-300 hover:text-white transition-colors flex items-center gap-2"
-              >
-                <Tv className="w-4 h-4 text-primary" />
-                UniTvBox
+              <button onClick={() => navigate("/transfers")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors flex items-center gap-2">
+                Minhas Transferências
+                <Download className="w-4 h-4" />
               </button>
               <button onClick={() => navigate("/about")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
                 Sobre Nós
@@ -312,6 +289,16 @@ export const Header = () => {
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+            {/* My Transfers Icon (As requested in screenshot 1) */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/transfers")}
+              className="text-gray-300 hover:text-white hover:bg-white/10"
+            >
+              <Download className="h-5 w-5" />
+            </Button>
+
             {/* PWA Install Icon */}
             <InstallAppButton variant="icon" className="text-gray-300 hover:text-white" />
 
@@ -455,6 +442,10 @@ export const Header = () => {
                   <DropdownMenuItem onClick={() => navigate("/my-list")} className="focus:bg-white/10 cursor-pointer">
                     <List className="mr-2 h-4 w-4" />
                     Minha Lista
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => navigate("/transfers")} className="focus:bg-white/10 cursor-pointer">
+                    <Download className="mr-2 h-4 w-4" />
+                    Minhas Transferências
                   </DropdownMenuItem>
                   {isAdmin && (
                     <DropdownMenuItem onClick={() => navigate("/admin")} className="focus:bg-white/10 cursor-pointer text-yellow-500 hover:text-yellow-400">

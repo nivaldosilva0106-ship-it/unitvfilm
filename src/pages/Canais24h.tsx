@@ -728,6 +728,23 @@ export default function Canais24h() {
     const [contents, setContents] = useState<Content[]>([]);
     const [currentChannel, setCurrentChannel] = useState<Content | null>(null);
     const [loading, setLoading] = useState(true);
+    const [showApkWarning, setShowApkWarning] = useState(false);
+
+    // Detect Capacitor (APK)
+    useEffect(() => {
+        const checkApk = () => {
+            const isCapacitor = (window as any).Capacitor?.isNativePlatform;
+            if (isCapacitor) {
+                setShowApkWarning(true);
+            }
+        };
+        checkApk();
+    }, []);
+
+    const handleAdvanceToWeb = () => {
+        const webUrl = `https://unitvfilms.vercel.app/canais24h${initialChannelId ? `?channelId=${initialChannelId}` : ""}`;
+        window.open(webUrl, "_blank");
+    };
 
     // Server time offset
     const serverOffsetRef = useRef(0);
@@ -1693,6 +1710,56 @@ export default function Canais24h() {
                     </div>
                 </div>
             </main>
+            {/* APK Warning Modal */}
+            {showApkWarning && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-500">
+                    <div className="bg-[#151515] border border-white/10 p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl scale-in-center overflow-hidden relative">
+                        {/* Background Decoration */}
+                        <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
+                        
+                        <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-primary/20">
+                            <Tv className="w-10 h-10 text-primary" />
+                        </div>
+                        
+                        <h2 className="text-2xl font-black text-white mb-4">Aviso de Compatibilidade</h2>
+                        
+                        <p className="text-gray-400 text-sm leading-relaxed mb-8">
+                            Esta página ainda não está 100% funcional para aplicativos. 
+                            Alguns canais (como links do TikTok) não vão aparecer corretamente aqui.
+                        </p>
+                        
+                        <div className="flex flex-col gap-3">
+                            <Button 
+                                onClick={handleAdvanceToWeb}
+                                className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 rounded-xl"
+                            >
+                                Avançar para o Site Web
+                            </Button>
+                            
+                            <Button 
+                                variant="ghost"
+                                onClick={() => setShowApkWarning(false)}
+                                className="text-gray-500 hover:text-white"
+                            >
+                                Continuar no App mesmo assim
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <style dangerouslySetInnerHTML={{ __html: `
+                .scale-in-center {
+                    animation: scale-in-center 0.5s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
+                }
+                @keyframes scale-in-center {
+                    0% { transform: scale(0); opacity: 1; }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+                .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+                .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+            `}} />
         </div>
     );
 }

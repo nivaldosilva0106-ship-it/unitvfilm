@@ -11,9 +11,14 @@ interface DownloadModalProps {
     download_mode?: 'direct' | 'torrent' | 'mixed';
     title: string;
     thumbnail?: string;
+    contentId: string;
 }
 
-export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_mode = 'direct', title, thumbnail }: DownloadModalProps) => {
+import { addTransfer } from "@/lib/firebase";
+import { useAuth } from "@/contexts/AuthContext";
+
+export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_mode = 'direct', title, thumbnail, contentId }: DownloadModalProps) => {
+    const { user } = useAuth();
     const [pendingUrl, setPendingUrl] = useState<string | null>(null);
     const [countdown, setCountdown] = useState<number>(10);
 
@@ -44,9 +49,23 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
         }
     }, [open]);
 
-    const handleDownload = (url: string) => {
+    const handleDownload = async (url: string) => {
         setPendingUrl(url);
         setCountdown(10);
+        
+        // Track the download in Firebase
+        if (user) {
+            try {
+                await addTransfer(user.uid, {
+                    contentId,
+                    title,
+                    thumbnailUrl: thumbnail,
+                    url
+                });
+            } catch (error) {
+                console.error("Error tracking transfer:", error);
+            }
+        }
     };
 
     return (

@@ -524,6 +524,7 @@ const ContentDetails = () => {
           download_mode={content.download_mode}
           title={content.title}
           thumbnail={content.thumbnail_url}
+          contentId={content.id}
         />
 
         <CinemaWarningModal

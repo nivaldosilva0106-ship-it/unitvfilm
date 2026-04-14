@@ -24,6 +24,23 @@ const LiveTV = () => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
     const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+    const [showApkWarning, setShowApkWarning] = useState(false);
+
+    // Detect Capacitor (APK)
+    useEffect(() => {
+        const checkApk = () => {
+            const isCapacitor = (window as any).Capacitor?.isNativePlatform;
+            if (isCapacitor) {
+                setShowApkWarning(true);
+            }
+        };
+        checkApk();
+    }, []);
+
+    const handleAdvanceToWeb = () => {
+        const webUrl = `https://unitvfilms.vercel.app/tv${activeChannel ? `?channelId=${activeChannel.id}` : ""}`;
+        window.open(webUrl, "_blank");
+    };
 
     const [searchParams] = useSearchParams();
     const channelIdParam = searchParams.get('channelId');
@@ -311,6 +328,56 @@ const LiveTV = () => {
                     )}
                 </div>
             </div>
+                </div>
+            </div>
+
+            {/* APK Warning Modal */}
+            {showApkWarning && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-in fade-in duration-500">
+                    <div className="bg-[#151515] border border-white/10 p-8 rounded-3xl max-w-sm w-full text-center shadow-2xl scale-in-center overflow-hidden relative">
+                        {/* Background Decoration */}
+                        <div className="absolute -top-10 -right-10 w-32 h-32 bg-primary/10 rounded-full blur-3xl" />
+                        
+                        <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-primary/20">
+                            <Monitor className="w-10 h-10 text-primary" />
+                        </div>
+                        
+                        <h2 className="text-2xl font-black text-white mb-4">Aviso de Tecnologia</h2>
+                        
+                        <p className="text-gray-400 text-sm leading-relaxed mb-8">
+                            A tecnologia de alguns canais externos pode não ser compatível com o aplicativo Android. 
+                            Para assistir sem players em branco, use a nossa versão web.
+                        </p>
+                        
+                        <div className="flex flex-col gap-3">
+                            <Button 
+                                onClick={handleAdvanceToWeb}
+                                className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 rounded-xl"
+                            >
+                                Assistir no Navegador
+                            </Button>
+                            
+                            <Button 
+                                variant="ghost"
+                                onClick={() => setShowApkWarning(false)}
+                                className="text-gray-500 hover:text-white"
+                            >
+                                Tentar assistir aqui
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <style dangerouslySetInnerHTML={{ __html: `
+                .scale-in-center {
+                    animation: scale-in-center 0.5s cubic-bezier(0.250, 0.460, 0.450, 0.940) both;
+                }
+                @keyframes scale-in-center {
+                    0% { transform: scale(0); opacity: 1; }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+            `}} />
         </div>
     );
 };
