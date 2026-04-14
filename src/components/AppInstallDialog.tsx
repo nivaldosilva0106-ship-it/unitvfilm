@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { X, Smartphone, Globe, Download, Info } from "lucide-react";
 import { Button } from "./ui/button";
 import { getSiteSettings, type SiteSettings } from "@/lib/firebase";
@@ -38,7 +39,7 @@ export const AppInstallDialog = ({ open, onClose, onInstallPWA }: AppInstallDial
 
   const appIcon = settings?.pwaIconUrl || "/favicon.png";
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4">
       <div 
         className="absolute inset-0 bg-black/80 backdrop-blur-md animate-in fade-in duration-300" 
@@ -118,6 +119,7 @@ export const AppInstallDialog = ({ open, onClose, onInstallPWA }: AppInstallDial
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

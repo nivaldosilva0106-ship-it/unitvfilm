@@ -157,7 +157,7 @@ export const MobileBottomNav = () => {
               <button 
                 onClick={() => {
                   setShowLiveModal(false);
-                  navigate('/tv_online');
+                  navigate('/tv');
                 }}
                 className="flex items-center justify-between bg-primary p-4 rounded-2xl hover:bg-primary/90 transition-all active:scale-95"
               >
