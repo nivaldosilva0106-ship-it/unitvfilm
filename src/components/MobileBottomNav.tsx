@@ -23,6 +23,7 @@ export const MobileBottomNav = () => {
   const [hasNewHome, setHasNewHome] = useState(false);
   const [hasNewNostalgia, setHasNewNostalgia] = useState(false);
   const [hideNewBadges, setHideNewBadges] = useState(false);
+  const [showLiveModal, setShowLiveModal] = useState(false);
 
   const shouldHide = hiddenPaths.some((p) => location.pathname.startsWith(p));
 
@@ -93,7 +94,13 @@ export const MobileBottomNav = () => {
         return (
           <button
             key={item.path}
-            onClick={() => navigate(item.path)}
+            onClick={() => {
+              if (item.type === 'live') {
+                setShowLiveModal(true);
+              } else {
+                navigate(item.path);
+              }
+            }}
             className={`mobile-bottom-nav-item ${isActive ? "active" : ""}`}
             style={{ WebkitTapHighlightColor: 'transparent' }}
           >
@@ -135,6 +142,56 @@ export const MobileBottomNav = () => {
           </button>
         );
       })}
+
+      {/* MODAL 24H */}
+      {showLiveModal && (
+        <div className="fixed inset-0 z-[100] flex items-end justify-center bg-black/60 backdrop-blur-sm transition-opacity" onClick={() => setShowLiveModal(false)}>
+          <div 
+            className="w-full bg-[#111] border-t border-white/10 rounded-t-3xl p-6 pb-24 shadow-2xl animate-in slide-in-from-bottom-full duration-300"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="w-12 h-1.5 bg-white/20 rounded-full mx-auto mb-6" />
+            <h3 className="text-xl font-bold text-white mb-6 text-center">O que você deseja assistir?</h3>
+            
+            <div className="flex flex-col gap-3">
+              <button 
+                onClick={() => {
+                  setShowLiveModal(false);
+                  navigate('/tv_online');
+                }}
+                className="flex items-center justify-between bg-primary p-4 rounded-2xl hover:bg-primary/90 transition-all active:scale-95"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="bg-black/20 p-2 rounded-full"><Tv className="w-6 h-6 text-white" /></div>
+                  <span className="text-white font-bold text-lg">TV Online</span>
+                </div>
+                <span className="text-white/60 text-xs font-semibold uppercase tracking-wider bg-black/20 px-2 py-1 rounded">IPTV</span>
+              </button>
+              
+              <button 
+                onClick={() => {
+                  setShowLiveModal(false);
+                  navigate('/canais24h');
+                }}
+                className="flex items-center justify-between bg-white/10 border border-white/10 p-4 rounded-2xl hover:bg-white/20 transition-all active:scale-95"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="bg-white/10 p-2 rounded-full"><Clapperboard className="w-6 h-6 text-white" /></div>
+                  <span className="text-white font-bold text-lg">Canais 24h</span>
+                </div>
+                <span className="text-red-500 font-bold text-xs uppercase tracking-wider bg-red-500/10 px-2 py-1 rounded animate-pulse">Livre</span>
+              </button>
+            </div>
+            
+            <button 
+              onClick={() => setShowLiveModal(false)}
+              className="w-full mt-6 py-3 text-white/50 hover:text-white font-bold text-center transition-colors"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </nav>
   );
 };

@@ -285,6 +285,15 @@ export const IndexHero = memo(({
                                     HD
                                 </span>
                             ) : null}
+
+                            {activeContent.provider && providerLogos?.[activeContent.provider] && (
+                                <img 
+                                    src={providerLogos[activeContent.provider]} 
+                                    alt={activeContent.provider} 
+                                    title={activeContent.provider}
+                                    className="h-4 sm:h-5 object-contain ml-1 drop-shadow-md rounded-[2px]" 
+                                />
+                            )}
                         </div>
 
                         {/* Description */}
@@ -293,21 +302,28 @@ export const IndexHero = memo(({
                         </p>
 
                         {/* Action Buttons */}
-                        <div className="flex flex-wrap items-center gap-4 mt-4">
+                        <div className="flex flex-wrap items-center gap-3 mt-4">
                             <button
                                 onClick={() => handlePlayContent(activeContent)}
-                                className="group/btn relative bg-white hover:bg-white/80 text-black font-bold h-12 md:h-14 px-6 md:px-8 rounded-[4px] transition-all duration-300 hover:scale-105 active:scale-95 shadow-xl flex items-center justify-center gap-3 text-lg md:text-xl"
+                                className="group/btn relative bg-green-800 hover:bg-green-700 text-white font-bold h-11 md:h-13 px-6 md:px-8 rounded-full transition-all duration-300 hover:scale-105 active:scale-95 shadow-[0_4px_14px_0_rgba(22,101,52,0.5)] flex items-center justify-center gap-2 text-base md:text-lg"
                             >
-                                <Play className="w-6 h-6 md:w-8 md:h-8 fill-current" /> 
+                                <Play className="w-5 h-5 md:w-6 md:h-6 fill-current" /> 
                                 Assistir
                             </button>
 
                             <button
                                 onClick={() => handleInfoContent(activeContent)}
-                                className="bg-zinc-500/50 hover:bg-zinc-500/40 text-white font-bold h-12 md:h-14 px-6 md:px-8 rounded-[4px] backdrop-blur-md transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-3 text-lg md:text-xl shadow-xl"
+                                className="bg-white/10 hover:bg-white/20 text-white font-bold h-11 md:h-13 px-6 md:px-8 rounded-full backdrop-blur-xl border border-white/20 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 text-base md:text-lg shadow-xl"
                             >
-                                <Info className="w-6 h-6 md:w-7 md:h-7" /> 
+                                <Info className="w-5 h-5 md:w-6 md:h-6" /> 
                                 Mais informações
+                            </button>
+
+                            <button
+                                onClick={(e) => { e.stopPropagation(); handleToggleMyList(activeContent); }}
+                                className="w-11 h-11 md:w-13 md:h-13 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-xl border border-white/20 transition-all duration-300 hover:scale-105 active:scale-95 shadow-xl"
+                            >
+                                {isInList ? <Check className="w-5 h-5 md:w-6 md:h-6" /> : <Plus className="w-5 h-5 md:w-6 md:h-6" />}
                             </button>
                         </div>
                     </div>
