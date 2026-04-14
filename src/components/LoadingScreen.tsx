@@ -1,10 +1,23 @@
 import { Film } from "lucide-react";
+import { Capacitor } from '@capacitor/core';
 
 interface LoadingScreenProps {
   message?: string;
 }
 
 export const LoadingScreen = ({ message = "CARREGANDO" }: LoadingScreenProps) => {
+  const isNative = Capacitor.isNativePlatform();
+
+  if (isNative) {
+    return (
+      <div className="fixed inset-0 z-[99999] flex flex-col items-center justify-center bg-black">
+        <div className="relative h-12 w-12">
+          <div className="absolute inset-0 animate-spin rounded-full border-4 border-[#333] border-t-emerald-500"></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[#0a0a0a]">
       {/* Logo Icon */}
