@@ -793,7 +793,7 @@ export default function Canais24h() {
     // Sort programs naturally (alphabetically but with awareness of numbers)
     // This allows "Ep 1, Ep 2, Ep 10" to be in correct order automatically.
     const programs = useMemo(() => {
-        return currentChannel?.episodes || [];
+        return (currentChannel?.episodes || []).filter(Boolean);
     }, [currentChannel?.episodes]);
     const intervalList = currentChannel?.interval_list || [];
     const adList = currentChannel?.ad_list || [];
@@ -907,7 +907,7 @@ export default function Canais24h() {
 
         // 2. Fallback to static mathematical scheduler 
         const nowSec = Math.floor((Date.now() + serverOffsetRef.current) / 1000);
-        const salt = currentChannel.id.split("").reduce((a, c) => a + c.charCodeAt(0), 0);
+        const salt = (currentChannel.id || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0);
         let total = 0;
         const mapped = programs.map((p, i) => {
             const s = total;
