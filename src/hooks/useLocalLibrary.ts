@@ -24,8 +24,6 @@ export function useLocalLibrary() {
   const addFolder = useCallback(async () => {
     try {
       if (Capacitor.isNativePlatform()) {
-        // On native, prompt the user for a folder path
-        // (e.g. /storage/emulated/0/Movies)
         const path = window.prompt(
           'Digite o caminho da pasta (ex: /storage/emulated/0/Movies)'
         );
@@ -106,10 +104,10 @@ export function useLocalLibrary() {
         const ext = file.name.split('.').pop()?.toLowerCase();
         
         if (ext && videoExts.includes(ext)) {
-          await processFile(file.name, entry.name, file.size, file.lastModified, folder.name);
+          // Pass the FileSystemFileHandle so LocalPlayer can create a blob URL later
+          await processFile(file.name, file.name, file.size, file.lastModified, folder.name, entry as FileSystemFileHandle);
         }
       }
-      // Recursive scan could be added here
     }
   };
 
@@ -125,9 +123,7 @@ export function useLocalLibrary() {
          if (file.type === 'file') {
            const ext = file.name.split('.').pop()?.toLowerCase();
            if (ext && videoExts.includes(ext)) {
-             // Capacitor readdir doesn't give size/mtime directly for all files in result.files in some versions
-             // We use stats or default values
-             await processFile(file.name, file.uri || file.path, 0, Date.now(), folder.name);
+             await processFile(file.name, file.uri || file.name, 0, Date.now(), folder.name);
            }
          }
        }
@@ -136,9 +132,16 @@ export function useLocalLibrary() {
     }
   };
 
-  const processFile = async (fileName: string, filePath: string, size: number, mtime: number, folderName: string) => {
+  const processFile = async (
+    fileName: string,
+    filePath: string,
+    size: number,
+    mtime: number,
+    folderName: string,
+    fileHandle?: FileSystemFileHandle
+  ) => {
     // Check if already exists
-    const existing = await db.movies.where('filePath').equals(filePath).first();
+    const existing = await db.movies.where('fileName').equals(fileName).first();
     if (existing) return;
 
     const parsed = parseFileName(fileName);
@@ -146,11 +149,9 @@ export function useLocalLibrary() {
     
     if (isOnline) {
       try {
-        // Try to match on TMDB
         const results = parsed.season ? await searchSeries(parsed.cleanTitle) : await searchMovies(parsed.cleanTitle);
         if (results && results.length > 0) {
           const match = results[0];
-          // Simple heuristic: year match
           const tmdbId = match.id;
           metadata = parsed.season ? await getSeriesDetails(tmdbId) : await getMovieDetails(tmdbId);
         }
@@ -175,7 +176,8 @@ export function useLocalLibrary() {
       voteAverage: metadata?.vote_average,
       season: parsed.season,
       episode: parsed.episode,
-      seriesName: parsed.season ? (metadata?.name || parsed.cleanTitle) : undefined
+      seriesName: parsed.season ? (metadata?.name || parsed.cleanTitle) : undefined,
+      fileHandle: fileHandle // Store the handle for later playback
     };
 
     await db.movies.add(movie);

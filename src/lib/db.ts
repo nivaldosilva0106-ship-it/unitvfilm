@@ -19,6 +19,9 @@ export interface LocalMovie {
   lastModified: number;
   folderPath: string;
   
+  // File handle for Web playback (stored in IndexedDB, not indexed)
+  fileHandle?: FileSystemFileHandle;
+  
   // Content type
   type: 'movie' | 'episode';
   seriesName?: string;
