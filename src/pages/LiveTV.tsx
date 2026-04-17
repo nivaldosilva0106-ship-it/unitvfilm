@@ -328,8 +328,6 @@ const LiveTV = () => {
                     )}
                 </div>
             </div>
-                </div>
-            </div>
 
             {/* APK Warning Modal */}
             {showApkWarning && (

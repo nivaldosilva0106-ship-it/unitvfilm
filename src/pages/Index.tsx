@@ -16,6 +16,7 @@ import { useAppConfig } from "@/hooks/useAppConfig";
 import { MyListItem } from "@/types/user";
 import { IndexHero } from "@/components/IndexHero";
 import { STREAMING_PROVIDERS, getProviderConfig } from "@/lib/providers";
+import { LocalContentSection } from "@/components/LocalContentSection";
 
 // Lazy load heavy components
 const EpisodeSelector = React.lazy(() => import("@/components/EpisodeSelector").then(module => ({ default: module.EpisodeSelector })));
@@ -439,6 +440,9 @@ const Index = () => {
             </div>
           </div>
         )}
+
+        {/* Local Content Section - New */}
+        <LocalContentSection />
 
         {showAllRows && (
           <>
