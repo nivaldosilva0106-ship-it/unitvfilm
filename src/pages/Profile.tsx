@@ -370,131 +370,181 @@ const Profile = () => {
 
       </div>
 
-      {/* Modal Edição */}
       <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
-        <DialogContent className="bg-[#1a1a1a] border-[#333] text-white sm:max-w-[425px]">
+        <DialogContent className="bg-[#1a1a1a] border-[#333] text-white sm:max-w-[800px] overflow-y-auto max-h-[90vh]">
           <DialogHeader>
-            <DialogTitle>{isAddingNew ? "Novo Perfil" : "Editar Perfil"}</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">{isAddingNew ? "Criar Novo Perfil" : "Editar Perfil"}</DialogTitle>
           </DialogHeader>
-
-          <div className="space-y-6 py-4">
-            {/* Avatar Selection */}
-            <div className="space-y-4">
-              <div className="flex justify-center">
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 py-6">
+            {/* Left Column: Avatar Selection */}
+            <div className="space-y-6 flex flex-col items-center">
+              <div className="relative group">
                 <img
                   src={formAvatar || "https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png"}
-                  className="w-24 h-24 rounded shadow-lg object-cover"
+                  className="w-32 h-32 md:w-48 md:h-48 rounded-xl shadow-2xl object-cover ring-4 ring-zinc-800 transition-transform group-hover:scale-105"
                   alt="Avatar Preview"
                 />
+                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity rounded-xl">
+                  <Camera className="w-8 h-8 text-white" />
+                </div>
               </div>
-              <div className="grid grid-cols-5 gap-2 max-h-[100px] overflow-y-auto p-2 bg-black/20 rounded-lg">
-                {systemAvatars.map(av => (
-                  <button
-                    key={av.id}
-                    onClick={() => setFormAvatar(av.url)}
-                    className={cn(
-                      "rounded-md overflow-hidden transition-all hover:scale-110",
-                      formAvatar === av.url ? "ring-2 ring-primary" : "opacity-70 hover:opacity-100"
-                    )}
-                  >
-                    <img src={av.url} className="w-full h-full object-cover aspect-square" />
-                  </button>
-                ))}
+              
+              <div className="w-full">
+                <Label className="mb-4 block text-zinc-400 text-xs uppercase tracking-widest text-center">Escolha seu Avatar</Label>
+                <div className="grid grid-cols-4 sm:grid-cols-5 gap-3 p-4 bg-black/30 rounded-2xl border border-white/5 max-h-[200px] overflow-y-auto scrollbar-hide">
+                  {systemAvatars.map(av => (
+                    <button
+                      key={av.id}
+                      onClick={() => setFormAvatar(av.url)}
+                      className={cn(
+                        "rounded-lg overflow-hidden transition-all hover:scale-110 aspect-square",
+                        formAvatar === av.url ? "ring-2 ring-primary scale-110 z-10" : "opacity-60 hover:opacity-100"
+                      )}
+                    >
+                      <img src={av.url} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
-            <div className="space-y-4">
+            {/* Right Column: Settings */}
+            <div className="space-y-6">
               <div className="space-y-2">
-                <Label>Nome</Label>
+                <Label className="text-zinc-400 font-medium">Nome do Perfil</Label>
                 <Input
                   value={formName}
                   onChange={e => setFormName(e.target.value)}
-                  className="bg-[#0a0a0a] border-[#333]"
+                  placeholder="Ex: Minha Família"
+                  className="bg-[#0f0f0f] border-zinc-800 h-12 text-lg focus:ring-primary/50"
                 />
               </div>
 
               {/* Security Section */}
-              <div className="bg-red-500/5 border border-red-500/10 p-4 rounded-lg space-y-4">
-                <div className="space-y-2">
-                  <Label className="flex items-center gap-2">
-                    <Lock className="w-3 h-3" /> PIN de Segurança (4 dígitos)
+              <div className="bg-zinc-900/50 border border-zinc-800 p-5 rounded-2xl space-y-4">
+                <div className="flex items-center justify-between mb-2">
+                  <Label className="flex items-center gap-2 text-zinc-200">
+                    <Lock className="w-4 h-4 text-primary" /> PIN de Segurança
                   </Label>
-                  <Input
-                    type="password"
-                    maxLength={4}
-                    placeholder={isAddingNew ? "Definir PIN (Opcional)" : "Novo PIN (Deixe vazio para manter)"}
-                    value={formPin}
-                    onChange={e => setFormPin(e.target.value.replace(/\D/g, ''))}
-                    className="bg-[#0a0a0a] border-[#333]"
-                    autoComplete="new-password"
+                  <span className="text-[10px] text-zinc-500 uppercase tracking-tighter">🔒 4 Dígitos</span>
+                </div>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Input
+                      type="password"
+                      maxLength={4}
+                      placeholder={isAddingNew ? "Definir PIN (Opcional)" : "Novo PIN (Deixe vazio para manter)"}
+                      value={formPin}
+                      onChange={e => setFormPin(e.target.value.replace(/\D/g, ''))}
+                      className="bg-[#0a0a0a] border-zinc-800 text-center tracking-[1em] font-bold text-xl h-12"
+                      autoComplete="new-password"
+                    />
+                  </div>
+
+                  {!isAddingNew && editingProfile?.pin && (
+                    <div className="pt-2 mt-2 border-t border-zinc-800/50 space-y-3">
+                      <Label className="text-xs text-red-500/80 font-medium italic">Confirmação obrigatória para salvar:</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          type="password"
+                          maxLength={4}
+                          placeholder="PIN Atual"
+                          value={currentPin}
+                          onChange={e => setCurrentPin(e.target.value.replace(/\D/g, ''))}
+                          className="bg-[#0a0a0a] border-red-500/20 focus:border-red-500 text-center tracking-[1em]"
+                          autoComplete="new-password"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs text-zinc-500 hover:text-white"
+                          onClick={handleForgotPin}
+                        >
+                          Esqueci
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Toggles Container */}
+              <div className="grid grid-cols-1 gap-3">
+                <div 
+                  className={cn(
+                    "flex items-center justify-between p-4 rounded-2xl transition-all cursor-pointer",
+                    formIsKids ? "bg-blue-500/10 border border-blue-500/30" : "bg-zinc-900/30 border border-zinc-800"
+                  )}
+                  onClick={() => setFormIsKids(!formIsKids)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn("p-2 rounded-lg", formIsKids ? "bg-blue-500/20 text-blue-400" : "bg-zinc-800 text-zinc-400")}>
+                      <AlertTriangle className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">Perfil Kids</p>
+                      <p className="text-[11px] text-zinc-500">Apenas conteúdo livre</p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={formIsKids}
+                    onChange={() => {}} // Controlled by Div
+                    className="w-5 h-5 accent-blue-500"
                   />
                 </div>
 
-                {!isAddingNew && editingProfile?.pin && (
-                  <div className="space-y-2">
-                    <Label className="text-red-400">Confirme seu PIN atual para salvar</Label>
-                    <div className="flex gap-2">
-                      <Input
-                        type="password"
-                        maxLength={4}
-                        placeholder="PIN Atual"
-                        value={currentPin}
-                        onChange={e => setCurrentPin(e.target.value.replace(/\D/g, ''))}
-                        className="bg-[#0a0a0a] border-red-500/30 focus:border-red-500"
-                        autoComplete="new-password"
-                      />
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                        onClick={handleForgotPin}
-                      >
-                        Esqueci PIN
-                      </Button>
+                <div 
+                  className={cn(
+                    "flex items-center justify-between p-4 rounded-2xl transition-all cursor-pointer",
+                    formShowLocalLibrary ? "bg-primary/10 border border-primary/30" : "bg-zinc-900/30 border border-zinc-800"
+                  )}
+                  onClick={() => setFormShowLocalLibrary(!formShowLocalLibrary)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn("p-2 rounded-lg", formShowLocalLibrary ? "bg-primary/20 text-primary" : "bg-zinc-800 text-zinc-400")}>
+                      <Library className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">Biblioteca Local</p>
+                      <p className="text-[11px] text-zinc-500">Mostrar ficheiros offline</p>
                     </div>
                   </div>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="kidstoggle"
-                  checked={formIsKids}
-                  onChange={e => setFormIsKids(e.target.checked)}
-                  className="rounded border-gray-600 bg-transparent"
-                />
-                <Label htmlFor="kidstoggle">Perfil Kids (Restringe conteúdos adultos e violentos)</Label>
-              </div>
-
-              {/* Biblioteca Local Toggle */}
-              <div className="flex items-center gap-2 bg-zinc-800/50 p-3 rounded-lg">
-                <input
-                  type="checkbox"
-                  id="locallibtoggle"
-                  checked={formShowLocalLibrary}
-                  onChange={e => setFormShowLocalLibrary(e.target.checked)}
-                  className="rounded border-gray-600 bg-transparent"
-                />
-                <Label htmlFor="locallibtoggle" className="flex items-center gap-2 cursor-pointer">
-                  <Library className="w-4 h-4 text-primary" />
-                  Mostrar Biblioteca Local
-                </Label>
+                  <input
+                    type="checkbox"
+                    checked={formShowLocalLibrary}
+                    onChange={() => {}} // Controlled by Div
+                    className="w-5 h-5 accent-primary"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          <DialogFooter className="gap-2 sm:gap-0">
-            {!isAddingNew && (
-              <Button variant="destructive" onClick={handleDeleteProfile} disabled={formLoading} className="mr-auto">
-                Excluir
+          <DialogFooter className="flex flex-row justify-between items-center sm:justify-between border-t border-zinc-800 pt-6 mt-2">
+            <div>
+              {!isAddingNew && (
+                <Button 
+                  variant="ghost" 
+                  onClick={handleDeleteProfile} 
+                  disabled={formLoading} 
+                  className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                >
+                  Excluir Perfil
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-3">
+              <Button variant="ghost" onClick={() => setShowEditModal(false)} className="text-zinc-500">
+                Cancelar
               </Button>
-            )}
-            <Button variant="outline" onClick={() => setShowEditModal(false)}>Cancelar</Button>
-            <Button onClick={handleSaveProfile} disabled={formLoading}>
-              {formLoading ? "Salvando..." : "Salvar"}
-            </Button>
+              <Button onClick={handleSaveProfile} disabled={formLoading} className="min-w-[120px] bg-primary hover:bg-primary/90 text-white font-bold rounded-xl">
+                {formLoading ? "Aguarde..." : "Salvar"}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>

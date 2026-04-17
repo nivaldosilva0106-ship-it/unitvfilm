@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ContentCard } from './ContentCard';
 import { useLocalLibrary } from '@/hooks/useLocalLibrary';
-import { FolderPlus, RefreshCw, Library, Trash2 } from 'lucide-react';
+import { FolderPlus, RefreshCw, Library, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
 import { getImageUrl } from '@/lib/tmdb';
 import { useNavigate } from 'react-router-dom';
@@ -27,6 +27,17 @@ export const LocalContentSection = ({ fullPage = false }: LocalContentSectionPro
   const [showConfirmClear, setShowConfirmClear] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<LocalGroup | null>(null);
   const [selectedGroup, setSelectedGroup] = useState<LocalGroup | null>(null);
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+
+  const scrollRow = (direction: 'left' | 'right') => {
+    if (scrollContainerRef.current) {
+      const scrollAmount = window.innerWidth * 0.8;
+      scrollContainerRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   const handleClearAll = async () => {
     try {
@@ -230,7 +241,32 @@ export const LocalContentSection = ({ fullPage = false }: LocalContentSectionPro
       )}
 
       <div className="relative group/row">
-        <div className={`flex gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-8 pb-4 ${fullPage ? 'flex-wrap justify-center sm:justify-start' : ''}`}>
+        {/* Navigation Arrows */}
+        {!fullPage && (
+          <>
+            <button 
+              onClick={() => scrollRow('left')}
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-20 h-[240px] w-12 flex items-center justify-center bg-gradient-to-r from-background to-transparent opacity-0 group-hover/row:opacity-100 transition-opacity cursor-pointer text-white"
+            >
+              <div className="bg-black/50 p-2 rounded-full hover:bg-black/80 transition-colors">
+                <ChevronLeft className="w-6 h-6" />
+              </div>
+            </button>
+            <button 
+              onClick={() => scrollRow('right')}
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-20 h-[240px] w-12 flex items-center justify-center bg-gradient-to-l from-background to-transparent opacity-0 group-hover/row:opacity-100 transition-opacity cursor-pointer text-white"
+            >
+              <div className="bg-black/50 p-2 rounded-full hover:bg-black/80 transition-colors">
+                <ChevronRight className="w-6 h-6" />
+              </div>
+            </button>
+          </>
+        )}
+
+        <div 
+          ref={scrollContainerRef}
+          className={`flex gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-8 pb-4 scroll-smooth ${fullPage ? 'flex-wrap justify-center sm:justify-start' : ''}`}
+        >
           {groups.map((group) => (
             <div key={group.id} className="relative group/card">
               <ContentCard

@@ -500,10 +500,6 @@ const Index = () => {
       />
 
       <div className="pt-4 pb-16">
-        {/* Seção Biblioteca Local (If profile allows) */}
-        {(!selectedCategory || selectedCategory === 'Todos') && canShowLocalLib && (
-          <LocalContentSection />
-        )}
 
         {/* Streaming Providers Section - ALWAYS FIRST as requested */}
         {selectedCategory === 'Todos' && (
