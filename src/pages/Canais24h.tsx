@@ -1275,7 +1275,8 @@ export default function Canais24h() {
                   localStorage.setItem(`tv_progression_${currentChannel.id}`, JSON.stringify({
                        index: runningSlot.programIndex,
                        videoTime: Math.floor(time),
-                       realTimestamp: now
+                       realTimestamp: now,
+                       programCount: programs.length
                   }));
              }
         }
