@@ -181,14 +181,14 @@ export const IndexHero = memo(({
                     <img
                         src={getOptimizedImageUrl(currentTrailer.backdrop_url || currentTrailer.thumbnail_url, 'backdrop', imageQuality)}
                         alt=""
-                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-[1500ms] ease-in-out ${isVideoPlaying ? 'opacity-0 scale-105' : 'opacity-100 scale-100'}`}
+                        className={`absolute inset-0 w-full h-full object-cover transition-opacity [transition-duration:1500ms] ease-in-out ${isVideoPlaying ? 'opacity-0 scale-105' : 'opacity-100 scale-100'}`}
                         loading="lazy"
                     />
                 )}
                 
                 {/* Embedded Video Player */}
                 <div 
-                    className={`absolute inset-0 transition-opacity duration-[1500ms] ease-in-out ${isVideoPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                    className={`absolute inset-0 transition-opacity [transition-duration:1500ms] ease-in-out ${isVideoPlaying ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
                 >
                      <div className="relative w-full h-full overflow-hidden pointer-events-none">
                           <div 
