@@ -63,13 +63,36 @@ const Index = () => {
   const [showVideo, setShowVideo] = useState(false);
   const [myList, setMyList] = useState<MyListItem[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
-  const [networkFailed, setNetworkFailed] = useState(false);
+  const [networkFailed, setNetworkFailed] = useState(!navigator.onLine);
 
   useEffect(() => {
     if (!authLoading && user && !currentProfile) {
       navigate('/profiles');
     }
   }, [user, currentProfile, authLoading, navigate]);
+
+  // CRITICAL: When isOnline changes to false, immediately mark network as failed
+  useEffect(() => {
+    if (!isOnline) {
+      setNetworkFailed(true);
+      setLoading(false);
+    }
+  }, [isOnline]);
+
+  // SAFETY NET: If still loading after 10 seconds, force-stop
+  useEffect(() => {
+    const safety = setTimeout(() => {
+      setLoading(prev => {
+        if (prev) {
+          console.warn('[UniTvFilm] Safety timeout — forcing loading to false');
+          setNetworkFailed(true);
+          return false;
+        }
+        return prev;
+      });
+    }, 10000);
+    return () => clearTimeout(safety);
+  }, []);
 
   useEffect(() => {
     loadInitialData();
@@ -84,8 +107,8 @@ const Index = () => {
   };
 
   const loadInitialData = async () => {
-    // If we know we're offline from the start, skip everything
-    if (!navigator.onLine || !isOnline) {
+    // If we know we're offline, skip everything immediately
+    if (!navigator.onLine || !isOnline || networkFailed) {
       setLoading(false);
       setNetworkFailed(true);
       return;
@@ -93,9 +116,9 @@ const Index = () => {
 
     await loadContent();
 
-    // Try to get site settings with a tight timeout
+    // Try to get site settings with a tight timeout (non-critical)
     try {
-      const settings = await withTimeout(getSiteSettings(), 8000, null);
+      const settings = await withTimeout(getSiteSettings(), 6000, null);
       if (settings) setSiteSettings(settings);
     } catch {
       // Non-critical, ignore
@@ -410,6 +433,9 @@ const Index = () => {
   // This MUST come before the loading gate to prevent infinite loading spinner
   const isEffectivelyOffline = !isOnline || networkFailed;
 
+  // Honor profile preference for local library
+  const canShowLocalLib = currentProfile?.showLocalLibrary !== false;
+
   if (isEffectivelyOffline && allContentData.length === 0) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -423,14 +449,25 @@ const Index = () => {
           </div>
         </div>
         <div className="pt-8 flex-1 flex flex-col">
-          <LocalContentSection fullPage={true} />
+          {canShowLocalLib ? (
+            <LocalContentSection fullPage={true} />
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+              <WifiOff className="w-12 h-12 text-zinc-600 mb-4" />
+              <h2 className="text-xl font-bold text-white mb-2">Sem Conexão</h2>
+              <p className="text-zinc-500 max-w-xs">A biblioteca local está desativada para este perfil. Verifique sua conexão ou ative-a nas configurações de perfil.</p>
+            </div>
+          )}
         </div>
         <Footer />
       </div>
     );
   }
 
-  if (loading && !isEffectivelyOffline) return <LoadingScreen />;
+  // If we are strictly offline, ignore authLoading and show what we can
+  const shouldWaitAuth = authLoading && !isEffectivelyOffline;
+
+  if ((loading || shouldWaitAuth) && !isEffectivelyOffline) return <LoadingScreen />;
 
   const showAllRows = selectedCategory === 'Todos';
   // Ensure we have a single row content OR we are in a selected state (which might be empty, but we'll handle the UI)
@@ -463,6 +500,11 @@ const Index = () => {
       />
 
       <div className="pt-4 pb-16">
+        {/* Seção Biblioteca Local (If profile allows) */}
+        {(!selectedCategory || selectedCategory === 'Todos') && canShowLocalLib && (
+          <LocalContentSection />
+        )}
+
         {/* Streaming Providers Section - ALWAYS FIRST as requested */}
         {selectedCategory === 'Todos' && (
           <div className="mb-12 px-4 sm:px-8">

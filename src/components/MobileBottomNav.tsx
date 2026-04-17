@@ -12,7 +12,7 @@ const navItems = [
   { label: "24H", icon: Tv, path: "/canais24h", type: 'live' },
 ];
 
-const hiddenPaths = ["/admin", "/login", "/signup", "/watch/", "/profiles"];
+const hiddenPaths = ["/admin", "/login", "/signup", "/watch/", "/watch-local/", "/profiles"];
 
 export const MobileBottomNav = () => {
   const navigate = useNavigate();

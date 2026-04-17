@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Camera, Check, MessageCircle, Lock, AlertTriangle
+  Camera, Check, MessageCircle, Lock, AlertTriangle, Library
 } from "lucide-react";
 import { toast } from "sonner";
 import { getAccountProfiles, getAvatars, createAccountProfile, updateAccountProfile, deleteAccountProfile, verifyRecoveryCode, validatePin } from "@/lib/firebase";
@@ -37,6 +37,7 @@ const Profile = () => {
   const [formName, setFormName] = useState("");
   const [formAvatar, setFormAvatar] = useState("");
   const [formIsKids, setFormIsKids] = useState(false);
+  const [formShowLocalLibrary, setFormShowLocalLibrary] = useState(true);
   const [formPin, setFormPin] = useState(""); // New PIN or Empty
   const [currentPin, setCurrentPin] = useState(""); // Confirmation PIN
   const [formLoading, setFormLoading] = useState(false);
@@ -79,6 +80,7 @@ const Profile = () => {
       setFormName(p.name);
       setFormAvatar(p.avatar || p.avatarUrl || "");
       setFormIsKids(p.isKids);
+      setFormShowLocalLibrary(p.showLocalLibrary !== false); // Defaults to true
       setFormPin(""); // Don't show PIN
       setCurrentPin("");
       setIsAddingNew(false);
@@ -88,6 +90,7 @@ const Profile = () => {
       setFormName("");
       setFormAvatar(systemAvatars[0]?.url || "");
       setFormIsKids(false);
+      setFormShowLocalLibrary(true);
       setFormPin("");
       setCurrentPin("");
       setIsAddingNew(true);
@@ -123,6 +126,7 @@ const Profile = () => {
         name: formName,
         avatar: formAvatar,
         isKids: formIsKids,
+        showLocalLibrary: formShowLocalLibrary,
       };
 
       // Update PIN only if user typed something
@@ -462,6 +466,21 @@ const Profile = () => {
                   className="rounded border-gray-600 bg-transparent"
                 />
                 <Label htmlFor="kidstoggle">Perfil Kids (Restringe conteúdos adultos e violentos)</Label>
+              </div>
+
+              {/* Biblioteca Local Toggle */}
+              <div className="flex items-center gap-2 bg-zinc-800/50 p-3 rounded-lg">
+                <input
+                  type="checkbox"
+                  id="locallibtoggle"
+                  checked={formShowLocalLibrary}
+                  onChange={e => setFormShowLocalLibrary(e.target.checked)}
+                  className="rounded border-gray-600 bg-transparent"
+                />
+                <Label htmlFor="locallibtoggle" className="flex items-center gap-2 cursor-pointer">
+                  <Library className="w-4 h-4 text-primary" />
+                  Mostrar Biblioteca Local
+                </Label>
               </div>
             </div>
           </div>
