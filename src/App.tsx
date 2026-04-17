@@ -15,6 +15,8 @@ import GlobalContentProtection from "@/components/GlobalContentProtection";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { RedirectManager } from "@/components/RedirectManager";
 
+import { ErrorBoundary } from "./components/ErrorBoundary";
+
 const queryClient = new QueryClient();
 
 // Lazy load pages
@@ -80,7 +82,8 @@ const App = () => (
           <MobileBottomNav />
           <AuthGuard>
             <GuestSessionManager />
-            <Suspense fallback={<LoadingScreen />}>
+            <ErrorBoundary>
+              <Suspense fallback={<LoadingScreen />}>
               <Routes>
                 <Route path="/" element={<HomeWrapper />} />
                 <Route path="/login" element={<Login />} />
@@ -126,6 +129,7 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>
+            </ErrorBoundary>
           </AuthGuard>
         </BrowserRouter>
       </TooltipProvider>
