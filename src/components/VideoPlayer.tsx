@@ -92,9 +92,18 @@ const formatTime = (seconds: number): string => {
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   const [isAmplified, setIsAmplified] = useState(true); // Enabled by default to boost low volume content like TikToks
 
+  // Safeguard: Check if url exists before calling includes or other string methods
+  if (!url) {
+    return (
+      <div className="w-full h-full bg-black flex items-center justify-center">
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
+      </div>
+    );
+  }
+
   // Detect stream type
-  const isHLS = url.includes('.m3u8') || url.includes('m3u8') || url.toLowerCase().includes('.txt') || url.includes('typezero.top');
-  const isGoogleDrive = url.includes('googleapis.com/drive') || url.includes('drive.google.com');
+  const isHLS = url?.includes('.m3u8') || url?.includes('m3u8') || url?.toLowerCase().includes('.txt') || url?.includes('typezero.top');
+  const isGoogleDrive = url?.includes('googleapis.com/drive') || url?.includes('drive.google.com');
 
   // Transform Google Drive URL if needed
   const getVideoUrl = useCallback(() => {

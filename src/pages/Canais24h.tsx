@@ -417,13 +417,21 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
     watermarkPosition?: string;
     watermarkSize?: number;
 }) => {
-
     const containerRef = useRef<HTMLDivElement>(null);
     const [isPlaying, setIsPlaying] = useState(active);
     const [isMuted, setIsMuted] = useState(true);
     const [volume, setVolume] = useState(1);
     const [showControls, setShowControls] = useState(false);
     const playerRef = useRef<any>(null);
+
+    // Safeguard against missing URL
+    if (!url) {
+        return (
+            <div className="absolute inset-0 flex items-center justify-center bg-zinc-900">
+                <p className="text-zinc-500 text-sm">URL indisponível</p>
+            </div>
+        );
+    }
 
 
 
@@ -496,7 +504,7 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
                     </div>
                 )}
 
-            {url.includes('facebook.com') || url.includes('fb.watch') ? (
+            {url?.includes('facebook.com') || url?.includes('fb.watch') ? (
                 <div className="absolute inset-0 bg-black flex items-center justify-center">
                     <iframe
                         src={`https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(url)}&show_text=0&t=0&autoplay=1&mute=1`}
@@ -1154,9 +1162,15 @@ export default function Canais24h() {
     useEffect(() => {
         if (!currentChannel || programs.length === 0) return;
 
+        console.log("[Canais24h] Initializing state for channel:", currentChannel?.id);
         const initial = getInitialState();
-        if (!initial) return;
+        if (!initial) {
+            console.warn("[Canais24h] Could not calculate initial state for channel:", currentChannel?.id);
+            setLoading(false);
+            return;
+        }
 
+        console.log("[Canais24h] Current playing:", initial.item.title, "Type:", initial.item.type);
         currentIndexRef.current = initial.item.programIndex;
         isTransitioningRef.current = false;
         bufferReadyRef.current = false;
@@ -1168,7 +1182,6 @@ export default function Canais24h() {
         setIsAdMode(initial.item.type !== "program");
         setRealDuration(initial.duration);
         setRealTime(initial.item.startTime);
-        setLoading(false);
         setTiktokB(null);
         
         // --- SMART ROTATION INIT ---
@@ -1176,6 +1189,7 @@ export default function Canais24h() {
         consecutiveTitleCountRef.current = 0;
 
         loadTikTokForSlot(initial.item, "A");
+        setLoading(false);
     }, [currentChannel, programs, getInitialState, loadTikTokForSlot]);
 
     // ---- 6. Swap when video ends ----
@@ -1637,23 +1651,26 @@ export default function Canais24h() {
                                 </button>
                             </div>
                             <div className="flex overflow-x-auto md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4 md:pb-0 scrollbar-hide snap-x">
-                                {getUpcomingPrograms().map((prog, idx) => (
-                                    <div key={idx} className="min-w-[280px] md:min-w-0 bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl group hover:border-primary/50 transition-colors snap-center">
-                                        <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">
-                                            {idx === 0 ? "Próximo" : "A seguir"}
-                                        </span>
-                                        <div className="overflow-hidden mt-2">
-                                            <h3 className="text-sm font-bold text-zinc-300 whitespace-nowrap animate-marquee group-hover:text-white hover:pause-animation">
-                                                {prog.title}
-                                            </h3>
-                                        </div>
-                                        {prog.duration && (
-                                            <span className="text-[10px] text-zinc-500 mt-1 block">
-                                                {Math.floor(prog.duration / 60)} min
+                                {getUpcomingPrograms().map((prog, idx) => {
+                                    if (!prog) return null;
+                                    return (
+                                        <div key={idx} className="min-w-[280px] md:min-w-0 bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl group hover:border-primary/50 transition-colors snap-center">
+                                            <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">
+                                                {idx === 0 ? "Próximo" : "A seguir"}
                                             </span>
-                                        )}
-                                    </div>
-                                ))}
+                                            <div className="overflow-hidden mt-2">
+                                                <h3 className="text-sm font-bold text-zinc-300 whitespace-nowrap animate-marquee group-hover:text-white hover:pause-animation">
+                                                    {prog.title || "Sem Título"}
+                                                </h3>
+                                            </div>
+                                            {prog.duration && (
+                                                <span className="text-[10px] text-zinc-500 mt-1 block">
+                                                    {Math.floor(prog.duration / 60)} min
+                                                </span>
+                                            )}
+                                        </div>
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
