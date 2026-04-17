@@ -13,10 +13,12 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppConfig } from "@/hooks/useAppConfig";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 import { MyListItem } from "@/types/user";
 import { IndexHero } from "@/components/IndexHero";
 import { STREAMING_PROVIDERS, getProviderConfig } from "@/lib/providers";
 import { LocalContentSection } from "@/components/LocalContentSection";
+import { WifiOff, Library } from 'lucide-react';
 
 // Lazy load heavy components
 const EpisodeSelector = React.lazy(() => import("@/components/EpisodeSelector").then(module => ({ default: module.EpisodeSelector })));
@@ -39,6 +41,7 @@ const Index = () => {
   const navigate = useNavigate();
   const { user, currentProfile, loading: authLoading } = useAuth();
   const { isLiteMode, enableVideoHero, maxCardsInRow } = useAppConfig();
+  const isOnline = useOnlineStatus();
 
   const [allContentData, setAllContentData] = useState<Content[]>([]);
   const [loading, setLoading] = useState(true);
@@ -96,6 +99,12 @@ const Index = () => {
   }, []);
 
   const loadContent = async () => {
+    // If offline, skip network content loading entirely
+    if (!isOnline) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       const data = await getAllContents();
@@ -118,11 +127,9 @@ const Index = () => {
 
       if (settings.mode === 'manual' && settings.selectedContentIds?.length > 0) {
         const selected = data.filter(c => settings.selectedContentIds.includes(c.id));
-        // Shuffle manual selection for variety as requested
         const shuffledManual = [...selected].sort(() => 0.5 - Math.random());
         setTrailerContents(shuffledManual.length > 0 ? shuffledManual : data.slice(0, 5));
       } else {
-        // Pure random on every refresh
         const featuredCandidates = data.filter(c => c.backdrop_url && c.category !== 'tv');
         setTrailerContents([...featuredCandidates].sort(() => 0.5 - Math.random()).slice(0, 5));
       }
@@ -130,6 +137,11 @@ const Index = () => {
       setRandomContent([...data].sort(() => 0.5 - Math.random()));
     } catch (error) {
       console.error("Error loading content:", error);
+      // If we lost connection mid-load, don't show error — go to offline mode
+      if (!navigator.onLine) {
+        setLoading(false);
+        return;
+      }
       toast.error("Erro ao carregar conteúdo");
     } finally {
       setLoading(false);
@@ -379,6 +391,27 @@ const Index = () => {
   };
 
   const isInList = (contentId: string) => myList.some(item => item.contentId === contentId);
+
+  // OFFLINE MODE: When offline, render only the local library
+  if (!isOnline) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
+        <Header />
+        {/* Offline Banner */}
+        <div className="bg-gradient-to-r from-red-900/80 to-orange-900/80 border-b border-red-500/30 px-4 py-3 text-center mt-16 sm:mt-20">
+          <div className="flex items-center justify-center gap-2 text-white">
+            <WifiOff className="w-5 h-5" />
+            <span className="font-bold text-sm">Modo Offline</span>
+            <span className="text-white/70 text-sm hidden sm:inline">— Exibindo apenas conteúdo da Biblioteca Local</span>
+          </div>
+        </div>
+        <div className="pt-8 flex-1 flex flex-col">
+          <LocalContentSection fullPage={true} />
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   if (loading) return <LoadingScreen />;
 
