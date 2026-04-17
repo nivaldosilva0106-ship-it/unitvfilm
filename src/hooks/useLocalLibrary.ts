@@ -3,8 +3,7 @@ import { db, type LocalMovie, type LocalFolder } from '@/lib/db';
 import { parseFileName } from '@/lib/filename-parser';
 import { searchMovies, searchSeries, getMovieDetails, getSeriesDetails } from '@/lib/tmdb';
 import { Capacitor } from '@capacitor/core';
-import { Filesystem, Directory } from '@capacitor/filesystem';
-import { FilePicker } from '@capacitor/file-picker';
+import { Filesystem } from '@capacitor/filesystem';
 import { useOnlineStatus } from './useOnlineStatus';
 import { toast } from 'sonner';
 
@@ -25,16 +24,20 @@ export function useLocalLibrary() {
   const addFolder = useCallback(async () => {
     try {
       if (Capacitor.isNativePlatform()) {
-        const result = await FilePicker.pickDirectory();
-        if (result && result.path) {
-           const name = result.path.split('/').pop() || 'Pasta Local';
-           await db.folders.add({
-             path: result.path,
-             name: name,
-             lastScanned: Date.now()
-           });
-           toast.success(`Pasta ${name} adicionada!`);
-           scanLibrary();
+        // On native, prompt the user for a folder path
+        // (e.g. /storage/emulated/0/Movies)
+        const path = window.prompt(
+          'Digite o caminho da pasta (ex: /storage/emulated/0/Movies)'
+        );
+        if (path && path.trim()) {
+          const name = path.trim().split('/').filter(Boolean).pop() || 'Pasta Local';
+          await db.folders.add({
+            path: path.trim(),
+            name,
+            lastScanned: Date.now()
+          });
+          toast.success(`Pasta "${name}" adicionada!`);
+          scanLibrary();
         }
       } else if ('showDirectoryPicker' in window) {
         // @ts-ignore
@@ -45,15 +48,15 @@ export function useLocalLibrary() {
           handle: handle,
           lastScanned: Date.now()
         });
-        toast.success(`Pasta ${handle.name} adicionada!`);
+        toast.success(`Pasta "${handle.name}" adicionada!`);
         scanLibrary();
       } else {
-        toast.error("Seu navegador não suporta seleção de pastas.");
+        toast.error('Seu navegador não suporta seleção de pastas.');
       }
     } catch (error) {
-      console.error("Erro ao adicionar pasta:", error);
+      console.error('Erro ao adicionar pasta:', error);
       if (error instanceof Error && error.name !== 'AbortError') {
-        toast.error("Erro ao selecionar pasta.");
+        toast.error('Erro ao selecionar pasta.');
       }
     }
   }, []);
