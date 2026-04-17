@@ -492,8 +492,8 @@ const Profile = () => {
                   <input
                     type="checkbox"
                     checked={formIsKids}
-                    onChange={() => {}} // Controlled by Div
-                    className="w-5 h-5 accent-blue-500"
+                    readOnly
+                    className="w-5 h-5 accent-blue-500 pointer-events-none"
                   />
                 </div>
 
@@ -516,8 +516,8 @@ const Profile = () => {
                   <input
                     type="checkbox"
                     checked={formShowLocalLibrary}
-                    onChange={() => {}} // Controlled by Div
-                    className="w-5 h-5 accent-primary"
+                    readOnly
+                    className="w-5 h-5 accent-primary pointer-events-none"
                   />
                 </div>
               </div>

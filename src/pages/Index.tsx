@@ -529,8 +529,10 @@ const Index = () => {
           </div>
         )}
 
-        {/* Local Content Section - New */}
-        <LocalContentSection />
+        {/* Local Content Section - Respects profile settings */}
+        {(!selectedCategory || selectedCategory === 'Todos') && canShowLocalLib && (
+          <LocalContentSection />
+        )}
 
         {showAllRows && (
           <>
