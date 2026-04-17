@@ -63,6 +63,7 @@ const Index = () => {
   const [showVideo, setShowVideo] = useState(false);
   const [myList, setMyList] = useState<MyListItem[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+  const [networkFailed, setNetworkFailed] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user && !currentProfile) {
@@ -74,10 +75,31 @@ const Index = () => {
     loadInitialData();
   }, [user, currentProfile]);
 
+  // Helper: race a promise against a timeout
+  const withTimeout = <T,>(promise: Promise<T>, ms: number, fallback: T): Promise<T> => {
+    return Promise.race([
+      promise,
+      new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms))
+    ]);
+  };
+
   const loadInitialData = async () => {
+    // If we know we're offline from the start, skip everything
+    if (!navigator.onLine || !isOnline) {
+      setLoading(false);
+      setNetworkFailed(true);
+      return;
+    }
+
     await loadContent();
-    const settings = await getSiteSettings();
-    setSiteSettings(settings);
+
+    // Try to get site settings with a tight timeout
+    try {
+      const settings = await withTimeout(getSiteSettings(), 8000, null);
+      if (settings) setSiteSettings(settings);
+    } catch {
+      // Non-critical, ignore
+    }
     
     if (user && currentProfile) {
       loadMyList();
@@ -99,31 +121,27 @@ const Index = () => {
   }, []);
 
   const loadContent = async () => {
-    // If offline, skip network content loading entirely
-    if (!isOnline) {
-      setLoading(false);
-      return;
-    }
-
     try {
       setLoading(true);
-      const data = await getAllContents();
+
+      // Race against an 8-second timeout — if Firebase doesn't respond, assume offline
+      const data = await withTimeout(getAllContents(), 8000, [] as Content[]);
+
+      // If we got zero results and we might be offline, treat as network failure
+      if (data.length === 0) {
+        setNetworkFailed(true);
+        setLoading(false);
+        return;
+      }
+
       setAllContentData(data);
 
-      const settings = await getSliderSettings();
+      const settings = await withTimeout(getSliderSettings(), 5000, { mode: 'random' as const, selectedContentIds: [] });
 
       // Daily Random Seed
       const today = new Date().toISOString().slice(0, 10);
       let seed = 0;
       for (let i = 0; i < today.length; i++) seed += today.charCodeAt(i);
-
-      const dailyShuffle = (array: Content[]) => {
-        return [...array].sort((a, b) => {
-          const valA = (a.id.charCodeAt(0) + seed) % 100;
-          const valB = (b.id.charCodeAt(0) + seed) % 100;
-          return valA - valB;
-        });
-      };
 
       if (settings.mode === 'manual' && settings.selectedContentIds?.length > 0) {
         const selected = data.filter(c => settings.selectedContentIds.includes(c.id));
@@ -135,14 +153,10 @@ const Index = () => {
       }
 
       setRandomContent([...data].sort(() => 0.5 - Math.random()));
+      setNetworkFailed(false);
     } catch (error) {
       console.error("Error loading content:", error);
-      // If we lost connection mid-load, don't show error — go to offline mode
-      if (!navigator.onLine) {
-        setLoading(false);
-        return;
-      }
-      toast.error("Erro ao carregar conteúdo");
+      setNetworkFailed(true);
     } finally {
       setLoading(false);
     }
@@ -392,8 +406,11 @@ const Index = () => {
 
   const isInList = (contentId: string) => myList.some(item => item.contentId === contentId);
 
-  // OFFLINE MODE: When offline, render only the local library
-  if (!isOnline) {
+  // OFFLINE MODE: When offline OR network failed, show local library immediately
+  // This MUST come before the loading gate to prevent infinite loading spinner
+  const isEffectivelyOffline = !isOnline || networkFailed;
+
+  if (isEffectivelyOffline && allContentData.length === 0) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col">
         <Header />
@@ -413,7 +430,7 @@ const Index = () => {
     );
   }
 
-  if (loading) return <LoadingScreen />;
+  if (loading && !isEffectivelyOffline) return <LoadingScreen />;
 
   const showAllRows = selectedCategory === 'Todos';
   // Ensure we have a single row content OR we are in a selected state (which might be empty, but we'll handle the UI)
