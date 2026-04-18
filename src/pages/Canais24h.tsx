@@ -11,6 +11,7 @@ import { useSearchParams } from "react-router-dom";
 import { Volume2, VolumeX, Maximize, Minimize, Play, Pause, SkipBack, SkipForward, PictureInPicture } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import { Button } from "@/components/ui/button";
+import { Capacitor } from "@capacitor/core";
 
 declare global {
     interface Window {
@@ -742,8 +743,7 @@ export default function Canais24h() {
     // Detect Capacitor (APK)
     useEffect(() => {
         const checkApk = () => {
-            const isCapacitor = (window as any).Capacitor?.isNativePlatform;
-            if (isCapacitor) {
+            if (Capacitor.isNativePlatform()) {
                 setShowApkWarning(true);
             }
         };
@@ -1744,7 +1744,7 @@ export default function Canais24h() {
                         
                         <p className="text-gray-400 text-sm leading-relaxed mb-8">
                             Esta página ainda não está 100% funcional para aplicativos. 
-                            Alguns canais (como links do TikTok) não vão aparecer corretamente aqui.
+                            Alguns canais (links especiais) não vão aparecer corretamente aqui.
                         </p>
                         
                         <div className="flex flex-col gap-3">
