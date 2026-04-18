@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { type User } from 'firebase/auth';
-import { onAuthChange, logOut, isUserAdmin, getAccountProfiles, getPlans, subscribeToUserProfile, initializeOriginalAdmin, checkSubscriptionExpired } from '@/lib/firebase';
+import { onAuthChange, logOut, isUserAdmin, getAccountProfiles, getPlans, subscribeToUserProfile, initializeOriginalAdmin, checkSubscriptionExpired, updateLastSeen } from '@/lib/firebase';
 import type { UserProfile, Profile, Plan } from '@/types/user';
 import type { Content } from '@/types/content';
 
@@ -100,6 +100,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       if (unsubscribeProfile) unsubscribeProfile();
     };
   }, []);
+
+  // Presença/Heartbeat
+  useEffect(() => {
+    if (user?.uid) {
+      // Atualizar imediatamente ao entrar
+      updateLastSeen(user.uid).catch(console.error);
+
+      // Atualizar a cada 2 minutos
+      const interval = setInterval(() => {
+        updateLastSeen(user.uid).catch(console.error);
+      }, 2 * 60 * 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [user]);
 
   const logout = async () => {
     await logOut();

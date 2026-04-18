@@ -21,6 +21,7 @@ export interface UserProfile {
   lastExpiryNotification?: string;
   profilesLimitOverride?: number | null;
   trialSignup?: boolean;
+  lastSeen?: string;
 }
 
 export interface Plan {

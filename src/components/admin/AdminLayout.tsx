@@ -1,9 +1,10 @@
-import { ReactNode, useState } from "react";
+import { ReactNode, useState, useEffect } from "react";
 import { AdminSidebar, AdminSidebarContent } from "./AdminSidebar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Menu } from "lucide-react";
+import { Menu, Users, Wifi, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { subscribeToUserStats, type UserStats } from "@/lib/firebase";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -12,6 +13,12 @@ interface AdminLayoutProps {
 
 export const AdminLayout = ({ children, title }: AdminLayoutProps) => {
   const [collapsed, setCollapsed] = useState(false);
+  const [stats, setStats] = useState<UserStats>({ total: 0, active: 0, online: 0, offline: 0 });
+
+  useEffect(() => {
+    const unsubscribe = subscribeToUserStats(setStats);
+    return () => unsubscribe();
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -35,6 +42,21 @@ export const AdminLayout = ({ children, title }: AdminLayoutProps) => {
           </Sheet>
 
           <h1 className="text-xl font-bold truncate">{title}</h1>
+          
+          <div className="ml-auto flex items-center gap-2 sm:gap-4 overflow-x-auto custom-scrollbar whitespace-nowrap py-1">
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full">
+              <Users className="w-3.5 h-3.5 text-blue-500" />
+              <span className="text-[10px] sm:text-xs font-bold text-blue-500">{stats.active} Ativos</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full animate-pulse">
+              <Wifi className="w-3.5 h-3.5 text-green-500" />
+              <span className="text-[10px] sm:text-xs font-bold text-green-500">{stats.online} Online</span>
+            </div>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-500/10 border border-gray-500/20 rounded-full">
+              <WifiOff className="w-3.5 h-3.5 text-gray-400" />
+              <span className="text-[10px] sm:text-xs font-bold text-gray-400">{stats.offline} Offline</span>
+            </div>
+          </div>
         </header>
         <main className="p-4 lg:p-6 overflow-x-hidden">
           {children}

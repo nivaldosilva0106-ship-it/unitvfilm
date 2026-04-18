@@ -549,6 +549,42 @@ export const adminUpdateUser = async (userId: string, updates: Partial<UserProfi
   return updateUserProfile(userId, updates);
 };
 
+export const updateLastSeen = async (userId: string) => {
+  const profileRef = ref(database, `profiles/${userId}`);
+  await update(profileRef, { lastSeen: new Date().toISOString() });
+};
+
+export interface UserStats {
+  total: number;
+  active: number;
+  online: number;
+  offline: number;
+}
+
+export const subscribeToUserStats = (callback: (stats: UserStats) => void) => {
+  const usersRef = ref(database, 'profiles');
+  return onValue(usersRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const users = Object.values(snapshot.val()) as UserProfile[];
+      const now = new Date();
+      const onlineThreshold = 5 * 60 * 1000; // 5 minutes
+
+      const total = users.length;
+      const active = users.filter(u => u.status === 'active').length;
+      const online = users.filter(u => {
+        if (!u.lastSeen) return false;
+        const lastSeenDate = new Date(u.lastSeen);
+        return now.getTime() - lastSeenDate.getTime() < onlineThreshold;
+      }).length;
+      const offline = total - online;
+
+      callback({ total, active, online, offline });
+    } else {
+      callback({ total: 0, active: 0, online: 0, offline: 0 });
+    }
+  });
+};
+
 // ==========================================
 // Progress Tracking (Continue Watching)
 // ==========================================
