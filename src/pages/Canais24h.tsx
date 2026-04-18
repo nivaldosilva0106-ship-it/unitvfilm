@@ -10,6 +10,7 @@ import { useSearchParams } from "react-router-dom";
 
 import { Volume2, VolumeX, Maximize, Minimize, Play, Pause, SkipBack, SkipForward, PictureInPicture } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
+import { Button } from "@/components/ui/button";
 
 declare global {
     interface Window {
