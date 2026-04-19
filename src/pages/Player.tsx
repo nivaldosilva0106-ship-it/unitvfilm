@@ -12,12 +12,14 @@ import { toast } from "sonner";
 import { isContentAllowedForProfile } from "@/lib/utils";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { Capacitor } from '@capacitor/core';
+import { useAppConfig } from "@/hooks/useAppConfig";
 
 const Player = () => {
     const { id } = useParams();
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
     const { profile, currentProfile, isAdmin, checkAccess, plan, user } = useAuth();
+    const { isLiteMode } = useAppConfig();
 
     const [content, setContent] = useState<Content | null>(null);
     const [loading, setLoading] = useState(true);
@@ -438,7 +440,7 @@ const Player = () => {
 
     // 4. Watching Card Effect
     useEffect(() => {
-        if (!loading && accessState.granted) {
+        if (!loading && accessState.granted && !isLiteMode) {
             const showWatchingCardCycle = () => {
                 setShowWatchingCard(true);
                 setCardProgress(100);

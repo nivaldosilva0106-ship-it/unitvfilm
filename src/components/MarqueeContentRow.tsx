@@ -2,6 +2,7 @@ import { useState, useEffect, memo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ContentCard } from './ContentCard';
 import { Content } from '@/types/content';
+import { useAppConfig } from '@/hooks/useAppConfig';
 
 interface MarqueeContentRowProps {
     title: string;
@@ -28,6 +29,7 @@ export const MarqueeContentRow = memo(({
     providerLogos = {},
 }: MarqueeContentRowProps) => {
     const [scrollPosition, setScrollPosition] = useState(0);
+    const { isLiteMode } = useAppConfig();
     const itemWidth = 200; // Approximate width of each card
     const visibleItems = 6;
     const maxScroll = Math.max(0, contents.length - visibleItems);
@@ -42,7 +44,7 @@ export const MarqueeContentRow = memo(({
 
     // Auto-scroll effect
     useEffect(() => {
-        if (contents.length <= visibleItems) return; // Don't auto-scroll if all items fit
+        if (contents.length <= visibleItems || isLiteMode) return; // Don't auto-scroll if all items fit OR if we are in TV Lite mode (prevents lag)
 
         const interval = setInterval(() => {
             setScrollPosition((prev) => {
