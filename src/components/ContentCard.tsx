@@ -75,8 +75,21 @@ export const ContentCard = memo(({
   return (
     <div
       ref={cardRef}
-      className="relative group min-w-[140px] sm:min-w-[160px] cursor-pointer card-hover rounded-lg transition-all"
-      onClick={() => onDetails?.()}
+      className={`relative group min-w-[140px] sm:min-w-[160px] cursor-pointer card-hover rounded-lg transition-all focus:outline-none focus:ring-4 focus:ring-primary ${isLiteMode ? 'focus:ring-yellow-400' : ''}`}
+      onClick={(e) => {
+        // In lite mode, we intercept all clicks directly into the play action.
+        if (isLiteMode && onPlay) onPlay();
+        else onDetails?.();
+      }}
+      tabIndex={isLiteMode ? 0 : undefined}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter') {
+          playNavigationSound('select');
+          if (isLiteMode && onPlay) onPlay();
+          else onDetails?.();
+        }
+      }}
+      onFocus={handleButtonFocus}
     >
       {isPremium && (
         <div className={`absolute top-2 right-2 z-10 bg-gradient-to-r from-orange-500 to-amber-500 ${enableBackdropBlur ? 'backdrop-blur-sm' : ''} p-1.5 rounded-lg flex items-center justify-center shadow-lg shadow-orange-500/30`}>
@@ -142,7 +155,9 @@ export const ContentCard = memo(({
         <div className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent transition-opacity duration-300 flex items-end p-3 ${isActuallyNew ? 'pb-9' : ''} ${isRestricted ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'}`}>
           <div className="w-full space-y-2">
             <h3 className="text-foreground font-semibold text-sm mb-2 line-clamp-2">{title}</h3>
-            <div className="flex justify-center gap-2">
+            
+            {!isLiteMode && (
+              <div className="flex justify-center gap-2">
               {enableTooltips ? (
                 <TooltipProvider delayDuration={300}>
                   <Tooltip>
@@ -232,6 +247,7 @@ export const ContentCard = memo(({
                 )
               )}
             </div>
+            )}
           </div>
         </div>
 

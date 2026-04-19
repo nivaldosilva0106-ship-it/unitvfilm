@@ -894,7 +894,7 @@ const Player = () => {
                     </div>
 
                     {/* SUGGESTIONS SIDEBAR (Left Center) */}
-                    {showSuggestionsCard && suggestions.length > 0 && (
+                    {showSuggestionsCard && suggestions.length > 0 && !isLiteMode && (
                         <div className="absolute top-1/2 -translate-y-1/2 left-4 z-50 flex items-center">
                             {/* Trigger (Collapsed) */}
                             <div
@@ -995,7 +995,7 @@ const Player = () => {
                     )}
 
                     {/* CONTINUE WATCHING TOGGLE ARROW */}
-                    {continueWatchingList.length > 0 && (
+                    {continueWatchingList.length > 0 && !isLiteMode && (
                         <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 transition-opacity duration-300 pointer-events-auto">
                             <Button
                                 onClick={() => {
@@ -1021,7 +1021,7 @@ const Player = () => {
             </div>
 
             {/* Continue Watching List Section */}
-            {continueWatchingList.length > 0 && (
+            {continueWatchingList.length > 0 && !isLiteMode && (
                 <div className={`transition-all duration-700 ease-in-out overflow-hidden ${isContinueWatchingOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                     <div className="px-6 md:px-12 py-12 pb-24 bg-gradient-to-b from-black to-[#0a0a0a]">
                         <div className="flex items-center gap-3 mb-8">

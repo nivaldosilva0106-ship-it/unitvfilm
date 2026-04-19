@@ -3,6 +3,7 @@ import { type User } from 'firebase/auth';
 import { onAuthChange, logOut, isUserAdmin, getAccountProfiles, getPlans, subscribeToUserProfile, initializeOriginalAdmin, checkSubscriptionExpired, updateLastSeen } from '@/lib/firebase';
 import type { UserProfile, Profile, Plan } from '@/types/user';
 import type { Content } from '@/types/content';
+import { useAppConfig } from '@/hooks/useAppConfig';
 
 interface AuthContextType {
   user: User | null;
@@ -26,6 +27,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [plan, setPlan] = useState<Plan | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { isLiteMode } = useAppConfig();
 
   useEffect(() => {
     // Initialize the original admin on app start
@@ -138,6 +140,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const checkAccess = (content: Content & { isPremium?: boolean }) => {
+    // Lite mode TVs have completely unlimited access for now by design.
+    if (isLiteMode) return { allowed: true };
     if (isAdmin) return { allowed: true };
     if (!profile || !plan) return { allowed: false, reason: 'no_credits' as const };
 

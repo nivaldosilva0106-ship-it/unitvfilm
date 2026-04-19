@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { toast } from 'sonner';
 import { AlertTriangle, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAppConfig } from '@/hooks/useAppConfig';
 
 const GUEST_TIME_LIMIT_MS = 30 * 60 * 1000; // 30 minutes
 
@@ -10,8 +11,12 @@ export const GuestSessionManager = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
     const [timeLeft, setTimeLeft] = useState<number | null>(null);
+    const { isLiteMode } = useAppConfig();
 
     useEffect(() => {
+        // TV users have unlimited access on the lite mode, so do not start the timer.
+        if (isLiteMode) return;
+
         if (user && user.isAnonymous) {
             // Check session start time
             const storedStart = sessionStorage.getItem('guest_session_start');
@@ -47,7 +52,8 @@ export const GuestSessionManager = () => {
         navigate('/signup');
     };
 
-    if (!user?.isAnonymous || timeLeft === null) return null;
+    // If Lite mode, we do not show the banner or enforce time.
+    if (isLiteMode || !user?.isAnonymous || timeLeft === null) return null;
 
     const minutes = Math.floor(timeLeft / 60000);
     const seconds = Math.floor((timeLeft % 60000) / 1000);

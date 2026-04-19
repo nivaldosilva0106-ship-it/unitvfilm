@@ -382,6 +382,11 @@ const Index = () => {
 
   // When clicking the card itself (not the play button)
   const handleDetailsContent = useCallback((content: Content) => {
+    if (isLiteMode) {
+      handlePlayContent(content);
+      return;
+    }
+    
     if (content.category === 'canais24h') {
       navigate(`/canais24h?channelId=${content.id}`);
       return;
@@ -395,7 +400,7 @@ const Index = () => {
       return;
     }
     navigate(`/content/${content.id}`);
-  }, [navigate]);
+  }, [navigate, isLiteMode, handlePlayContent]);
 
   const handleDownloadContent = useCallback((content: Content) => {
     setDownloadModal({
