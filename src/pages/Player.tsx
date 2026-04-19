@@ -988,73 +988,74 @@ const Player = () => {
                         </div>
                     )}
 
-                    {/* VIDEO PLAYER */}
-                    {showResumeArrow && currentSource.type === 'embed' && (
-                        <div 
-                            className="absolute bottom-[80px] sm:bottom-[100px] z-[70] animate-bounce pointer-events-none flex flex-col items-center drop-shadow-2xl"
-                            style={{ left: `${Math.min(Math.max((lastPositionSeconds / estimatedDuration) * 100, 2), 98)}%`, transform: 'translateX(-50%)' }}
-                        >
-                            <div className="bg-primary px-3 py-1.5 rounded-lg text-white text-xs font-bold whitespace-nowrap mb-1.5 shadow-2xl border border-white/20 text-center">
-                                <span>Parou em: {formatTime(lastPositionSeconds)}</span>
-                                <div className="text-[10px] sm:text-xs font-medium opacity-90 mt-0.5">Clique na barra abaixo</div>
-                            </div>
-                            <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[10px] border-l-transparent border-r-transparent border-t-primary filter drop-shadow-[0_4px_4px_rgba(220,38,38,0.5)]" />
-                        </div>
-                    )}
-
-                    {currentSource.type === 'internal' ? (
-                        <div className="absolute inset-0 w-full h-full bg-black">
-                            <VideoPlayer
-                                key={currentSource.url}
-                                url={currentSource.url}
-                                poster={content?.backdrop_url || content?.thumbnail_url}
-                                title={currentTitle}
-                                autoPlay
-                                startTime={isResuming ? lastPositionSeconds : 0}
-                                subtitles={currentSource.subtitle_url}
-                            />
-                        </div>
-                    ) : (
-                        <iframe
-                            key={secureVideoUrl}
-                            ref={iframeRef}
-                            src={secureVideoUrl}
-                            title={`Player - ${currentTitle}`}
-                            className="absolute inset-0 w-full h-full border-0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                            allowFullScreen
-                            loading="eager"
-                            // @ts-ignore
-                            fetchPriority="high"
-                            tabIndex={isLiteMode && !showControls ? 0 : -1}
-                            sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
-                        />
-                    )}
-
-                    {/* CONTINUE WATCHING TOGGLE ARROW */}
-                    {continueWatchingList.length > 0 && !isLiteMode && (
-                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 transition-opacity duration-300 pointer-events-auto">
-                            <Button
-                                onClick={() => {
-                                    setIsContinueWatchingOpen(!isContinueWatchingOpen);
-                                    if (!isContinueWatchingOpen) {
-                                        setTimeout(() => {
-                                            window.scrollTo({
-                                                top: window.innerHeight,
-                                                behavior: 'smooth'
-                                            });
-                                        }, 100);
-                                    }
-                                }}
-                                variant="ghost"
-                                size="icon"
-                                className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white border border-white/20 backdrop-blur-md transition-all duration-300 hover:bg-primary hover:scale-110 ${isContinueWatchingOpen ? 'rotate-180' : ''}`}
-                            >
-                                <ChevronDown className="w-6 h-6 sm:w-8 sm:h-8" />
-                            </Button>
-                        </div>
-                    )}
                 </div>
+
+                {/* VIDEO PLAYER */}
+                {showResumeArrow && currentSource.type === 'embed' && (
+                    <div 
+                        className="absolute bottom-[80px] sm:bottom-[100px] z-[70] animate-bounce pointer-events-none flex flex-col items-center drop-shadow-2xl"
+                        style={{ left: `${Math.min(Math.max((lastPositionSeconds / estimatedDuration) * 100, 2), 98)}%`, transform: 'translateX(-50%)' }}
+                    >
+                        <div className="bg-primary px-3 py-1.5 rounded-lg text-white text-xs font-bold whitespace-nowrap mb-1.5 shadow-2xl border border-white/20 text-center">
+                            <span>Parou em: {formatTime(lastPositionSeconds)}</span>
+                            <div className="text-[10px] sm:text-xs font-medium opacity-90 mt-0.5">Clique na barra abaixo</div>
+                        </div>
+                        <div className="w-0 h-0 border-l-[8px] border-r-[8px] border-t-[10px] border-l-transparent border-r-transparent border-t-primary filter drop-shadow-[0_4px_4px_rgba(220,38,38,0.5)]" />
+                    </div>
+                )}
+
+                {currentSource.type === 'internal' ? (
+                    <div className="absolute inset-0 w-full h-full bg-black">
+                        <VideoPlayer
+                            key={currentSource.url}
+                            url={currentSource.url}
+                            poster={content?.backdrop_url || content?.thumbnail_url}
+                            title={currentTitle}
+                            autoPlay
+                            startTime={isResuming ? lastPositionSeconds : 0}
+                            subtitles={currentSource.subtitle_url}
+                        />
+                    </div>
+                ) : (
+                    <iframe
+                        key={secureVideoUrl}
+                        ref={iframeRef}
+                        src={secureVideoUrl}
+                        title={`Player - ${currentTitle}`}
+                        className="absolute inset-0 w-full h-full border-0"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                        allowFullScreen
+                        loading="eager"
+                        // @ts-ignore
+                        fetchPriority="high"
+                        tabIndex={isLiteMode && !showControls ? 0 : -1}
+                        sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
+                    />
+                )}
+
+                {/* CONTINUE WATCHING TOGGLE ARROW */}
+                {continueWatchingList.length > 0 && !isLiteMode && (
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 transition-opacity duration-300 pointer-events-auto">
+                        <Button
+                            onClick={() => {
+                                setIsContinueWatchingOpen(!isContinueWatchingOpen);
+                                if (!isContinueWatchingOpen) {
+                                    setTimeout(() => {
+                                        window.scrollTo({
+                                            top: window.innerHeight,
+                                            behavior: 'smooth'
+                                        });
+                                    }, 100);
+                                }
+                            }}
+                            variant="ghost"
+                            size="icon"
+                            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white border border-white/20 backdrop-blur-md transition-all duration-300 hover:bg-primary hover:scale-110 ${isContinueWatchingOpen ? 'rotate-180' : ''}`}
+                        >
+                            <ChevronDown className="w-6 h-6 sm:w-8 sm:h-8" />
+                        </Button>
+                    </div>
+                )}
             </div>
 
             {/* Continue Watching List Section */}
@@ -1148,6 +1149,7 @@ const Player = () => {
                 </div>
             )}
         </div>
+    </div>
     );
 };
 

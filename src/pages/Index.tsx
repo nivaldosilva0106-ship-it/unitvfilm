@@ -168,9 +168,10 @@ const Index = () => {
             console.log(`[UniTvFilm] Connection attempt ${retryCount + 1}/10 failed, retrying...`);
             setRetryCount(prev => prev + 1);
             setTimeout(() => loadContent(), 2000); // Wait 2s and retry
-            return;
+            return; // Loading remains true
           }
           setShowConnectivityModal(true);
+          setLoading(false);
           return;
         } else {
           // If they chose online but still no data, we might truly have a server error or no content
@@ -201,6 +202,7 @@ const Index = () => {
       setRandomContent([...data].sort(() => 0.5 - Math.random()));
       setNetworkFailed(false);
       setRetryCount(0); // Success, reset retries
+      setLoading(false); // SUCCESS
     } catch (error) {
       console.error("Error loading content:", error);
       if (retryCount < 10) {
@@ -210,9 +212,8 @@ const Index = () => {
       } else {
         setNetworkFailed(true);
         setShowConnectivityModal(true);
+        setLoading(false); // TOTAL FAILURE
       }
-    } finally {
-      setLoading(false);
     }
   };
 
