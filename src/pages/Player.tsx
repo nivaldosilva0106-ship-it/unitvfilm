@@ -566,9 +566,42 @@ const Player = () => {
         }
     }, [loading, showIntro]);
 
+    // Auto-hide controls after 5 seconds in Lite mode if showing
+    useEffect(() => {
+        if (isLiteMode && showControls) {
+            const timer = setTimeout(() => setShowControls(false), 5000);
+            return () => clearTimeout(timer);
+        }
+    }, [isLiteMode, showControls]);
+
+    // Remote control toggle - Any key shows controls in Lite mode
+    useEffect(() => {
+        if (!isLiteMode) return;
+
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // If controls are hidden, show them on any navigation/action key
+            if (!showControls) {
+                if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape', 'Backspace'].includes(e.key)) {
+                    setShowControls(true);
+                    e.preventDefault();
+                }
+            } else {
+                // If back/escape pressed and controls are showing, hide them
+                if (e.key === 'Escape' || e.key === 'Backspace') {
+                    setShowControls(false);
+                    e.preventDefault();
+                }
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [isLiteMode, showControls]);
+
     if (loading || showIntro) {
         return (
             <div className="w-screen h-screen relative flex flex-col items-center justify-center z-[100] fixed inset-0 overflow-hidden">
+                {isOnline && !isLiteMode && <AdManager />}
                 {/* Background Image */}
                 {content && (
                     <div className="absolute inset-0 z-0">
@@ -683,20 +716,17 @@ const Player = () => {
     }
 
     return (
-        <div className="min-h-screen bg-[#0a0a0a] overflow-x-hidden relative">
+        <div className={`min-h-screen bg-black text-white relative transition-all duration-300 ${isLiteMode ? 'overflow-hidden' : ''}`}>
             <div className="w-full h-screen relative group">
-                <AdManager placement="player" className="absolute top-20 left-1/2 -translate-x-1/2 z-40" />
+                {!isLiteMode && <AdManager placement="player" className="absolute top-20 left-1/2 -translate-x-1/2 z-40" />}
 
                 {/* Controls Container */}
                 <div 
                     ref={playerContainerRef} 
-                    className={`group bg-black overflow-hidden transition-all duration-300 ${
-                        isFullscreen 
-                        ? 'fixed inset-0 z-[100] w-screen h-[100vh] m-0 p-0 left-0 top-0' 
-                        : 'relative w-full h-full'
-                    }`}
-                    style={isFullscreen ? { width: '100vw', height: '100vh', left: 0, top: 0 } : {}}
+                    className={`group relative w-full ${isFullscreen ? 'h-screen' : 'aspect-video sm:h-[85vh]'} bg-black overflow-hidden shadow-2xl`}
                 >
+                    {/* GLOBAL OVERLAY (CONTROLS) */}
+                    <div className={`absolute inset-0 z-[60] flex flex-col justify-between transition-opacity duration-500 bg-gradient-to-t from-black/90 via-transparent to-black/60 ${showControls || !isLiteMode ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
 
                     {/* Resume Playback Prompt */}
                     {showResumePrompt && (
@@ -753,9 +783,10 @@ const Player = () => {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => navigate(-1)}
-                                className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 flex-shrink-0"
+                                className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 pointer-events-auto"
+                                tabIndex={0}
                             >
-                                <ArrowLeft className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                                <ArrowLeft className="w-4 h-4 sm:w-6 sm:h-6" />
                             </Button>
 
                             <div className="px-2 sm:px-4 py-1 sm:py-2 bg-black/50 backdrop-blur-md rounded-full border border-white/20 flex items-center gap-1.5 sm:gap-3 min-w-0 overflow-hidden">
@@ -798,7 +829,8 @@ const Player = () => {
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => setShowSourceMenu(!showSourceMenu)}
-                                        className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                        className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 tab-focusable"
+                                        tabIndex={0}
                                     >
                                         <List className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
                                     </Button>
@@ -812,6 +844,7 @@ const Player = () => {
                                                         setShowSourceMenu(false);
                                                     }}
                                                     className={`w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center justify-between ${currentSourceIndex === index ? 'bg-primary/20' : ''}`}
+                                                    tabIndex={0}
                                                 >
                                                     <span className="text-xs sm:text-sm">{source.name}</span>
                                                     {currentSourceIndex === index && <span className="text-primary">✓</span>}
@@ -822,21 +855,24 @@ const Player = () => {
                                 </div>
                             )}
 
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={handleToggleMyList}
-                                className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
-                                title={isInMyList ? "Remover da lista" : "Assistir mais tarde"}
-                            >
-                                {isInMyList ? <Check className="w-3.5 h-3.5 sm:w-5 sm:h-5" /> : <Plus className="w-3.5 h-3.5 sm:w-5 sm:h-5" />}
-                            </Button>
+                            {!isLiteMode && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={handleToggleMyList}
+                                    className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                    title={isInMyList ? "Remover da lista" : "Assistir mais tarde"}
+                                >
+                                    {isInMyList ? <Check className="w-3.5 h-3.5 sm:w-5 sm:h-5" /> : <Plus className="w-3.5 h-3.5 sm:w-5 sm:h-5" />}
+                                </Button>
+                            )}
 
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={toggleFullscreen}
                                 className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                tabIndex={0}
                             >
                                 {isFullscreen ? <Minimize className="w-3.5 h-3.5 sm:w-5 sm:h-5" /> : <Maximize className="w-3.5 h-3.5 sm:w-5 sm:h-5" />}
                             </Button>
@@ -846,6 +882,7 @@ const Player = () => {
                                 size="icon"
                                 onClick={() => navigate('/')}
                                 className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-red-600 backdrop-blur-md border border-white/20"
+                                tabIndex={0}
                             >
                                 <X className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
                             </Button>
@@ -989,7 +1026,7 @@ const Player = () => {
                             loading="eager"
                             // @ts-ignore
                             fetchPriority="high"
-                            tabIndex={0}
+                            tabIndex={isLiteMode && !showControls ? 0 : -1}
                             sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
                         />
                     )}

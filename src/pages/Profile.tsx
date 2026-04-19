@@ -37,7 +37,7 @@ const Profile = () => {
   const [formName, setFormName] = useState("");
   const [formAvatar, setFormAvatar] = useState("");
   const [formIsKids, setFormIsKids] = useState(false);
-  const [formShowLocalLibrary, setFormShowLocalLibrary] = useState(true);
+  const [formShowLocalLibrary, setFormShowLocalLibrary] = useState(false);
   const [formPin, setFormPin] = useState(""); // New PIN or Empty
   const [currentPin, setCurrentPin] = useState(""); // Confirmation PIN
   const [formLoading, setFormLoading] = useState(false);
@@ -90,7 +90,7 @@ const Profile = () => {
       setFormName("");
       setFormAvatar(systemAvatars[0]?.url || "");
       setFormIsKids(false);
-      setFormShowLocalLibrary(true);
+      setFormShowLocalLibrary(false);
       setFormPin("");
       setCurrentPin("");
       setIsAddingNew(true);

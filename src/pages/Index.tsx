@@ -66,6 +66,7 @@ const Index = () => {
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
   const [networkFailed, setNetworkFailed] = useState(!navigator.onLine);
   const [showConnectivityModal, setShowConnectivityModal] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
   const [hasChosenOnline, setHasChosenOnline] = useState(false);
 
   useEffect(() => {
@@ -84,20 +85,20 @@ const Index = () => {
     }
   }, [isOnline, hasChosenOnline]);
 
-  // SAFETY NET: If still loading after 10 seconds, trigger connectivity choice instead of force-fail
+  // SAFETY NET: If still loading after 12 seconds, trigger connectivity choice instead of force-fail
   useEffect(() => {
     const safety = setTimeout(() => {
       setLoading(prev => {
-        if (prev && !hasChosenOnline) {
+        if (prev && !hasChosenOnline && retryCount >= 10) {
           console.warn('[UniTvFilm] Safety timeout — triggering connectivity choice');
           setShowConnectivityModal(true);
-          return prev; // Keep loading until choice
+          return prev; 
         }
         return prev;
       });
-    }, 12000); // Slightly longer safety net to allow the content race to happen
+    }, 12000); 
     return () => clearTimeout(safety);
-  }, [hasChosenOnline]);
+  }, [hasChosenOnline, retryCount]);
 
   useEffect(() => {
     loadInitialData();
@@ -160,9 +161,15 @@ const Index = () => {
       // Race against an 8-second timeout — if Firebase doesn't respond, assume offline
       const data = await withTimeout(getAllContents(), 8000, [] as Content[]);
 
-      // If we got zero results and we might be offline, trigger choice instead of failure
+      // If we got zero results and we might be offline, trigger choice instead of failure (after 10 retries)
       if (data.length === 0) {
         if (!hasChosenOnline) {
+          if (retryCount < 10) {
+            console.log(`[UniTvFilm] Connection attempt ${retryCount + 1}/10 failed, retrying...`);
+            setRetryCount(prev => prev + 1);
+            setTimeout(() => loadContent(), 2000); // Wait 2s and retry
+            return;
+          }
           setShowConnectivityModal(true);
           return;
         } else {
@@ -193,9 +200,17 @@ const Index = () => {
 
       setRandomContent([...data].sort(() => 0.5 - Math.random()));
       setNetworkFailed(false);
+      setRetryCount(0); // Success, reset retries
     } catch (error) {
       console.error("Error loading content:", error);
-      setNetworkFailed(true);
+      if (retryCount < 10) {
+        console.log(`[UniTvFilm] Error attempt ${retryCount + 1}/10, retrying...`);
+        setRetryCount(prev => prev + 1);
+        setTimeout(() => loadContent(), 2000);
+      } else {
+        setNetworkFailed(true);
+        setShowConnectivityModal(true);
+      }
     } finally {
       setLoading(false);
     }
