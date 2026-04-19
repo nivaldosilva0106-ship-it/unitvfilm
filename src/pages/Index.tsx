@@ -18,7 +18,8 @@ import { MyListItem } from "@/types/user";
 import { IndexHero } from "@/components/IndexHero";
 import { STREAMING_PROVIDERS, getProviderConfig } from "@/lib/providers";
 import { LocalContentSection } from "@/components/LocalContentSection";
-import { WifiOff, Library } from 'lucide-react';
+import { WifiOff, Library, Globe } from 'lucide-react';
+import { ConnectivityChoiceModal } from "@/components/ConnectivityChoiceModal";
 
 // Lazy load heavy components
 const EpisodeSelector = React.lazy(() => import("@/components/EpisodeSelector").then(module => ({ default: module.EpisodeSelector })));
@@ -64,6 +65,8 @@ const Index = () => {
   const [myList, setMyList] = useState<MyListItem[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
   const [networkFailed, setNetworkFailed] = useState(!navigator.onLine);
+  const [showConnectivityModal, setShowConnectivityModal] = useState(false);
+  const [hasChosenOnline, setHasChosenOnline] = useState(false);
 
   useEffect(() => {
     if (!authLoading && user && !currentProfile) {
@@ -74,25 +77,27 @@ const Index = () => {
   // CRITICAL: When isOnline changes to false, immediately mark network as failed
   useEffect(() => {
     if (!isOnline) {
-      setNetworkFailed(true);
-      setLoading(false);
+      if (!hasChosenOnline) {
+        setNetworkFailed(true);
+        setLoading(false);
+      }
     }
-  }, [isOnline]);
+  }, [isOnline, hasChosenOnline]);
 
-  // SAFETY NET: If still loading after 10 seconds, force-stop
+  // SAFETY NET: If still loading after 10 seconds, trigger connectivity choice instead of force-fail
   useEffect(() => {
     const safety = setTimeout(() => {
       setLoading(prev => {
-        if (prev) {
-          console.warn('[UniTvFilm] Safety timeout — forcing loading to false');
-          setNetworkFailed(true);
-          return false;
+        if (prev && !hasChosenOnline) {
+          console.warn('[UniTvFilm] Safety timeout — triggering connectivity choice');
+          setShowConnectivityModal(true);
+          return prev; // Keep loading until choice
         }
         return prev;
       });
-    }, 10000);
+    }, 12000); // Slightly longer safety net to allow the content race to happen
     return () => clearTimeout(safety);
-  }, []);
+  }, [hasChosenOnline]);
 
   useEffect(() => {
     loadInitialData();
@@ -108,11 +113,16 @@ const Index = () => {
 
   const loadInitialData = async () => {
     // If we know we're offline, skip everything immediately
-    if (!navigator.onLine || !isOnline || networkFailed) {
-      setLoading(false);
-      setNetworkFailed(true);
-      return;
+    if (!navigator.onLine || !isOnline) {
+      if (!hasChosenOnline) {
+        setLoading(false);
+        setNetworkFailed(true);
+        return;
+      }
     }
+    
+    // If choice modal is active, don't try to load yet to save resources
+    if (showConnectivityModal) return;
 
     await loadContent();
 
@@ -150,11 +160,17 @@ const Index = () => {
       // Race against an 8-second timeout — if Firebase doesn't respond, assume offline
       const data = await withTimeout(getAllContents(), 8000, [] as Content[]);
 
-      // If we got zero results and we might be offline, treat as network failure
+      // If we got zero results and we might be offline, trigger choice instead of failure
       if (data.length === 0) {
-        setNetworkFailed(true);
-        setLoading(false);
-        return;
+        if (!hasChosenOnline) {
+          setShowConnectivityModal(true);
+          return;
+        } else {
+          // If they chose online but still no data, we might truly have a server error or no content
+          setNetworkFailed(true);
+          setLoading(false);
+          return;
+        }
       }
 
       setAllContentData(data);
@@ -430,8 +446,8 @@ const Index = () => {
   const isInList = (contentId: string) => myList.some(item => item.contentId === contentId);
 
   // OFFLINE MODE: When offline OR network failed, show local library immediately
-  // This MUST come before the loading gate to prevent infinite loading spinner
-  const isEffectivelyOffline = !isOnline || networkFailed;
+  // If user chose to stay online, we only show offline UI if they specifically chose it later
+  const isEffectivelyOffline = (!isOnline && !hasChosenOnline) || networkFailed;
 
   // Honor profile preference for local library
   const canShowLocalLib = currentProfile?.showLocalLibrary !== false;
@@ -677,6 +693,23 @@ const Index = () => {
         content={quickViewContent}
         onClose={() => setQuickViewContent(null)}
         onPlay={handlePlayContent}
+      />
+
+      <ConnectivityChoiceModal
+        open={showConnectivityModal}
+        onStayOnline={() => {
+          setShowConnectivityModal(false);
+          setHasChosenOnline(true);
+          setNetworkFailed(false);
+          setLoading(true);
+          // Retry loading
+          loadContent();
+        }}
+        onGoOffline={() => {
+          setShowConnectivityModal(false);
+          setNetworkFailed(true);
+          setLoading(false);
+        }}
       />
 
       <CinemaWarningModal
