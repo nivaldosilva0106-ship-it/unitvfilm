@@ -26,8 +26,18 @@ export const MobileBottomNav = () => {
   const [hasNewNostalgia, setHasNewNostalgia] = useState(false);
   const [hideNewBadges, setHideNewBadges] = useState(false);
   const [showLiveModal, setShowLiveModal] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(false);
 
-  const shouldHide = isLiteMode || !user || hiddenPaths.some((p) => location.pathname.startsWith(p));
+  // Detect desktop
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    setIsDesktop(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  const shouldHide = isLiteMode || isDesktop || !user || hiddenPaths.some((p) => location.pathname.startsWith(p));
 
   useEffect(() => {
     if (shouldHide) {

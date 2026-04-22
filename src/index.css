@@ -536,13 +536,21 @@ All colors MUST be HSL.
 
   /* ===== Lite Mode (Smart TV / TV Box) ===== */
   body.lite-mode {
-    zoom: 0.8;
+    zoom: 0.9;
   }
 
   /* Adjust body padding for sidebar instead of bottom nav */
   body.lite-mode {
     padding-bottom: 0 !important;
     padding-left: 56px;
+  }
+
+  /* Desktop: same sidebar layout as lite mode */
+  @media (min-width: 1024px) {
+    body {
+      padding-left: 56px;
+      zoom: 0.9;
+    }
   }
 
   /* ===== TV Sidebar (Netflix Smart TV Style) ===== */

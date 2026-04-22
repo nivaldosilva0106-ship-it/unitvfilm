@@ -43,6 +43,19 @@ export const Header = () => {
   const [searchResults, setSearchResults] = useState<Content[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [focusedResultIndex, setFocusedResultIndex] = useState(0);
+  const [isDesktop, setIsDesktop] = useState(false);
+
+  // Detect desktop for sidebar layout
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    setIsDesktop(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  // hasSidebar = true when sidebar is visible (lite mode OR desktop)
+  const hasSidebar = isLiteMode || isDesktop;
 
   // PWA install
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
@@ -178,12 +191,12 @@ export const Header = () => {
   };
 
   return (
-    <header className={`fixed top-0 ${isLiteMode ? 'left-14' : 'left-0'} right-0 z-50 bg-gradient-to-b ${enableBackdropBlur ? 'from-background/95 backdrop-blur-sm' : 'from-background/100'} to-transparent border-b border-border/40`}>
-      <div className={`container mx-auto px-4 sm:px-8 ${isLiteMode ? 'py-2' : 'py-3 sm:py-4'}`}>
+    <header className={`fixed top-0 ${hasSidebar ? 'left-14' : 'left-0'} right-0 z-50 bg-gradient-to-b ${enableBackdropBlur ? 'from-background/95 backdrop-blur-sm' : 'from-background/100'} to-transparent border-b border-border/40`}>
+      <div className={`container mx-auto px-4 sm:px-8 ${hasSidebar ? 'py-2' : 'py-3 sm:py-4'}`}>
         <div className="flex items-center justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* Mobile Menu Trigger - hidden in lite mode (sidebar replaces it) */}
-            {!isLiteMode && (
+            {/* Mobile Menu Trigger - hidden when sidebar active */}
+            {!hasSidebar && (
             <div className="md:hidden">
               <Sheet>
                 <SheetTrigger asChild>
@@ -269,32 +282,30 @@ export const Header = () => {
               </h1>
             </div>
 
-            {/* Desktop Navigation - hidden in lite mode (sidebar handles it) */}
-            {!isLiteMode && (
-            <nav className="hidden md:flex items-center gap-6 ml-4">
-              <button onClick={() => navigate("/")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
-                Início
-              </button>
-
-              <button onClick={() => navigate("/tv")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors flex items-center gap-2">
-                TV Online
-                <span className="flex h-1.5 w-1.5 rounded-full bg-red-600 animate-pulse" />
-              </button>
-
-              <button onClick={() => navigate("/transfers")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors flex items-center gap-2">
-                Minhas Transferências
-                <Download className="w-4 h-4" />
-              </button>
-              <button onClick={() => navigate("/about")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
-                Sobre Nós
-              </button>
-            </nav>
+            {/* Desktop Navigation - hidden when sidebar active (sidebar handles home/tv) */}
+            {!hasSidebar && (
+              <nav className="hidden md:flex items-center gap-6 ml-4">
+                <button onClick={() => navigate("/")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+                  Início
+                </button>
+                <button onClick={() => navigate("/tv")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors flex items-center gap-2">
+                  TV Online
+                  <span className="flex h-1.5 w-1.5 rounded-full bg-red-600 animate-pulse" />
+                </button>
+                <button onClick={() => navigate("/transfers")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors flex items-center gap-2">
+                  Minhas Transferências
+                  <Download className="w-4 h-4" />
+                </button>
+                <button onClick={() => navigate("/about")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+                  Sobre Nós
+                </button>
+              </nav>
             )}
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-            {/* My Transfers Icon - hidden in lite mode */}
-            {!isLiteMode && (
+            {/* My Transfers Icon - hidden when sidebar active */}
+            {!hasSidebar && (
             <Button
               variant="ghost"
               size="icon"
@@ -305,8 +316,8 @@ export const Header = () => {
             </Button>
             )}
 
-            {/* PWA Install Icon - hidden in lite mode */}
-            {!isLiteMode && <InstallAppButton variant="icon" className="text-gray-300 hover:text-white" />}
+            {/* PWA Install Icon - hidden when sidebar active */}
+            {!hasSidebar && <InstallAppButton variant="icon" className="text-gray-300 hover:text-white" />}
 
             {/* Search Icon with Dropdown */}
             <DropdownMenu open={searchOpen} onOpenChange={setSearchOpen}>
@@ -372,8 +383,21 @@ export const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Notification Bell - hidden in lite mode (moved to sidebar) */}
-            {!isLiteMode && (
+            {/* Navigation items moved to the right when sidebar active */}
+            {hasSidebar && (
+              <nav className="hidden md:flex items-center gap-6 mr-4">
+                <button onClick={() => navigate("/transfers")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors flex items-center gap-2">
+                  Minhas Transferências
+                  <Download className="w-4 h-4" />
+                </button>
+                <button onClick={() => navigate("/about")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+                  Sobre Nós
+                </button>
+              </nav>
+            )}
+
+            {/* Notification Bell - hidden when sidebar active (moved to sidebar) */}
+            {!hasSidebar && (
             <div className="hidden sm:block">
               <NotificationBell />
             </div>
@@ -414,8 +438,8 @@ export const Header = () => {
               </div>
             )}
 
-            {/* User Menu - hidden in lite mode (profile in sidebar) */}
-            {user && !isLiteMode ? (
+            {/* User Menu - hidden when sidebar active (profile in sidebar) */}
+            {user && !hasSidebar ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div className="flex items-center gap-1 sm:gap-2 cursor-pointer group">

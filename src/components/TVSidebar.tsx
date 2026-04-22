@@ -22,10 +22,22 @@ export const TVSidebar = () => {
   const { isLiteMode } = useAppConfig();
   const [expanded, setExpanded] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(0);
+  const [isDesktop, setIsDesktop] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
+  // Detect desktop screens
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 1024px)');
+    setIsDesktop(mq.matches);
+    const handler = (e: MediaQueryListEvent) => setIsDesktop(e.matches);
+    mq.addEventListener('change', handler);
+    return () => mq.removeEventListener('change', handler);
+  }, []);
+
+  const shouldShow = isLiteMode || isDesktop;
+
   const shouldHide =
-    !isLiteMode ||
+    !shouldShow ||
     !user ||
     hiddenPaths.some((p) => location.pathname.startsWith(p));
 
