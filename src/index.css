@@ -536,7 +536,6 @@ All colors MUST be HSL.
 
   /* ===== Lite Mode (Smart TV / TV Box) ===== */
   body.lite-mode {
-    zoom: 0.9;
   }
 
   /* Adjust body padding for sidebar instead of bottom nav */
@@ -549,7 +548,6 @@ All colors MUST be HSL.
   @media (min-width: 1024px) {
     body {
       padding-left: 56px;
-      zoom: 0.9;
     }
   }
 
