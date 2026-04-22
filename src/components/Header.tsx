@@ -325,7 +325,7 @@ export const Header = () => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-gray-300 hover:text-white hover:bg-white/10"
+                  className="text-gray-300 hover:text-white hover:bg-white/10 search-trigger"
                 >
                   <Search className="h-5 w-5" />
                 </Button>

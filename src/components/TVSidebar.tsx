@@ -1,17 +1,30 @@
 import { useState, useEffect, useRef } from "react";
-import { Home, Search, List, Film, Clapperboard, Tv, Bell, User, LogOut, Settings } from "lucide-react";
+import { Home, Search, List, Film, Clapperboard, Tv, Bell, User, LogOut, Settings, Heart, Clock } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppConfig } from "@/hooks/useAppConfig";
+import { getAllContents, getMyList } from "@/lib/firebase";
+import { getDatabase, ref, onValue } from "firebase/database";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { NotificationDropdown } from "./notifications/NotificationDropdown";
 
 const sidebarItems = [
   { id: "search", icon: Search, label: "Pesquisar", path: null, action: "search" },
   { id: "home", icon: Home, label: "Início", path: "/" },
   { id: "notifications", icon: Bell, label: "Notificações", path: null, action: "notifications" },
   { id: "list", icon: List, label: "Minha Lista", path: "/my-list" },
-  { id: "categories", icon: Film, label: "Categorias", path: "/categories" },
   { id: "nostalgia", icon: Clapperboard, label: "Nostalgia", path: "/nostalgia" },
-  { id: "live", icon: Tv, label: "24H", path: "/canais24h" },
+  { id: "live", icon: Tv, label: "TV Online", path: "/tv" },
+  { id: "canais24h", icon: Clock, label: "Canais 24h", path: "/canais24h" },
+  { id: "profile", icon: User, label: "Perfil", path: "/profile" },
+  { id: "admin", icon: Settings, label: "Painel Admin", path: "/admin" },
 ];
 
 const hiddenPaths = ["/admin", "/login", "/signup", "/watch/", "/watch-local/", "/profiles"];
@@ -88,6 +101,76 @@ export const TVSidebar = () => {
     return () => window.removeEventListener("keydown", handleKeyDown, true);
   }, [shouldHide, expanded, focusedIndex]);
 
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [myListCount, setMyListCount] = useState(0);
+  const [newContentCount, setNewContentCount] = useState<Record<string, number>>({});
+
+  // Fetch notifications count
+  useEffect(() => {
+    if (!user) return;
+    const db = getDatabase();
+    const pRef = ref(db, `notifications/${user.uid}`);
+    const gRef = ref(db, `globalNotifications`);
+    const rRef = ref(db, `profiles/${user.uid}/readGlobalNotifications`);
+
+    const handles = { p: [] as any[], g: [] as any[], r: {} as any };
+    const calculate = () => {
+      const pUnread = handles.p.filter(i => !i.isRead).length;
+      const gUnread = handles.g.filter(i => !handles.r[i.id]).length;
+      setUnreadNotifications(pUnread + gUnread);
+    };
+
+    const u1 = onValue(pRef, s => { handles.p = Object.values(s.val() || {}); calculate(); });
+    const u2 = onValue(gRef, s => { handles.g = Object.values(s.val() || {}); calculate(); });
+    const u3 = onValue(rRef, s => { handles.r = s.val() || {}; calculate(); });
+
+    return () => { u1(); u2(); u3(); };
+  }, [user]);
+
+  // Fetch My List count
+  useEffect(() => {
+    if (!user) return;
+    const loadMyList = async () => {
+      try {
+        const items = await getMyList(user.uid);
+        setMyListCount(items.length);
+      } catch (e) {}
+    };
+    loadMyList();
+  }, [user, location.pathname]);
+
+  // Fetch new content badges
+  useEffect(() => {
+    const loadNewContent = async () => {
+      try {
+        const allContent = await getAllContents();
+        const now = new Date();
+        const counts: Record<string, number> = { home: 0, nostalgia: 0, live: 0, canais24h: 0 };
+        
+        allContent.forEach(content => {
+          if (content.new_since) {
+            const addedDate = new Date(content.new_since);
+            const diffHours = (now.getTime() - addedDate.getTime()) / (1000 * 60 * 60);
+            
+            if (diffHours <= 24) {
+              counts.home++;
+              if (content.category === 'nostalgia') counts.nostalgia++;
+              if (content.category === 'tv') counts.live++;
+              if (content.category === 'canais24h') counts.canais24h++;
+            }
+          } else if (content.is_new) {
+             counts.home++;
+             if (content.category === 'nostalgia') counts.nostalgia++;
+             if (content.category === 'tv') counts.live++;
+             if (content.category === 'canais24h') counts.canais24h++;
+          }
+        });
+        setNewContentCount(counts);
+      } catch (e) {}
+    };
+    loadNewContent();
+  }, [location.pathname]);
+
   const handleItemSelect = (index: number) => {
     const item = allItems[index];
     if (!item) return;
@@ -96,20 +179,17 @@ export const TVSidebar = () => {
       navigate(item.path);
       setExpanded(false);
     } else if (item.action === "search") {
-      // Trigger search dropdown in header
-      const searchBtn = document.querySelector('[aria-haspopup="menu"] .lucide-search')?.parentElement;
+      const searchBtn = document.querySelector('.search-trigger') || document.querySelector('[aria-haspopup="menu"] .lucide-search')?.parentElement;
       if (searchBtn instanceof HTMLElement) {
         searchBtn.click();
       }
       setExpanded(false);
     } else if (item.action === "notifications") {
-      // Open notifications
       const bellBtn = document.querySelector('.notification-bell-trigger') as HTMLElement;
       if (bellBtn) {
         bellBtn.click();
       } else {
-        // Fallback or alert
-        navigate("/profile"); // Example fallback
+        navigate("/admin/notifications"); 
       }
       setExpanded(false);
     } else if (item.id === "admin") {
@@ -118,9 +198,6 @@ export const TVSidebar = () => {
     } else if (item.id === "profile") {
       navigate("/profile");
       setExpanded(false);
-    } else if (item.id === "logout") {
-      logout();
-      setExpanded(false);
     }
   };
 
@@ -128,15 +205,20 @@ export const TVSidebar = () => {
 
   const isAdminUser = user?.email === "www.nivaldo.com.ao@gmail.com";
 
-  const allItems = [
-    ...sidebarItems.map((item) => ({
-      ...item,
-      type: "nav" as const,
-    })),
-    ...(isAdminUser ? [{ id: "admin", icon: Settings, label: "Painel Admin", type: "extra" as const }] : []),
-    { id: "profile", icon: User, label: "Perfil", type: "extra" as const },
-    { id: "logout", icon: LogOut, label: "Sair", type: "extra" as const },
-  ];
+  const allItems = sidebarItems.filter(item => {
+    if (item.id === "admin") return isAdminUser;
+    return true;
+  }).map(item => {
+    let badge = 0;
+    if (item.id === "notifications") badge = unreadNotifications;
+    if (item.id === "list") badge = myListCount;
+    if (item.id === "home") badge = newContentCount.home || 0;
+    if (item.id === "nostalgia") badge = newContentCount.nostalgia || 0;
+    if (item.id === "live") badge = newContentCount.live || 0;
+    if (item.id === "canais24h") badge = newContentCount.canais24h || 0;
+
+    return { ...item, badge };
+  });
 
   return (
     <>
@@ -167,8 +249,7 @@ export const TVSidebar = () => {
         {/* Navigation Items */}
         <div className="tv-sidebar-items">
           {allItems.map((item, index) => {
-            const isActive =
-              item.type === "nav" && "path" in item && item.path
+            const isActive = item.path
                 ? item.path === "/"
                   ? location.pathname === "/"
                   : location.pathname.startsWith(item.path)
@@ -186,9 +267,48 @@ export const TVSidebar = () => {
                 {/* Active indicator bar */}
                 {isActive && <span className="tv-sidebar-active-bar" />}
 
-                <item.icon
-                  className={`tv-sidebar-item-icon ${isActive ? "tv-sidebar-item-icon--active" : ""}`}
-                />
+                <div className="relative">
+                  {item.id === 'notifications' ? (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <div className="relative cursor-pointer">
+                          <item.icon
+                            className={`tv-sidebar-item-icon ${isActive ? "tv-sidebar-item-icon--active" : ""}`}
+                          />
+                          {item.badge > 0 && (
+                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white border border-background animate-in zoom-in duration-300">
+                              {item.badge > 9 ? '9+' : item.badge}
+                            </span>
+                          )}
+                        </div>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent side="right" align="end" sideOffset={20} className="w-80 bg-[#141414] border-white/10 text-white p-0 overflow-hidden">
+                        <div className="p-4 border-b border-white/10 flex justify-between items-center bg-zinc-900/50">
+                          <h3 className="font-bold text-lg flex items-center gap-2">
+                            <Bell className="w-5 h-5 text-primary" />
+                            Notificações
+                          </h3>
+                        </div>
+                        <div className="max-h-[400px] overflow-y-auto">
+                           <NotificationDropdown onClose={() => {}} />
+                        </div>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  ) : (
+                    <>
+                      <item.icon
+                        className={`tv-sidebar-item-icon ${isActive ? "tv-sidebar-item-icon--active" : ""}`}
+                      />
+                      {item.badge > 0 && (
+                        <span className={`absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white border border-background animate-in zoom-in duration-300 ${
+                          item.id === 'notifications' ? 'bg-red-600' : 'bg-primary'
+                        }`}>
+                          {item.badge > 9 ? '9+' : item.badge}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
 
                 {expanded && (
                   <span
