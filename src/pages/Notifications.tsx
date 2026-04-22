@@ -3,18 +3,16 @@ import { useAuth } from "@/contexts/AuthContext";
 import { TVSidebar } from "@/components/TVSidebar";
 import { NotificationDropdown } from "@/components/notifications/NotificationDropdown";
 import { Bell } from "lucide-react";
-import { Helmet } from "react-helmet";
 
 const Notifications = () => {
     const { user } = useAuth();
 
+    useEffect(() => {
+        document.title = "Notificações | UniTVFilm";
+    }, []);
+
     return (
         <div className="min-h-screen bg-black text-white flex flex-col">
-            <Helmet>
-                <title>Notificações | UniTVFilm</title>
-                <meta name="description" content="Acompanhe suas notificações e novidades da plataforma." />
-            </Helmet>
-
             <TVSidebar />
 
             <main className="flex-1 lg:pl-14 pt-16 sm:pt-20 px-4 sm:px-6 lg:px-8 pb-10">
