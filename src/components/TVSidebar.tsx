@@ -17,7 +17,7 @@ import { NotificationDropdown } from "./notifications/NotificationDropdown";
 const sidebarItems = [
   { id: "search", icon: Search, label: "Pesquisar", path: "/search" },
   { id: "home", icon: Home, label: "Início", path: "/" },
-  { id: "notifications", icon: Bell, label: "Notificações", path: null, action: "notifications" },
+  { id: "notifications", icon: Bell, label: "Notificações", path: "/notifications" },
   { id: "list", icon: List, label: "Minha Lista", path: "/my-list" },
   { id: "nostalgia", icon: Clapperboard, label: "Nostalgia", path: "/nostalgia" },
   { id: "live", icon: Tv, label: "TV Online", path: "/tv" },
@@ -178,9 +178,6 @@ export const TVSidebar = () => {
     if (item.path) {
       navigate(item.path);
       setExpanded(false);
-    } else if (item.action === "notifications") {
-      setIsNotificationOpen(true);
-      setExpanded(false);
     } else if (item.id === "admin") {
       navigate("/admin");
       setExpanded(false);
@@ -311,12 +308,6 @@ export const TVSidebar = () => {
         />
       )}
 
-      {/* Notifications Modal */}
-      <Dialog open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-lg bg-zinc-950 border-white/10 text-white p-0 overflow-hidden shadow-2xl flex flex-col min-h-[300px] gap-0">
-          <NotificationDropdown onClose={() => setIsNotificationOpen(false)} />
-        </DialogContent>
-      </Dialog>
     </>
   );
 };

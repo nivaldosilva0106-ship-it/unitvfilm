@@ -10,7 +10,7 @@ import { NotificationItem as ItemComponent } from "./NotificationItem";
 import { getDatabase, ref, onValue, off, get } from "firebase/database";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Check, BellOff, Trash2 } from "lucide-react";
+import { Check, BellOff, Trash2, Bell } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export const NotificationDropdown = ({ onClose }: { onClose: () => void }) => {

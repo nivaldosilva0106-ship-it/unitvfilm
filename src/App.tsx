@@ -43,6 +43,7 @@ const Profile = React.lazy(() => import("./pages/Profile"));
 const ProfileSelection = React.lazy(() => import("./pages/profiles/ProfileSelection"));
 const Categories = React.lazy(() => import("./pages/Categories"));
 const LiveTV = React.lazy(() => import("./pages/LiveTV"));
+const Notifications = React.lazy(() => import("./pages/Notifications"));
 const NostalgiaTube = React.lazy(() => import("./pages/NostalgiaTube"));
 const Canais24h = React.lazy(() => import("./pages/Canais24h"));
 const ProviderView = React.lazy(() => import("./pages/ProviderView"));
@@ -148,6 +149,7 @@ const App = () => (
                 <Route path="/profiles" element={<ProfileSelection />} />
                 <Route path="/categories" element={<Categories />} />
                 <Route path="/tv" element={<LiveTV />} />
+                <Route path="/notifications" element={<Notifications />} />
                 <Route path="/nostalgia" element={<NostalgiaTube />} />
                 <Route path="/nostalgia/:id" element={<NostalgiaTube />} />
                 <Route path="/provider/:providerId" element={<ProviderView />} />
