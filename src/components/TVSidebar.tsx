@@ -36,6 +36,7 @@ export const TVSidebar = () => {
   const [expanded, setExpanded] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [isDesktop, setIsDesktop] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
 
   // Detect desktop screens
@@ -178,11 +179,8 @@ export const TVSidebar = () => {
       navigate(item.path);
       setExpanded(false);
     } else if (item.action === "notifications") {
-      // Toggle dropdown menu trigger for notifications
-      const notificationBtn = document.querySelector('[data-item-id="notifications"]') as HTMLElement;
-      if (notificationBtn) {
-        notificationBtn.click();
-      }
+      setIsNotificationOpen(true);
+      setExpanded(false);
     } else if (item.id === "admin") {
       navigate("/admin");
       setExpanded(false);
@@ -254,35 +252,13 @@ export const TVSidebar = () => {
                 {isActive && <span className="tv-sidebar-active-bar" />}
 
                 <div className="relative">
-                  {item.id === 'notifications' ? (
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <div className="relative cursor-pointer" data-item-id="notifications">
-                          <item.icon
-                            className={`tv-sidebar-item-icon ${isActive ? "tv-sidebar-item-icon--active" : ""}`}
-                          />
-                          {item.badge > 0 && (
-                            <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white border border-background animate-in zoom-in duration-300">
-                              {item.badge > 9 ? '9+' : item.badge}
-                            </span>
-                          )}
-                        </div>
-                      </DialogTrigger>
-                      <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-lg bg-zinc-950 border-white/10 text-white p-0 overflow-hidden shadow-2xl flex flex-col min-h-[300px] gap-0">
-                         <NotificationDropdown onClose={() => {}} />
-                      </DialogContent>
-                    </Dialog>
-                  ) : (
-                    <>
-                      <item.icon
-                        className={`tv-sidebar-item-icon ${isActive ? "tv-sidebar-item-icon--active" : ""}`}
-                      />
-                      {item.badge > 0 && (
-                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white border border-background animate-in zoom-in duration-300">
-                          {item.badge > 9 ? '9+' : item.badge}
-                        </span>
-                      )}
-                    </>
+                  <item.icon
+                    className={`tv-sidebar-item-icon ${isActive ? "tv-sidebar-item-icon--active" : ""}`}
+                  />
+                  {item.badge > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white border border-background animate-in zoom-in duration-300">
+                      {item.badge > 9 ? '9+' : item.badge}
+                    </span>
                   )}
                 </div>
 
@@ -334,6 +310,13 @@ export const TVSidebar = () => {
           onClick={() => setExpanded(false)}
         />
       )}
+
+      {/* Notifications Modal */}
+      <Dialog open={isNotificationOpen} onOpenChange={setIsNotificationOpen}>
+        <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-lg bg-zinc-950 border-white/10 text-white p-0 overflow-hidden shadow-2xl flex flex-col min-h-[300px] gap-0">
+          <NotificationDropdown onClose={() => setIsNotificationOpen(false)} />
+        </DialogContent>
+      </Dialog>
     </>
   );
 };
