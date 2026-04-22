@@ -21,7 +21,8 @@ const LiveTV = () => {
     const [searchTerm, setSearchTerm] = useState("");
     const [adBlockEnabled, setAdBlockEnabled] = useState(true);
     const [iframeKey, setIframeKey] = useState(0);
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const isMobilePhone = /iPhone|Android|Mobile/i.test(navigator.userAgent) && !/TV|SmartTV|GoogleTV|AppleTV|HbbTV|STB/i.test(navigator.userAgent);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobilePhone);
     const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
     const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
     const [showApkWarning, setShowApkWarning] = useState(false);

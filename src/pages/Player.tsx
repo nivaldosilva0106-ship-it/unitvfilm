@@ -270,7 +270,7 @@ const Player = () => {
 
             // 2b. Check existing progress (Only if not already prompted for this specific content/episode)
             const contentKey = `${content.id}-${seasonParam || '0'}-${episodeParam || '0'}`;
-            if (currentProfile && hasPromptedRef.current !== contentKey) {
+            if (currentProfile && hasPromptedRef.current !== contentKey && !isResuming && !showResumePrompt) {
                 const s = seasonParam ? parseInt(seasonParam) : undefined;
                 const e = episodeParam ? parseInt(episodeParam) : undefined;
                 getUserProgress(currentProfile.id, content.id, s, e).then(progress => {

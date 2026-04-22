@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Download } from 'lucide-react';
+import { Smartphone } from 'lucide-react';
 import { Button } from './ui/button';
 import { toast } from 'sonner';
 import { AppInstallDialog } from './AppInstallDialog';
@@ -99,14 +99,14 @@ export const InstallAppButton = ({ className, text, variant = 'default' }: { cla
           className={className || "text-gray-300 hover:text-white"}
           title="Instalar aplicativo"
         >
-          <Download className="h-5 w-5" />
+          <Smartphone className="h-5 w-5" />
         </Button>
       ) : (
         <button
           onClick={handleInstallClick}
           className={className || "flex items-center gap-3 text-lg font-medium text-[#0aff7a] hover:text-[#0aff7a]/80 transition-colors p-2 rounded-lg hover:bg-[#0aff7a]/20 border border-[#0aff7a]/30 bg-[#0aff7a]/10"}
         >
-          <Download className="w-5 h-5" />
+          <Smartphone className="w-5 h-5" />
           {text || "Instalar App"}
         </button>
       )}

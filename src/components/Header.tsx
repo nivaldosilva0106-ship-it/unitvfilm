@@ -55,7 +55,13 @@ export const Header = () => {
   }, []);
 
   // hasSidebar = true when sidebar is visible (lite mode OR desktop)
-  const hasSidebar = isLiteMode || isDesktop;
+  const isMobilePhone = /iPhone|Android|Mobile/i.test(navigator.userAgent) && !/TV|SmartTV|GoogleTV|AppleTV|HbbTV|STB/i.test(navigator.userAgent);
+  
+  // Sidebar is hidden on these paths
+  const hiddenPaths = ["/watch/", "/watch-local/", "/login", "/signup", "/profiles", "/tv", "/canais24h", "/nostalgia"];
+  const isSidebarHiddenOnPage = hiddenPaths.some(path => location.pathname.startsWith(path));
+
+  const hasSidebar = ((isLiteMode && !isMobilePhone) || isDesktop) && !isSidebarHiddenOnPage;
 
   // PWA install
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);

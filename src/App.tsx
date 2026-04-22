@@ -79,9 +79,19 @@ import { AppUpdater } from "@/components/AppUpdater";
 // Small component to apply lite-mode body class
 const LiteModeBodyClass = () => {
   const mode = (import.meta.env.VITE_APP_MODE as string) || 'standard';
-  if (typeof window !== 'undefined' && mode === 'lite') {
-    document.body.classList.add('lite-mode');
-  }
+  
+  React.useEffect(() => {
+    if (typeof window !== 'undefined' && mode === 'lite') {
+      const isMobilePhone = /iPhone|Android|Mobile/i.test(navigator.userAgent) && !/TV|SmartTV|GoogleTV|AppleTV|HbbTV|STB/i.test(navigator.userAgent);
+      
+      if (!isMobilePhone) {
+        document.body.classList.add('lite-mode');
+      } else {
+        document.body.classList.remove('lite-mode');
+      }
+    }
+  }, [mode]);
+  
   return null;
 };
 
@@ -133,83 +143,104 @@ const OrientationManager = () => {
   return null;
 };
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <RedirectManager />
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <SidebarPaddingManager />
-          <AppUpdater />
-          <PWAInstallBanner />
-          <FocusNavigator />
-          <HolidayDecorations />
-          <NetworkStatus />
-          <OfflineIndicator />
-          <GlobalContentProtection />
-          <LiteModeBodyClass />
-          <OrientationManager />
-          <MobileBottomNav />
-          <TVSidebar />
-          <AuthGuard>
-            <GuestSessionManager />
-            <ErrorBoundary>
-              <Suspense fallback={<LoadingScreen />}>
-              <Routes>
-                <Route path="/" element={<HomeWrapper />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
-                <Route path="/search" element={<Search />} />
-                <Route path="/admin" element={<Admin />} />
-                <Route path="/admin/ads" element={<AdminAds />} />
-                <Route path="/admin/payments" element={<AdminPayments />} />
-                <Route path="/admin/settings" element={<AdminSettings />} />
-                <Route path="/admin/slider" element={<AdminSlider />} />
-                <Route path="/admin/plans" element={<AdminPlans />} />
-                <Route path="/admin/system" element={<AdminSystem />} />
-                <Route path="/admin/notifications" element={<AdminNotifications />} />
-                <Route path="/payment" element={<Payment />} />
-                <Route path="/content/:id" element={<ContentDetails />} />
-                <Route path="/watch/:id" element={<Player />} />
-                <Route path="/my-list" element={<MyList />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/profiles" element={<ProfileSelection />} />
-                <Route path="/categories" element={<Categories />} />
-                <Route path="/tv" element={<LiveTV />} />
-                <Route path="/notifications" element={<Notifications />} />
-                <Route path="/nostalgia" element={<NostalgiaTube />} />
-                <Route path="/nostalgia/:id" element={<NostalgiaTube />} />
-                <Route path="/provider/:providerId" element={<ProviderView />} />
-                <Route path="/canais24h" element={<Canais24h />} />
-                <Route path="/about" element={<About />} />
-                <Route path="/terms" element={<TermsOfUse />} />
-                <Route path="/privacy" element={<PrivacyPolicy />} />
-                <Route path="/verify-code" element={<VerifyCode />} />
-                <Route path="/transfers" element={<Transfers />} />
-                <Route path="/watch-local/:id" element={<LocalPlayer />} />
+const App = () => {
+  // Global Fullscreen/StatusBar hide for Capacitor (APK)
+  React.useEffect(() => {
+    const hideStatusBar = async () => {
+      try {
+        const { StatusBar } = await import('@capacitor/status-bar');
+        if (StatusBar) {
+          await StatusBar.hide();
+        }
+      } catch (e) {
+        // StatusBar plugin not available or not on mobile
+      }
+    };
+    
+    // @ts-ignore
+    if (window.Capacitor?.isNativePlatform) {
+      hideStatusBar();
+    }
+  }, []);
 
-                <Route path="/admin/users" element={
-                  <AdminLayout title="Gerenciar Usuários">
-                    <AdminUsers />
-                  </AdminLayout>
-                } />
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <TooltipProvider>
+          <RedirectManager />
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <SidebarPaddingManager />
+            <AppUpdater />
+            <PWAInstallBanner />
+            <FocusNavigator />
+            <HolidayDecorations />
+            <NetworkStatus />
+            <OfflineIndicator />
+            <GlobalContentProtection />
+            <LiteModeBodyClass />
+            <OrientationManager />
+            <MobileBottomNav />
+            <TVSidebar />
+            <AuthGuard>
+              <GuestSessionManager />
+              <ErrorBoundary>
+                <Suspense fallback={<LoadingScreen />}>
+                <Routes>
+                  <Route path="/" element={<HomeWrapper />} />
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/signup" element={<Signup />} />
+                  <Route path="/search" element={<Search />} />
+                  <Route path="/admin" element={<Admin />} />
+                  <Route path="/admin/ads" element={<AdminAds />} />
+                  <Route path="/admin/payments" element={<AdminPayments />} />
+                  <Route path="/admin/settings" element={<AdminSettings />} />
+                  <Route path="/admin/slider" element={<AdminSlider />} />
+                  <Route path="/admin/plans" element={<AdminPlans />} />
+                  <Route path="/admin/system" element={<AdminSystem />} />
+                  <Route path="/admin/notifications" element={<AdminNotifications />} />
+                  <Route path="/payment" element={<Payment />} />
+                  <Route path="/content/:id" element={<ContentDetails />} />
+                  <Route path="/watch/:id" element={<Player />} />
+                  <Route path="/my-list" element={<MyList />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/profiles" element={<ProfileSelection />} />
+                  <Route path="/categories" element={<Categories />} />
+                  <Route path="/tv" element={<LiveTV />} />
+                  <Route path="/notifications" element={<Notifications />} />
+                  <Route path="/nostalgia" element={<NostalgiaTube />} />
+                  <Route path="/nostalgia/:id" element={<NostalgiaTube />} />
+                  <Route path="/provider/:providerId" element={<ProviderView />} />
+                  <Route path="/canais24h" element={<Canais24h />} />
+                  <Route path="/about" element={<About />} />
+                  <Route path="/terms" element={<TermsOfUse />} />
+                  <Route path="/privacy" element={<PrivacyPolicy />} />
+                  <Route path="/verify-code" element={<VerifyCode />} />
+                  <Route path="/transfers" element={<Transfers />} />
+                  <Route path="/watch-local/:id" element={<LocalPlayer />} />
 
-                <Route path="/admin/avatars" element={
-                  <AdminLayout title="Gerenciar Avatares">
-                    <AdminAvatars />
-                  </AdminLayout>
-                } />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
-            </ErrorBoundary>
-          </AuthGuard>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+                  <Route path="/admin/users" element={
+                    <AdminLayout title="Gerenciar Usuários">
+                      <AdminUsers />
+                    </AdminLayout>
+                  } />
+
+                  <Route path="/admin/avatars" element={
+                    <AdminLayout title="Gerenciar Avatares">
+                      <AdminAvatars />
+                    </AdminLayout>
+                  } />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+              </ErrorBoundary>
+            </AuthGuard>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;

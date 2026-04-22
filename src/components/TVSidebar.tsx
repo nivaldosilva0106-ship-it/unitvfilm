@@ -48,7 +48,9 @@ export const TVSidebar = () => {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
-  const shouldShow = isLiteMode || isDesktop;
+  // Detect mobile phone (not tablet or TV)
+  const isMobilePhone = /iPhone|Android|Mobile/i.test(navigator.userAgent) && !/TV|SmartTV|GoogleTV|AppleTV|HbbTV|STB/i.test(navigator.userAgent);
+  const shouldShow = (isLiteMode && !isMobilePhone) || isDesktop;
 
   const shouldHide =
     location.pathname.startsWith("/admin") ||
@@ -57,6 +59,10 @@ export const TVSidebar = () => {
     location.pathname.startsWith("/watch/") ||
     location.pathname.startsWith("/watch-local/") ||
     location.pathname === "/profiles" ||
+    location.pathname === "/tv" ||
+    location.pathname === "/canais24h" ||
+    location.pathname === "/nostalgia" ||
+    isMobilePhone ||
     !user;
 
   // D-pad keyboard navigation
