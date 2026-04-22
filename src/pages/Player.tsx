@@ -1264,6 +1264,7 @@ const Player = () => {
                 />
             </Suspense>
         </div>
+    </div>
     );
 };
 
