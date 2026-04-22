@@ -726,10 +726,10 @@ const Player = () => {
                 {/* Controls Container */}
                 <div 
                     ref={playerContainerRef} 
-                    className={`group relative w-full ${isFullscreen ? 'h-screen' : 'aspect-video sm:h-[85vh]'} bg-black overflow-hidden shadow-2xl`}
+                    className="group relative w-full h-screen bg-black overflow-hidden shadow-2xl"
                 >
                     {/* GLOBAL OVERLAY (CONTROLS) */}
-                    <div className={`absolute inset-0 z-[60] flex flex-col justify-between transition-opacity duration-500 bg-gradient-to-t from-black/90 via-transparent to-black/60 ${showControls || !isLiteMode ? 'opacity-100' : 'opacity-0'} pointer-events-none`}>
+                    <div className={`absolute inset-0 z-[60] flex flex-col justify-between transition-opacity duration-500 bg-gradient-to-t from-black/40 via-transparent to-black/40 ${showControls || !isLiteMode ? 'opacity-100' : 'opacity-0'} pointer-events-none`}>
 
                     {/* Resume Playback Prompt */}
                     {showResumePrompt && (
