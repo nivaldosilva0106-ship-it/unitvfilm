@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Capacitor } from "@capacitor/core";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -78,6 +78,27 @@ const LiteModeBodyClass = () => {
   return null;
 };
 
+const SidebarPaddingManager = () => {
+  const location = useLocation();
+  
+  React.useEffect(() => {
+    const hiddenPaths = ["/watch/", "/watch-local/", "/login", "/signup", "/profiles"];
+    const shouldHideSidebar = hiddenPaths.some(path => location.pathname.startsWith(path));
+    
+    if (shouldHideSidebar) {
+      document.body.classList.add('no-sidebar');
+    } else {
+      document.body.classList.remove('no-sidebar');
+    }
+    
+    return () => {
+      document.body.classList.remove('no-sidebar');
+    };
+  }, [location.pathname]);
+  
+  return null;
+};
+
 const OrientationManager = () => {
   const mode = (import.meta.env.VITE_APP_MODE as string) || 'standard';
   
@@ -113,6 +134,7 @@ const App = () => (
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <SidebarPaddingManager />
           <AppUpdater />
           <PWAInstallBanner />
           <FocusNavigator />

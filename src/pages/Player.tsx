@@ -603,7 +603,7 @@ const Player = () => {
 
     if (loading || showIntro) {
         return (
-            <div className="w-screen h-screen relative flex flex-col items-center justify-center z-[100] fixed inset-0 overflow-hidden">
+            <div className="fixed inset-0 w-screen h-screen flex flex-col items-center justify-center z-[100] bg-[#0a0a0a] overflow-hidden">
                 {isOnline && !isLiteMode && <AdManager />}
                 {/* Background Image */}
                 {content && (
@@ -729,11 +729,11 @@ const Player = () => {
                     className={`group relative w-full ${isFullscreen ? 'h-screen' : 'aspect-video sm:h-[85vh]'} bg-black overflow-hidden shadow-2xl`}
                 >
                     {/* GLOBAL OVERLAY (CONTROLS) */}
-                    <div className={`absolute inset-0 z-[60] flex flex-col justify-between transition-opacity duration-500 bg-gradient-to-t from-black/90 via-transparent to-black/60 ${showControls || !isLiteMode ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
+                    <div className={`absolute inset-0 z-[60] flex flex-col justify-between transition-opacity duration-500 bg-gradient-to-t from-black/90 via-transparent to-black/60 ${showControls || !isLiteMode ? 'opacity-100' : 'opacity-0'} pointer-events-none`}>
 
                     {/* Resume Playback Prompt */}
                     {showResumePrompt && (
-                        <div className="absolute inset-0 flex items-center justify-center z-[60] bg-black/60 backdrop-blur-sm animate-in fade-in zoom-in duration-300">
+                        <div className="absolute inset-0 flex items-center justify-center z-[60] bg-black/60 backdrop-blur-sm animate-in fade-in zoom-in duration-300 pointer-events-auto">
                             <div className="bg-zinc-900/90 border border-white/10 p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center space-y-6">
                                 <div className="flex justify-center">
                                     <div className="p-4 bg-primary/20 rounded-full">
@@ -899,7 +899,7 @@ const Player = () => {
                                 onClick={handleNextEpisode}
                                 variant="ghost"
                                 size="icon"
-                                className="w-8 h-8 sm:w-16 sm:h-16 rounded-full bg-black/60 hover:bg-primary text-white backdrop-blur-md border border-white/20 shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center"
+                                className="w-8 h-8 sm:w-16 sm:h-16 rounded-full bg-black/60 hover:bg-primary text-white backdrop-blur-md border border-white/20 shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center pointer-events-auto"
                                 title={`Próximo: ${nextEpisode.title}`}
                             >
                                 <ChevronRight className="w-4 h-4 sm:w-8 sm:h-8 ml-0.5" />
@@ -911,7 +911,7 @@ const Player = () => {
                     )}
 
                     {/* WATCHING CARD */}
-                    <div className={`absolute bottom-16 sm:bottom-24 left-3 sm:left-6 z-50 max-w-[200px] sm:max-w-sm bg-black/80 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-500 ease-out ${showWatchingCard ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}>
+                    <div className={`absolute bottom-16 sm:bottom-24 left-3 sm:left-6 z-50 max-w-[200px] sm:max-w-sm bg-black/80 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-500 ease-out pointer-events-auto ${showWatchingCard ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}>
                         <div className="p-2 sm:p-4">
                             <p className="text-[9px] sm:text-xs text-primary font-semibold uppercase tracking-wider mb-1 sm:mb-2">Você está assistindo</p>
                             <div className="flex gap-2 sm:gap-3">
@@ -939,7 +939,7 @@ const Player = () => {
                             {/* Trigger (Collapsed) */}
                             <div
                                 onClick={() => setIsSuggestionsOpen(!isSuggestionsOpen)}
-                                className={`relative z-20 flex flex-row items-center gap-2 bg-black/60 backdrop-blur-md px-2 py-3 rounded-full border border-white/20 cursor-pointer shadow-xl transition-all duration-300 hover:bg-primary/90 hover:scale-110 ${isSuggestionsOpen ? 'bg-primary border-primary' : ''}`}
+                                className={`relative z-20 flex flex-row items-center gap-2 bg-black/60 backdrop-blur-md px-2 py-3 rounded-full border border-white/20 cursor-pointer shadow-xl transition-all duration-300 hover:bg-primary/90 hover:scale-110 pointer-events-auto ${isSuggestionsOpen ? 'bg-primary border-primary' : ''}`}
                             >
                                 <span className="writing-vertical-rl text-[10px] font-bold text-white uppercase tracking-widest opacity-90 transition-opacity">
                                     {isSuggestionsOpen ? 'FECHAR' : 'Sugestões'}
@@ -952,7 +952,7 @@ const Player = () => {
                             </div>
 
                             {/* Suggestions Panel (Expands to Right) — max 5 items, hidden scrollbar */}
-                            <div className={`absolute left-full ml-4 top-1/2 -translate-y-1/2 flex flex-col transition-all duration-500 ease-out bg-black/80 backdrop-blur-xl p-3 rounded-2xl border border-white/10 shadow-2xl w-[200px] sm:w-[230px] max-h-[350px] sm:max-h-[420px] ${isSuggestionsOpen ? 'opacity-100 translate-x-0 scale-100 pointer-events-auto' : 'opacity-0 -translate-x-10 scale-95 pointer-events-none'}`}>
+                            <div className={`absolute left-full ml-4 top-1/2 -translate-y-1/2 flex flex-col transition-all duration-500 ease-out bg-black/80 backdrop-blur-xl p-3 rounded-2xl border border-white/10 shadow-2xl w-[200px] sm:w-[230px] max-h-[350px] sm:max-h-[420px] pointer-events-auto ${isSuggestionsOpen ? 'opacity-100 translate-x-0 scale-100 pointer-events-auto' : 'opacity-0 -translate-x-10 scale-95 pointer-events-none'}`}>
                                 <div className="flex items-center justify-between mb-2 border-b border-white/10 pb-2 flex-shrink-0">
                                     <p className="text-white text-[10px] font-bold uppercase tracking-wider">Recomendados</p>
                                     <div className="flex items-center gap-1.5">

@@ -605,14 +605,14 @@ All colors MUST be HSL.
   }
 
   /* Adjust body padding for sidebar instead of bottom nav */
-  body.lite-mode {
+  body.lite-mode:not(.no-sidebar) {
     padding-bottom: 0 !important;
     padding-left: 56px;
   }
 
   /* Desktop: same sidebar layout as lite mode */
   @media (min-width: 1024px) {
-    body:not(.admin-mode) {
+    body:not(.admin-mode):not(.no-sidebar) {
       padding-left: 56px;
     }
   }
