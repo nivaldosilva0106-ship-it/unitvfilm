@@ -5,7 +5,7 @@ import { getProviderConfig } from "@/lib/providers";
 import { Content } from "@/types/content";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { X, ArrowLeft, Film, Maximize, Minimize, List, Star, ChevronRight, ChevronDown, Crown, Play, Plus, Check, ShieldCheck, WifiOff } from "lucide-react";
+import { X, ArrowLeft, Film, Maximize, Minimize, List, Star, ChevronRight, ChevronDown, Crown, Play, Plus, Check, ShieldCheck, WifiOff, Download } from "lucide-react";
 import { AdManager } from "@/components/AdManager";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import { toast } from "sonner";
@@ -13,6 +13,20 @@ import { isContentAllowedForProfile } from "@/lib/utils";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { Capacitor } from '@capacitor/core';
 import { useAppConfig } from "@/hooks/useAppConfig";
+import React, { Suspense } from "react";
+
+// Helper to handle lazy loading errors (ChunkLoadError)
+const lazyWithRetry = (componentImport: () => Promise<any>) =>
+  React.lazy(() =>
+    componentImport().catch((error) => {
+      console.error("Chunk load error detected, reloading page...", error);
+      window.location.reload();
+      return { default: () => null };
+    })
+  );
+
+const DownloadModal = lazyWithRetry(() => import("@/components/DownloadModal").then(module => ({ default: module.DownloadModal })));
+
 
 const Player = () => {
     const { id } = useParams();
@@ -58,6 +72,10 @@ const Player = () => {
     // My List State
     const [isInMyList, setIsInMyList] = useState(false);
     const [myListId, setMyListId] = useState<string | null>(null);
+
+    // Download Modal State
+    const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, downloads?: { label: string; url: string; type?: 'direct' | 'torrent' }[], download_mode?: 'direct' | 'torrent' | 'mixed', title: string, thumbnail: string }>({ open: false, url: '', title: '', thumbnail: '' });
+
 
     const watchingCardTimerRef = useRef<NodeJS.Timeout | null>(null);
     const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -298,6 +316,40 @@ const Player = () => {
         }
 
     }, [content, seasonParam, episodeParam, checkAccess, isAdmin, profile, currentProfile]);
+
+    const currentEpisodeData = useMemo(() => {
+        if (content?.category === 'series' && seasonParam && episodeParam) {
+            const s = parseInt(seasonParam);
+            const e = parseInt(episodeParam);
+            return content.episodes?.find(ep => ep.season === s && ep.episode === e);
+        }
+        return null;
+    }, [content, seasonParam, episodeParam]);
+
+    const handleDownloadClick = () => {
+        if (!content) return;
+        
+        if (content.category === 'series' && currentEpisodeData) {
+            setDownloadModal({
+                open: true,
+                url: currentEpisodeData.download_url || '',
+                downloads: currentEpisodeData.downloads,
+                download_mode: currentEpisodeData.download_mode,
+                title: `${content.title} - T${currentEpisodeData.season}E${currentEpisodeData.episode}: ${currentEpisodeData.title}`,
+                thumbnail: content.thumbnail_url
+            });
+        } else {
+            setDownloadModal({
+                open: true,
+                url: content.download_url || '',
+                downloads: content.downloads,
+                download_mode: content.download_mode,
+                title: content.title,
+                thumbnail: content.thumbnail_url
+            });
+        }
+    };
+
 
     // 2c. Progress Tracking Timer
     useEffect(() => {
@@ -903,6 +955,20 @@ const Player = () => {
                                 </Button>
                             )}
 
+                            {/* Download Button */}
+                            {(content?.download_url || (content?.downloads && content.downloads.length > 0) || (currentEpisodeData?.download_url || (currentEpisodeData?.downloads && currentEpisodeData.downloads.length > 0))) && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={handleDownloadClick}
+                                    className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                    title="Baixar este conteúdo"
+                                >
+                                    <Download className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-emerald-400" />
+                                </Button>
+                            )}
+
+
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -1184,8 +1250,20 @@ const Player = () => {
                     </div>
                 </div>
             )}
+
+            <Suspense fallback={null}>
+                <DownloadModal
+                    open={downloadModal.open}
+                    onClose={() => setDownloadModal(prev => ({ ...prev, open: false }))}
+                    downloadUrl={downloadModal.url}
+                    downloads={downloadModal.downloads}
+                    download_mode={downloadModal.download_mode}
+                    title={downloadModal.title}
+                    thumbnail={downloadModal.thumbnail}
+                    contentId={content?.id || ''}
+                />
+            </Suspense>
         </div>
-    </div>
     );
 };
 

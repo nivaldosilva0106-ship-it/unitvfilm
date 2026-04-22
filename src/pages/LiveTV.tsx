@@ -46,12 +46,21 @@ const LiveTV = () => {
     const channelIdParam = searchParams.get('channelId');
 
     useEffect(() => {
+        let retryCount = 0;
         const fetchInitialData = async () => {
             try {
                 const settings = await getSiteSettings();
                 setSiteSettings(settings);
 
                 const allContent = await getAllContents();
+                if (!allContent || allContent.length === 0) {
+                    if (retryCount < 2) {
+                        retryCount++;
+                        setTimeout(fetchInitialData, 1000);
+                        return;
+                    }
+                }
+                
                 const tvChannels = allContent.filter(c => c.category === 'tv');
                 setChannels(tvChannels);
 
@@ -62,15 +71,21 @@ const LiveTV = () => {
                 } else if (tvChannels.length > 0) {
                     setActiveChannel(tvChannels[0]);
                 }
+                setLoading(false);
             } catch (error) {
                 console.error("Error fetching channels:", error);
-                toast.error("Erro ao carregar canais");
-            } finally {
-                setLoading(false);
+                if (retryCount < 2) {
+                    retryCount++;
+                    setTimeout(fetchInitialData, 2000);
+                } else {
+                    toast.error("Erro ao carregar canais. Verifique sua conexão.");
+                    setLoading(false);
+                }
             }
         };
         fetchInitialData();
     }, [channelIdParam]);
+
 
     const filteredChannels = channels.filter(c =>
         c.title.toLowerCase().includes(searchTerm.toLowerCase())
