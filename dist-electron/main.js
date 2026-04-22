@@ -1,15 +1,12 @@
-import { app, BrowserWindow } from "electron";
-import { createRequire } from "node:module";
-import { fileURLToPath } from "node:url";
-import path from "node:path";
-const require$1 = createRequire(import.meta.url);
-const __dirname$1 = path.dirname(fileURLToPath(import.meta.url));
-process.env.APP_ROOT = path.join(__dirname$1, "..");
-const VITE_DEV_SERVER_URL = process.env["VITE_DEV_SERVER_URL"];
-const MAIN_DIST = path.join(process.env.APP_ROOT, "dist-electron");
-const RENDERER_DIST = path.join(process.env.APP_ROOT, "dist");
-process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL ? path.join(process.env.APP_ROOT, "public") : RENDERER_DIST;
-const AD_BLOCK_LIST = [
+import { app as a, BrowserWindow as n } from "electron";
+import { createRequire as p } from "node:module";
+import { fileURLToPath as u } from "node:url";
+import e from "node:path";
+const g = p(import.meta.url), r = e.dirname(u(import.meta.url));
+process.env.APP_ROOT = e.join(r, "..");
+const i = process.env.VITE_DEV_SERVER_URL, w = e.join(process.env.APP_ROOT, "dist-electron"), s = e.join(process.env.APP_ROOT, "dist");
+process.env.VITE_PUBLIC = i ? e.join(process.env.APP_ROOT, "public") : s;
+const v = [
   "*://*.doubleclick.net/*",
   "*://*.google-analytics.com/*",
   "*://*.googlesyndication.com/*",
@@ -351,62 +348,35 @@ const AD_BLOCK_LIST = [
   "*://*.zuora.com/*",
   "*://*.zynga.com/*"
 ];
-let win;
-let adBlockEnabled = true;
-function createWindow() {
-  win = new BrowserWindow({
-    icon: path.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
+let o, t = !0;
+function l() {
+  o = new n({
+    icon: e.join(process.env.VITE_PUBLIC, "electron-vite.svg"),
     webPreferences: {
-      preload: path.join(__dirname$1, "preload.js"),
+      preload: e.join(r, "preload.js"),
       // Important for some embeds to work correctly while still being "blocked"
-      nodeIntegration: false,
-      contextIsolation: true
+      nodeIntegration: !1,
+      contextIsolation: !0
     }
-  });
-  const session = win.webContents.session;
-  session.webRequest.onBeforeRequest({ urls: AD_BLOCK_LIST }, (details, callback) => {
-    if (adBlockEnabled) {
-      console.log(`[AdBlock] Blocked: ${details.url}`);
-      callback({ cancel: true });
-    } else {
-      callback({ cancel: false });
-    }
-  });
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    if (adBlockEnabled) {
-      console.log(`[AdBlock] Prevented popup to: ${url}`);
-      return { action: "deny" };
-    }
-    return { action: "allow" };
-  });
-  const { ipcMain } = require$1("electron");
-  ipcMain.on("toggle-adblock", (_event, enabled) => {
-    adBlockEnabled = enabled;
-    console.log(`[AdBlock] Status: ${adBlockEnabled ? "Enabled" : "Disabled"}`);
-  });
-  win.webContents.on("did-finish-load", () => {
-    win == null ? void 0 : win.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
-  });
-  if (VITE_DEV_SERVER_URL) {
-    win.loadURL(VITE_DEV_SERVER_URL);
-  } else {
-    win.loadFile(path.join(RENDERER_DIST, "index.html"));
-  }
+  }), o.webContents.session.webRequest.onBeforeRequest({ urls: v }, (c, m) => {
+    t ? (console.log(`[AdBlock] Blocked: ${c.url}`), m({ cancel: !0 })) : m({ cancel: !1 });
+  }), o.webContents.setWindowOpenHandler(({ url: c }) => t ? (console.log(`[AdBlock] Prevented popup to: ${c}`), { action: "deny" }) : { action: "allow" });
+  const { ipcMain: d } = g("electron");
+  d.on("toggle-adblock", (c, m) => {
+    t = m, console.log(`[AdBlock] Status: ${t ? "Enabled" : "Disabled"}`);
+  }), o.webContents.on("did-finish-load", () => {
+    o == null || o.webContents.send("main-process-message", (/* @__PURE__ */ new Date()).toLocaleString());
+  }), i ? o.loadURL(i) : o.loadFile(e.join(s, "index.html"));
 }
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") {
-    app.quit();
-    win = null;
-  }
+a.on("window-all-closed", () => {
+  process.platform !== "darwin" && (a.quit(), o = null);
 });
-app.on("activate", () => {
-  if (BrowserWindow.getAllWindows().length === 0) {
-    createWindow();
-  }
+a.on("activate", () => {
+  n.getAllWindows().length === 0 && l();
 });
-app.whenReady().then(createWindow);
+a.whenReady().then(l);
 export {
-  MAIN_DIST,
-  RENDERER_DIST,
-  VITE_DEV_SERVER_URL
+  w as MAIN_DIST,
+  s as RENDERER_DIST,
+  i as VITE_DEV_SERVER_URL
 };

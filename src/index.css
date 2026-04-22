@@ -617,6 +617,11 @@ All colors MUST be HSL.
     }
   }
 
+  /* Global override for header when sidebar is hidden */
+  body.no-sidebar header {
+    left: 0 !important;
+  }
+
   /* ===== TV Sidebar (Netflix Smart TV Style) ===== */
   .tv-sidebar-trigger {
     position: fixed;

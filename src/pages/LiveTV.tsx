@@ -30,7 +30,8 @@ const LiveTV = () => {
     useEffect(() => {
         const checkApk = () => {
             const isCapacitor = (window as any).Capacitor?.isNativePlatform;
-            if (isCapacitor) {
+            const isLiteMode = import.meta.env.VITE_APP_MODE === 'lite';
+            if (isCapacitor && !isLiteMode) {
                 setShowApkWarning(true);
             }
         };
@@ -305,7 +306,6 @@ const LiveTV = () => {
                                         <div className="absolute inset-0 pointer-events-none z-20 border-2 border-transparent group-hover:border-primary/5 transition-colors" />
                                     )}
                                     <iframe
-                                        key={iframeKey}
                                         src={getCurrentPlayerUrl()}
                                         className="w-full h-full border-0 absolute inset-0"
                                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
@@ -313,6 +313,7 @@ const LiveTV = () => {
                                         referrerPolicy="no-referrer"
                                         loading="eager"
                                         title={activeChannel.title}
+                                        tabIndex={-1}
                                     />
                                 </div>
                             </div>

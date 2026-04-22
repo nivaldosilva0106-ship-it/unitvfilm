@@ -521,11 +521,11 @@ const Player = () => {
                 watchingCardTimerRef.current = setTimeout(() => {
                     setShowWatchingCard(false);
                     if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-                    watchingCardTimerRef.current = setTimeout(showWatchingCardCycle, 1800000);
+                    
                 }, duration);
             };
 
-            const initialTimer = setTimeout(showWatchingCardCycle, 2000);
+            const initialTimer = null;
 
             return () => {
                 clearTimeout(initialTimer);
@@ -557,7 +557,7 @@ const Player = () => {
 
     // Desktop Control Auto-hide
     useEffect(() => {
-        if (isLiteMode) return;
+        
 
         let timeout: NodeJS.Timeout;
         const handleActivity = () => {
@@ -814,7 +814,7 @@ const Player = () => {
                     className="group relative w-full h-screen bg-black overflow-hidden shadow-2xl"
                 >
                     {/* GLOBAL OVERLAY (CONTROLS) */}
-                    <div className={`absolute inset-0 z-[60] flex flex-col justify-between transition-opacity duration-500 bg-gradient-to-t from-black/60 via-transparent to-black/60 ${showControls ? 'opacity-100' : 'opacity-0'} pointer-events-none`}>
+                    <div className={`absolute inset-0 z-[60] flex flex-col justify-between transition-opacity duration-500 ${!isLiteMode ? 'bg-gradient-to-t from-black/60 via-transparent to-black/60' : 'bg-black/80'} ${showControls ? 'opacity-100' : 'opacity-0'} pointer-events-none`}>
 
                     {/* Resume Playback Prompt */}
                     {showResumePrompt && (
@@ -956,17 +956,15 @@ const Player = () => {
                             )}
 
                             {/* Download Button */}
-                            {(content?.download_url || (content?.downloads && content.downloads.length > 0) || (currentEpisodeData?.download_url || (currentEpisodeData?.downloads && currentEpisodeData.downloads.length > 0))) && (
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={handleDownloadClick}
-                                    className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
-                                    title="Baixar este conteúdo"
-                                >
-                                    <Download className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-emerald-400" />
-                                </Button>
-                            )}
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={handleDownloadClick}
+                                className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                title="Baixar este conteúdo"
+                            >
+                                <Download className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-emerald-400" />
+                            </Button>
 
 
                             <Button
@@ -1130,7 +1128,7 @@ const Player = () => {
                         loading="eager"
                         // @ts-ignore
                         fetchPriority="high"
-                        tabIndex={isLiteMode && !showControls ? 0 : -1}
+                        tabIndex={-1}
                         sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
                     />
                 )}

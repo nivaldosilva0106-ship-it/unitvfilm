@@ -305,7 +305,6 @@ export const Header = () => {
 
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
             {/* My Transfers Icon - hidden when sidebar active */}
-            {!hasSidebar && (
             <Button
               variant="ghost"
               size="icon"
@@ -314,7 +313,6 @@ export const Header = () => {
             >
               <Download className="h-5 w-5" />
             </Button>
-            )}
 
             {/* PWA Install Icon - hidden when sidebar active */}
             {!hasSidebar && <InstallAppButton variant="icon" className="text-gray-300 hover:text-white" />}
