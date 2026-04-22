@@ -3,6 +3,7 @@ import { Home, List, Film, Clapperboard, Tv } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { subscribeToMyList, getAllContents } from "@/lib/firebase";
+import { useAppConfig } from "@/hooks/useAppConfig";
 
 const navItems = [
   { label: "Início", icon: Home, path: "/", type: 'home' },
@@ -18,6 +19,7 @@ export const MobileBottomNav = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentProfile, user } = useAuth();
+  const { isLiteMode } = useAppConfig();
   
   const [listCount, setListCount] = useState(0);
   const [hasNewHome, setHasNewHome] = useState(false);
@@ -25,7 +27,7 @@ export const MobileBottomNav = () => {
   const [hideNewBadges, setHideNewBadges] = useState(false);
   const [showLiveModal, setShowLiveModal] = useState(false);
 
-  const shouldHide = !user || hiddenPaths.some((p) => location.pathname.startsWith(p));
+  const shouldHide = isLiteMode || !user || hiddenPaths.some((p) => location.pathname.startsWith(p));
 
   useEffect(() => {
     if (shouldHide) {

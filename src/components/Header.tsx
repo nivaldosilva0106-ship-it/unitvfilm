@@ -37,7 +37,7 @@ declare global {
 export const Header = () => {
   const navigate = useNavigate();
   const { user, profile, plan, isAdmin, logout, currentProfile } = useAuth();
-  const { enableBackdropBlur } = useAppConfig();
+  const { enableBackdropBlur, isLiteMode } = useAppConfig();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Content[]>([]);
@@ -178,11 +178,12 @@ export const Header = () => {
   };
 
   return (
-    <header className={`fixed top-0 left-0 right-0 z-50 bg-gradient-to-b ${enableBackdropBlur ? 'from-background/95 backdrop-blur-sm' : 'from-background/100'} to-transparent border-b border-border/40`}>
-      <div className="container mx-auto px-4 sm:px-8 py-3 sm:py-4">
+    <header className={`fixed top-0 ${isLiteMode ? 'left-14' : 'left-0'} right-0 z-50 bg-gradient-to-b ${enableBackdropBlur ? 'from-background/95 backdrop-blur-sm' : 'from-background/100'} to-transparent border-b border-border/40`}>
+      <div className={`container mx-auto px-4 sm:px-8 ${isLiteMode ? 'py-2' : 'py-3 sm:py-4'}`}>
         <div className="flex items-center justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-2 sm:gap-4">
-            {/* Mobile Menu Trigger */}
+            {/* Mobile Menu Trigger - hidden in lite mode (sidebar replaces it) */}
+            {!isLiteMode && (
             <div className="md:hidden">
               <Sheet>
                 <SheetTrigger asChild>
@@ -253,6 +254,7 @@ export const Header = () => {
                 </SheetContent>
               </Sheet>
             </div>
+            )}
 
             {/* Logo */}
             <div
@@ -267,7 +269,8 @@ export const Header = () => {
               </h1>
             </div>
 
-            {/* Desktop Navigation */}
+            {/* Desktop Navigation - hidden in lite mode (sidebar handles it) */}
+            {!isLiteMode && (
             <nav className="hidden md:flex items-center gap-6 ml-4">
               <button onClick={() => navigate("/")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
                 Início
@@ -286,10 +289,12 @@ export const Header = () => {
                 Sobre Nós
               </button>
             </nav>
+            )}
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-            {/* My Transfers Icon (As requested in screenshot 1) */}
+            {/* My Transfers Icon - hidden in lite mode */}
+            {!isLiteMode && (
             <Button
               variant="ghost"
               size="icon"
@@ -298,9 +303,10 @@ export const Header = () => {
             >
               <Download className="h-5 w-5" />
             </Button>
+            )}
 
-            {/* PWA Install Icon */}
-            <InstallAppButton variant="icon" className="text-gray-300 hover:text-white" />
+            {/* PWA Install Icon - hidden in lite mode */}
+            {!isLiteMode && <InstallAppButton variant="icon" className="text-gray-300 hover:text-white" />}
 
             {/* Search Icon with Dropdown */}
             <DropdownMenu open={searchOpen} onOpenChange={setSearchOpen}>
@@ -366,10 +372,12 @@ export const Header = () => {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* Notification Bell */}
+            {/* Notification Bell - hidden in lite mode (moved to sidebar) */}
+            {!isLiteMode && (
             <div className="hidden sm:block">
               <NotificationBell />
             </div>
+            )}
 
             {/* Credits Display - Desktop Only */}
             {user && plan && (plan.limits.moviesPerDay !== -1 || plan.limits.episodesPerDay !== -1) && (
@@ -406,8 +414,8 @@ export const Header = () => {
               </div>
             )}
 
-            {/* User Menu */}
-            {user ? (
+            {/* User Menu - hidden in lite mode (profile in sidebar) */}
+            {user && !isLiteMode ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div className="flex items-center gap-1 sm:gap-2 cursor-pointer group">

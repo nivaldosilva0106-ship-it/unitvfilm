@@ -470,8 +470,8 @@ const Index = () => {
   // If user chose to stay online, we only show offline UI if they specifically chose it later
   const isEffectivelyOffline = (!isOnline && !hasChosenOnline) || networkFailed;
 
-  // Honor profile preference for local library
-  const canShowLocalLib = currentProfile?.showLocalLibrary !== false;
+  // Honor profile preference for local library — disabled by default in lite mode (Smart TV)
+  const canShowLocalLib = isLiteMode ? false : (currentProfile?.showLocalLibrary !== false);
 
   if (isEffectivelyOffline && allContentData.length === 0) {
     return (

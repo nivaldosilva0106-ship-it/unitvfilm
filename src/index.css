@@ -533,4 +533,226 @@ All colors MUST be HSL.
   .content-card-item {
     contain: layout style;
   }
+
+  /* ===== Lite Mode (Smart TV / TV Box) ===== */
+  body.lite-mode {
+    zoom: 0.8;
+  }
+
+  /* Adjust body padding for sidebar instead of bottom nav */
+  body.lite-mode {
+    padding-bottom: 0 !important;
+    padding-left: 56px;
+  }
+
+  /* ===== TV Sidebar (Netflix Smart TV Style) ===== */
+  .tv-sidebar-trigger {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 12px;
+    height: 100vh;
+    z-index: 9999;
+  }
+
+  .tv-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 56px;
+    z-index: 9998;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 0;
+    background: linear-gradient(
+      180deg,
+      rgba(8, 20, 14, 0.97) 0%,
+      rgba(5, 15, 10, 0.99) 100%
+    );
+    border-right: 1px solid hsl(var(--primary) / 0.1);
+    transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    contain: layout;
+  }
+
+  .tv-sidebar--expanded {
+    width: 220px;
+    box-shadow: 4px 0 30px rgba(0, 0, 0, 0.7), 1px 0 0 hsl(var(--primary) / 0.15);
+  }
+
+  .tv-sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9997;
+    background: rgba(0, 0, 0, 0.4);
+  }
+
+  /* Logo */
+  .tv-sidebar-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 4px 0 20px;
+    width: 100%;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .tv-sidebar--expanded .tv-sidebar-logo {
+    justify-content: flex-start;
+    padding-left: 16px;
+  }
+
+  .tv-sidebar-logo-icon {
+    background: hsl(var(--primary));
+    padding: 6px;
+    border-radius: 8px;
+    flex-shrink: 0;
+  }
+
+  .tv-sidebar-logo-text {
+    font-size: 16px;
+    font-weight: 700;
+    color: white;
+    white-space: nowrap;
+    letter-spacing: -0.02em;
+  }
+
+  /* Items container */
+  .tv-sidebar-items {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    width: 100%;
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: none;
+  }
+
+  .tv-sidebar-items::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tv-sidebar--expanded .tv-sidebar-items {
+    align-items: stretch;
+  }
+
+  /* Individual item */
+  .tv-sidebar-item {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    border: 2px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    padding: 0;
+  }
+
+  .tv-sidebar--expanded .tv-sidebar-item {
+    width: calc(100% - 16px);
+    justify-content: flex-start;
+    padding: 0 16px;
+    margin: 0 8px;
+    height: 42px;
+  }
+
+  .tv-sidebar-item:hover,
+  .tv-sidebar-item--focused {
+    background: hsl(var(--primary) / 0.1);
+    border-color: hsl(var(--primary) / 0.3);
+  }
+
+  .tv-sidebar-item--active {
+    background: hsl(var(--primary) / 0.08);
+  }
+
+  /* Active bar indicator (left edge) */
+  .tv-sidebar-active-bar {
+    position: absolute;
+    left: -2px;
+    top: 25%;
+    height: 50%;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: hsl(var(--primary));
+    box-shadow: 0 0 8px hsl(var(--primary) / 0.6);
+  }
+
+  /* Icon */
+  .tv-sidebar-item-icon {
+    width: 20px;
+    height: 20px;
+    color: hsl(150 10% 55%);
+    transition: color 0.2s, filter 0.2s;
+    flex-shrink: 0;
+  }
+
+  .tv-sidebar-item-icon--active {
+    color: hsl(var(--primary));
+    filter: drop-shadow(0 0 4px hsl(var(--primary) / 0.5));
+  }
+
+  .tv-sidebar-item:hover .tv-sidebar-item-icon,
+  .tv-sidebar-item--focused .tv-sidebar-item-icon {
+    color: white;
+  }
+
+  /* Label */
+  .tv-sidebar-item-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: hsl(150 10% 60%);
+    white-space: nowrap;
+    transition: color 0.2s;
+  }
+
+  .tv-sidebar-item-label--active {
+    color: white;
+    font-weight: 600;
+  }
+
+  .tv-sidebar-item:hover .tv-sidebar-item-label,
+  .tv-sidebar-item--focused .tv-sidebar-item-label {
+    color: white;
+  }
+
+  /* Profile section at bottom */
+  .tv-sidebar-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    border-top: 1px solid hsl(var(--primary) / 0.1);
+    width: 100%;
+    flex-shrink: 0;
+    margin-top: auto;
+  }
+
+  .tv-sidebar-profile-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    object-fit: cover;
+    border: 1px solid hsl(var(--primary) / 0.3);
+    flex-shrink: 0;
+  }
+
+  .tv-sidebar-profile-name {
+    font-size: 12px;
+    font-weight: 600;
+    color: hsl(150 10% 70%);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }

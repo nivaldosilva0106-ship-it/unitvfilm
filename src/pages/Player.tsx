@@ -50,6 +50,7 @@ const Player = () => {
     const [showSuggestionsCard, setShowSuggestionsCard] = useState(false);
     const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false); // Sidebar toggle state
     const [suggestionCountdown, setSuggestionCountdown] = useState(10);
+    const [showControls, setShowControls] = useState(true);
     const [continueWatchingList, setContinueWatchingList] = useState<any[]>([]); // Progress + Content data
     const [isContinueWatchingOpen, setIsContinueWatchingOpen] = useState(false);
     const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
@@ -598,6 +599,8 @@ const Player = () => {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isLiteMode, showControls]);
 
+    const isOnline = navigator.onLine;
+
     if (loading || showIntro) {
         return (
             <div className="w-screen h-screen relative flex flex-col items-center justify-center z-[100] fixed inset-0 overflow-hidden">
@@ -692,7 +695,7 @@ const Player = () => {
         );
     }
 
-    const isOnline = navigator.onLine;
+    // isOnline already declared above
 
     if (!isOnline && currentSource?.type === 'embed') {
         return (

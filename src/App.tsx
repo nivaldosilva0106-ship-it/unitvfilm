@@ -13,6 +13,7 @@ import { HolidayDecorations } from "@/components/HolidayDecorations";
 import FocusNavigator from "@/components/FocusNavigator";
 import GlobalContentProtection from "@/components/GlobalContentProtection";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
+import { TVSidebar } from "@/components/TVSidebar";
 import { RedirectManager } from "@/components/RedirectManager";
 
 import { ErrorBoundary } from "./components/ErrorBoundary";
@@ -64,6 +65,15 @@ import { OfflineIndicator } from "@/components/OfflineIndicator";
 import { PWAInstallBanner } from "@/components/PWAInstallBanner";
 import { AppUpdater } from "@/components/AppUpdater";
 
+// Small component to apply lite-mode body class
+const LiteModeBodyClass = () => {
+  const mode = (import.meta.env.VITE_APP_MODE as string) || 'standard';
+  if (typeof window !== 'undefined' && mode === 'lite') {
+    document.body.classList.add('lite-mode');
+  }
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -79,7 +89,9 @@ const App = () => (
           <NetworkStatus />
           <OfflineIndicator />
           <GlobalContentProtection />
+          <LiteModeBodyClass />
           <MobileBottomNav />
+          <TVSidebar />
           <AuthGuard>
             <GuestSessionManager />
             <ErrorBoundary>
