@@ -77,6 +77,8 @@ const LiveTV = () => {
     );
 
     const handleChannelClick = (channel: Content) => {
+        if (activeChannel?.id === channel.id) return;
+        
         setActiveChannel(channel);
         setCurrentPlayerIndex(0); // Reset to first player
         setIframeKey(prev => prev + 1);
@@ -117,8 +119,9 @@ const LiveTV = () => {
         if (availableUrls.length > 1) {
             const nextIndex = (currentPlayerIndex + 1) % availableUrls.length;
             setCurrentPlayerIndex(nextIndex);
-            setIframeKey(prev => prev + 1);
-            toast.success(`Player ${nextIndex + 1} de ${availableUrls.length}`);
+            // No longer incrementing iframeKey to prevent flickering
+            // The src change on the iframe is enough to reload it
+            toast.success(`Alterando para Player ${nextIndex + 1} de ${availableUrls.length}`);
         }
     };
 

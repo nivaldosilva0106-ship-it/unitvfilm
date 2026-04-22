@@ -17,7 +17,13 @@ export const AdminLayout = ({ children, title }: AdminLayoutProps) => {
 
   useEffect(() => {
     const unsubscribe = subscribeToUserStats(setStats);
-    return () => unsubscribe();
+    
+    document.body.classList.add('admin-mode');
+    
+    return () => {
+      unsubscribe();
+      document.body.classList.remove('admin-mode');
+    };
   }, []);
 
   return (

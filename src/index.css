@@ -612,7 +612,7 @@ All colors MUST be HSL.
 
   /* Desktop: same sidebar layout as lite mode */
   @media (min-width: 1024px) {
-    body {
+    body:not(.admin-mode) {
       padding-left: 56px;
     }
   }
