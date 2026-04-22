@@ -498,6 +498,34 @@ const Player = () => {
         }
     }, [secureVideoUrl]);
 
+    // Desktop Control Auto-hide
+    useEffect(() => {
+        if (isLiteMode) return;
+
+        let timeout: NodeJS.Timeout;
+        const handleActivity = () => {
+            setShowControls(true);
+            clearTimeout(timeout);
+            timeout = setTimeout(() => {
+                setShowControls(false);
+            }, 3000);
+        };
+
+        // Initial hide after delay
+        timeout = setTimeout(() => setShowControls(false), 3000);
+
+        window.addEventListener('mousemove', handleActivity);
+        window.addEventListener('keydown', handleActivity);
+        window.addEventListener('click', handleActivity);
+
+        return () => {
+            window.removeEventListener('mousemove', handleActivity);
+            window.removeEventListener('keydown', handleActivity);
+            window.removeEventListener('click', handleActivity);
+            clearTimeout(timeout);
+        };
+    }, [isLiteMode]);
+
     // Fullscreen
     useEffect(() => {
         const handleFullscreenChange = async () => {
@@ -720,7 +748,7 @@ const Player = () => {
 
     return (
         <div className={`min-h-screen bg-black text-white relative transition-all duration-300 ${isLiteMode ? 'overflow-hidden' : ''}`}>
-            <div className="w-full h-screen relative group">
+            <div className="w-full relative group">
                 {!isLiteMode && <AdManager placement="player" className="absolute top-20 left-1/2 -translate-x-1/2 z-40" />}
 
                 {/* Controls Container */}
@@ -729,7 +757,7 @@ const Player = () => {
                     className="group relative w-full h-screen bg-black overflow-hidden shadow-2xl"
                 >
                     {/* GLOBAL OVERLAY (CONTROLS) */}
-                    <div className={`absolute inset-0 z-[60] flex flex-col justify-between transition-opacity duration-500 bg-gradient-to-t from-black/40 via-transparent to-black/40 ${showControls || !isLiteMode ? 'opacity-100' : 'opacity-0'} pointer-events-none`}>
+                    <div className={`absolute inset-0 z-[60] flex flex-col justify-between transition-opacity duration-500 bg-gradient-to-t from-black/60 via-transparent to-black/60 ${showControls ? 'opacity-100' : 'opacity-0'} pointer-events-none`}>
 
                     {/* Resume Playback Prompt */}
                     {showResumePrompt && (
