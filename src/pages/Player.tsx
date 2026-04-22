@@ -62,6 +62,7 @@ const Player = () => {
     const watchingCardTimerRef = useRef<NodeJS.Timeout | null>(null);
     const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
     const hasIncrementedRef = useRef(false);
+    const hasPromptedRef = useRef<string | null>(null);
 
     const seasonParam = searchParams.get('season');
     const episodeParam = searchParams.get('episode');
@@ -249,8 +250,9 @@ const Player = () => {
         if (access.allowed) {
             setAccessState({ granted: true });
 
-            // 2b. Check existing progress
-            if (currentProfile) {
+            // 2b. Check existing progress (Only if not already prompted for this specific content/episode)
+            const contentKey = `${content.id}-${seasonParam || '0'}-${episodeParam || '0'}`;
+            if (currentProfile && hasPromptedRef.current !== contentKey) {
                 const s = seasonParam ? parseInt(seasonParam) : undefined;
                 const e = episodeParam ? parseInt(episodeParam) : undefined;
                 getUserProgress(currentProfile.id, content.id, s, e).then(progress => {
@@ -258,9 +260,12 @@ const Player = () => {
                         setLastPositionSeconds(progress.lastPositionSeconds);
                         setShowResumePrompt(true);
                     }
+                    // Mark as prompted regardless of result to avoid repeating
+                    hasPromptedRef.current = contentKey;
                 });
+            }
 
-                // 2d. Fetch all continue watching for the section below
+            if (currentProfile) {
                 getUserAllProgress(currentProfile.id).then(async (allProgress) => {
                     const allContents = await getAllContents();
                     const list = allProgress
