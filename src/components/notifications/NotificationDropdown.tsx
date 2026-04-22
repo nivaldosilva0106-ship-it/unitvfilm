@@ -131,18 +131,21 @@ export const NotificationDropdown = ({ onClose }: { onClose: () => void }) => {
     };
 
     return (
-        <div className="absolute top-12 right-0 w-80 md:w-96 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 z-50">
-            <div className="flex items-center justify-between p-4 border-b border-white/5 bg-zinc-900/50 backdrop-blur-md">
-                <h3 className="font-bold text-white">Notificações</h3>
+        <div className="flex flex-col w-full bg-zinc-950 overflow-hidden min-h-[400px]">
+            <div className="flex items-center justify-between p-4 border-b border-white/10 bg-zinc-900/40 shrink-0">
+                <h3 className="font-bold text-white flex items-center gap-2 truncate mr-2">
+                    <Bell className="w-4 h-4 text-red-500" />
+                    Notificações
+                </h3>
                 {mergedNotifications.length > 0 && (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 shrink-0">
                         <Button
                             variant="ghost"
                             size="sm"
                             onClick={handleMarkAllRead}
-                            className="text-xs h-7 text-green-500 hover:text-green-400 hover:bg-green-500/10"
+                            className="text-[10px] h-7 px-2 text-green-500 hover:text-green-400 hover:bg-green-500/10 transition-colors"
                         >
-                            <Check className="w-3 h-3 mr-1" /> Marcar lidas
+                            Marcar lidas
                         </Button>
                         <Button
                             variant="ghost"
@@ -151,15 +154,14 @@ export const NotificationDropdown = ({ onClose }: { onClose: () => void }) => {
                                 if (!user) return;
                                 await clearAllNotifications(user.uid);
                             }}
-                            className="text-xs h-7 text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                            className="text-[10px] h-7 px-2 text-red-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
                         >
-                            <Trash2 className="w-3 h-3 mr-1" /> Limpar
+                            Limpar
                         </Button>
                     </div>
                 )}
             </div>
-
-            <ScrollArea className="h-[400px]">
+            <ScrollArea className="flex-1 w-full">
                 {mergedNotifications.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full py-12 text-gray-500 gap-3">
                         <BellOff className="w-10 h-10 opacity-20" />

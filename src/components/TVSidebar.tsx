@@ -273,16 +273,8 @@ export const TVSidebar = () => {
                           )}
                         </div>
                       </DialogTrigger>
-                      <DialogContent className="max-w-md bg-[#141414] border-white/10 text-white p-0 overflow-hidden shadow-2xl">
-                        <DialogHeader className="p-4 border-b border-white/10 bg-zinc-900/50">
-                          <DialogTitle className="font-bold text-lg flex items-center gap-2">
-                            <Bell className="w-5 h-5 text-red-500" />
-                            Notificações
-                          </DialogTitle>
-                        </DialogHeader>
-                        <div className="max-h-[70vh] overflow-y-auto custom-scrollbar">
-                           <NotificationDropdown onClose={() => {}} />
-                        </div>
+                      <DialogContent className="w-[calc(100vw-2rem)] sm:max-w-lg bg-zinc-950 border-white/10 text-white p-0 overflow-hidden shadow-2xl flex flex-col min-h-[300px] gap-0">
+                         <NotificationDropdown onClose={() => {}} />
                       </DialogContent>
                     </Dialog>
                   ) : (

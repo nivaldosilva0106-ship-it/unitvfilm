@@ -65,7 +65,11 @@ export const NotificationBell = () => {
                 )}
             </button>
 
-            {isOpen && <NotificationDropdown onClose={() => setIsOpen(false)} />}
+            {isOpen && (
+                <div className="absolute top-12 right-0 w-80 md:w-96 bg-zinc-950 border border-zinc-800 rounded-xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-2 z-50">
+                    <NotificationDropdown onClose={() => setIsOpen(false)} />
+                </div>
+            )}
         </div>
     );
 };
