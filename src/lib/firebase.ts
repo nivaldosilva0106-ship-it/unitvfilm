@@ -48,31 +48,31 @@ export const addContent = async (content: Omit<Content, 'id'>) => {
 };
 
 export const getAllContents = async (): Promise<Content[]> => {
+  // First, try to return cached contents immediately for speed
+  let cachedData: Content[] | null = null;
+  try {
+    const cached = localStorage.getItem('cached_contents');
+    if (cached) {
+      cachedData = JSON.parse(cached);
+    }
+  } catch (e) {}
+
   try {
     const contentRef = ref(database, 'contents');
+    // Use a shorter timeout for the network check if we have cache
     const snapshot = await get(contentRef);
     if (snapshot.exists()) {
       const data = snapshot.val();
       const contents = Object.values(data) as Content[];
-      // Cache to localStorage
       try {
         localStorage.setItem('cached_contents', JSON.stringify(contents));
-      } catch (e) {
-        console.warn('Failed to cache contents:', e);
-      }
+      } catch (e) {}
       return contents;
     }
-    return [];
+    return cachedData || [];
   } catch (error) {
-    // If offline, try to load from cache
-    console.warn("Network error fetching contents, trying cache...", error);
-    try {
-      const cached = localStorage.getItem('cached_contents');
-      if (cached) {
-        return JSON.parse(cached);
-      }
-    } catch (e) { }
-    return [];
+    console.warn("Network error fetching contents, using cache...", error);
+    return cachedData || [];
   }
 };
 
@@ -419,6 +419,12 @@ export interface SiteSettings {
 }
 
 export const getSiteSettings = async (): Promise<SiteSettings> => {
+  let cachedSettings: SiteSettings | null = null;
+  try {
+    const cached = localStorage.getItem('cached_settings');
+    if (cached) cachedSettings = JSON.parse(cached);
+  } catch (e) {}
+
   try {
     const settingsRef = ref(database, 'settings');
     const snapshot = await get(settingsRef);
@@ -427,13 +433,10 @@ export const getSiteSettings = async (): Promise<SiteSettings> => {
       try { localStorage.setItem('cached_settings', JSON.stringify(settings)); } catch (e) { }
       return settings;
     }
+    return cachedSettings || {};
   } catch (error) {
-    try {
-      const cached = localStorage.getItem('cached_settings');
-      if (cached) return JSON.parse(cached);
-    } catch (e) { }
+    return cachedSettings || {};
   }
-  return {};
 };
 
 export const updateSiteSettings = async (updates: Partial<SiteSettings>) => {

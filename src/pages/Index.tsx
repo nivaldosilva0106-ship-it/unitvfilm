@@ -125,19 +125,21 @@ const Index = () => {
     // If choice modal is active, don't try to load yet to save resources
     if (showConnectivityModal) return;
 
-    await loadContent();
-
-    // Try to get site settings with a tight timeout (non-critical)
-    try {
-      const settings = await withTimeout(getSiteSettings(), 6000, null);
-      if (settings) setSiteSettings(settings);
-    } catch {
-      // Non-critical, ignore
-    }
-    
-    if (user && currentProfile) {
-      loadMyList();
-    }
+    // Parallelize content and settings loading for speed
+    await Promise.allSettled([
+      loadContent(),
+      (async () => {
+        try {
+          const settings = await withTimeout(getSiteSettings(), 5000, null);
+          if (settings) setSiteSettings(settings);
+        } catch {}
+      })(),
+      (async () => {
+        if (user && currentProfile) {
+          await loadMyList();
+        }
+      })()
+    ]);
   };
 
   useEffect(() => {
@@ -155,33 +157,50 @@ const Index = () => {
   }, []);
 
   const loadContent = async () => {
+    let hasCache = false;
     try {
-      setLoading(true);
-
-      // Race against an 8-second timeout — if Firebase doesn't respond, assume offline
-      const data = await withTimeout(getAllContents(), 8000, [] as Content[]);
-
-      // If we got zero results and we might be offline, trigger choice instead of failure (after 10 retries)
-      if (data.length === 0) {
-        if (!hasChosenOnline) {
-          if (retryCount < 10) {
-            console.log(`[UniTvFilm] Connection attempt ${retryCount + 1}/10 failed, retrying...`);
-            setRetryCount(prev => prev + 1);
-            setTimeout(() => loadContent(), 2000); // Wait 2s and retry
-            return; // Loading remains true
+      // 1. Instant Cache Load
+      const cached = localStorage.getItem('cached_contents');
+      if (cached) {
+        try {
+          const cachedData = JSON.parse(cached);
+          if (Array.isArray(cachedData) && cachedData.length > 0) {
+            setAllContentData(cachedData);
+            hasCache = true;
           }
-          setShowConnectivityModal(true);
-          setLoading(false);
-          return;
-        } else {
-          // If they chose online but still no data, we might truly have a server error or no content
-          setNetworkFailed(true);
-          setLoading(false);
+        } catch (e) {}
+      }
+
+      // Only show loading screen if we have no data at all
+      if (!hasCache && allContentData.length === 0) {
+        setLoading(true);
+      }
+
+      // 2. Network Fetch with optimized timeout
+      const data = await withTimeout(getAllContents(), 5000, [] as Content[]);
+
+      if (data.length > 0) {
+        setAllContentData(data);
+        localStorage.setItem('cached_contents', JSON.stringify(data));
+        setLoading(false);
+      } else {
+        // 3. Fallback/Retry logic if no data (network failed and no cache)
+        if (allContentData.length === 0) {
+          if (!hasChosenOnline) {
+            if (retryCount < 2) {
+              setRetryCount(prev => prev + 1);
+              setTimeout(() => loadContent(), 1000);
+              return;
+            }
+            setShowConnectivityModal(true);
+            setLoading(false);
+          } else {
+            setNetworkFailed(true);
+            setLoading(false);
+          }
           return;
         }
       }
-
-      setAllContentData(data);
 
       const settings = await withTimeout(getSliderSettings(), 5000, { mode: 'random' as const, selectedContentIds: [] });
 
