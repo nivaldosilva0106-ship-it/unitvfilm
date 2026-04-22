@@ -6,13 +6,12 @@ import { useAppConfig } from "@/hooks/useAppConfig";
 import { getAllContents, getMyList } from "@/lib/firebase";
 import { getDatabase, ref, onValue } from "firebase/database";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "./ui/dialog";
 import { NotificationDropdown } from "./notifications/NotificationDropdown";
 
 const sidebarItems = [
@@ -51,27 +50,19 @@ export const TVSidebar = () => {
   const shouldShow = isLiteMode || isDesktop;
 
   const shouldHide =
+    location.pathname.startsWith("/admin") ||
     location.pathname === "/login" ||
     location.pathname === "/signup" ||
     location.pathname.startsWith("/watch/") ||
     location.pathname.startsWith("/watch-local/") ||
-    location.pathname === "/profiles";
+    location.pathname === "/profiles" ||
+    !user;
 
   // D-pad keyboard navigation
   useEffect(() => {
-    if (shouldHide) return;
+    if (shouldHide || !expanded) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Only handle keys when sidebar is focused/expanded
-      if (!expanded) {
-        if (e.key === "ArrowLeft") {
-          setExpanded(true);
-          e.preventDefault();
-          e.stopPropagation();
-        }
-        return;
-      }
-
       switch (e.key) {
         case "ArrowUp":
           setFocusedIndex((prev) => Math.max(0, prev - 1));
@@ -80,8 +71,8 @@ export const TVSidebar = () => {
           break;
         case "ArrowDown":
           setFocusedIndex((prev) =>
-            Math.min(sidebarItems.length + 1, prev + 1)
-          ); // +2 for notification & profile
+            Math.min(allItems.length - 1, prev + 1)
+          ); 
           e.preventDefault();
           e.stopPropagation();
           break;
@@ -269,8 +260,8 @@ export const TVSidebar = () => {
 
                 <div className="relative">
                   {item.id === 'notifications' ? (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                    <Dialog>
+                      <DialogTrigger asChild>
                         <div className="relative cursor-pointer" data-item-id="notifications">
                           <item.icon
                             className={`tv-sidebar-item-icon ${isActive ? "tv-sidebar-item-icon--active" : ""}`}
@@ -281,19 +272,19 @@ export const TVSidebar = () => {
                             </span>
                           )}
                         </div>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent side="right" align="end" sideOffset={20} className="w-80 bg-[#141414] border-white/10 text-white p-0 overflow-hidden shadow-2xl">
-                        <div className="p-4 border-b border-white/10 flex justify-between items-center bg-zinc-900/50">
-                          <h3 className="font-bold text-lg flex items-center gap-2">
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md bg-[#141414] border-white/10 text-white p-0 overflow-hidden shadow-2xl">
+                        <DialogHeader className="p-4 border-b border-white/10 bg-zinc-900/50">
+                          <DialogTitle className="font-bold text-lg flex items-center gap-2">
                             <Bell className="w-5 h-5 text-red-500" />
                             Notificações
-                          </h3>
-                        </div>
-                        <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
+                          </DialogTitle>
+                        </DialogHeader>
+                        <div className="max-h-[70vh] overflow-y-auto custom-scrollbar">
                            <NotificationDropdown onClose={() => {}} />
                         </div>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                      </DialogContent>
+                    </Dialog>
                   ) : (
                     <>
                       <item.icon

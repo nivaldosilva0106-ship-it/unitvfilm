@@ -183,8 +183,8 @@ const Admin = () => {
 
   return (
     <AdminLayout title="Gerenciar Conteúdos">
-      <div className="grid lg:grid-cols-2 gap-6 h-[calc(100vh-140px)]">
-        <div className="space-y-6 overflow-y-auto pr-2 pb-4 text-white">
+      <div className="grid lg:grid-cols-2 gap-4 h-[calc(100vh-64px)]">
+        <div className="space-y-4 overflow-y-auto p-4 text-white custom-scrollbar">
           <div className="bg-secondary/20 border border-secondary/30 rounded-xl p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
@@ -217,13 +217,15 @@ const Admin = () => {
           />
         </div>
 
-        <AdminContentList
-          allContents={allContents}
-          listSearchQuery={listSearchQuery}
-          setListSearchQuery={setListSearchQuery}
-          setEditingContent={setEditingContent}
-          handleDelete={handleDelete}
-        />
+        <div className="p-4 h-full overflow-hidden">
+          <AdminContentList
+            allContents={allContents}
+            listSearchQuery={listSearchQuery}
+            setListSearchQuery={setListSearchQuery}
+            setEditingContent={setEditingContent}
+            handleDelete={handleDelete}
+          />
+        </div>
       </div>
     </AdminLayout>
   );

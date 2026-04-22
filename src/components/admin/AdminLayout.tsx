@@ -58,7 +58,7 @@ export const AdminLayout = ({ children, title }: AdminLayoutProps) => {
             </div>
           </div>
         </header>
-        <main className="p-4 lg:p-6 overflow-x-hidden">
+        <main className="overflow-x-hidden">
           {children}
         </main>
       </div>
