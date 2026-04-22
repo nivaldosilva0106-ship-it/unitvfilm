@@ -2,6 +2,8 @@ import React, { Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Capacitor } from "@capacitor/core";
+import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -74,6 +76,33 @@ const LiteModeBodyClass = () => {
   return null;
 };
 
+const OrientationManager = () => {
+  const mode = (import.meta.env.VITE_APP_MODE as string) || 'standard';
+  
+  React.useEffect(() => {
+    const lockOrientation = async () => {
+      if (mode === 'lite' && Capacitor.isNativePlatform()) {
+        try {
+          await ScreenOrientation.lock({ orientation: 'landscape' });
+        } catch (e) {
+          console.warn('Orientation lock failed:', e);
+        }
+      }
+    };
+    
+    lockOrientation();
+    
+    // Cleanup - return to allowing all rotations if unmounted
+    return () => {
+      if (Capacitor.isNativePlatform()) {
+        ScreenOrientation.unlock().catch(() => {});
+      }
+    };
+  }, [mode]);
+  
+  return null;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
@@ -90,6 +119,7 @@ const App = () => (
           <OfflineIndicator />
           <GlobalContentProtection />
           <LiteModeBodyClass />
+          <OrientationManager />
           <MobileBottomNav />
           <TVSidebar />
           <AuthGuard>

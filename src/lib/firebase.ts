@@ -411,9 +411,11 @@ export interface SiteSettings {
   providerLogos?: Record<string, string>;
   pwaIconUrl?: string;
   apkDownloadUrl?: string;
+  apkLiteDownloadUrl?: string;
   enableApkDownload?: boolean;
   enablePwaInstall?: boolean;
   requiredAppVersion?: number;
+  requiredLiteAppVersion?: number;
 }
 
 export const getSiteSettings = async (): Promise<SiteSettings> => {

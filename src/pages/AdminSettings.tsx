@@ -23,7 +23,9 @@ export const AdminSettings = () => {
     const [officialSiteUrl, setOfficialSiteUrl] = useState("");
     const [pwaIconUrl, setPwaIconUrl] = useState("");
     const [apkDownloadUrl, setApkDownloadUrl] = useState("");
+    const [apkLiteDownloadUrl, setApkLiteDownloadUrl] = useState("");
     const [requiredAppVersion, setRequiredAppVersion] = useState<number>(1);
+    const [requiredLiteAppVersion, setRequiredLiteAppVersion] = useState<number>(1);
     const [enableApkDownload, setEnableApkDownload] = useState(false);
     const [enablePwaInstall, setEnablePwaInstall] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -65,7 +67,9 @@ export const AdminSettings = () => {
             setOfficialSiteUrl(settings.officialSiteUrl || "");
             setPwaIconUrl(settings.pwaIconUrl || "");
             setApkDownloadUrl(settings.apkDownloadUrl || "");
+            setApkLiteDownloadUrl(settings.apkLiteDownloadUrl || "");
             setRequiredAppVersion(settings.requiredAppVersion || 1);
+            setRequiredLiteAppVersion(settings.requiredLiteAppVersion || 1);
             setEnableApkDownload(settings.enableApkDownload || false);
             setEnablePwaInstall(settings.enablePwaInstall || false);
         } catch (error) {
@@ -88,7 +92,9 @@ export const AdminSettings = () => {
                 officialSiteUrl,
                 pwaIconUrl,
                 apkDownloadUrl,
+                apkLiteDownloadUrl,
                 requiredAppVersion,
+                requiredLiteAppVersion,
                 enableApkDownload,
                 enablePwaInstall
             });
@@ -374,7 +380,7 @@ export const AdminSettings = () => {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="apkUrl">Link Direto do APK</Label>
+                                        <Label htmlFor="apkUrl">Link APK Normal</Label>
                                         <Input
                                             id="apkUrl"
                                             placeholder="https://exemplo.com/app.apk"
@@ -382,25 +388,44 @@ export const AdminSettings = () => {
                                             onChange={(e) => setApkDownloadUrl(e.target.value)}
                                             className="bg-background/50"
                                         />
-                                        <p className="text-[10px] text-muted-foreground">
-                                            O link para onde o usuário será redirecionado ao baixar o APK.
-                                        </p>
                                     </div>
-                                    <div className="space-y-2 pt-2">
-                                        <Label htmlFor="requiredAppVersion">Versão Mínima Exigida (App Update)</Label>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="apkLiteUrl">Link APK Lite (TV Box)</Label>
                                         <Input
-                                            id="requiredAppVersion"
-                                            type="number"
-                                            min="1"
-                                            placeholder="1"
-                                            value={requiredAppVersion}
-                                            onChange={(e) => setRequiredAppVersion(parseInt(e.target.value) || 1)}
+                                            id="apkLiteUrl"
+                                            placeholder="https://exemplo.com/app-lite.apk"
+                                            value={apkLiteDownloadUrl}
+                                            onChange={(e) => setApkLiteDownloadUrl(e.target.value)}
                                             className="bg-background/50"
                                         />
-                                        <p className="text-[10px] text-muted-foreground">
-                                            Insira o número da versão (ex: 2). Se a versão instalada for menor, o usuário será obrigado a atualizar.
-                                        </p>
                                     </div>
+                                    <div className="grid grid-cols-2 gap-4 pt-2">
+                                        <div className="space-y-2">
+                                            <Label htmlFor="requiredAppVersion">Versão Normal</Label>
+                                            <Input
+                                                id="requiredAppVersion"
+                                                type="number"
+                                                min="1"
+                                                value={requiredAppVersion}
+                                                onChange={(e) => setRequiredAppVersion(parseInt(e.target.value) || 1)}
+                                                className="bg-background/50"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label htmlFor="requiredLiteAppVersion">Versão Lite</Label>
+                                            <Input
+                                                id="requiredLiteAppVersion"
+                                                type="number"
+                                                min="1"
+                                                value={requiredLiteAppVersion}
+                                                onChange={(e) => setRequiredLiteAppVersion(parseInt(e.target.value) || 1)}
+                                                className="bg-background/50"
+                                            />
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground mt-2">
+                                        Se a versão instalada for menor que a exigida, o usuário será obrigado a atualizar.
+                                    </p>
                                 </div>
                             </div>
 

@@ -3,11 +3,13 @@ import { getSiteSettings } from '@/lib/firebase';
 import { Capacitor } from '@capacitor/core';
 import { Download, AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from './ui/button';
+import { useAppConfig } from '@/hooks/useAppConfig';
 
 export function AppUpdater() {
     const [updateRequired, setUpdateRequired] = useState(false);
     const [apkUrl, setApkUrl] = useState('');
     const [loading, setLoading] = useState(true);
+    const { isLiteMode } = useAppConfig();
 
     useEffect(() => {
         const checkUpdate = async () => {
@@ -21,14 +23,19 @@ export function AppUpdater() {
                 const { App: CapacitorApp } = await import('@capacitor/app');
                 
                 const settings = await getSiteSettings();
-                const requiredVersion = settings.requiredAppVersion || 1;
+                const requiredVersion = isLiteMode 
+                    ? (settings.requiredLiteAppVersion || 1) 
+                    : (settings.requiredAppVersion || 1);
                 
                 const info = await CapacitorApp.getInfo();
                 const currentBuild = parseInt(info.build || '1');
 
                 if (currentBuild < requiredVersion) {
                     setUpdateRequired(true);
-                    setApkUrl(settings.apkDownloadUrl || '');
+                    setApkUrl(isLiteMode 
+                        ? (settings.apkLiteDownloadUrl || settings.apkDownloadUrl || '') 
+                        : (settings.apkDownloadUrl || '')
+                    );
                 }
             } catch (e) {
                 console.error("Failed to check for app update", e);
