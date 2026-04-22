@@ -24,11 +24,13 @@ export class ErrorBoundary extends React.Component<Props, State> {
     
     // Auto-reload on chunk load errors
     const errorString = String(error);
-    if (
+    const isChunkError = 
       errorString.includes("Failed to fetch dynamically imported module") || 
       errorString.includes("Loading chunk") ||
-      errorString.includes("Importing a module script failed")
-    ) {
+      errorString.includes("Importing a module script failed") ||
+      (errorString.includes("Failed to fetch") && (this.state.error?.stack?.includes("/assets/") || errorString.includes(".js")));
+
+    if (isChunkError) {
       console.warn("Chunk load error detected. Reloading page...");
       window.location.reload();
     }
