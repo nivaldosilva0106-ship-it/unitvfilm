@@ -19,7 +19,7 @@ const hiddenPaths = ["/admin", "/login", "/signup", "/watch/", "/watch-local/", 
 export const TVSidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, currentProfile, logout } = useAuth();
+  const { user, currentProfile, plan, logout } = useAuth();
   const { isLiteMode } = useAppConfig();
   const [expanded, setExpanded] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState(0);
@@ -115,6 +115,9 @@ export const TVSidebar = () => {
     } else if (item.id === "admin") {
       navigate("/admin");
       setExpanded(false);
+    } else if (item.id === "profile") {
+      navigate("/profile");
+      setExpanded(false);
     } else if (item.id === "logout") {
       logout();
       setExpanded(false);
@@ -176,15 +179,7 @@ export const TVSidebar = () => {
               <button
                 key={item.id}
                 className={`tv-sidebar-item ${isActive ? "tv-sidebar-item--active" : ""} ${isFocused ? "tv-sidebar-item--focused" : ""}`}
-                onClick={() => {
-                  if (item.type === "nav" && "path" in item && item.path) {
-                    navigate(item.path);
-                    setExpanded(false);
-                  } else if (item.id === "profile") {
-                    navigate("/profile");
-                    setExpanded(false);
-                  }
-                }}
+                onClick={() => handleItemSelect(index)}
                 onFocus={() => setFocusedIndex(index)}
                 tabIndex={expanded ? 0 : -1}
               >
