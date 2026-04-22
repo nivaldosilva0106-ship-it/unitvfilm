@@ -230,11 +230,6 @@ export const TVSidebar = () => {
           <div className="tv-sidebar-logo-icon">
             <Film className="w-5 h-5 text-white" />
           </div>
-          {expanded && (
-            <span className="tv-sidebar-logo-text">
-              Uni<span className="text-primary">Tv</span>Film
-            </span>
-          )}
         </div>
 
         {/* Navigation Items */}
@@ -305,7 +300,13 @@ export const TVSidebar = () => {
 
         {/* Profile / Admin / Logout Section at bottom */}
         {expanded && (
-          <div className="tv-sidebar-profile">
+          <div 
+            className="tv-sidebar-profile cursor-pointer hover:bg-white/5 transition-colors"
+            onClick={() => {
+              navigate('/profile');
+              setExpanded(false);
+            }}
+          >
             <img
               src={
                 currentProfile?.avatarUrl ||
