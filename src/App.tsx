@@ -58,6 +58,7 @@ const Transfers = React.lazy(() => import("./pages/Transfers"));
 const LocalPlayer = React.lazy(() => import("./pages/LocalPlayer"));
 
 // Lazy load admin components
+const Search = React.lazy(() => import("./pages/Search"));
 const AdminUsers = React.lazy(() => import("@/components/admin/AdminUsers").then(module => ({ default: module.AdminUsers })));
 const AdminAvatars = React.lazy(() => import("@/components/admin/AdminAvatars").then(module => ({ default: module.AdminAvatars })));
 
@@ -130,6 +131,7 @@ const App = () => (
                 <Route path="/" element={<HomeWrapper />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
+                <Route path="/search" element={<Search />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="/admin/ads" element={<AdminAds />} />
                 <Route path="/admin/payments" element={<AdminPayments />} />

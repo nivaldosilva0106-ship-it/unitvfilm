@@ -16,7 +16,7 @@ import {
 import { NotificationDropdown } from "./notifications/NotificationDropdown";
 
 const sidebarItems = [
-  { id: "search", icon: Search, label: "Pesquisar", path: null, action: "search" },
+  { id: "search", icon: Search, label: "Pesquisar", path: "/search" },
   { id: "home", icon: Home, label: "Início", path: "/" },
   { id: "notifications", icon: Bell, label: "Notificações", path: null, action: "notifications" },
   { id: "list", icon: List, label: "Minha Lista", path: "/my-list" },
@@ -51,9 +51,11 @@ export const TVSidebar = () => {
   const shouldShow = isLiteMode || isDesktop;
 
   const shouldHide =
-    !shouldShow ||
-    !user ||
-    hiddenPaths.some((p) => location.pathname.startsWith(p));
+    location.pathname === "/login" ||
+    location.pathname === "/signup" ||
+    location.pathname.startsWith("/watch/") ||
+    location.pathname.startsWith("/watch-local/") ||
+    location.pathname === "/profiles";
 
   // D-pad keyboard navigation
   useEffect(() => {
@@ -127,17 +129,23 @@ export const TVSidebar = () => {
     return () => { u1(); u2(); u3(); };
   }, [user]);
 
-  // Fetch My List count
+  // Fetch My List count (Real-time)
   useEffect(() => {
     if (!user) return;
-    const loadMyList = async () => {
-      try {
-        const items = await getMyList(user.uid);
+    const db = getDatabase();
+    const listRef = ref(db, `myList/${user.uid}`);
+    
+    const unsubscribe = onValue(listRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const items = Object.values(snapshot.val());
         setMyListCount(items.length);
-      } catch (e) {}
-    };
-    loadMyList();
-  }, [user, location.pathname]);
+      } else {
+        setMyListCount(0);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [user]);
 
   // Fetch new content badges
   useEffect(() => {
@@ -178,20 +186,12 @@ export const TVSidebar = () => {
     if (item.path) {
       navigate(item.path);
       setExpanded(false);
-    } else if (item.action === "search") {
-      const searchBtn = document.querySelector('.search-trigger') || document.querySelector('[aria-haspopup="menu"] .lucide-search')?.parentElement;
-      if (searchBtn instanceof HTMLElement) {
-        searchBtn.click();
-      }
-      setExpanded(false);
     } else if (item.action === "notifications") {
-      const bellBtn = document.querySelector('.notification-bell-trigger') as HTMLElement;
-      if (bellBtn) {
-        bellBtn.click();
-      } else {
-        navigate("/admin/notifications"); 
+      // Toggle dropdown menu trigger for notifications
+      const notificationBtn = document.querySelector('[data-item-id="notifications"]') as HTMLElement;
+      if (notificationBtn) {
+        notificationBtn.click();
       }
-      setExpanded(false);
     } else if (item.id === "admin") {
       navigate("/admin");
       setExpanded(false);
@@ -271,7 +271,7 @@ export const TVSidebar = () => {
                   {item.id === 'notifications' ? (
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <div className="relative cursor-pointer">
+                        <div className="relative cursor-pointer" data-item-id="notifications">
                           <item.icon
                             className={`tv-sidebar-item-icon ${isActive ? "tv-sidebar-item-icon--active" : ""}`}
                           />
@@ -282,14 +282,14 @@ export const TVSidebar = () => {
                           )}
                         </div>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent side="right" align="end" sideOffset={20} className="w-80 bg-[#141414] border-white/10 text-white p-0 overflow-hidden">
+                      <DropdownMenuContent side="right" align="end" sideOffset={20} className="w-80 bg-[#141414] border-white/10 text-white p-0 overflow-hidden shadow-2xl">
                         <div className="p-4 border-b border-white/10 flex justify-between items-center bg-zinc-900/50">
                           <h3 className="font-bold text-lg flex items-center gap-2">
-                            <Bell className="w-5 h-5 text-primary" />
+                            <Bell className="w-5 h-5 text-red-500" />
                             Notificações
                           </h3>
                         </div>
-                        <div className="max-h-[400px] overflow-y-auto">
+                        <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
                            <NotificationDropdown onClose={() => {}} />
                         </div>
                       </DropdownMenuContent>
@@ -300,9 +300,7 @@ export const TVSidebar = () => {
                         className={`tv-sidebar-item-icon ${isActive ? "tv-sidebar-item-icon--active" : ""}`}
                       />
                       {item.badge > 0 && (
-                        <span className={`absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full text-[10px] font-bold text-white border border-background animate-in zoom-in duration-300 ${
-                          item.id === 'notifications' ? 'bg-red-600' : 'bg-primary'
-                        }`}>
+                        <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white border border-background animate-in zoom-in duration-300">
                           {item.badge > 9 ? '9+' : item.badge}
                         </span>
                       )}

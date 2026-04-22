@@ -319,69 +319,15 @@ export const Header = () => {
             {/* PWA Install Icon - hidden when sidebar active */}
             {!hasSidebar && <InstallAppButton variant="icon" className="text-gray-300 hover:text-white" />}
 
-            {/* Search Icon with Dropdown */}
-            <DropdownMenu open={searchOpen} onOpenChange={setSearchOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-gray-300 hover:text-white hover:bg-white/10 search-trigger"
-                >
-                  <Search className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[calc(100vw-2rem)] sm:w-80 bg-[#141414] border-white/10 text-white mt-2">
-                <div className="p-2">
-                  <Input
-                    placeholder="Pesquisar..."
-                    value={searchQuery}
-                    onChange={(e) => handleSearch(e.target.value)}
-                    className="mb-2 bg-[#333] border-none text-white focus-visible:ring-1 focus-visible:ring-white/20"
-                    autoFocus
-                  />
-                  {isSearching && (
-                    <p className="text-sm text-gray-400 text-center py-2">Buscando...</p>
-                  )}
-                  {searchResults.length > 0 && (
-                    <div className="max-h-[300px] overflow-y-auto space-y-1 custom-scrollbar">
-                      {searchResults.slice(0, 5).map((content, index) => (
-                        <button
-                          key={content.id}
-                          onClick={() => {
-                            playNavigationSound('select');
-                            if (content.category === 'nostalgia') {
-                              navigate(`/nostalgia/${content.id}`);
-                            } else if (content.category === 'series') {
-                              navigate(`/content/${content.id}?showEpisodes=true`);
-                            } else if (content.category === 'tv') {
-                              navigate(`/tv?channelId=${content.id}`);
-                            } else {
-                              navigate(`/watch/${content.id}`);
-                            }
-                            setSearchOpen(false);
-                            setSearchQuery("");
-                            setSearchResults([]);
-                          }}
-                          className={`w-full text-left p-2 rounded-md transition-colors flex gap-3 ${focusedResultIndex === index
-                            ? 'bg-white/10 text-white'
-                            : 'hover:bg-white/5 text-gray-300'
-                            }`}
-                        >
-                          <img src={content.thumbnail_url} className="w-8 h-12 object-cover rounded bg-zinc-800" />
-                          <div className="min-w-0">
-                            <p className="font-medium text-sm truncate">{content.title}</p>
-                            <p className={`text-xs ${focusedResultIndex === index
-                              ? 'text-gray-300'
-                              : 'text-gray-500'
-                              } capitalize`}>{content.category}</p>
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Search Icon - Navigates to search page */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/search")}
+              className="text-gray-300 hover:text-white hover:bg-white/10 search-trigger"
+            >
+              <Search className="h-5 w-5" />
+            </Button>
 
             {/* Navigation items moved to the right when sidebar active */}
             {hasSidebar && (
