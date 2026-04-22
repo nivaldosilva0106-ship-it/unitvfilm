@@ -22,46 +22,53 @@ import { ErrorBoundary } from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
-// Lazy load pages
-const Index = React.lazy(() => import("./pages/Index"));
-const HomeWrapper = React.lazy(() => import("./pages/HomeWrapper"));
-const Login = React.lazy(() => import("./pages/Login"));
-const Signup = React.lazy(() => import("./pages/Signup"));
-const Admin = React.lazy(() => import("./pages/Admin"));
-const AdminAds = React.lazy(() => import("./pages/AdminAds"));
-const AdminPayments = React.lazy(() => import("./pages/AdminPayments"));
-const AdminSettings = React.lazy(() => import("./pages/AdminSettings").then(module => ({ default: module.AdminSettings })));
-const AdminSlider = React.lazy(() => import("./pages/AdminSlider"));
-const AdminPlans = React.lazy(() => import("./pages/AdminPlans"));
-const AdminSystem = React.lazy(() => import("./pages/AdminSystem"));
-const AdminNotifications = React.lazy(() => import("./pages/AdminNotifications"));
-const Payment = React.lazy(() => import("./pages/Payment"));
-const ContentDetails = React.lazy(() => import("./pages/ContentDetails"));
-const Player = React.lazy(() => import("./pages/Player"));
-const MyList = React.lazy(() => import("./pages/MyList"));
-const Profile = React.lazy(() => import("./pages/Profile"));
-const ProfileSelection = React.lazy(() => import("./pages/profiles/ProfileSelection"));
-const Categories = React.lazy(() => import("./pages/Categories"));
-const LiveTV = React.lazy(() => import("./pages/LiveTV"));
-const Notifications = React.lazy(() => import("./pages/Notifications"));
-const NostalgiaTube = React.lazy(() => import("./pages/NostalgiaTube"));
-const Canais24h = React.lazy(() => import("./pages/Canais24h"));
-const ProviderView = React.lazy(() => import("./pages/ProviderView"));
-const VerifyCode = React.lazy(() => import("./pages/VerifyCode"));
-const NotFound = React.lazy(() => import("./pages/NotFound"));
-const About = React.lazy(() => import("./pages/About").catch(() => {
-  window.location.reload();
-  return { default: () => null };
-}));
-const TermsOfUse = React.lazy(() => import("./pages/TermsOfUse"));
-const PrivacyPolicy = React.lazy(() => import("./pages/PrivacyPolicy"));
-const Transfers = React.lazy(() => import("./pages/Transfers"));
-const LocalPlayer = React.lazy(() => import("./pages/LocalPlayer"));
+// Helper to handle lazy loading errors (ChunkLoadError)
+const lazyWithRetry = (componentImport: () => Promise<any>) =>
+  React.lazy(() =>
+    componentImport().catch((error) => {
+      console.error("Chunk load error detected, reloading page...", error);
+      window.location.reload();
+      return { default: () => null };
+    })
+  );
+
+// Pages
+const Index = lazyWithRetry(() => import("./pages/Index"));
+const HomeWrapper = lazyWithRetry(() => import("./pages/HomeWrapper"));
+const Login = lazyWithRetry(() => import("./pages/Login"));
+const Signup = lazyWithRetry(() => import("./pages/Signup"));
+const Admin = lazyWithRetry(() => import("./pages/Admin"));
+const AdminAds = lazyWithRetry(() => import("./pages/AdminAds"));
+const AdminPayments = lazyWithRetry(() => import("./pages/AdminPayments"));
+const AdminSettings = lazyWithRetry(() => import("./pages/AdminSettings").then(module => ({ default: module.AdminSettings })));
+const AdminSlider = lazyWithRetry(() => import("./pages/AdminSlider"));
+const AdminPlans = lazyWithRetry(() => import("./pages/AdminPlans"));
+const AdminSystem = lazyWithRetry(() => import("./pages/AdminSystem"));
+const AdminNotifications = lazyWithRetry(() => import("./pages/AdminNotifications"));
+const Payment = lazyWithRetry(() => import("./pages/Payment"));
+const ContentDetails = lazyWithRetry(() => import("./pages/ContentDetails"));
+const Player = lazyWithRetry(() => import("./pages/Player"));
+const MyList = lazyWithRetry(() => import("./pages/MyList"));
+const Profile = lazyWithRetry(() => import("./pages/Profile"));
+const ProfileSelection = lazyWithRetry(() => import("./pages/profiles/ProfileSelection"));
+const Categories = lazyWithRetry(() => import("./pages/Categories"));
+const LiveTV = lazyWithRetry(() => import("./pages/LiveTV"));
+const Notifications = lazyWithRetry(() => import("./pages/Notifications"));
+const NostalgiaTube = lazyWithRetry(() => import("./pages/NostalgiaTube"));
+const Canais24h = lazyWithRetry(() => import("./pages/Canais24h"));
+const ProviderView = lazyWithRetry(() => import("./pages/ProviderView"));
+const VerifyCode = lazyWithRetry(() => import("./pages/VerifyCode"));
+const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
+const About = lazyWithRetry(() => import("./pages/About"));
+const TermsOfUse = lazyWithRetry(() => import("./pages/TermsOfUse"));
+const PrivacyPolicy = lazyWithRetry(() => import("./pages/PrivacyPolicy"));
+const Transfers = lazyWithRetry(() => import("./pages/Transfers"));
+const LocalPlayer = lazyWithRetry(() => import("./pages/LocalPlayer"));
 
 // Lazy load admin components
-const Search = React.lazy(() => import("./pages/Search"));
-const AdminUsers = React.lazy(() => import("@/components/admin/AdminUsers").then(module => ({ default: module.AdminUsers })));
-const AdminAvatars = React.lazy(() => import("@/components/admin/AdminAvatars").then(module => ({ default: module.AdminAvatars })));
+const Search = lazyWithRetry(() => import("./pages/Search"));
+const AdminUsers = lazyWithRetry(() => import("@/components/admin/AdminUsers").then(module => ({ default: module.AdminUsers })));
+const AdminAvatars = lazyWithRetry(() => import("@/components/admin/AdminAvatars").then(module => ({ default: module.AdminAvatars })));
 
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { NetworkStatus } from "@/components/NetworkStatus";
