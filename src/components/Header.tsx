@@ -438,64 +438,76 @@ export const Header = () => {
               </div>
             )}
 
-            {/* User Menu - hidden when sidebar active (profile in sidebar) */}
-            {user && !hasSidebar ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <div className="flex items-center gap-1 sm:gap-2 cursor-pointer group">
-                    <div className="w-8 h-8 rounded overflow-hidden border border-transparent group-hover:border-white transition-all">
+            {/* User Menu / Logout Icon */}
+            {user ? (
+              !hasSidebar ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <div className="flex items-center gap-1 sm:gap-2 cursor-pointer group">
+                      <div className="w-8 h-8 rounded overflow-hidden border border-transparent group-hover:border-white transition-all">
+                        <img
+                          src={currentProfile?.avatarUrl || "https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png"}
+                          alt="Profile"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <ChevronDown className="w-4 h-4 text-white hidden sm:block group-hover:rotate-180 transition-transform duration-200" />
+                    </div>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56 bg-black/95 border-white/10 text-white backdrop-blur-xl">
+                    <DropdownMenuLabel className="text-gray-400 text-xs uppercase tracking-wider">Conta</DropdownMenuLabel>
+                    <div className="px-2 py-1 flex items-center gap-2 mb-2">
                       <img
                         src={currentProfile?.avatarUrl || "https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png"}
-                        alt="Profile"
-                        className="w-full h-full object-cover"
+                        className="w-6 h-6 rounded object-cover"
                       />
+                      <span className="text-sm font-bold truncate">{currentProfile?.name || "Usuário"}</span>
                     </div>
-                    <ChevronDown className="w-4 h-4 text-white hidden sm:block group-hover:rotate-180 transition-transform duration-200" />
-                  </div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56 bg-black/95 border-white/10 text-white backdrop-blur-xl">
-                  <DropdownMenuLabel className="text-gray-400 text-xs uppercase tracking-wider">Conta</DropdownMenuLabel>
-                  <div className="px-2 py-1 flex items-center gap-2 mb-2">
-                    <img
-                      src={currentProfile?.avatarUrl || "https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png"}
-                      className="w-6 h-6 rounded object-cover"
-                    />
-                    <span className="text-sm font-bold truncate">{currentProfile?.name || "Usuário"}</span>
-                  </div>
-                  <DropdownMenuSeparator className="bg-white/10" />
-                  <DropdownMenuItem onClick={() => navigate("/profiles")} className="focus:bg-white/10 cursor-pointer">
-                    <User className="mr-2 h-4 w-4" />
-                    Gerenciar Perfis
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/profile")} className="focus:bg-white/10 cursor-pointer">
-                    <Settings className="mr-2 h-4 w-4" />
-                    Conta
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/my-list")} className="focus:bg-white/10 cursor-pointer">
-                    <List className="mr-2 h-4 w-4" />
-                    Minha Lista
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => navigate("/transfers")} className="focus:bg-white/10 cursor-pointer">
-                    <Download className="mr-2 h-4 w-4" />
-                    Minhas Transferências
-                  </DropdownMenuItem>
-                  {isAdmin && (
-                    <DropdownMenuItem onClick={() => navigate("/admin")} className="focus:bg-white/10 cursor-pointer text-yellow-500 hover:text-yellow-400">
-                      <Settings className="mr-2 h-4 w-4" />
-                      Painel Admin
+                    <DropdownMenuSeparator className="bg-white/10" />
+                    <DropdownMenuItem onClick={() => navigate("/profiles")} className="focus:bg-white/10 cursor-pointer">
+                      <User className="mr-2 h-4 w-4" />
+                      Gerenciar Perfis
                     </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator className="bg-white/10" />
-                  <DropdownMenuItem onClick={handleLogout} className="text-white hover:underline cursor-pointer focus:bg-transparent justify-center text-xs py-3">
-                    Sair da UniTvFilm
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                    <DropdownMenuItem onClick={() => navigate("/profile")} className="focus:bg-white/10 cursor-pointer">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Conta
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/my-list")} className="focus:bg-white/10 cursor-pointer">
+                      <List className="mr-2 h-4 w-4" />
+                      Minha Lista
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => navigate("/transfers")} className="focus:bg-white/10 cursor-pointer">
+                      <Download className="mr-2 h-4 w-4" />
+                      Minhas Transferências
+                    </DropdownMenuItem>
+                    {isAdmin && (
+                      <DropdownMenuItem onClick={() => navigate("/admin")} className="focus:bg-white/10 cursor-pointer text-yellow-500 hover:text-yellow-400">
+                        <Settings className="mr-2 h-4 w-4" />
+                        Painel Admin
+                      </DropdownMenuItem>
+                    )}
+                    <DropdownMenuSeparator className="bg-white/10" />
+                    <DropdownMenuItem onClick={handleLogout} className="text-white hover:underline cursor-pointer focus:bg-transparent justify-center text-xs py-3">
+                      Sair da UniTvFilm
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleLogout}
+                  className="text-red-500 hover:text-red-400 hover:bg-red-500/10 rounded-full"
+                  title="Sair"
+                >
+                  <LogOut className="h-5 w-5" />
+                </Button>
+              )
             ) : (
               <Button
                 onClick={() => navigate("/login")}
                 size="sm"
-                className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-4"
               >
                 Entrar
               </Button>

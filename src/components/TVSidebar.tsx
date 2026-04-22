@@ -7,6 +7,7 @@ import { useAppConfig } from "@/hooks/useAppConfig";
 const sidebarItems = [
   { id: "search", icon: Search, label: "Pesquisar", path: null, action: "search" },
   { id: "home", icon: Home, label: "Início", path: "/" },
+  { id: "notifications", icon: Bell, label: "Notificações", path: null, action: "notifications" },
   { id: "list", icon: List, label: "Minha Lista", path: "/my-list" },
   { id: "categories", icon: Film, label: "Categorias", path: "/categories" },
   { id: "nostalgia", icon: Clapperboard, label: "Nostalgia", path: "/nostalgia" },
@@ -88,30 +89,50 @@ export const TVSidebar = () => {
   }, [shouldHide, expanded, focusedIndex]);
 
   const handleItemSelect = (index: number) => {
-    if (index < sidebarItems.length) {
-      const item = sidebarItems[index];
-      if (item.path) {
-        navigate(item.path);
-        setExpanded(false);
+    const item = allItems[index];
+    if (!item) return;
+
+    if (item.path) {
+      navigate(item.path);
+      setExpanded(false);
+    } else if (item.action === "search") {
+      // Trigger search dropdown in header
+      const searchBtn = document.querySelector('[aria-haspopup="menu"] .lucide-search')?.parentElement;
+      if (searchBtn instanceof HTMLElement) {
+        searchBtn.click();
       }
-    } else if (index === sidebarItems.length) {
-      // Notifications — no action for now
-    } else if (index === sidebarItems.length + 1) {
-      // Profile
-      navigate("/profile");
+      setExpanded(false);
+    } else if (item.action === "notifications") {
+      // Open notifications
+      const bellBtn = document.querySelector('.notification-bell-trigger') as HTMLElement;
+      if (bellBtn) {
+        bellBtn.click();
+      } else {
+        // Fallback or alert
+        navigate("/profile"); // Example fallback
+      }
+      setExpanded(false);
+    } else if (item.id === "admin") {
+      navigate("/admin");
+      setExpanded(false);
+    } else if (item.id === "logout") {
+      logout();
       setExpanded(false);
     }
   };
 
   if (shouldHide) return null;
 
+  const isAdminUser = user?.email === "www.nivaldo.com.ao@gmail.com";
+
   const allItems = [
     ...sidebarItems.map((item) => ({
       ...item,
       type: "nav" as const,
     })),
-    { id: "notifications", icon: Bell, label: "Notificações", type: "extra" as const },
+    ...(isAdminUser ? [{ id: "admin", icon: Settings, label: "Painel Admin", type: "extra" as const }] : []),
     { id: "profile", icon: User, label: "Perfil", type: "extra" as const },
+    { id: "logout", icon: LogOut, label: "Sair", type: "extra" as const },
   ];
 
   return (
@@ -186,20 +207,25 @@ export const TVSidebar = () => {
           })}
         </div>
 
-        {/* Profile avatar at bottom */}
-        {currentProfile && expanded && (
+        {/* Profile / Admin / Logout Section at bottom */}
+        {expanded && (
           <div className="tv-sidebar-profile">
             <img
               src={
-                currentProfile.avatarUrl ||
+                currentProfile?.avatarUrl ||
                 "https://upload.wikimedia.org/wikipedia/commons/0/0b/Netflix-avatar.png"
               }
               alt="Profile"
               className="tv-sidebar-profile-avatar"
             />
-            <span className="tv-sidebar-profile-name">
-              {currentProfile.name || "Usuário"}
-            </span>
+            <div className="tv-sidebar-profile-info">
+              <span className="tv-sidebar-profile-name">
+                {currentProfile?.name || "Usuário"}
+              </span>
+              <span className="tv-sidebar-profile-plan">
+                Plano {plan?.name || "Básico"}
+              </span>
+            </div>
           </div>
         )}
       </nav>
