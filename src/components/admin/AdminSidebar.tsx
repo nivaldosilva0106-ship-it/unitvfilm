@@ -87,7 +87,7 @@ export const AdminSidebar = ({ collapsed, setCollapsed }: AdminSidebarProps) => 
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 h-screen bg-card border-r border-border z-40 transition-all duration-300 flex flex-col hidden lg:flex",
+        "relative h-screen bg-card border-r border-white/5 z-40 transition-all duration-300 flex flex-col hidden lg:flex shrink-0",
         collapsed ? "w-16" : "w-56"
       )}
     >

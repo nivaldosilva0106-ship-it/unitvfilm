@@ -21,15 +21,10 @@ export const AdminLayout = ({ children, title }: AdminLayoutProps) => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="flex min-h-screen bg-background text-foreground">
       <AdminSidebar collapsed={collapsed} setCollapsed={setCollapsed} />
-      <div 
-        className={cn(
-          "transition-all duration-300 min-h-screen",
-          collapsed ? "lg:pl-16" : "lg:pl-56"
-        )}
-      >
-        <header className="h-16 border-b border-border bg-card/50 backdrop-blur-sm flex items-center gap-4 px-4 lg:px-6 sticky top-0 z-30">
+      <div className="flex-1 flex flex-col min-h-screen relative">
+        <header className="h-16 border-b border-white/5 bg-card/50 backdrop-blur-sm flex items-center gap-4 px-2 lg:px-4 sticky top-0 z-30">
           <Sheet>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className="lg:hidden shrink-0">
