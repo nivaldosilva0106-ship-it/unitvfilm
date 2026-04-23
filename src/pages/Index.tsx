@@ -336,15 +336,17 @@ const Index = () => {
     };
 
     // Return Featured first + Shuffled sections + Canais 24h + TV ALWAYS LAST
-    const finalSections = [featuredSection, ...shuffled];
+    let finalSections = [featuredSection, ...shuffled];
     
-    // Apply item limits for Lite mode
+    // Apply item limits and section limits for Lite mode
     if (isLiteMode) {
       finalSections.forEach(s => {
         if (s.data.length > maxCardsInRow) {
           s.data = s.data.slice(0, maxCardsInRow);
         }
       });
+      // Limit to top 5 most relevant sections on Home to save RAM
+      finalSections = finalSections.slice(0, 5);
     }
 
     if (canais24hSection.data.length > 0) {

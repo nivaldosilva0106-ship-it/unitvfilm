@@ -26,7 +26,7 @@ export const useAppConfig = (): AppConfig => {
       enableBackdropBlur: !isLite,
       enableAnimations: !isLite,
       enableTooltips: !isLite,
-      maxCardsInRow: isLite ? 15 : 40, // Limit DOM items in horizontal lists
+      maxCardsInRow: isLite ? 10 : 40, // Reduced from 15 to 10 for better performance
     };
   }, []);
 

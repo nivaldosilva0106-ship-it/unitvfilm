@@ -17,6 +17,7 @@ import GlobalContentProtection from "@/components/GlobalContentProtection";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { TVSidebar } from "@/components/TVSidebar";
 import { RedirectManager } from "@/components/RedirectManager";
+import { useAppConfig } from "@/hooks/useAppConfig";
 
 import { ErrorBoundary } from "./components/ErrorBoundary";
 
@@ -144,6 +145,7 @@ const OrientationManager = () => {
 };
 
 const App = () => {
+  const { isLiteMode } = useAppConfig();
   // Global Fullscreen/StatusBar hide for Capacitor (APK)
   React.useEffect(() => {
     const hideStatusBar = async () => {
@@ -175,7 +177,7 @@ const App = () => {
             <AppUpdater />
             <PWAInstallBanner />
             <FocusNavigator />
-            <HolidayDecorations />
+            {!isLiteMode && <HolidayDecorations />}
             <NetworkStatus />
             <OfflineIndicator />
             <GlobalContentProtection />

@@ -197,7 +197,7 @@ export const Header = () => {
   };
 
   return (
-    <header className={`fixed top-0 ${hasSidebar ? 'left-14' : 'left-0'} right-0 z-50 bg-gradient-to-b ${enableBackdropBlur ? 'from-background/95 backdrop-blur-sm' : 'from-background/100'} to-transparent border-b border-border/40`}>
+    <header className={`fixed top-0 left-0 right-0 z-50 bg-gradient-to-b ${enableBackdropBlur ? 'from-background/95 backdrop-blur-sm' : 'from-background/100'} to-transparent border-b border-border/40`}>
       <div className={`container mx-auto px-4 sm:px-8 ${hasSidebar ? 'py-2' : 'py-3 sm:py-4'}`}>
         <div className="flex items-center justify-between gap-2 sm:gap-4">
           <div className="flex items-center gap-2 sm:gap-4">

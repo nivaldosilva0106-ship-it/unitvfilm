@@ -604,16 +604,42 @@ All colors MUST be HSL.
   body.lite-mode {
   }
 
-  /* Adjust body padding for sidebar instead of bottom nav */
-  body.lite-mode:not(.no-sidebar) {
-    padding-bottom: 0 !important;
-    padding-left: 56px;
+  /* Aggressive performance optimizations for Lite mode */
+  .lite-mode *, 
+  .lite-mode *::before, 
+  .lite-mode *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    text-shadow: none !important;
+    box-shadow: none !important; /* Aggressive shadow disabling */
+    transition-duration: 0.1s !important;
   }
 
-  /* Desktop: same sidebar layout as lite mode */
+  .lite-mode .glow-effect,
+  .lite-mode .glow-effect-hover:hover {
+    box-shadow: none !important;
+  }
+
+  .lite-mode .card-hover:hover {
+    transform: scale(1.02); /* Reduced scale */
+    box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+  }
+
+  .lite-mode .bg-gradient-to-br,
+  .lite-mode .bg-gradient-to-t,
+  .lite-mode .bg-gradient-to-r {
+    /* Simplify gradients to solid colors where possible if needed, 
+       but usually standard linear gradients are okay compared to blurs */
+  }
+
+  /* Removed body padding to center content — Sidebar now overlays */
+  body.lite-mode:not(.no-sidebar) {
+    padding-bottom: 0 !important;
+  }
+
   @media (min-width: 1024px) {
     body:not(.admin-mode):not(.no-sidebar) {
-      padding-left: 56px;
+      /* Padding removed to allow content centering */
     }
   }
 
