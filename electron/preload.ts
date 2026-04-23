@@ -20,4 +20,5 @@ contextBridge.exposeInMainWorld('ipcRenderer', {
     },
 
     // You can expose other weird stuff too
+    isElectron: true,
 })

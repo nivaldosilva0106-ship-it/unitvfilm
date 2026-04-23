@@ -81,6 +81,30 @@
     "vaul": "^0.9.9",
     "zod": "^3.25.76"
   },
+  "build": {
+    "appId": "com.unitvfilm.app",
+    "productName": "UniTVFilm",
+    "directories": {
+      "output": "release/${version}"
+    },
+    "files": [
+      "dist",
+      "dist-electron"
+    ],
+    "win": {
+      "target": [
+        "nsis"
+      ],
+      "icon": "public/electron-vite.svg"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "UniTVFilm"
+    }
+  },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^7.4.5",

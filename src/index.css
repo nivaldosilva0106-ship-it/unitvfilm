@@ -632,14 +632,49 @@ All colors MUST be HSL.
        but usually standard linear gradients are okay compared to blurs */
   }
 
-  /* Removed body padding to center content — Sidebar now overlays */
+  /* Restore body padding for sidebar */
   body.lite-mode:not(.no-sidebar) {
     padding-bottom: 0 !important;
+    padding-left: 56px;
   }
 
   @media (min-width: 1024px) {
     body:not(.admin-mode):not(.no-sidebar) {
-      /* Padding removed to allow content centering */
+      padding-left: 56px;
+    }
+
+    /* Desktop-native scrollbars */
+    ::-webkit-scrollbar {
+      width: 10px;
+      height: 10px;
+    }
+    
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+    }
+    
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      border: 2px solid transparent;
+      background-clip: content-box;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid transparent;
+      background-clip: content-box;
+    }
+
+    /* Refined hover for desktop */
+    .card-hover {
+      transition: transform 0.4s cubic-bezier(0.2, 1, 0.2, 1), box-shadow 0.4s ease !important;
+    }
+
+    .card-hover:hover {
+      transform: translateY(-8px) scale(1.05) !important;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6) !important;
+      z-index: 50;
     }
   }
 
