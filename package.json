@@ -2,6 +2,8 @@
   "name": "vite_react_shadcn_ts",
   "private": true,
   "version": "0.0.0",
+  "description": "UniTVFilm - Sua plataforma de filmes e séries",
+  "author": "Nivaldo Silva",
   "type": "module",
   "main": "dist-electron/main.js",
   "scripts": {
@@ -95,7 +97,7 @@
       "target": [
         "nsis"
       ],
-      "icon": "public/electron-vite.svg"
+      "icon": "public/favicon.ico"
     },
     "nsis": {
       "oneClick": false,

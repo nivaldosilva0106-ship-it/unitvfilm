@@ -5,7 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Capacitor } from "@capacitor/core";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, HashRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -145,6 +145,9 @@ const OrientationManager = () => {
 };
 
 const App = () => {
+  const isElectron = typeof window !== 'undefined' && (window as any).ipcRenderer?.isElectron;
+  const Router = isElectron ? HashRouter : BrowserRouter;
+
   const { isLiteMode } = useAppConfig();
   // Global Fullscreen/StatusBar hide for Capacitor (APK)
   React.useEffect(() => {
@@ -172,7 +175,7 @@ const App = () => {
           <RedirectManager />
           <Toaster />
           <Sonner />
-          <BrowserRouter>
+          <Router>
             <SidebarPaddingManager />
             <AppUpdater />
             <PWAInstallBanner />
@@ -238,7 +241,7 @@ const App = () => {
               </Suspense>
               </ErrorBoundary>
             </AuthGuard>
-          </BrowserRouter>
+          </Router>
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>
