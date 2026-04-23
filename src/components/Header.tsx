@@ -58,7 +58,7 @@ export const Header = () => {
   const isMobilePhone = /iPhone|Android|Mobile/i.test(navigator.userAgent) && !/TV|SmartTV|GoogleTV|AppleTV|HbbTV|STB/i.test(navigator.userAgent);
   
   // Sidebar is hidden on these paths
-  const hiddenPaths = ["/watch/", "/watch-local/", "/login", "/signup", "/profiles", "/tv", "/canais24h", "/nostalgia"];
+  const hiddenPaths = ["/watch/", "/watch-local/", "/login", "/signup", "/profiles", "/nostalgia"];
   const isSidebarHiddenOnPage = hiddenPaths.some(path => location.pathname.startsWith(path));
 
   const hasSidebar = ((isLiteMode && !isMobilePhone) || isDesktop) && !isSidebarHiddenOnPage;

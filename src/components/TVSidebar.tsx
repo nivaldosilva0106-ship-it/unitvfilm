@@ -59,8 +59,6 @@ export const TVSidebar = () => {
     location.pathname.startsWith("/watch/") ||
     location.pathname.startsWith("/watch-local/") ||
     location.pathname === "/profiles" ||
-    location.pathname === "/tv" ||
-    location.pathname === "/canais24h" ||
     location.pathname === "/nostalgia" ||
     isMobilePhone ||
     !user;

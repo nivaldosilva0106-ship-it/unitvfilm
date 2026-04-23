@@ -100,7 +100,7 @@ const SidebarPaddingManager = () => {
   const location = useLocation();
   
   React.useEffect(() => {
-    const hiddenPaths = ["/watch/", "/watch-local/", "/login", "/signup", "/profiles", "/tv", "/canais24h", "/nostalgia"];
+    const hiddenPaths = ["/watch/", "/watch-local/", "/login", "/signup", "/profiles", "/nostalgia"];
     const shouldHideSidebar = hiddenPaths.some(path => location.pathname.startsWith(path));
     
     if (shouldHideSidebar) {

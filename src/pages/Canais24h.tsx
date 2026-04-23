@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Loader2, Film, Tv, Clock, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
 import { getBaseUrl } from "@/lib/api";
 import { useSearchParams } from "react-router-dom";
+import { useAppConfig } from "@/hooks/useAppConfig";
 
 import { Volume2, VolumeX, Maximize, Minimize, Play, Pause, SkipBack, SkipForward, PictureInPicture } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
@@ -155,6 +156,9 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                     start: Math.floor(startTime),
                     origin: window.location.origin,
                     playsinline: 1,
+                    enablejsapi: 1,
+                    widget_referrer: window.location.href,
+                    host: 'https://www.youtube-nocookie.com',
                 },
                 events: {
                     onReady: (e: any) => {
@@ -206,14 +210,17 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                     },
                     onError: (e: any) => {
                         if (destroyed) return;
+                        console.warn("YouTube Player Error:", e.data);
                         setHasError(true);
                         setIsPlaying(false);
                         
-                        // If it's a critical error (like blocked video), auto-skip
+                        // Error codes: 100 (not found/removed), 101/150 (embed restricted)
+                        // If it's a critical error (like blocked video), auto-skip faster
                         if (activeRef.current) {
+                            const delay = (e.data === 101 || e.data === 150) ? 1000 : 3000;
                             setTimeout(() => {
                                 onEndedRef.current();
-                            }, 3000); // Wait 3 seconds showing the cover before skipping
+                            }, delay);
                         }
                     },
                     onStateChange: (e: any) => {
@@ -597,7 +604,7 @@ SocialPlayer.displayName = "SocialPlayer";
 // ============================================================
 // PLAYER SLOT — Renders YouTube or VideoPlayer
 // ============================================================
-const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, watermarkPosition, watermarkSize, onTimeUpdate, onEnded, onToggleFullscreen, isFullscreen }: {
+const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, watermarkPosition, watermarkSize, onTimeUpdate, onEnded, onToggleFullscreen, isFullscreen, isLiteMode }: {
     id: string;
     content: QueueItem | null;
     tiktokUrl: string | null;
@@ -609,6 +616,7 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, waterma
     onEnded?: () => void;
     onToggleFullscreen?: () => void;
     isFullscreen?: boolean;
+    isLiteMode?: boolean;
 }) => {
     const getYtId = (url?: string) => {
         if (!url) return null;
@@ -657,7 +665,7 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, waterma
     }
 
     return (
-        <div className={`absolute inset-0 w-full h-full transition-opacity duration-700 ease-in-out ${active ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"}`}>
+        <div className={`absolute inset-0 w-full h-full ${isLiteMode ? "" : "transition-opacity duration-700 ease-in-out"} ${active ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"}`}>
             {ytId ? (
                 <YouTubePlayer 
                     videoId={ytId}
@@ -734,6 +742,7 @@ interface QueueItem {
 export default function Canais24h() {
     const [searchParams] = useSearchParams();
     const initialChannelId = searchParams.get("channelId");
+    const { isLiteMode } = useAppConfig();
 
     const [contents, setContents] = useState<Content[]>([]);
     const [currentChannel, setCurrentChannel] = useState<Content | null>(null);
@@ -1532,6 +1541,7 @@ export default function Canais24h() {
                                     onEnded={handleEndedA}
                                     onToggleFullscreen={toggleFullscreen}
                                     isFullscreen={isFullscreen}
+                                    isLiteMode={isLiteMode}
                                 />
                                 <PlayerSlot
                                     id="B"
@@ -1545,6 +1555,7 @@ export default function Canais24h() {
                                     onEnded={handleEndedB}
                                     onToggleFullscreen={toggleFullscreen}
                                     isFullscreen={isFullscreen}
+                                    isLiteMode={isLiteMode}
                                 />
 
                                 {/* Live Badge + Mini-Player button */}
@@ -1743,24 +1754,16 @@ export default function Canais24h() {
                         <h2 className="text-2xl font-black text-white mb-4">Aviso de Compatibilidade</h2>
                         
                         <p className="text-gray-400 text-sm leading-relaxed mb-8">
-                            Esta página ainda não está 100% funcional para aplicativos. 
-                            Alguns canais (links especiais) não vão aparecer corretamente aqui.
+                            A tecnologia de alguns canais externos pode exibir anúncios ao clicar e te redirecionar para outras páginas. 
+                            Basta fechar as abas que abrirem e continuares a clicar que o canal vai carregar e apresentar.
                         </p>
                         
                         <div className="flex flex-col gap-3">
                             <Button 
-                                onClick={handleAdvanceToWeb}
+                                onClick={() => setShowApkWarning(false)}
                                 className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 rounded-xl"
                             >
-                                Avançar para o Site Web
-                            </Button>
-                            
-                            <Button 
-                                variant="ghost"
-                                onClick={() => setShowApkWarning(false)}
-                                className="text-gray-500 hover:text-white"
-                            >
-                                Continuar no App mesmo assim
+                                Assistir mesmo assim
                             </Button>
                         </div>
                     </div>

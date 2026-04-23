@@ -19,7 +19,7 @@ const LiveTV = () => {
     const [activeChannel, setActiveChannel] = useState<Content | null>(null);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
-    const [adBlockEnabled, setAdBlockEnabled] = useState(true);
+    const [adBlockEnabled, setAdBlockEnabled] = useState(false);
     const [iframeKey, setIframeKey] = useState(0);
     const isMobilePhone = /iPhone|Android|Mobile/i.test(navigator.userAgent) && !/TV|SmartTV|GoogleTV|AppleTV|HbbTV|STB/i.test(navigator.userAgent);
     const [isSidebarOpen, setIsSidebarOpen] = useState(!isMobilePhone);
@@ -363,24 +363,16 @@ const LiveTV = () => {
                         <h2 className="text-2xl font-black text-white mb-4">Aviso de Tecnologia</h2>
                         
                         <p className="text-gray-400 text-sm leading-relaxed mb-8">
-                            A tecnologia de alguns canais externos pode não ser compatível com o aplicativo Android. 
-                            Para assistir sem players em branco, use a nossa versão web.
+                            A tecnologia de alguns canais externos pode exibir anúncios ao clicar e te redirecionar para outras páginas. 
+                            Basta fechar as abas que abrirem e continuares a clicar que o canal vai carregar e apresentar.
                         </p>
                         
                         <div className="flex flex-col gap-3">
                             <Button 
-                                onClick={handleAdvanceToWeb}
+                                onClick={() => setShowApkWarning(false)}
                                 className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 rounded-xl"
                             >
-                                Assistir no Navegador
-                            </Button>
-                            
-                            <Button 
-                                variant="ghost"
-                                onClick={() => setShowApkWarning(false)}
-                                className="text-gray-500 hover:text-white"
-                            >
-                                Tentar assistir aqui
+                                Assistir mesmo assim
                             </Button>
                         </div>
                     </div>
