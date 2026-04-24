@@ -414,6 +414,16 @@ function createWindow() {
         win?.webContents.send('main-process-message', (new Date).toLocaleString())
     })
 
+    // SPA Navigation Fix: Redirect failed file loads back to index.html
+    // This handles React Router client-side navigation in production builds
+    win.webContents.on('did-fail-load', (_event, _errorCode, _errorDescription, validatedURL) => {
+        if (VITE_DEV_SERVER_URL) return;
+        // Only handle navigation failures for app routes, not external URLs or assets
+        if (validatedURL && !validatedURL.includes('.') && !validatedURL.startsWith('http')) {
+            win?.loadFile(path.join(RENDERER_DIST, 'index.html'));
+        }
+    });
+
     if (VITE_DEV_SERVER_URL) {
         win.loadURL(VITE_DEV_SERVER_URL)
     } else {

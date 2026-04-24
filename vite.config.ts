@@ -87,6 +87,7 @@ function apiProxyPlugin() {
 }
 
 export default defineConfig(({ mode }) => ({
+  base: './',
   plugins: [
     react(),
     mode === "development" && componentTagger(),
