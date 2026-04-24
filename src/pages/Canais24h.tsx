@@ -48,7 +48,8 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
     const playerRef = useRef<any>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const intervalRef = useRef<any>(null);
-
+    const lastTimeRef = useRef<number>(0);
+    const stuckCountRef = useRef<number>(0);
     const [isPlaying, setIsPlaying] = useState(false);
     const [hasError, setHasError] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
@@ -197,6 +198,20 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                                 if (state === 1 && activeRef.current) {
                                     const ct = playerRef.current.getCurrentTime();
                                     const du = playerRef.current.getDuration();
+                                    
+                                    // Watchdog: Detect stuck video
+                                    if (ct > 0 && ct === lastTimeRef.current) {
+                                        stuckCountRef.current++;
+                                        if (stuckCountRef.current > 8) { // Stuck for ~8 seconds
+                                            console.warn("Watchdog: Video stuck at", ct, ". Skipping...");
+                                            onEndedRef.current();
+                                            return;
+                                        }
+                                    } else {
+                                        stuckCountRef.current = 0;
+                                    }
+                                    lastTimeRef.current = ct;
+
                                     setCurrentTime(ct);
                                     setDuration(du);
                                     if (du > 0) onTimeUpdateRef.current(ct, du);

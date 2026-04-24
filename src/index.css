@@ -59,13 +59,13 @@ All colors MUST be HSL.
   html {
     scroll-behavior: smooth;
     scrollbar-width: thin;
-    scrollbar-color: hsl(var(--primary) / 0.25) transparent;
+    scrollbar-color: #064e3b #000000;
   }
 
   /* Global Modern Scrollbar */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 6px;
+    height: 6px;
   }
 
   ::-webkit-scrollbar-track {
@@ -74,17 +74,22 @@ All colors MUST be HSL.
 
   ::-webkit-scrollbar-thumb {
     background: #064e3b;
-    border-radius: 20px;
+    border-radius: 10px;
     border: 2px solid #000000;
     background-clip: content-box;
-    transition: background 0.3s ease;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #059669;
+    background: #10b981;
     border: 1px solid #000000;
     background-clip: content-box;
   }
+}
+
+/* Force scrollbar styles for standard elements */
+html, body, #root {
+  scrollbar-width: thin;
+  scrollbar-color: #064e3b #000000;
 }
 
 @layer utilities {
