@@ -1349,6 +1349,7 @@ export default function NostalgiaTube(): JSX.Element {
                         downloadUrl={currentEpisode?.download_url || currentContent.download_url || ''}
                         downloads={currentEpisode?.downloads || currentContent.downloads}
                         download_mode={currentEpisode?.download_mode || currentContent.download_mode || 'direct'}
+                        contentId={currentContent.id}
                     />
                 )}
             </main>

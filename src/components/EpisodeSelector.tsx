@@ -241,6 +241,7 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
           download_mode={selectedDownloadEpisode.download_mode}
           title={`${title} - S${selectedDownloadEpisode.season}E${selectedDownloadEpisode.episode}: ${selectedDownloadEpisode.title}`}
           thumbnail="" // Could pass series thumbnail if available
+          contentId={selectedDownloadEpisode.id}
         />
       )}
     </Dialog>

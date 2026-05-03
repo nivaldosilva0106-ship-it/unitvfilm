@@ -689,7 +689,7 @@ const Player = () => {
     if (loading || showIntro) {
         return (
             <div className="fixed inset-0 w-screen h-screen flex flex-col items-center justify-center z-[100] bg-[#0a0a0a] overflow-hidden">
-                {isOnline && !isLiteMode && <AdManager />}
+                {isOnline && !isLiteMode && <AdManager placement="player" />}
                 {/* Background Image */}
                 {content && (
                     <div className="absolute inset-0 z-0">

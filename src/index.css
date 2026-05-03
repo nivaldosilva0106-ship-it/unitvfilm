@@ -631,10 +631,6 @@ html, body, #root {
     contain: layout style;
   }
 
-  /* ===== Lite Mode (Smart TV / TV Box) ===== */
-  body.lite-mode {
-  }
-
   /* Aggressive performance optimizations for Lite mode */
   .lite-mode *, 
   .lite-mode *::before, 
@@ -654,13 +650,6 @@ html, body, #root {
   .lite-mode .card-hover:hover {
     transform: scale(1.02); /* Reduced scale */
     box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
-  }
-
-  .lite-mode .bg-gradient-to-br,
-  .lite-mode .bg-gradient-to-t,
-  .lite-mode .bg-gradient-to-r {
-    /* Simplify gradients to solid colors where possible if needed, 
-       but usually standard linear gradients are okay compared to blurs */
   }
 
   /* Restore body padding for sidebar */

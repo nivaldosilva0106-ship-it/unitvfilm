@@ -50,7 +50,7 @@ const Index = () => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [selectedSeries, setSelectedSeries] = useState<Content | null>(null);
   const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, episodeTitle?: string, internalUrl?: string, nextEpisode?: any }>({ open: false, url: '', title: '', isPremium: false });
-  const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, downloads?: { label: string; url: string; type?: 'direct' | 'torrent' }[], download_mode?: 'direct' | 'torrent' | 'mixed', title: string, thumbnail: string }>({ open: false, url: '', title: '', thumbnail: '' });
+  const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, downloads?: { label: string; url: string; type?: 'direct' | 'torrent' }[], download_mode?: 'direct' | 'torrent' | 'mixed', title: string, thumbnail: string, contentId?: string }>({ open: false, url: '', title: '', thumbnail: '' });
   const [selectedCategory, setSelectedCategory] = useState<string>('Todos');
   const [quickViewContent, setQuickViewContent] = useState<Content | null>(null);
   const [showCinemaModal, setShowCinemaModal] = useState(false);
@@ -251,8 +251,8 @@ const Index = () => {
     const featuredPool = allContentData.filter(c => c.is_new || (c.rating && c.rating >= 7));
     const featured = [...featuredPool].sort(() => 0.5 - Math.random()).slice(0, 10);
     const topRated = allContentData.filter(c => c.rating && c.rating >= 8).sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 10);
-    const movies = allContentData.filter(c => c.category === 'movie' || c.category === 'Filme');
-    const series = allContentData.filter(c => c.category === 'series' || c.category === 'Série');
+    const movies = allContentData.filter(c => c.category === 'movie' || (c.category as string) === 'Filme');
+    const series = allContentData.filter(c => c.category === 'series' || (c.category as string) === 'Série');
     const tvChannels = allContentData.filter(c => c.category === 'tv');
     const nostalgia = allContentData.filter(c => c.category === 'nostalgia');
     const canais24h = allContentData.filter(c => c.category === 'canais24h');
@@ -446,7 +446,8 @@ const Index = () => {
       downloads: content.downloads,
       download_mode: content.download_mode,
       title: content.title,
-      thumbnail: content.thumbnail_url
+      thumbnail: content.thumbnail_url,
+      contentId: content.id
     });
   }, []);
 
@@ -492,7 +493,7 @@ const Index = () => {
   const isEffectivelyOffline = (!isOnline && !hasChosenOnline) || networkFailed;
 
   // Honor profile preference for local library — disabled by default in lite mode (Smart TV)
-  const canShowLocalLib = isLiteMode ? false : (currentProfile?.showLocalLibrary !== false);
+  const canShowLocalLib = isLiteMode ? false : ((currentProfile as any)?.showLocalLibrary !== false);
 
   if (isEffectivelyOffline && allContentData.length === 0) {
     return (
@@ -728,6 +729,7 @@ const Index = () => {
         download_mode={downloadModal.download_mode}
         title={downloadModal.title}
         thumbnail={downloadModal.thumbnail}
+        contentId={downloadModal.contentId || downloadModal.title}
       />
 
       <QuickViewModal

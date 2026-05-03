@@ -286,11 +286,11 @@ export const IndexHero = memo(({
                                 </span>
                             ) : null}
 
-                            {activeContent.provider && providerLogos?.[activeContent.provider] && (
+                            {activeContent.watch_provider && providerLogos?.[activeContent.watch_provider] && (
                                 <img 
-                                    src={providerLogos[activeContent.provider]} 
-                                    alt={activeContent.provider} 
-                                    title={activeContent.provider}
+                                    src={providerLogos[activeContent.watch_provider]} 
+                                    alt={activeContent.watch_provider} 
+                                    title={activeContent.watch_provider}
                                     className="h-4 sm:h-5 object-contain ml-1 drop-shadow-md rounded-[2px]" 
                                 />
                             )}
