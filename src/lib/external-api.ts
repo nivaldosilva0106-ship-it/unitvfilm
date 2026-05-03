@@ -17,17 +17,19 @@ export interface ExternalLinkData {
 }
 
 /**
- * Creates a new trial client in the external UniTvIPTV system
+ * Creates a new trial client via the internal proxy
  */
 export const createExternalIPTVClient = async (data: ExternalClientData) => {
   try {
-    const response = await fetch(`${EXTERNAL_API_BASE_URL}/clients`, {
+    const response = await fetch("/api/external-proxy", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": EXTERNAL_API_KEY,
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        endpoint: "clients",
+        data: data
+      }),
     });
 
     const result = await response.json();
@@ -37,23 +39,25 @@ export const createExternalIPTVClient = async (data: ExternalClientData) => {
 
     return result;
   } catch (error: any) {
-    console.error("External API Error (createClient):", error);
+    console.error("Proxy API Error (createClient):", error);
     throw error;
   }
 };
 
 /**
- * Syncs content (movie, series, or tv) to the external UniTvIPTV system
+ * Syncs content via the internal proxy
  */
 export const syncContentToExternal = async (data: ExternalLinkData) => {
   try {
-    const response = await fetch(`${EXTERNAL_API_BASE_URL}/links`, {
+    const response = await fetch("/api/external-proxy", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "Authorization": EXTERNAL_API_KEY,
       },
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        endpoint: "links",
+        data: data
+      }),
     });
 
     const result = await response.json();
@@ -63,7 +67,7 @@ export const syncContentToExternal = async (data: ExternalLinkData) => {
 
     return result;
   } catch (error: any) {
-    console.error("External API Error (syncContent):", error);
+    console.error("Proxy API Error (syncContent):", error);
     throw error;
   }
 };

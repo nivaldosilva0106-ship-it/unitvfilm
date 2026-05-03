@@ -143,8 +143,16 @@ const Admin = () => {
       // External Sync Logic
       if (editingContent.external_sync_enabled && editingContent.external_source_url) {
         try {
+          const externalTypeMap: Record<string, string> = {
+            'movie': 'movie',
+            'series': 'series',
+            'tv': 'tv',
+            'nostalgia': 'movie',
+            'canais24h': 'tv'
+          };
+
           await syncContentToExternal({
-            tipo: contentToSave.category as any,
+            tipo: (externalTypeMap[contentToSave.category] || 'movie') as any,
             nome_link: contentToSave.title || "",
             link_link: editingContent.external_source_url,
             logo: contentToSave.thumbnail_url,
