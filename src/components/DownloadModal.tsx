@@ -16,6 +16,7 @@ interface DownloadModalProps {
 
 import { addTransfer } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
+import { createSecureDownloadUrl, isProtectedUrl } from "@/lib/secure-url";
 
 export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_mode = 'direct', title, thumbnail, contentId }: DownloadModalProps) => {
     const { user } = useAuth();
@@ -23,9 +24,20 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
     const [countdown, setCountdown] = useState<number>(10);
 
     // Determine effective links. If no new 'downloads', use legacy 'downloadUrl' as single link.
-    const effectiveLinks = (downloads && downloads.length > 0)
+    const rawLinks = (downloads && downloads.length > 0)
         ? downloads
-        : (downloadUrl ? [{ label: 'Download Principal', url: downloadUrl, type: download_mode === 'torrent' ? 'torrent' : 'direct' }] : []);
+        : (downloadUrl ? [{ label: 'Download Principal', url: downloadUrl, type: download_mode === 'torrent' ? 'torrent' : 'direct' as const }] : []);
+
+    const effectiveLinks = rawLinks.map(link => {
+        // Protect direct downloads
+        if (link.type !== 'torrent' && isProtectedUrl(link.url)) {
+            return {
+                ...link,
+                url: createSecureDownloadUrl(link.url, `${title.replace(/[^a-zA-Z0-9_-]/g, '_')}`)
+            };
+        }
+        return link;
+    });
 
     const showTorrentWarning = download_mode === 'torrent' || (download_mode === 'mixed' && effectiveLinks.some(l => l.type === 'torrent'));
 

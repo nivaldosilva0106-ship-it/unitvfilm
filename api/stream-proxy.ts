@@ -1,19 +1,70 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
 /**
- * Smart Stream Proxy
+ * Smart Stream Proxy with Token-Based URL Protection
  * 
- * Solves the problem of video URLs that end in .txt or have incorrect
- * Content-Type headers (e.g., text/plain instead of application/vnd.apple.mpegurl).
+ * Accepts either:
+ * - ?t=ENCRYPTED_TOKEN  (secure, preferred)
+ * - ?url=DIRECT_URL     (backward compat, legacy)
  * 
- * This proxy fetches the content, detects the real media type by inspecting
- * the content, and re-serves it with the correct Content-Type header.
- * 
- * VLC can play these because it ignores Content-Type and sniffs the content.
- * Browsers/HLS.js need the correct Content-Type to work properly.
- * 
- * Usage: /api/stream-proxy?url=https://example.com/video.txt
+ * The real video URL is never exposed to the client.
+ * Tokens are time-limited and encrypted.
  */
+
+// Same key as secure-url.ts — MUST MATCH
+const _K = [0x55, 0x6E, 0x69, 0x54, 0x76, 0x46, 0x69, 0x6C, 0x6D, 0x53, 0x65, 0x63, 0x75, 0x72, 0x65, 0x4B];
+
+function xorCipher(input: string, salt: number): string {
+  const keyWithSalt = _K.map((b, i) => b ^ ((salt >> (i % 4) * 8) & 0xFF));
+  let result = '';
+  for (let i = 0; i < input.length; i++) {
+    result += String.fromCharCode(input.charCodeAt(i) ^ keyWithSalt[i % keyWithSalt.length]);
+  }
+  return result;
+}
+
+function decryptToken(token: string): { url: string; expired: boolean } | null {
+  try {
+    if (token.length < 5) return null;
+    const saltHex = token.substring(0, 4);
+    const salt = parseInt(saltHex, 16);
+    const b64 = token.substring(4);
+    const padded = b64.replace(/-/g, '+').replace(/_/g, '/');
+    const decoded = Buffer.from(padded, 'base64').toString('binary');
+    const payload = xorCipher(decoded, salt);
+    
+    const firstPipe = payload.indexOf('|');
+    if (firstPipe === -1) return null;
+    const secondPipe = payload.indexOf('|', firstPipe + 1);
+    if (secondPipe === -1) return null;
+    
+    const expiry = parseInt(payload.substring(firstPipe + 1, secondPipe));
+    const url = payload.substring(secondPipe + 1);
+    
+    if (url.startsWith('http://') || url.startsWith('https://')) {
+      return { url, expired: Date.now() > expiry };
+    }
+    
+    // Try adjacent salt values (clock skew protection)
+    for (const adj of [salt - 1, salt + 1]) {
+      const retryDecoded = Buffer.from(padded, 'base64').toString('binary');
+      const retryPayload = xorCipher(retryDecoded, adj);
+      const rFirst = retryPayload.indexOf('|');
+      const rSecond = retryPayload.indexOf('|', rFirst + 1);
+      if (rFirst !== -1 && rSecond !== -1) {
+        const rUrl = retryPayload.substring(rSecond + 1);
+        const rExpiry = parseInt(retryPayload.substring(rFirst + 1, rSecond));
+        if (rUrl.startsWith('http://') || rUrl.startsWith('https://')) {
+          return { url: rUrl, expired: Date.now() > rExpiry };
+        }
+      }
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers for browser playback
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -25,10 +76,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  const { url } = req.query;
+  const { t: token, url: directUrl } = req.query;
+  let videoUrl: string;
 
-  if (!url || typeof url !== 'string') {
-    return res.status(400).json({ error: 'Missing url parameter' });
+  // 1. Encrypted token (secure, preferred)
+  if (token && typeof token === 'string') {
+    const result = decryptToken(token);
+    if (!result) {
+      return res.status(403).json({ error: 'Token inválido ou corrompido' });
+    }
+    if (result.expired) {
+      return res.status(410).json({ error: 'Token expirado. Recarregue a página.' });
+    }
+    videoUrl = result.url;
+  }
+  // 2. Direct URL (backward compatibility)
+  else if (directUrl && typeof directUrl === 'string') {
+    videoUrl = directUrl;
+  }
+  else {
+    return res.status(400).json({ error: 'Missing token (t) or url parameter' });
   }
 
   try {
@@ -36,14 +103,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const headers: Record<string, string> = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       'Accept': '*/*',
-      'Referer': new URL(url).origin + '/',
+      'Referer': new URL(videoUrl).origin + '/',
     };
 
     if (req.headers.range) {
       headers['Range'] = req.headers.range;
     }
 
-    const response = await fetch(url, {
+    const response = await fetch(videoUrl, {
       headers,
       redirect: 'follow',
     });
@@ -63,7 +130,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const uint8 = new Uint8Array(body);
 
     // Detect the real content type by inspecting the data
-    const detectedType = detectMediaType(uint8, url, contentType);
+    const detectedType = detectMediaType(uint8, videoUrl, contentType);
 
     // Set response headers
     res.setHeader('Content-Type', detectedType);
@@ -83,7 +150,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // For HLS manifests (.m3u8 content), rewrite relative URLs to absolute
     if (detectedType === 'application/vnd.apple.mpegurl' || detectedType === 'audio/mpegurl') {
       const text = new TextDecoder().decode(uint8);
-      const rewritten = rewriteM3U8Urls(text, url);
+      const rewritten = rewriteM3U8Urls(text, videoUrl);
       return res.send(rewritten);
     }
 

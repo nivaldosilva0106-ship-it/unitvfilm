@@ -1,0 +1,175 @@
+/**
+ * Secure URL System
+ * 
+ * Generates encrypted, time-limited tokens for video URLs.
+ * The real URL is never exposed in the browser DOM or Network tab.
+ * 
+ * Architecture:
+ * 1. Real URL → encryptUrl() → encrypted token
+ * 2. Token sent to /api/stream-proxy?t=TOKEN
+ * 3. Server decrypts token → validates expiry → proxies stream
+ * 4. User only sees: /api/stream-proxy?t=a8f3b2c1d4e5...
+ */
+
+// Obfuscation key (rotated with timestamp for extra security)
+// In production, this should match the server-side key
+const _K = [0x55, 0x6E, 0x69, 0x54, 0x76, 0x46, 0x69, 0x6C, 0x6D, 0x53, 0x65, 0x63, 0x75, 0x72, 0x65, 0x4B];
+
+// Token validity in milliseconds (15 minutes)
+const TOKEN_VALIDITY_MS = 15 * 60 * 1000;
+
+/**
+ * XOR encrypt/decrypt with rotating key
+ */
+function xorCipher(input: string, salt: number): string {
+  const keyWithSalt = _K.map((b, i) => b ^ ((salt >> (i % 4) * 8) & 0xFF));
+  let result = '';
+  for (let i = 0; i < input.length; i++) {
+    result += String.fromCharCode(input.charCodeAt(i) ^ keyWithSalt[i % keyWithSalt.length]);
+  }
+  return result;
+}
+
+/**
+ * Encrypt a URL into a time-limited token
+ */
+export function encryptUrl(url: string): string {
+  const now = Date.now();
+  const expiry = now + TOKEN_VALIDITY_MS;
+  const nonce = Math.random().toString(36).substring(2, 8);
+  
+  // Payload: nonce|expiry|url
+  const payload = `${nonce}|${expiry}|${url}`;
+  
+  // XOR cipher with time-based salt
+  const salt = Math.floor(now / (5 * 60 * 1000)); // Changes every 5 minutes
+  const encrypted = xorCipher(payload, salt);
+  
+  // Base64 encode (URL-safe)
+  const b64 = btoa(encrypted)
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+  
+  // Prepend salt indicator (2 chars) for server-side decryption
+  const saltHex = (salt & 0xFFFF).toString(16).padStart(4, '0');
+  
+  return saltHex + b64;
+}
+
+/**
+ * Decrypt a token back to the original URL (used server-side)
+ */
+export function decryptToken(token: string): { url: string; expired: boolean } | null {
+  try {
+    if (token.length < 5) return null;
+    
+    // Extract salt from first 4 chars
+    const saltHex = token.substring(0, 4);
+    const salt = parseInt(saltHex, 16);
+    const b64 = token.substring(4);
+    
+    // Restore base64 padding
+    const padded = b64.replace(/-/g, '+').replace(/_/g, '/');
+    
+    // Decode in Node.js or browser
+    let decoded: string;
+    if (typeof Buffer !== 'undefined') {
+      decoded = Buffer.from(padded, 'base64').toString('binary');
+    } else {
+      decoded = atob(padded);
+    }
+    
+    // XOR decrypt
+    const payload = xorCipher(decoded, salt);
+    
+    // Parse: nonce|expiry|url
+    const firstPipe = payload.indexOf('|');
+    if (firstPipe === -1) return null;
+    
+    const secondPipe = payload.indexOf('|', firstPipe + 1);
+    if (secondPipe === -1) return null;
+    
+    const expiry = parseInt(payload.substring(firstPipe + 1, secondPipe));
+    const url = payload.substring(secondPipe + 1);
+    
+    // Validate URL looks reasonable
+    if (!url.startsWith('http://') && !url.startsWith('https://')) {
+      // Try adjacent salt values (clock skew protection)
+      for (const adj of [salt - 1, salt + 1]) {
+        const retryDecoded = typeof Buffer !== 'undefined'
+          ? Buffer.from(padded, 'base64').toString('binary')
+          : atob(padded);
+        const retryPayload = xorCipher(retryDecoded, adj);
+        const rFirst = retryPayload.indexOf('|');
+        const rSecond = retryPayload.indexOf('|', rFirst + 1);
+        if (rFirst !== -1 && rSecond !== -1) {
+          const rUrl = retryPayload.substring(rSecond + 1);
+          const rExpiry = parseInt(retryPayload.substring(rFirst + 1, rSecond));
+          if (rUrl.startsWith('http://') || rUrl.startsWith('https://')) {
+            return { url: rUrl, expired: Date.now() > rExpiry };
+          }
+        }
+      }
+      return null;
+    }
+    
+    return {
+      url,
+      expired: Date.now() > expiry
+    };
+  } catch (e) {
+    console.error('Token decryption failed:', e);
+    return null;
+  }
+}
+
+/**
+ * Check if a URL should be protected (mp4, ts, txt, m3u8)
+ */
+export function isProtectedUrl(url: string): boolean {
+  if (!url) return false;
+  const lower = url.toLowerCase().split('?')[0];
+  return (
+    lower.endsWith('.mp4') ||
+    lower.endsWith('.ts') ||
+    lower.endsWith('.txt') ||
+    lower.endsWith('.m3u8') ||
+    lower.endsWith('.m3u') ||
+    lower.endsWith('.mkv') ||
+    lower.endsWith('.m4s') ||
+    url.includes('typezero.top') ||
+    url.includes('googleapis.com/drive')
+  );
+}
+
+/**
+ * Create a secure playback URL (for VideoPlayer)
+ * Returns a proxied URL with encrypted token
+ */
+export function createSecurePlaybackUrl(url: string): string {
+  if (!url) return url;
+  
+  // Don't double-encrypt already proxied URLs
+  if (url.startsWith('/api/')) return url;
+  
+  // Only protect certain URL types
+  if (!isProtectedUrl(url)) return url;
+  
+  const token = encryptUrl(url);
+  return `/api/stream-proxy?t=${token}`;
+}
+
+/**
+ * Create a secure download URL
+ * Returns a download URL that never exposes the real source
+ */
+export function createSecureDownloadUrl(url: string, filename?: string): string {
+  if (!url) return url;
+  
+  const token = encryptUrl(url);
+  const params = new URLSearchParams({ t: token });
+  if (filename) params.set('f', filename);
+  
+  return `/api/secure-download?${params.toString()}`;
+}

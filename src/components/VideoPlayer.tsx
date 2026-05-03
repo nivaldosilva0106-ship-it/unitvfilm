@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import Hls from "hls.js";
 import { Slider } from "@/components/ui/slider";
+import { createSecurePlaybackUrl, isProtectedUrl } from "@/lib/secure-url";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -101,24 +102,21 @@ const formatTime = (seconds: number): string => {
     );
   }
 
-  // Detect if URL needs proxying (wrong Content-Type or CORS issues)
-  const needsProxy = (u: string) => {
+  // Detect if URL needs secure proxying (to hide real URL from users)
+  const needsSecureProxy = (u: string) => {
     if (!u) return false;
-    const lower = u.toLowerCase().split('?')[0];
-    // .txt URLs from IPTV servers typically serve HLS/TS with text/plain Content-Type
-    if (lower.endsWith('.txt')) return true;
-    // Known IPTV domains that may have CORS/Content-Type issues
-    if (u.includes('typezero.top')) return true;
-    return false;
+    // Already proxied/secured
+    if (u.startsWith('/api/')) return false;
+    // Use the centralized protection check
+    return isProtectedUrl(u);
   };
 
-  const getProxiedUrl = (u: string) => `/api/stream-proxy?url=${encodeURIComponent(u)}`;
-
   // Detect stream type
-  const isHLS = url?.includes('.m3u8') || url?.includes('m3u8') || needsProxy(url);
+  const isHLS = url?.includes('.m3u8') || url?.includes('m3u8') || 
+    url?.toLowerCase().split('?')[0].endsWith('.txt') || url?.includes('typezero.top');
   const isGoogleDrive = url?.includes('googleapis.com/drive') || url?.includes('drive.google.com');
 
-  // Transform Google Drive URL if needed
+  // Transform and SECURE video URL — the real URL is NEVER exposed
   const getVideoUrl = useCallback(() => {
     if (isGoogleDrive) {
       // Extract file ID
@@ -127,24 +125,21 @@ const formatTime = (seconds: number): string => {
         try {
           const urlObj = new URL(url);
           const params = new URLSearchParams(urlObj.search);
-
-          // Force alt=media if not present
           if (!params.has('alt')) {
             params.set('alt', 'media');
           }
-
-          // Return constructed URL with ALL original params (including key)
-          return `https://www.googleapis.com/drive/v3/files/${match[1]}?${params.toString()}`;
+          const driveUrl = `https://www.googleapis.com/drive/v3/files/${match[1]}?${params.toString()}`;
+          // Protect Google Drive URLs too
+          return createSecurePlaybackUrl(driveUrl);
         } catch (e) {
           console.error("Error parsing Google Drive URL:", e);
-          // Fallback to simple construction if URL parsing fails
-          return `https://www.googleapis.com/drive/v3/files/${match[1]}?alt=media`;
+          return createSecurePlaybackUrl(`https://www.googleapis.com/drive/v3/files/${match[1]}?alt=media`);
         }
       }
     }
-    // Route .txt and problematic URLs through proxy
-    if (needsProxy(url)) {
-      return getProxiedUrl(url);
+    // Route ALL protected URLs through encrypted proxy
+    if (needsSecureProxy(url)) {
+      return createSecurePlaybackUrl(url);
     }
     return url;
   }, [url, isGoogleDrive]);
@@ -225,8 +220,8 @@ const formatTime = (seconds: number): string => {
             hls.destroy();
             hlsRef.current = null;
             
-            // Try direct URL first, then proxied URL
-            video.src = needsProxy(url) ? getProxiedUrl(url) : url;
+            // Fallback still uses secure URL to protect the source
+            video.src = needsSecureProxy(url) ? createSecurePlaybackUrl(url) : url;
             if (autoPlay && active) {
               attemptPlay();
             }
@@ -644,6 +639,7 @@ const formatTime = (seconds: number): string => {
         playsInline
         crossOrigin="anonymous"
         muted={isMuted}
+        onContextMenu={(e) => e.preventDefault()}
       >
         {subtitles && showSubtitles && (
           <track
