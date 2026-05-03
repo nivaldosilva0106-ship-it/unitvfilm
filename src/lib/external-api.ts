@@ -12,6 +12,7 @@ export interface ExternalLinkData {
   link_link: string;
   logo?: string;
   id_categoria?: string;
+  categoria?: string;
   tmdb_id?: string;
 }
 

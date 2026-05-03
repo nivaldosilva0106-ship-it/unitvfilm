@@ -53,6 +53,105 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importModalText, setImportModalText] = useState("");
 
+  // --- External Sync Series State ---
+  const [externalSeasons, setExternalSeasons] = useState<{
+    id: string;
+    name: string;
+    episodes: { id: string; url: string }[];
+  }[]>([]);
+
+  // Initialize externalSeasons from external_source_url if it's a series and has content
+  useState(() => {
+    if (editingContent.category === 'series' && editingContent.external_source_url) {
+      try {
+        const blocks = editingContent.external_source_url.split('---\n');
+        const parsed = blocks.map(block => {
+          const lines = block.trim().split('\n');
+          const name = lines[0] || "TEMPORADA 1";
+          const episodes = lines.slice(1).map(url => ({
+            id: Math.random().toString(36).substr(2, 9),
+            url: url.trim()
+          })).filter(e => e.url);
+          
+          return {
+            id: Math.random().toString(36).substr(2, 9),
+            name,
+            episodes: episodes.length > 0 ? episodes : [{ id: Math.random().toString(36).substr(2, 9), url: "" }]
+          };
+        });
+        if (parsed.length > 0) setExternalSeasons(parsed);
+      } catch (e) {
+        console.error("Error parsing external source url", e);
+      }
+    }
+  });
+
+  const updateExternalSourceUrl = (seasons: typeof externalSeasons) => {
+    const formatted = seasons.map(s => {
+      const epLinks = s.episodes.map(e => e.url).filter(u => u.trim()).join('\n');
+      return `${s.name}\n${epLinks}`;
+    }).join('\n---\n');
+    setEditingContent(prev => ({ ...prev, external_source_url: formatted }));
+  };
+
+  const addExternalSeason = () => {
+    const newSeasons = [...externalSeasons, {
+      id: Math.random().toString(36).substr(2, 9),
+      name: `TEMPORADA ${externalSeasons.length + 1}`,
+      episodes: [{ id: Math.random().toString(36).substr(2, 9), url: "" }]
+    }];
+    setExternalSeasons(newSeasons);
+    updateExternalSourceUrl(newSeasons);
+  };
+
+  const removeExternalSeason = (id: string) => {
+    const newSeasons = externalSeasons.filter(s => s.id !== id);
+    setExternalSeasons(newSeasons);
+    updateExternalSourceUrl(newSeasons);
+  };
+
+  const addExternalEpisode = (seasonId: string) => {
+    const newSeasons = externalSeasons.map(s => {
+      if (s.id === seasonId) {
+        return {
+          ...s,
+          episodes: [...s.episodes, { id: Math.random().toString(36).substr(2, 9), url: "" }]
+        };
+      }
+      return s;
+    });
+    setExternalSeasons(newSeasons);
+    updateExternalSourceUrl(newSeasons);
+  };
+
+  const updateExternalEpisode = (seasonId: string, episodeId: string, url: string) => {
+    const newSeasons = externalSeasons.map(s => {
+      if (s.id === seasonId) {
+        return {
+          ...s,
+          episodes: s.episodes.map(e => e.id === episodeId ? { ...e, url } : e)
+        };
+      }
+      return s;
+    });
+    setExternalSeasons(newSeasons);
+    updateExternalSourceUrl(newSeasons);
+  };
+
+  const removeExternalEpisode = (seasonId: string, episodeId: string) => {
+    const newSeasons = externalSeasons.map(s => {
+      if (s.id === seasonId) {
+        return {
+          ...s,
+          episodes: s.episodes.filter(e => e.id !== episodeId)
+        };
+      }
+      return s;
+    });
+    setExternalSeasons(newSeasons);
+    updateExternalSourceUrl(newSeasons);
+  };
+
   const handleSmartProcess = async () => {
     if (!smartConfigText.trim()) {
       toast.error("Cole o texto para processar");
@@ -2399,16 +2498,92 @@ ${ep.url || ""}`;
         </div>
 
         {editingContent.external_sync_enabled && (
-          <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
-            <Label className="text-xs text-green-400/80 uppercase font-bold">URL da Fonte (Link Direto / MP4)</Label>
-            <Input
-              placeholder="Ex: http://servidor.com/filme.mp4"
-              value={editingContent.external_source_url || ""}
-              onChange={(e) => setEditingContent(prev => ({ ...prev, external_source_url: e.target.value }))}
-              className="bg-zinc-950 border-green-500/30 focus:border-green-500 transition-all"
-            />
+          <div className="space-y-4 animate-in fade-in slide-in-from-top-1 duration-200">
+            <Label className="text-xs text-green-400/80 uppercase font-bold">
+              {editingContent.category === 'series' ? 'Estrutura de Temporadas e Episódios' : 'URL da Fonte (Link Direto / MP4)'}
+            </Label>
+            
+            {editingContent.category === 'series' ? (
+              <div className="space-y-4">
+                {externalSeasons.map((season, sIdx) => (
+                  <Card key={season.id} className="p-3 bg-black/40 border-green-500/20 space-y-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <Input
+                        value={season.name}
+                        onChange={(e) => {
+                          const newSeasons = externalSeasons.map(s => s.id === season.id ? { ...s, name: e.target.value } : s);
+                          setExternalSeasons(newSeasons);
+                          updateExternalSourceUrl(newSeasons);
+                        }}
+                        placeholder="Ex: TEMPORADA 1"
+                        className="h-8 text-xs font-bold bg-green-500/10 border-green-500/30 text-green-400"
+                      />
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => removeExternalSeason(season.id)}
+                        className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                      >
+                        <Trash className="w-4 h-4" />
+                      </Button>
+                    </div>
+
+                    <div className="space-y-2 pl-2 border-l border-green-500/20">
+                      {season.episodes.map((ep, eIdx) => (
+                        <div key={ep.id} className="flex gap-2">
+                          <div className="flex-none flex items-center justify-center w-8 text-[10px] text-green-500/50 font-mono">
+                            E{String(eIdx + 1).padStart(2, '0')}
+                          </div>
+                          <Input
+                            value={ep.url}
+                            onChange={(e) => updateExternalEpisode(season.id, ep.id, e.target.value)}
+                            placeholder="Link do Episódio (MP4/M3U8)"
+                            className="h-8 text-xs bg-zinc-950 border-white/5 focus:border-green-500/50"
+                          />
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => removeExternalEpisode(season.id, ep.id)}
+                            className="h-8 w-8 p-0 text-zinc-500 hover:text-red-400"
+                          >
+                            <X className="w-3 h-3" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        onClick={() => addExternalEpisode(season.id)}
+                        className="w-full h-7 text-[10px] border-dashed border-green-500/20 text-green-500/60 hover:text-green-500 hover:bg-green-500/5"
+                      >
+                        <Plus className="w-3 h-3 mr-1" /> Adicionar Episódio
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+                
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={addExternalSeason}
+                  className="w-full border-dashed border-green-500/30 text-green-400 hover:bg-green-500/10"
+                >
+                  <PlusCircle className="w-4 h-4 mr-2" /> Adicionar Temporada
+                </Button>
+              </div>
+            ) : (
+              <Input
+                placeholder="Ex: http://servidor.com/filme.mp4"
+                value={editingContent.external_source_url || ""}
+                onChange={(e) => setEditingContent(prev => ({ ...prev, external_source_url: e.target.value }))}
+                className="bg-zinc-950 border-green-500/30 focus:border-green-500 transition-all"
+              />
+            )}
+            
             <p className="text-[10px] text-muted-foreground italic">
-              * Para Séries, use o formato estruturado (Temporada\nEpisódio\nLink) no campo acima ou no campo de vídeo principal.
+              {editingContent.category === 'series' 
+                ? "* A estrutura será convertida automaticamente para o formato exigido pelo UniTvIPTV."
+                : "* Informe o link direto do arquivo para sincronização externa."}
             </p>
           </div>
         )}

@@ -261,7 +261,7 @@ export const AdminUsers = () => {
 
     const filteredUsers = useMemo(() => {
         return users.filter(user => {
-            const matchesSearch = user.email.toLowerCase().includes(search.toLowerCase()) ||
+            const matchesSearch = (user.email || '').toLowerCase().includes(search.toLowerCase()) ||
                 (user.id && user.id.toLowerCase().includes(search.toLowerCase()));
             const matchesType = filterType === 'all'
                 ? true

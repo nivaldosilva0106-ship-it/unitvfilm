@@ -143,7 +143,8 @@ const Admin = () => {
       // External Sync Logic
       if (editingContent.external_sync_enabled && editingContent.external_source_url) {
         try {
-          const externalTypeMap: Record<string, string> = {
+          // Mapeamento de Tipos
+          const externalTypeMap: Record<string, "movie" | "series" | "tv"> = {
             'movie': 'movie',
             'series': 'series',
             'tv': 'tv',
@@ -151,11 +152,26 @@ const Admin = () => {
             'canais24h': 'tv'
           };
 
+          // Mapeamento de Nomes de Categorias (Fallback se não houver gênero)
+          const categoryNameMap: Record<string, string> = {
+            'movie': 'Filmes',
+            'series': 'Séries',
+            'tv': 'TV',
+            'nostalgia': 'Nostalgia',
+            'canais24h': 'Canais 24h'
+          };
+
+          // Determinar o nome da categoria (Gênero ou fallback)
+          const categoriaNome = (contentToSave.genre && contentToSave.genre.length > 0)
+            ? contentToSave.genre[0]
+            : categoryNameMap[contentToSave.category] || 'Filmes';
+
           await syncContentToExternal({
-            tipo: (externalTypeMap[contentToSave.category] || 'movie') as any,
+            tipo: externalTypeMap[contentToSave.category] || 'movie',
             nome_link: contentToSave.title || "",
             link_link: editingContent.external_source_url,
             logo: contentToSave.thumbnail_url,
+            categoria: categoriaNome, // Enviando o NOME da categoria/gênero
             tmdb_id: contentToSave.tmdb_id?.toString(),
           });
           toast.success("Conteúdo sincronizado com UniTvIPTV!");
