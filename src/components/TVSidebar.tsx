@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Home, Search, List, Film, Clapperboard, Tv, Bell, User, LogOut, Settings, Heart, Clock } from "lucide-react";
+import { Home, Search, List, Film, Clapperboard, Tv, Bell, User, LogOut, Settings, Heart, Clock, MonitorPlay } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppConfig } from "@/hooks/useAppConfig";
@@ -22,6 +22,7 @@ const sidebarItems = [
   { id: "nostalgia", icon: Clapperboard, label: "Nostalgia", path: "/nostalgia" },
   { id: "live", icon: Tv, label: "TV Online", path: "/tv" },
   { id: "canais24h", icon: Clock, label: "Canais 24h", path: "/canais24h" },
+  { id: "iptv", icon: MonitorPlay, label: "Gerar IPTV", path: "/iptv" },
   { id: "profile", icon: User, label: "Perfil", path: "/profile" },
   { id: "admin", icon: Settings, label: "Painel Admin", path: "/admin" },
 ];

@@ -85,4 +85,6 @@ export interface Content {
   global_ads_count?: number;
   post_break_logo_url?: string;
   watch_provider?: 'netflix' | 'amazon' | 'hbo' | 'disney' | 'apple' | 'hulu' | 'paramount' | 'starplus' | 'globoplay' | 'crunchyroll' | 'skyshowtime' | 'youtube' | 'other';
+  external_sync_enabled?: boolean;
+  external_source_url?: string;
 }

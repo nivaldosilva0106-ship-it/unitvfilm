@@ -10,6 +10,7 @@ import { AdminContentImporter } from "@/components/admin/AdminContentImporter";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Settings } from "lucide-react";
+import { syncContentToExternal } from "@/lib/external-api";
 
 interface AdminContentFormProps {
   editingContent: Partial<Content>;
@@ -35,6 +36,8 @@ const Admin = () => {
     language: "pt-BR",
     release_date: "",
     isPremium: false,
+    external_sync_enabled: false,
+    external_source_url: "",
   });
 
   useEffect(() => {
@@ -134,6 +137,23 @@ const Admin = () => {
         } catch (error) {
           console.error("Error sending notification:", error);
           toast.error("Conteúdo salvo, mas erro ao enviar notificação");
+        }
+      }
+
+      // External Sync Logic
+      if (editingContent.external_sync_enabled && editingContent.external_source_url) {
+        try {
+          await syncContentToExternal({
+            tipo: contentToSave.category as any,
+            nome_link: contentToSave.title || "",
+            link_link: editingContent.external_source_url,
+            logo: contentToSave.thumbnail_url,
+            tmdb_id: contentToSave.tmdb_id?.toString(),
+          });
+          toast.success("Conteúdo sincronizado com UniTvIPTV!");
+        } catch (error) {
+          console.error("External Sync Error:", error);
+          toast.error("Erro na sincronização externa");
         }
       }
 

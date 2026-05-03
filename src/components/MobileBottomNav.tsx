@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Home, List, Film, Clapperboard, Tv } from "lucide-react";
+import { Home, List, Film, Clapperboard, Tv, MonitorPlay } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { subscribeToMyList, getAllContents } from "@/lib/firebase";
@@ -192,6 +192,20 @@ export const MobileBottomNav = () => {
                   <span className="text-white font-bold text-lg">Canais 24h</span>
                 </div>
                 <span className="text-red-500 font-bold text-xs uppercase tracking-wider bg-red-500/10 px-2 py-1 rounded animate-pulse">Livre</span>
+              </button>
+
+              <button 
+                onClick={() => {
+                  setShowLiveModal(false);
+                  navigate('/iptv');
+                }}
+                className="flex items-center justify-between bg-green-500/10 border border-green-500/20 p-4 rounded-2xl hover:bg-green-500/20 transition-all active:scale-95"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="bg-green-500/20 p-2 rounded-full"><MonitorPlay className="w-6 h-6 text-green-500" /></div>
+                  <span className="text-white font-bold text-lg">Gerar IPTV</span>
+                </div>
+                <span className="text-green-500 font-bold text-xs uppercase tracking-wider bg-green-500/20 px-2 py-1 rounded">Grátis</span>
               </button>
             </div>
             

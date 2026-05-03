@@ -1,4 +1,4 @@
-import { Film, Search, User, LogOut, List, Settings, Home, Download, ChevronDown, Clapperboard, Tv, Menu, FileText } from "lucide-react";
+import { Film, Search, User, LogOut, List, Settings, Home, Download, ChevronDown, Clapperboard, Tv, Menu, FileText, MonitorPlay } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -242,6 +242,13 @@ export const Header = () => {
                       Minhas Transferências
                     </button>
                     <button
+                      onClick={() => { navigate("/iptv"); }}
+                      className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
+                    >
+                      <MonitorPlay className="w-5 h-5" />
+                      Gerar IPTV
+                    </button>
+                    <button
                       onClick={() => { navigate("/about"); }}
                       className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
                     >
@@ -339,6 +346,9 @@ export const Header = () => {
                 <button onClick={() => navigate("/transfers")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors flex items-center gap-2">
                   Minhas Transferências
                   <Download className="w-4 h-4" />
+                </button>
+                <button onClick={() => navigate("/iptv")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
+                  Gerar IPTV
                 </button>
                 <button onClick={() => navigate("/about")} className="text-sm font-medium text-gray-300 hover:text-white transition-colors">
                   Sobre Nós

@@ -65,6 +65,7 @@ const TermsOfUse = lazyWithRetry(() => import("./pages/TermsOfUse"));
 const PrivacyPolicy = lazyWithRetry(() => import("./pages/PrivacyPolicy"));
 const Transfers = lazyWithRetry(() => import("./pages/Transfers"));
 const LocalPlayer = lazyWithRetry(() => import("./pages/LocalPlayer"));
+const IPTV = lazyWithRetry(() => import("./pages/IPTV"));
 
 // Lazy load admin components
 const Search = lazyWithRetry(() => import("./pages/Search"));
@@ -224,6 +225,7 @@ const App = () => {
                   <Route path="/verify-code" element={<VerifyCode />} />
                   <Route path="/transfers" element={<Transfers />} />
                   <Route path="/watch-local/:id" element={<LocalPlayer />} />
+                  <Route path="/iptv" element={<IPTV />} />
 
                   <Route path="/admin/users" element={
                     <AdminLayout title="Gerenciar Usuários">

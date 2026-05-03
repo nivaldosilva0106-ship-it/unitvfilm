@@ -2377,6 +2377,42 @@ ${ep.url || ""}`;
         </Select>
         <p className="text-xs text-muted-foreground">Isso exibirá a logo do streaming no card do conteúdo.</p>
       </div>
+ 
+      {/* UniTvIPTV Synchronization */}
+      <div className="space-y-4 p-4 bg-green-500/10 border border-green-500/20 rounded-lg">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className={`p-2 rounded-full ${editingContent.external_sync_enabled ? 'bg-green-500/20 text-green-500' : 'bg-muted text-muted-foreground'}`}>
+              <RefreshCw className={`w-5 h-5 ${editingContent.external_sync_enabled ? 'animate-spin-slow' : ''}`} />
+            </div>
+            <div className="flex flex-col">
+              <Label htmlFor="externalSync" className="cursor-pointer font-medium text-base text-green-400">Sincronizar com UniTvIPTV</Label>
+              <span className="text-xs text-muted-foreground">Enviar este conteúdo para o site UniTvIPTV ao salvar</span>
+            </div>
+          </div>
+          <Switch
+            id="externalSync"
+            checked={editingContent.external_sync_enabled || false}
+            onCheckedChange={(checked) => setEditingContent(prev => ({ ...prev, external_sync_enabled: checked }))}
+            className="data-[state=checked]:bg-green-600"
+          />
+        </div>
+
+        {editingContent.external_sync_enabled && (
+          <div className="space-y-2 animate-in fade-in slide-in-from-top-1 duration-200">
+            <Label className="text-xs text-green-400/80 uppercase font-bold">URL da Fonte (Link Direto / MP4)</Label>
+            <Input
+              placeholder="Ex: http://servidor.com/filme.mp4"
+              value={editingContent.external_source_url || ""}
+              onChange={(e) => setEditingContent(prev => ({ ...prev, external_source_url: e.target.value }))}
+              className="bg-zinc-950 border-green-500/30 focus:border-green-500 transition-all"
+            />
+            <p className="text-[10px] text-muted-foreground italic">
+              * Para Séries, use o formato estruturado (Temporada\nEpisódio\nLink) no campo acima ou no campo de vídeo principal.
+            </p>
+          </div>
+        )}
+      </div>
 
       {/* Notification Toggle */}
       <div className="flex items-center justify-between p-4 bg-blue-500/10 border border-blue-500/20 rounded-lg">
