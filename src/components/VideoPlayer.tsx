@@ -101,8 +101,21 @@ const formatTime = (seconds: number): string => {
     );
   }
 
+  // Detect if URL needs proxying (wrong Content-Type or CORS issues)
+  const needsProxy = (u: string) => {
+    if (!u) return false;
+    const lower = u.toLowerCase().split('?')[0];
+    // .txt URLs from IPTV servers typically serve HLS/TS with text/plain Content-Type
+    if (lower.endsWith('.txt')) return true;
+    // Known IPTV domains that may have CORS/Content-Type issues
+    if (u.includes('typezero.top')) return true;
+    return false;
+  };
+
+  const getProxiedUrl = (u: string) => `/api/stream-proxy?url=${encodeURIComponent(u)}`;
+
   // Detect stream type
-  const isHLS = url?.includes('.m3u8') || url?.includes('m3u8') || url?.toLowerCase().includes('.txt') || url?.includes('typezero.top');
+  const isHLS = url?.includes('.m3u8') || url?.includes('m3u8') || needsProxy(url);
   const isGoogleDrive = url?.includes('googleapis.com/drive') || url?.includes('drive.google.com');
 
   // Transform Google Drive URL if needed
@@ -128,6 +141,10 @@ const formatTime = (seconds: number): string => {
           return `https://www.googleapis.com/drive/v3/files/${match[1]}?alt=media`;
         }
       }
+    }
+    // Route .txt and problematic URLs through proxy
+    if (needsProxy(url)) {
+      return getProxiedUrl(url);
     }
     return url;
   }, [url, isGoogleDrive]);
@@ -167,6 +184,10 @@ const formatTime = (seconds: number): string => {
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
+        // Allow loading from any origin (proxied URLs)
+        xhrSetup: (xhr: XMLHttpRequest) => {
+          xhr.withCredentials = false;
+        },
       });
 
       hls.loadSource(videoUrl);
@@ -186,6 +207,31 @@ const formatTime = (seconds: number): string => {
 
       hls.on(Hls.Events.LEVEL_SWITCHED, (_, data) => {
         setCurrentQuality(data.level);
+      });
+
+      // Smart fallback: if HLS fails on a proxied URL, try direct native playback
+      hls.on(Hls.Events.ERROR, (_, data) => {
+        if (data.fatal) {
+          console.warn('HLS fatal error, attempting fallback...', data.type, data.details);
+          
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            // Try to recover first
+            hls.startLoad();
+          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            hls.recoverMediaError();
+          } else {
+            // If not HLS content, fallback to direct native playback
+            console.log('HLS completely failed. Falling back to native video for:', url);
+            hls.destroy();
+            hlsRef.current = null;
+            
+            // Try direct URL first, then proxied URL
+            video.src = needsProxy(url) ? getProxiedUrl(url) : url;
+            if (autoPlay && active) {
+              attemptPlay();
+            }
+          }
+        }
       });
 
       hlsRef.current = hls;
