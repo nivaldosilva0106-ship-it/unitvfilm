@@ -1,5 +1,4 @@
-const EXTERNAL_API_BASE_URL = "https://unitviptvs.vercel.app/api/external/v1";
-const EXTERNAL_API_KEY = "utv_9b82afa7d2e989968b4342b04ccb16c89c89be838a149374";
+import { getSiteSettings } from "./firebase";
 
 export interface ExternalClientData {
   nome_usuario: string;
@@ -17,57 +16,70 @@ export interface ExternalLinkData {
 }
 
 /**
+ * Fetches the IPTV credentials from Firebase site settings
+ */
+const getIPTVCredentials = async () => {
+  const settings = await getSiteSettings();
+  const apiKey = settings.iptvApiKey;
+  const baseUrl = settings.iptvApiBaseUrl;
+
+  if (!apiKey || !baseUrl) {
+    throw new Error("API IPTV não configurada. Vá em Admin > Configurações e preencha a Chave API e URL Base do UniTvIPTV.");
+  }
+
+  return { apiKey, baseUrl };
+};
+
+/**
  * Creates a new trial client via the internal proxy
  */
 export const createExternalIPTVClient = async (data: ExternalClientData) => {
-  try {
-    const response = await fetch("/api/external-proxy", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        endpoint: "clients",
-        data: data
-      }),
-    });
+  const { apiKey, baseUrl } = await getIPTVCredentials();
 
-    const result = await response.json();
-    if (!response.ok) {
-      throw new Error(result.message || result.error || "Erro ao criar cliente externo");
-    }
+  const response = await fetch("/api/external-proxy", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      endpoint: "clients",
+      data,
+      apiKey,
+      baseUrl
+    }),
+  });
 
-    return result;
-  } catch (error: any) {
-    console.error("Proxy API Error (createClient):", error);
-    throw error;
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.message || result.error || "Erro ao criar cliente externo");
   }
+
+  return result;
 };
 
 /**
  * Syncs content via the internal proxy
  */
 export const syncContentToExternal = async (data: ExternalLinkData) => {
-  try {
-    const response = await fetch("/api/external-proxy", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        endpoint: "links",
-        data: data
-      }),
-    });
+  const { apiKey, baseUrl } = await getIPTVCredentials();
 
-    const result = await response.json();
-    if (!response.ok) {
-      throw new Error(result.message || result.error || "Erro ao sincronizar conteúdo externo");
-    }
+  const response = await fetch("/api/external-proxy", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      endpoint: "links",
+      data,
+      apiKey,
+      baseUrl
+    }),
+  });
 
-    return result;
-  } catch (error: any) {
-    console.error("Proxy API Error (syncContent):", error);
-    throw error;
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.message || result.error || "Erro ao sincronizar conteúdo externo");
   }
+
+  return result;
 };

@@ -416,6 +416,8 @@ export interface SiteSettings {
   enablePwaInstall?: boolean;
   requiredAppVersion?: number;
   requiredLiteAppVersion?: number;
+  iptvApiKey?: string;
+  iptvApiBaseUrl?: string;
 }
 
 export const getSiteSettings = async (): Promise<SiteSettings> => {

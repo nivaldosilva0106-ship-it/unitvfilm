@@ -1,6 +1,6 @@
 // ... (imports)
 import { useState, useEffect } from "react";
-import { Copy, Check, AlertTriangle, Globe, Info, Smartphone } from "lucide-react";
+import { Copy, Check, AlertTriangle, Globe, Info, Smartphone, MonitorPlay, Loader2, Wifi, WifiOff } from "lucide-react";
 import { toast } from "sonner";
 import { getSiteSettings, updateSiteSettings } from "@/lib/firebase";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -30,6 +30,12 @@ export const AdminSettings = () => {
     const [enablePwaInstall, setEnablePwaInstall] = useState(false);
     const [loading, setLoading] = useState(true);
     const [isCopied, setIsCopied] = useState(false);
+
+    // UniTvIPTV Integration
+    const [iptvApiKey, setIptvApiKey] = useState("");
+    const [iptvApiBaseUrl, setIptvApiBaseUrl] = useState("");
+    const [iptvTestStatus, setIptvTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle');
+    const [iptvTestMessage, setIptvTestMessage] = useState("");
 
     // Export/Import State
     const [exportFilters, setExportFilters] = useState({
@@ -72,6 +78,8 @@ export const AdminSettings = () => {
             setRequiredLiteAppVersion(settings.requiredLiteAppVersion || 1);
             setEnableApkDownload(settings.enableApkDownload || false);
             setEnablePwaInstall(settings.enablePwaInstall || false);
+            setIptvApiKey(settings.iptvApiKey || "");
+            setIptvApiBaseUrl(settings.iptvApiBaseUrl || "");
         } catch (error) {
             console.error("Error loading settings:", error);
             toast.error("Erro ao carregar configurações");
@@ -96,6 +104,8 @@ export const AdminSettings = () => {
                 requiredAppVersion,
                 requiredLiteAppVersion,
                 enableApkDownload,
+                iptvApiKey,
+                iptvApiBaseUrl,
                 enablePwaInstall
             });
             toast.success("Configurações salvas com sucesso!");
@@ -114,6 +124,50 @@ export const AdminSettings = () => {
             setTimeout(() => setIsCopied(false), 2000);
         } catch (err) {
             toast.error("Erro ao copiar chave");
+        }
+    };
+
+    const handleTestIptvConnection = async () => {
+        if (!iptvApiKey || !iptvApiBaseUrl) {
+            setIptvTestStatus('error');
+            setIptvTestMessage('Preencha a Chave API e a URL Base antes de testar.');
+            return;
+        }
+
+        setIptvTestStatus('testing');
+        setIptvTestMessage('');
+
+        try {
+            const response = await fetch('/api/external-proxy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    endpoint: 'clients',
+                    data: {
+                        nome_usuario: '__unitvfilm_test__',
+                        login_usuario: `test_conn_${Date.now()}`,
+                        senha_usuario: 'test_connection'
+                    },
+                    apiKey: iptvApiKey,
+                    baseUrl: iptvApiBaseUrl
+                })
+            });
+
+            if (response.ok || response.status === 400) {
+                // 400 = "login already exists" which still proves the connection works
+                setIptvTestStatus('success');
+                setIptvTestMessage('Conexão estabelecida com sucesso! A API está respondendo.');
+            } else if (response.status === 401) {
+                setIptvTestStatus('error');
+                setIptvTestMessage('Chave API inválida ou inativa. Verifique no painel UniTvIPTV.');
+            } else {
+                const result = await response.json().catch(() => ({}));
+                setIptvTestStatus('error');
+                setIptvTestMessage(result.error || `Erro HTTP ${response.status}`);
+            }
+        } catch (error: any) {
+            setIptvTestStatus('error');
+            setIptvTestMessage(`Falha na conexão: ${error.message}`);
         }
     };
 
@@ -481,6 +535,92 @@ export const AdminSettings = () => {
                                     <Info className="w-4 h-4 text-blue-500" />
                                     <p className="text-[11px] text-blue-400">
                                         Redirecionamento ativo para usuários fora do domínio oficial.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* UniTvIPTV Integration */}
+                    <div className="bg-card border border-border rounded-lg p-6">
+                        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
+                            <MonitorPlay className="w-5 h-5 text-green-500" />
+                            Integração UniTvIPTV
+                        </h2>
+                        <p className="text-sm text-muted-foreground mb-6">
+                            Configure a conexão com o servidor UniTvIPTV para sincronizar conteúdos e gerar listas IPTV para os usuários.
+                        </p>
+                        <div className="space-y-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="iptvApiBaseUrl">URL Base da API</Label>
+                                <Input
+                                    id="iptvApiBaseUrl"
+                                    placeholder="https://unitviptvs.vercel.app/api/external/v1"
+                                    value={iptvApiBaseUrl}
+                                    onChange={(e) => setIptvApiBaseUrl(e.target.value)}
+                                    className="bg-background/50 font-mono text-sm"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Endereço completo da API externa. Ex: https://seudominio.com/api/external/v1
+                                </p>
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="iptvApiKey">Chave de API (API Key)</Label>
+                                <Input
+                                    id="iptvApiKey"
+                                    type="password"
+                                    placeholder="utv_xxxxxxxxxxxxxxxxxxxxxxxxx"
+                                    value={iptvApiKey}
+                                    onChange={(e) => setIptvApiKey(e.target.value)}
+                                    className="bg-background/50 font-mono text-sm"
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Gere a sua chave no painel administrativo do UniTvIPTV (seção API Keys).
+                                </p>
+                            </div>
+
+                            <div className="flex items-center gap-3 pt-2">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={handleTestIptvConnection}
+                                    disabled={iptvTestStatus === 'testing' || !iptvApiKey || !iptvApiBaseUrl}
+                                    className="shrink-0"
+                                >
+                                    {iptvTestStatus === 'testing' ? (
+                                        <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Testando...</>
+                                    ) : (
+                                        <><Wifi className="w-4 h-4 mr-2" /> Testar Conexão</>
+                                    )}
+                                </Button>
+                            </div>
+
+                            {iptvTestStatus === 'success' && (
+                                <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg flex items-center gap-2">
+                                    <Wifi className="w-4 h-4 text-green-500" />
+                                    <p className="text-xs text-green-500 font-medium">{iptvTestMessage}</p>
+                                </div>
+                            )}
+
+                            {iptvTestStatus === 'error' && (
+                                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-center gap-2">
+                                    <WifiOff className="w-4 h-4 text-red-500" />
+                                    <p className="text-xs text-red-500 font-medium">{iptvTestMessage}</p>
+                                </div>
+                            )}
+
+                            {iptvApiKey && iptvApiBaseUrl && iptvTestStatus === 'idle' && (
+                                <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
+                                    <p className="text-xs text-green-500 font-medium">✓ Credenciais IPTV configuradas</p>
+                                </div>
+                            )}
+
+                            {(!iptvApiKey || !iptvApiBaseUrl) && (
+                                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg flex items-center gap-2">
+                                    <AlertTriangle className="w-4 h-4 text-amber-500" />
+                                    <p className="text-xs text-amber-500 font-medium">
+                                        A sincronização de conteúdo e a geração de listas IPTV ficarão desativadas até que ambos os campos sejam preenchidos.
                                     </p>
                                 </div>
                             )}
