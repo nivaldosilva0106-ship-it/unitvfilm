@@ -60,7 +60,7 @@ export const TVSidebar = () => {
     location.pathname.startsWith("/watch-local/") ||
     location.pathname === "/profiles" ||
     location.pathname === "/nostalgia" ||
-    isMobilePhone ||
+    !shouldShow ||
     !user;
 
   // D-pad keyboard navigation
