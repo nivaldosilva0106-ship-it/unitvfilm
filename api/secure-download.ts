@@ -149,26 +149,8 @@ async function proxyDirectDownload(url: string, filename: string, res: VercelRes
     res.setHeader('Content-Length', contentLength);
   }
 
-  // Stream data directly from the source to the client (NO DISK, LOW MEMORY)
-  // This uses Web Streams API which is available in Node 18+ (Vercel)
-  if (response.body) {
-    const reader = response.body.getReader();
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        // value is a Uint8Array
-        res.write(value);
-      }
-    } finally {
-      reader.releaseLock();
-      res.end();
-    }
-  } else {
-    // Fallback if body is not accessible as stream
-    const buffer = Buffer.from(await response.arrayBuffer());
-    return res.status(200).send(buffer);
-  }
+  const buffer = Buffer.from(await response.arrayBuffer());
+  return res.status(200).send(buffer);
 }
 
 /**
