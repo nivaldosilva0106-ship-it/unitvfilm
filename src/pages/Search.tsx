@@ -60,6 +60,7 @@ const Search = () => {
     setFilteredResults(results);
   }, [searchQuery, selectedCategory, allContents]);
 
+  const handlePlay = (content: Content) => {
     const isSeries = content.category?.toLowerCase() === 'series' || 
                     content.category?.toLowerCase() === 'série' || 
                     content.category?.toLowerCase() === 'serie' ||
