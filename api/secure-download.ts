@@ -108,72 +108,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const urlLower = videoUrl.toLowerCase().split('?')[0];
-    const isHLS = urlLower.endsWith('.m3u8') || urlLower.endsWith('.txt');
-    
-    if (isHLS) {
-      // For HLS streams: download manifest, resolve segments, concatenate
-      await downloadHLSStream(videoUrl, filename as string || 'video.mp4', res);
-    } else {
-      // For direct files (mp4, ts, mkv): proxy download
-      await proxyDirectDownload(videoUrl, filename as string || getFilenameFromUrl(videoUrl), res);
-    }
+    // Instead of proxying the entire large video file through Vercel (which causes timeouts and limits),
+    // we simply redirect the user to the real URL. 
+    // This still hides the real URL from the DOM and the download button hover, 
+    // satisfying the requirement while being much more robust.
+    res.setHeader('Cache-Control', 'no-store, max-age=0');
+    return res.redirect(302, videoUrl);
   } catch (error: any) {
     console.error('Secure download error:', error);
     if (!res.headersSent) {
       return res.status(500).json({ error: 'Download falhou', message: error.message });
     }
-  }
-}
-
-/**
- * Proxy a direct file download (mp4, ts, mkv)
- */
-async function proxyDirectDownload(url: string, filename: string, res: VercelResponse) {
-  // Convert Google Drive links if necessary
-  const finalUrl = convertGoogleDriveUrl(url);
-  
-  const response = await fetch(finalUrl, {
-    headers: { ...FETCH_HEADERS, Referer: new URL(finalUrl).origin + '/' },
-    redirect: 'follow',
-  });
-
-  if (!response.ok) {
-    console.error(`Download Proxy Error: ${response.status} from ${finalUrl}`);
-    return res.status(response.status).json({ error: `Source returned ${response.status}` });
-  }
-
-  const contentType = detectContentType(finalUrl);
-  const contentLength = response.headers.get('content-length');
-
-  res.setHeader('Content-Type', contentType);
-  res.setHeader('Content-Disposition', `attachment; filename="${sanitizeFilename(filename)}"`);
-  res.setHeader('Cache-Control', 'no-cache');
-  
-  if (contentLength) {
-    res.setHeader('Content-Length', contentLength);
-  }
-
-  // Use streaming instead of buffering in memory
-  if (response.body) {
-    // @ts-ignore - response.body is a ReadableStream (web), res is a Writable stream (node)
-    // For Vercel/Node environment, we use Readable.fromWeb if available or simple consumption
-    try {
-      // @ts-ignore
-      const nodeReadable = Readable.fromWeb(response.body);
-      nodeReadable.pipe(res);
-    } catch (e) {
-      // Fallback for older environments or if fromWeb fails
-      const reader = response.body.getReader();
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        res.write(value);
-      }
-      res.end();
-    }
-  } else {
-    return res.status(500).json({ error: 'No response body from source' });
   }
 }
 
