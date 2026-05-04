@@ -49,6 +49,7 @@ const Player = () => {
     const [showResumeArrow, setShowResumeArrow] = useState(false);
     const sessionStartTimestamp = useRef<number>(Date.now());
     const progressSyncIntervalRef = useRef<NodeJS.Timeout | null>(null);
+    const internalPlaybackPositionRef = useRef<number>(0);
 
     // Player state
     const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -359,17 +360,25 @@ const Player = () => {
 
         // Timer to sync progress every 30 seconds
         progressSyncIntervalRef.current = setInterval(() => {
-            const elapsed = Math.floor((Date.now() - sessionStartTimestamp.current) / 1000);
-            const totalPosition = lastPositionSeconds + elapsed;
+            let totalPosition = 0;
+            
+            if (currentSource?.type === 'internal') {
+                totalPosition = Math.floor(internalPlaybackPositionRef.current);
+            } else {
+                const elapsed = Math.floor((Date.now() - sessionStartTimestamp.current) / 1000);
+                totalPosition = lastPositionSeconds + elapsed;
+            }
 
-            saveUserProgress({
-                userId: profile?.id || '',
-                profileId: currentProfile.id,
-                contentId: content.id,
-                season: seasonParam ? parseInt(seasonParam) : undefined,
-                episode: episodeParam ? parseInt(episodeParam) : undefined,
-                lastPositionSeconds: totalPosition,
-            });
+            if (totalPosition > 5) { // Only save if we have some progress
+                saveUserProgress({
+                    userId: profile?.id || '',
+                    profileId: currentProfile.id,
+                    contentId: content.id,
+                    season: seasonParam ? parseInt(seasonParam) : undefined,
+                    episode: episodeParam ? parseInt(episodeParam) : undefined,
+                    lastPositionSeconds: totalPosition,
+                });
+            }
         }, 30000);
 
         return () => {
@@ -879,33 +888,11 @@ const Player = () => {
 
                             <div className="px-2 sm:px-4 py-1 sm:py-2 bg-black/50 backdrop-blur-md rounded-full border border-white/20 flex items-center gap-1.5 sm:gap-3 min-w-0 overflow-hidden">
                                 {/* Logo */}
-                                <div className="flex items-center gap-1 sm:gap-2 border-r border-white/20 pr-1.5 sm:pr-3 mr-0.5 flex-shrink-0">
+                                <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                                     <div className="bg-primary p-0.5 sm:p-1 rounded">
                                         <Film className="w-2 h-2 sm:w-3 sm:h-3 text-white" />
                                     </div>
                                     <span className="text-white font-bold text-[8px] sm:text-sm hidden sm:inline">Uni<span className="text-primary">Tv</span>Film</span>
-                                </div>
-
-                                {/* Circular Poster */}
-                                {content?.thumbnail_url && (
-                                    <img
-                                        src={content.thumbnail_url}
-                                        className="w-4 h-4 sm:w-7 sm:h-7 rounded-full object-cover border border-white/20 shadow-sm flex-shrink-0"
-                                        alt="Poster"
-                                    />
-                                )}
-
-                                {/* Title - with marquee for long titles */}
-                                <div className="overflow-hidden min-w-0 max-w-[120px] sm:max-w-[300px] md:max-w-[400px]">
-                                    {currentTitle.length > 30 ? (
-                                        <div className="animate-marquee-title whitespace-nowrap hover:pause-animation">
-                                            <span className="text-white font-bold text-[9px] sm:text-sm">{currentTitle}</span>
-                                            <span className="text-white font-bold text-[9px] sm:text-sm mx-8 opacity-50">•</span>
-                                            <span className="text-white font-bold text-[9px] sm:text-sm">{currentTitle}</span>
-                                        </div>
-                                    ) : (
-                                        <span className="text-white font-bold text-[9px] sm:text-sm whitespace-nowrap">{currentTitle}</span>
-                                    )}
                                 </div>
                             </div>
                         </div>
@@ -1114,6 +1101,15 @@ const Player = () => {
                             autoPlay
                             startTime={isResuming ? lastPositionSeconds : 0}
                             subtitles={currentSource.subtitle_url}
+                            onTimeUpdate={(time) => {
+                                internalPlaybackPositionRef.current = time;
+                            }}
+                            onEnded={() => {
+                                if (nextEpisode && content) {
+                                    toast.info("Reproduzindo próximo episódio...");
+                                    navigate(`/watch/${content.id}?s=${nextEpisode.season}&e=${nextEpisode.episode}`);
+                                }
+                            }}
                         />
                     </div>
                 ) : (

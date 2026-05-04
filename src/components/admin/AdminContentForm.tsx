@@ -932,7 +932,29 @@ ${ep.url || ""}`;
   const updateEpisode = (index: number, field: keyof Episode, value: string | number) => {
     const currentEpisodes = editingContent.episodes || [];
     const updated = [...currentEpisodes];
-    updated[index] = { ...updated[index], [field]: value };
+    const episode = { ...updated[index], [field]: value };
+    
+    // Auto-sync internal player URL to downloads for specific extensions
+    if (field === 'internal_player_url' && typeof value === 'string' && value.trim() !== '') {
+      const lower = value.toLowerCase();
+      const isDownloadable = lower.endsWith('.mp4') || 
+                           lower.endsWith('.ts') || 
+                           lower.endsWith('.txt') || 
+                           lower.includes('drive.google.com');
+      
+      if (isDownloadable) {
+        const currentDownloads = episode.downloads || [];
+        const exists = currentDownloads.some(d => d.url === value);
+        if (!exists) {
+          episode.downloads = [
+            ...currentDownloads,
+            { label: 'Download Direto', url: value, quality: 'HD', mode: 'proxy' }
+          ];
+        }
+      }
+    }
+
+    updated[index] = episode;
     setEditingContent(prev => ({
       ...prev,
       episodes: updated,
@@ -1376,7 +1398,31 @@ ${ep.url || ""}`;
               <div className="flex gap-2">
                 <Input
                   value={editingContent.internal_player_url || ''}
-                  onChange={(e) => setEditingContent(prev => ({ ...prev, internal_player_url: e.target.value }))}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setEditingContent(prev => {
+                      const updated = { ...prev, internal_player_url: val };
+                      
+                      // Auto-sync to downloads for specific extensions
+                      const lower = val.toLowerCase();
+                      const isDownloadable = lower.endsWith('.mp4') || 
+                                           lower.endsWith('.ts') || 
+                                           lower.endsWith('.txt') || 
+                                           lower.includes('drive.google.com');
+                      
+                      if (isDownloadable && val.trim() !== '') {
+                        const currentDownloads = updated.downloads || [];
+                        const exists = currentDownloads.some(d => d.url === val);
+                        if (!exists) {
+                          updated.downloads = [
+                            ...currentDownloads,
+                            { label: 'Download Direto', url: val, quality: 'HD', mode: 'proxy' }
+                          ];
+                        }
+                      }
+                      return updated;
+                    });
+                  }}
                   className="bg-input border-border flex-1"
                   placeholder="https://... (URL direta para arquivo m3u8, mp4, etc)"
                 />

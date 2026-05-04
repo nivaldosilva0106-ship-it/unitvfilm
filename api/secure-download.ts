@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { Readable } from 'stream';
 
 /**
  * Secure Download Endpoint
@@ -129,16 +130,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
  * Proxy a direct file download (mp4, ts, mkv)
  */
 async function proxyDirectDownload(url: string, filename: string, res: VercelResponse) {
-  const response = await fetch(url, {
-    headers: { ...FETCH_HEADERS, Referer: new URL(url).origin + '/' },
+  // Convert Google Drive links if necessary
+  const finalUrl = convertGoogleDriveUrl(url);
+  
+  const response = await fetch(finalUrl, {
+    headers: { ...FETCH_HEADERS, Referer: new URL(finalUrl).origin + '/' },
     redirect: 'follow',
   });
 
   if (!response.ok) {
+    console.error(`Download Proxy Error: ${response.status} from ${finalUrl}`);
     return res.status(response.status).json({ error: `Source returned ${response.status}` });
   }
 
-  const contentType = detectContentType(url);
+  const contentType = detectContentType(finalUrl);
   const contentLength = response.headers.get('content-length');
 
   res.setHeader('Content-Type', contentType);
@@ -149,8 +154,27 @@ async function proxyDirectDownload(url: string, filename: string, res: VercelRes
     res.setHeader('Content-Length', contentLength);
   }
 
-  const buffer = Buffer.from(await response.arrayBuffer());
-  return res.status(200).send(buffer);
+  // Use streaming instead of buffering in memory
+  if (response.body) {
+    // @ts-ignore - response.body is a ReadableStream (web), res is a Writable stream (node)
+    // For Vercel/Node environment, we use Readable.fromWeb if available or simple consumption
+    try {
+      // @ts-ignore
+      const nodeReadable = Readable.fromWeb(response.body);
+      nodeReadable.pipe(res);
+    } catch (e) {
+      // Fallback for older environments or if fromWeb fails
+      const reader = response.body.getReader();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        res.write(value);
+      }
+      res.end();
+    }
+  } else {
+    return res.status(500).json({ error: 'No response body from source' });
+  }
 }
 
 /**
@@ -281,4 +305,20 @@ function getFilenameFromUrl(url: string): string {
     if (last && last.includes('.')) return last;
   } catch {}
   return 'video.mp4';
+}
+
+function convertGoogleDriveUrl(url: string): string {
+  const driveRegex = /drive\.google\.com\/(?:file\/d\/|open\?id=)([^/?#]+)/;
+  const match = url.match(driveRegex);
+  if (match) {
+    const fileId = match[1];
+    // Use API key if available
+    const apiKey = process.env.GOOGLE_API_KEY || process.env.VITE_GOOGLE_API_KEY;
+    if (apiKey) {
+      return `https://www.googleapis.com/drive/v3/files/${fileId}?alt=media&key=${apiKey}`;
+    }
+    // Fallback
+    return `https://drive.google.com/uc?export=download&id=${fileId}`;
+  }
+  return url;
 }
