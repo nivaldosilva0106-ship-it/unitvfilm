@@ -176,6 +176,12 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
 
     // Helper for URL mapping
     const buildEpisodeURLs = (url: string) => {
+      const lower = url.toLowerCase();
+      const isDownloadable = lower.endsWith('.mp4') || 
+                           lower.endsWith('.ts') || 
+                           lower.endsWith('.txt') || 
+                           lower.includes('drive.google.com');
+      
       const isGoogle = url.includes('googleapis.com');
       const isTikTok = url.includes('tiktok.com');
       const isFacebook = url.includes('facebook.com') || url.includes('fb.watch');
@@ -183,9 +189,11 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       const isYouTube = url.includes('youtube.com') || url.includes('youtu.be');
       const isSocial = isYouTube || isTikTok || isFacebook || isTwitter;
 
-      let finalUrl = isGoogle ? "" : url;
+      // If it's a direct file/downloadable, we don't put it in the "embed" field (url)
+      // but we put it in the internal_player_url.
+      let finalUrl = (isDownloadable || isGoogle) ? "" : url;
       let google_drive_url = isGoogle && isNostalgiaSelected ? url : "";
-      let internal_player_url = (isGoogle && !isNostalgiaSelected && !isCanais24hSelected) ? url : "";
+      let internal_player_url = (isGoogle || isDownloadable) && !isNostalgiaSelected && !isCanais24hSelected ? url : "";
       let tiktok_url = isTikTok ? url : "";
 
       if (isCanais24hSelected) {
@@ -194,7 +202,10 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           internal_player_url = url;
         }
       }
-      return { finalUrl, google_drive_url, internal_player_url, tiktok_url };
+
+      const downloads = isDownloadable ? [{ label: 'Download Direto', url: url, quality: 'HD', mode: 'proxy' }] : [];
+
+      return { finalUrl, google_drive_url, internal_player_url, tiktok_url, downloads, isDownloadable };
     };
 
     const newEpisodes: Episode[] = [];
@@ -209,15 +220,19 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       const otherUrls = allUrls.filter(u => u !== googleApiUrl);
       
       const firstLineIsTitle = !urlPattern.test(lines[0]);
+      const urls = buildEpisodeURLs(allUrls[0]);
 
       setEditingContent(prev => ({
         ...prev,
         title: firstLineIsTitle ? lines[0] : prev.title,
         category: 'movie',
         google_drive_url: googleApiUrl || prev.google_drive_url,
-        internal_player_url: googleApiUrl || prev.internal_player_url,
-        video_url: otherUrls[0] || prev.video_url,
-        video_urls: otherUrls.length > 0 ? otherUrls : prev.video_urls
+        internal_player_url: urls.internal_player_url || prev.internal_player_url,
+        video_url: urls.finalUrl || prev.video_url,
+        video_urls: otherUrls.length > 0 ? otherUrls : prev.video_urls,
+        downloads: urls.downloads.length > 0 ? [...(prev.downloads || []), ...urls.downloads] : prev.downloads,
+        external_sync_enabled: urls.isDownloadable || !!googleApiUrl,
+        external_source_url: (urls.isDownloadable || !!googleApiUrl) ? (urls.internal_player_url || googleApiUrl) : prev.external_source_url
       }));
       toast.success("Links de filme extraídos!");
       return;
@@ -227,17 +242,14 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     toast.info(`Sincronizando blocos de programação...`);
     
     lines.forEach((line) => {
-      // 1. Skip separators (---, ===, etc)
       if (separatorPattern.test(line)) return;
 
-      // 2. Season detection: "Temporada 1"
       const seasonMatch = line.match(seasonHeaderPattern);
       if (seasonMatch) {
         currentSeason = parseInt(seasonMatch[1] || seasonMatch[2]);
         return;
       }
 
-      // 3. Hierarchical specific match: "1. Ep X - URL"
       const hybridMatch = line.match(hierarchicalPatternWithUrl);
       if (hybridMatch) {
         const epTitle = hybridMatch[2].trim();
@@ -251,12 +263,12 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           google_drive_url: urls.google_drive_url,
           internal_player_url: urls.internal_player_url,
           tiktok_url: urls.tiktok_url,
-          downloads: []
+          downloads: urls.downloads as any,
+          download_mode: urls.isDownloadable ? 'direct' : undefined
         });
         return;
       }
 
-      // 4. URL detection: Apply current runningTitle
       const urlMatch = line.match(urlPattern);
       if (urlMatch) {
         const epUrl = urlMatch[0];
@@ -271,12 +283,11 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           google_drive_url: urls.google_drive_url,
           internal_player_url: urls.internal_player_url,
           tiktok_url: urls.tiktok_url,
-          downloads: []
+          downloads: urls.downloads as any,
+          download_mode: urls.isDownloadable ? 'direct' : undefined
         });
       } else {
-        // 5. It's a title line for upcoming URLs
         runningTitle = line.trim();
-        // If content title is empty, set the first seen title
         if (!editingContent.title) {
           setEditingContent(prev => ({ ...prev, title: runningTitle }));
         }
@@ -284,11 +295,48 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     });
 
     if (newEpisodes.length > 0) {
+      // Build external source url for series if any episode has a downloadable link
+      let externalSync = false;
+      const seasonsMap: { [key: number]: string[] } = {};
+      
+      newEpisodes.forEach(ep => {
+        if (ep.internal_player_url) {
+          externalSync = true;
+          if (!seasonsMap[ep.season]) seasonsMap[ep.season] = [];
+          seasonsMap[ep.season].push(ep.internal_player_url);
+        }
+      });
+
+      let externalSourceUrl = editingContent.external_source_url;
+      if (externalSync && (isSeriesSelected || isCanais24hSelected)) {
+        const sortedSeasons = Object.keys(seasonsMap).map(Number).sort((a, b) => a - b);
+        externalSourceUrl = sortedSeasons.map(sNum => {
+          return `TEMPORADA ${sNum}\n${seasonsMap[sNum].join('\n')}`;
+        }).join('\n---\n');
+      }
+
       setEditingContent(prev => ({
         ...prev,
         episodes: [...(prev.episodes || []), ...newEpisodes],
-        category: prev.category || (isCanais24hSelected ? 'canais24h' : 'series')
+        category: prev.category || (isCanais24hSelected ? 'canais24h' : 'series'),
+        external_sync_enabled: externalSync || prev.external_sync_enabled,
+        external_source_url: externalSourceUrl
       }));
+      
+      // Also update externalSeasons state to keep UI in sync
+      if (externalSync && (isSeriesSelected || isCanais24hSelected)) {
+        const sortedSeasons = Object.keys(seasonsMap).map(Number).sort((a, b) => a - b);
+        const newExternalSeasons = sortedSeasons.map(sNum => ({
+          id: Math.random().toString(36).substr(2, 9),
+          name: `TEMPORADA ${sNum}`,
+          episodes: seasonsMap[sNum].map(url => ({
+            id: Math.random().toString(36).substr(2, 9),
+            url: url
+          }))
+        }));
+        setExternalSeasons(newExternalSeasons);
+      }
+
       toast.success(`${newEpisodes.length} itens adicionados com sucesso!`);
     } else {
       toast.warning("Nenhum link ou bloco identificado.");
@@ -951,6 +999,52 @@ ${ep.url || ""}`;
             { label: 'Download Direto', url: value, quality: 'HD', mode: 'proxy' }
           ];
         }
+
+        // New: Auto-sync to UniTvIPTV for series
+        if (editingContent.category === 'series') {
+          const seasonNum = episode.season || 1;
+          const epNum = episode.episode || 1;
+          
+          setEditingContent(prev => ({ ...prev, external_sync_enabled: true }));
+          
+          setExternalSeasons(prevSeasons => {
+            const newSeasons = [...prevSeasons];
+            // Find or create season
+            let seasonIdx = newSeasons.findIndex(s => s.name === `TEMPORADA ${seasonNum}`);
+            if (seasonIdx === -1) {
+              // Try to find by name if it's different, but we'll stick to TEMPORADA X for auto-sync
+              seasonIdx = seasonNum - 1;
+              if (!newSeasons[seasonIdx]) {
+                // If doesn't exist, we might not want to create it blindly, but user asked for automation
+                return prevSeasons; 
+              }
+            }
+            
+            const season = { ...newSeasons[seasonIdx] };
+            const seasonEpisodes = [...season.episodes];
+            
+            // Find episode by index (epNum - 1)
+            const epIdx = epNum - 1;
+            if (seasonEpisodes[epIdx]) {
+              seasonEpisodes[epIdx] = { ...seasonEpisodes[epIdx], url: value };
+              season.episodes = seasonEpisodes;
+              newSeasons[seasonIdx] = season;
+              
+              // This is a bit tricky because updateExternalSourceUrl is a function that uses externalSeasons
+              // We should probably call it or update the external_source_url directly
+              const formatted = newSeasons.map(s => {
+                const epLinks = s.episodes.map(e => e.url).filter(u => u.trim()).join('\n');
+                return `${s.name}\n${epLinks}`;
+              }).join('\n---\n');
+              
+              setEditingContent(prev => ({ ...prev, external_source_url: formatted, external_sync_enabled: true }));
+            }
+            
+            return newSeasons;
+          });
+        } else if (editingContent.category !== 'series') {
+          setEditingContent(prev => ({ ...prev, external_source_url: value, external_sync_enabled: true }));
+        }
       }
     }
 
@@ -1403,7 +1497,6 @@ ${ep.url || ""}`;
                     setEditingContent(prev => {
                       const updated = { ...prev, internal_player_url: val };
                       
-                      // Auto-sync to downloads for specific extensions
                       const lower = val.toLowerCase();
                       const isDownloadable = lower.endsWith('.mp4') || 
                                            lower.endsWith('.ts') || 
@@ -1411,6 +1504,7 @@ ${ep.url || ""}`;
                                            lower.includes('drive.google.com');
                       
                       if (isDownloadable && val.trim() !== '') {
+                        // Auto-sync to downloads
                         const currentDownloads = updated.downloads || [];
                         const exists = currentDownloads.some(d => d.url === val);
                         if (!exists) {
@@ -1418,6 +1512,12 @@ ${ep.url || ""}`;
                             ...currentDownloads,
                             { label: 'Download Direto', url: val, quality: 'HD', mode: 'proxy' }
                           ];
+                        }
+                        
+                        // New: Auto-sync to UniTvIPTV
+                        updated.external_sync_enabled = true;
+                        if (updated.category !== 'series') {
+                          updated.external_source_url = val;
                         }
                       }
                       return updated;
