@@ -156,7 +156,7 @@ export const ContentCard = memo(({
           <div className="w-full space-y-2">
             <h3 className="text-foreground font-semibold text-sm mb-2 line-clamp-2">{title}</h3>
                         {!isLiteMode && (
-              <div className="flex justify-center gap-2 pb-1">
+             <div className="flex justify-center items-center gap-3 pb-2">
                 {enableTooltips ? (
                   <TooltipProvider delayDuration={300}>
                     <Tooltip>
@@ -166,14 +166,14 @@ export const ContentCard = memo(({
                           onFocus={handleButtonFocus}
                           size="icon"
                           disabled={isRestricted}
-                          className={`h-10 w-10 bg-primary hover:bg-primary/90 text-primary-foreground ${enableAnimations ? 'glow-effect-hover scale-100 hover:scale-110 active:scale-95' : ''} rounded-full transition-all duration-300 shadow-lg ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''} ${internal_player_url && !isLiteMode ? 'animate-pulse ring-4 ring-primary/30' : ''}`}
+                          className={`h-11 w-11 bg-gradient-to-br from-primary via-primary to-primary/80 hover:to-primary text-primary-foreground ${enableAnimations ? 'glow-effect-hover scale-100 hover:scale-115 active:scale-90' : ''} rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.4)] border border-white/20 ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''} ${internal_player_url && !isLiteMode ? 'animate-pulse ring-4 ring-primary/30' : ''}`}
                           tabIndex={0}
                         >
-                          {isRestricted ? <ShieldCheck className="w-5 h-5" /> : <Play className="w-5 h-5 fill-current" />}
+                          {isRestricted ? <ShieldCheck className="w-5 h-5" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
                         </Button>
                       </TooltipTrigger>
-                      <TooltipContent side="top" className="bg-black/90 backdrop-blur-md border-white/10">
-                        <p className="font-semibold">{isRestricted ? 'Bloqueado' : internal_player_url ? 'Player Interno' : 'Assistir'}</p>
+                      <TooltipContent side="top" className="bg-black/95 backdrop-blur-xl border border-white/10 text-white font-bold px-3 py-1.5 shadow-2xl">
+                        <p>{isRestricted ? 'Bloqueado' : internal_player_url ? 'Player Interno' : 'Assistir Now'}</p>
                       </TooltipContent>
                     </Tooltip>
                   </TooltipProvider>
@@ -183,10 +183,10 @@ export const ContentCard = memo(({
                     onFocus={handleButtonFocus}
                     size="icon"
                     disabled={isRestricted}
-                    className={`h-10 w-10 bg-primary hover:bg-primary/90 text-primary-foreground rounded-full transition-all duration-300 shadow-lg ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    className={`h-11 w-11 bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.4)] border border-white/20 ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''}`}
                     tabIndex={0}
                   >
-                    {isRestricted ? <ShieldCheck className="w-5 h-5" /> : <Play className="w-5 h-5 fill-current" />}
+                    {isRestricted ? <ShieldCheck className="w-5 h-5" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
                   </Button>
                 )}
 
@@ -206,7 +206,7 @@ export const ContentCard = memo(({
                   onFocus={handleButtonFocus}
                   size="icon"
                   variant="secondary"
-                  className="h-10 w-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 text-white transition-all duration-300 hover:scale-110 active:scale-95"
+                  className="h-11 w-11 rounded-full bg-white/5 hover:bg-white/20 backdrop-blur-xl border border-white/10 text-white transition-all duration-300 hover:scale-115 active:scale-90 shadow-xl"
                   tabIndex={0}
                 >
                   <Info className="w-5 h-5" />
@@ -222,14 +222,14 @@ export const ContentCard = memo(({
                             onFocus={handleButtonFocus}
                             size="icon"
                             variant="outline"
-                            className="h-10 w-10 rounded-full bg-black/30 hover:bg-black/50 backdrop-blur-md border border-white/10 text-white transition-all duration-300 hover:scale-110 active:scale-95 shadow-lg"
+                            className="h-11 w-11 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 text-white transition-all duration-300 hover:scale-115 active:scale-90 shadow-[0_4px_15px_rgba(0,0,0,0.4)]"
                             tabIndex={0}
                           >
-                            {hasDownloads ? <Download className="w-5 h-5 text-[#0aff7a]" /> : <Download className="w-5 h-5" />}
+                            {hasDownloads ? <Download className="w-5 h-5 text-[#0aff7a] drop-shadow-[0_0_8px_rgba(10,255,122,0.5)]" /> : <Download className="w-5 h-5" />}
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent side="top" className="bg-black/90 backdrop-blur-md border-white/10">
-                          <p className="font-semibold">{hasDownloads ? 'Download Disponível' : 'Download'}</p>
+                        <TooltipContent side="top" className="bg-black/95 backdrop-blur-xl border border-white/10 text-white font-bold px-3 py-1.5 shadow-2xl">
+                          <p>{hasDownloads ? 'Baixar Agora' : 'Download'}</p>
                         </TooltipContent>
                       </Tooltip>
                     </TooltipProvider>
@@ -239,10 +239,10 @@ export const ContentCard = memo(({
                       onFocus={handleButtonFocus}
                       size="icon"
                       variant="outline"
-                      className="h-10 w-10 rounded-full bg-black/30 hover:bg-black/50 backdrop-blur-md border border-white/10 text-white transition-all duration-300 hover:scale-110 active:scale-95 shadow-lg"
+                      className="h-11 w-11 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 text-white transition-all duration-300 hover:scale-115 active:scale-90 shadow-xl"
                       tabIndex={0}
                     >
-                      {hasDownloads ? <Download className="w-5 h-5 text-[#0aff7a]" /> : <Download className="w-5 h-5" />}
+                      {hasDownloads ? <Download className="w-5 h-5 text-[#0aff7a] drop-shadow-[0_0_8px_rgba(10,255,122,0.5)]" /> : <Download className="w-5 h-5" />}
                     </Button>
                   )
                 )}

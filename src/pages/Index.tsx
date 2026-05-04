@@ -252,7 +252,10 @@ const Index = () => {
     const featured = [...featuredPool].sort(() => 0.5 - Math.random()).slice(0, 10);
     const topRated = allContentData.filter(c => c.rating && c.rating >= 8).sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 10);
     const movies = allContentData.filter(c => c.category === 'movie' || (c.category as string) === 'Filme');
-    const series = allContentData.filter(c => c.category === 'series' || (c.category as string) === 'Série');
+    const series = allContentData.filter(c => {
+      const cat = c.category?.toLowerCase();
+      return cat === 'series' || cat === 'série' || cat === 'serie' || (c.episodes && c.episodes.length > 0 && c.category !== 'canais24h' && c.category !== 'nostalgia');
+    });
     const tvChannels = allContentData.filter(c => c.category === 'tv');
     const nostalgia = allContentData.filter(c => c.category === 'nostalgia');
     const canais24h = allContentData.filter(c => c.category === 'canais24h');
@@ -395,7 +398,12 @@ const Index = () => {
       return;
     }
 
-    if (content.category === 'series' || content.category === 'Série') {
+    const isSeries = content.category?.toLowerCase() === 'series' || 
+                    content.category?.toLowerCase() === 'série' || 
+                    content.category?.toLowerCase() === 'serie' ||
+                    (content.episodes && content.episodes.length > 0);
+
+    if (isSeries) {
       setSelectedSeries(content);
       return;
     }
@@ -432,7 +440,12 @@ const Index = () => {
       navigate(`/nostalgia/${content.main_video_id || content.id}`);
       return;
     }
-    if (content.category === 'series' || content.category === 'Série') {
+    const isSeries = content.category?.toLowerCase() === 'series' || 
+                    content.category?.toLowerCase() === 'série' || 
+                    content.category?.toLowerCase() === 'serie' ||
+                    (content.episodes && content.episodes.length > 0);
+
+    if (isSeries) {
        setSelectedSeries(content);
        return;
     }
