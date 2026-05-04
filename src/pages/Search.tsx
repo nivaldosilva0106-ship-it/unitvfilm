@@ -60,10 +60,14 @@ const Search = () => {
     setFilteredResults(results);
   }, [searchQuery, selectedCategory, allContents]);
 
-  const handlePlay = (content: Content) => {
+    const isSeries = content.category?.toLowerCase() === 'series' || 
+                    content.category?.toLowerCase() === 'série' || 
+                    content.category?.toLowerCase() === 'serie' ||
+                    (content.episodes && content.episodes.length > 0);
+
     if (content.category === 'nostalgia') {
       navigate(`/nostalgia/${content.id}`);
-    } else if (content.category === 'series') {
+    } else if (isSeries) {
       navigate(`/content/${content.id}?showEpisodes=true`);
     } else if (content.category === 'tv' || content.category === 'canais24h') {
       navigate(`/tv?channelId=${content.id}`);

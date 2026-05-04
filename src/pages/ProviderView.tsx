@@ -5,6 +5,7 @@ import { Footer } from "@/components/Footer";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { ArrowLeft, Search, Filter } from "lucide-react";
 import { ContentCard } from "@/components/ContentCard";
+import { EpisodeSelector } from "@/components/EpisodeSelector";
 import { Content } from "@/types/content";
 import { getAllContents, getSiteSettings, type SiteSettings } from "@/lib/firebase";
 import { STREAMING_PROVIDERS, getProviderConfig } from "@/lib/providers";
@@ -18,6 +19,7 @@ const ProviderView = () => {
     const [loading, setLoading] = useState(true);
     const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
     const [searchQuery, setSearchQuery] = useState("");
+    const [selectedSeries, setSelectedSeries] = useState<Content | null>(null);
 
     useEffect(() => {
         const loadData = async () => {
@@ -50,6 +52,25 @@ const ProviderView = () => {
             return matchesProvider && matchesSearch;
         });
     }, [allContent, providerId, siteSettings, searchQuery]);
+
+    const handlePlayContent = (content: Content) => {
+        const isSeries = content.category?.toLowerCase() === 'series' || 
+                        content.category?.toLowerCase() === 'série' || 
+                        content.category?.toLowerCase() === 'serie' ||
+                        (content.episodes && content.episodes.length > 0);
+
+        if (isSeries) {
+            setSelectedSeries(content);
+            return;
+        }
+
+        if (content.category === 'tv') {
+            navigate(`/tv?channelId=${content.id}`);
+            return;
+        }
+
+        navigate(`/watch/${content.id}`);
+    };
 
     if (loading) return <LoadingScreen />;
 
@@ -131,7 +152,7 @@ const ProviderView = () => {
                                 <ContentCard 
                                     title={content.title}
                                     thumbnail={content.thumbnail_url}
-                                    onPlay={() => navigate(`/watch/${content.id}`)}
+                                    onPlay={() => handlePlayContent(content)}
                                     onInfo={() => navigate(`/content/${content.id}`)}
                                     onDetails={() => navigate(`/content/${content.id}`)}
                                     isPremium={content.isPremium}
@@ -157,6 +178,23 @@ const ProviderView = () => {
                             Limpar pesquisa
                         </Button>
                     </div>
+                )}
+
+                {/* Modals */}
+                {selectedSeries && (
+                    <EpisodeSelector
+                        open={!!selectedSeries}
+                        onClose={() => setSelectedSeries(null)}
+                        episodes={selectedSeries.episodes || []}
+                        title={selectedSeries.title}
+                        trailerUrl={selectedSeries.trailer_url}
+                        onPlayEpisode={(url, episodeTitle) => {
+                            const foundEp = selectedSeries.episodes?.find(e => e.url === url);
+                            if (foundEp) {
+                                navigate(`/watch/${selectedSeries.id}?season=${foundEp.season}&episode=${foundEp.episode}`);
+                            }
+                        }}
+                    />
                 )}
             </main>
 

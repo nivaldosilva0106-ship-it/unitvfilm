@@ -48,9 +48,22 @@ const ContentDetails = () => {
     }
   }, [user, content]);
 
-  // Auto-open episode from URL params
+  // Auto-open episode or selector from URL params
   useEffect(() => {
-    if (!content || !content.episodes || loading) return;
+    if (!content || loading) return;
+
+    if (searchParams.get('showEpisodes') === 'true') {
+      setShowEpisodes(true);
+      // Clear param after opening
+      setSearchParams(prev => {
+        const newParams = new URLSearchParams(prev);
+        newParams.delete('showEpisodes');
+        return newParams;
+      });
+      return;
+    }
+
+    if (!content.episodes) return;
 
     const seasonParam = searchParams.get('season');
     const episodeParam = searchParams.get('episode');
@@ -64,7 +77,6 @@ const ContentDetails = () => {
       );
 
       if (foundEpisode) {
-        const nextEp = getNextEpisode(content, season, episode);
         requestPlay(season, episode);
         // Clear params after opening
         setSearchParams({});
@@ -146,7 +158,12 @@ const ContentDetails = () => {
       return;
     }
 
-    if (content?.category === 'series' && content.episodes && content.episodes.length > 0) {
+    const isSeries = content?.category?.toLowerCase() === 'series' || 
+                    content?.category?.toLowerCase() === 'série' || 
+                    content?.category?.toLowerCase() === 'serie' ||
+                    (content?.episodes && content.episodes.length > 0);
+
+    if (isSeries) {
       setShowEpisodes(true);
       return;
     }

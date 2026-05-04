@@ -94,7 +94,12 @@ const MyList = () => {
       return;
     }
 
-    if (content.category === 'series') {
+    const isSeries = content.category?.toLowerCase() === 'series' || 
+                    content.category?.toLowerCase() === 'série' || 
+                    content.category?.toLowerCase() === 'serie' ||
+                    (content.episodes && content.episodes.length > 0);
+
+    if (isSeries) {
       setSelectedSeries(content);
       return;
     }
