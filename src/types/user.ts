@@ -22,6 +22,7 @@ export interface UserProfile {
   profilesLimitOverride?: number | null;
   trialSignup?: boolean;
   lastSeen?: string;
+  lastIPTVGeneratedAt?: string;
 }
 
 export interface Plan {

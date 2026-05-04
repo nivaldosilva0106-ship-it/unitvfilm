@@ -561,6 +561,11 @@ export const updateLastSeen = async (userId: string) => {
   await update(profileRef, { lastSeen: new Date().toISOString() });
 };
 
+export const updateLastIPTVGeneration = async (userId: string) => {
+  const profileRef = ref(database, `profiles/${userId}`);
+  await update(profileRef, { lastIPTVGeneratedAt: new Date().toISOString() });
+};
+
 export interface UserStats {
   total: number;
   active: number;

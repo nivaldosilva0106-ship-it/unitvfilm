@@ -4,19 +4,41 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { createExternalIPTVClient } from "@/lib/external-api";
-import { Tv, Copy, Check, Loader2, Sparkles, Gift, Info, ShieldCheck } from "lucide-react";
+import { updateLastIPTVGeneration, getSiteSettings } from "@/lib/firebase";
+import { Tv, Copy, Check, Loader2, Sparkles, Gift, Info, ShieldCheck, MessageCircle, Clock } from "lucide-react";
 import { TVSidebar } from "@/components/TVSidebar";
 import { MobileBottomNav } from "@/components/MobileBottomNav";
 
 const IPTV = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [loading, setLoading] = useState(false);
   const [generatedLink, setGeneratedLink] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
+  const checkCooldown = () => {
+    if (!profile?.lastIPTVGeneratedAt) return { restricted: false };
+    
+    const lastDate = new Date(profile.lastIPTVGeneratedAt);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - lastDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays <= 10) {
+      return { restricted: true, remaining: 10 - diffDays + 1 };
+    }
+    return { restricted: false };
+  };
+
+  const cooldown = checkCooldown();
+
   const handleGenerateList = async () => {
     if (!user) {
       toast.error("Você precisa estar logado para gerar uma lista.");
+      return;
+    }
+
+    if (cooldown.restricted) {
+      toast.error(`Você já gerou uma lista recentemente. Aguarde ${cooldown.remaining} dias.`);
       return;
     }
 
@@ -34,6 +56,7 @@ const IPTV = () => {
 
       if (result.success && result.m3u_link) {
         setGeneratedLink(result.m3u_link);
+        await updateLastIPTVGeneration(user.uid);
         toast.success("Sua lista IPTV foi gerada com sucesso!");
       } else {
         throw new Error("Resposta inválida da API");
@@ -42,6 +65,17 @@ const IPTV = () => {
       toast.error(error.message || "Erro ao gerar lista IPTV. Tente novamente.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleWhatsAppRedirect = async () => {
+    try {
+      const settings = await getSiteSettings();
+      const phone = settings.whatsappNumber || "244923000000"; // Fallback number
+      const message = encodeURIComponent("Olá! Gostaria de adquirir uma lista IPTV profissional (Paga) pois meu limite gratuito expirou.");
+      window.open(`https://wa.me/${phone}?text=${message}`, '_blank');
+    } catch (e) {
+      window.open(`https://wa.me/244923000000`, '_blank');
     }
   };
 
@@ -90,20 +124,46 @@ const IPTV = () => {
                 </p>
               </div>
 
-              <Button 
-                onClick={handleGenerateList} 
-                disabled={loading}
-                className="w-full md:w-auto px-12 h-14 bg-green-500 hover:bg-green-400 text-black font-black text-lg rounded-xl shadow-[0_0_30px_-5px_rgba(34,197,94,0.4)] transition-all hover:scale-105 active:scale-95"
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    GERANDO ACESSO...
-                  </>
-                ) : (
-                  "GERAR MINHA LISTA GRÁTIS"
-                )}
-              </Button>
+              {cooldown.restricted ? (
+                <div className="space-y-6">
+                  <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl flex flex-col items-center gap-3">
+                    <Clock className="w-8 h-8 text-orange-500" />
+                    <div className="space-y-1">
+                      <p className="text-orange-500 font-bold">Limite de Geração Atingido</p>
+                      <p className="text-zinc-400 text-sm">
+                        Você só pode gerar uma lista gratuita a cada 10 dias. 
+                        Ainda restam <span className="text-white font-bold">{cooldown.remaining} dias</span> para sua próxima lista grátis.
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <p className="text-zinc-300 text-sm font-medium">Precisa de uma lista agora sem restrições?</p>
+                    <Button 
+                      onClick={handleWhatsAppRedirect}
+                      className="w-full md:w-auto px-8 h-12 bg-green-600 hover:bg-green-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 mx-auto transition-all hover:scale-105"
+                    >
+                      <MessageCircle className="w-5 h-5" />
+                      ADQUIRIR LISTA PAGA (WHATSAPP)
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <Button 
+                  onClick={handleGenerateList} 
+                  disabled={loading}
+                  className="w-full md:w-auto px-12 h-14 bg-green-500 hover:bg-green-400 text-black font-black text-lg rounded-xl shadow-[0_0_30px_-5px_rgba(34,197,94,0.4)] transition-all hover:scale-105 active:scale-95"
+                >
+                  {loading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      GERANDO ACESSO...
+                    </>
+                  ) : (
+                    "GERAR MINHA LISTA GRÁTIS"
+                  )}
+                </Button>
+              )}
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-8 border-t border-zinc-800/50">
                 <div className="flex items-center gap-3 text-left">

@@ -6,7 +6,7 @@ import { Capacitor } from "@capacitor/core";
 import { ScreenOrientation } from "@capacitor/screen-orientation";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, HashRouter, Routes, Route, useLocation } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AuthGuard } from "@/components/AuthGuard";
@@ -99,10 +99,16 @@ const LiteModeBodyClass = () => {
 
 const SidebarPaddingManager = () => {
   const location = useLocation();
+  const { user } = useAuth();
   
   React.useEffect(() => {
     const hiddenPaths = ["/watch/", "/watch-local/", "/login", "/signup", "/profiles", "/nostalgia"];
-    const shouldHideSidebar = hiddenPaths.some(path => location.pathname.startsWith(path));
+    let shouldHideSidebar = hiddenPaths.some(path => location.pathname.startsWith(path));
+    
+    // Also hide if on root path and NOT logged in (Landing page)
+    if (location.pathname === '/' && !user) {
+      shouldHideSidebar = true;
+    }
     
     if (shouldHideSidebar) {
       document.body.classList.add('no-sidebar');
