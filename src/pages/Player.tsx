@@ -894,6 +894,15 @@ const Player = () => {
                                     </div>
                                     <span className="text-white font-bold text-[8px] sm:text-sm hidden sm:inline">Uni<span className="text-primary">Tv</span>Film</span>
                                 </div>
+
+                                <div className="w-px h-3 sm:h-4 bg-white/20 flex-shrink-0" />
+
+                                {content?.thumbnail_url && (
+                                    <img src={content.thumbnail_url} alt="" className="w-5 h-5 sm:w-8 sm:h-8 rounded-full border border-white/20 object-cover flex-shrink-0" />
+                                )}
+                                <div className="flex flex-col min-w-0">
+                                    <h1 className="text-white font-bold text-[9px] sm:text-xs truncate">{currentTitle}</h1>
+                                </div>
                             </div>
                         </div>
 

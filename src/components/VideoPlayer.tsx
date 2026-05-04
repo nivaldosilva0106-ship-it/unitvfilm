@@ -714,12 +714,6 @@ const formatTime = (seconds: number): string => {
         {/* Gradient Background */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
 
-        {/* Title */}
-        {title && (
-          <div className="absolute top-4 left-4 right-4">
-            <h2 className="text-white font-bold text-sm md:text-lg drop-shadow-lg line-clamp-1">{title}</h2>
-          </div>
-        )}
 
         {/* Controls Container */}
         <div className="relative p-3 md:p-4 space-y-2 md:space-y-3">
