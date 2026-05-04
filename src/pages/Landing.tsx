@@ -149,13 +149,7 @@ export const Landing = () => {
                         <button onClick={dummyRedirect} className="hover:text-white transition-colors">Séries</button>
                         <button onClick={dummyRedirect} className="hover:text-white transition-colors">Filmes</button>
                         <button onClick={dummyRedirect} className="hover:text-white transition-colors">TV ao Vivo</button>
-                        <button
-                            onClick={() => window.open("https://unitvfbox.vercel.app/", "_blank")}
-                            className="hover:text-white transition-colors flex items-center gap-1.5"
-                        >
-                            <Tv className="w-4 h-4 text-[#0aff7a]" />
-                            UniTvBox
-                        </button>
+
                     </div>
                 </div>
                 <div className="flex items-center gap-4">

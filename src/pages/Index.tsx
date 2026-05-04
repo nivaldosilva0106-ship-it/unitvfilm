@@ -395,7 +395,7 @@ const Index = () => {
       return;
     }
 
-    if (content.category === 'series') {
+    if (content.category === 'series' || content.category === 'Série') {
       setSelectedSeries(content);
       return;
     }
@@ -431,6 +431,10 @@ const Index = () => {
     if (content.category === 'nostalgia') {
       navigate(`/nostalgia/${content.main_video_id || content.id}`);
       return;
+    }
+    if (content.category === 'series' || content.category === 'Série') {
+       setSelectedSeries(content);
+       return;
     }
     if (content.category === 'tv') {
       navigate(`/tv?channelId=${content.id}`);
