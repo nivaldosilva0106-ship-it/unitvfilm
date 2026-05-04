@@ -41,8 +41,8 @@ export function encryptUrl(url: string): string {
   // Payload: nonce|expiry|url
   const payload = `${nonce}|${expiry}|${url}`;
   
-  // XOR cipher with time-based salt
-  const salt = Math.floor(now / (5 * 60 * 1000)); // Changes every 5 minutes
+  // XOR cipher with time-based salt (MUST fit in 16 bits since we store 4 hex chars)
+  const salt = Math.floor(now / (5 * 60 * 1000)) & 0xFFFF; // Changes every 5 minutes
   const encrypted = xorCipher(payload, salt);
   
   // Base64 encode (URL-safe)
@@ -51,8 +51,8 @@ export function encryptUrl(url: string): string {
     .replace(/\//g, '_')
     .replace(/=+$/, '');
   
-  // Prepend salt indicator (2 chars) for server-side decryption
-  const saltHex = (salt & 0xFFFF).toString(16).padStart(4, '0');
+  // Prepend salt indicator (4 chars = 16 bits) for server-side decryption
+  const saltHex = salt.toString(16).padStart(4, '0');
   
   return saltHex + b64;
 }
@@ -157,7 +157,20 @@ export function createSecurePlaybackUrl(url: string): string {
   if (!isProtectedUrl(url)) return url;
   
   const token = encryptUrl(url);
-  return `/api/stream-proxy?t=${token}`;
+  
+  // HLS.js strongly relies on extensions in the URL to determine the parser type
+  // Since we obfuscate the URL, we need to provide a fake extension hint
+  let ext = '';
+  const urlLower = url.toLowerCase().split('?')[0];
+  if (urlLower.endsWith('.m3u8') || urlLower.endsWith('.txt') || urlLower.endsWith('.m3u') || url.includes('typezero.top')) {
+    ext = '&ext=.m3u8';
+  } else if (urlLower.endsWith('.mp4')) {
+    ext = '&ext=.mp4';
+  } else if (urlLower.endsWith('.ts')) {
+    ext = '&ext=.ts';
+  }
+  
+  return `/api/stream-proxy?t=${token}${ext}`;
 }
 
 /**
