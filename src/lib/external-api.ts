@@ -14,6 +14,9 @@ export interface ExternalLinkData {
   id_categoria?: string;
   categoria?: string;
   tmdb_id?: string;
+  ano?: number;
+  trailer_url?: string;
+  provedor_streaming?: string;
 }
 
 /**

@@ -173,6 +173,9 @@ const Admin = () => {
             logo: contentToSave.thumbnail_url,
             categoria: categoriaNome, // Enviando o NOME da categoria/gênero
             tmdb_id: contentToSave.tmdb_id?.toString(),
+            ano: contentToSave.year,
+            trailer_url: contentToSave.trailer_url,
+            provedor_streaming: contentToSave.watch_provider,
           });
           toast.success("Conteúdo sincronizado com UniTvIPTV!");
         } catch (error) {
