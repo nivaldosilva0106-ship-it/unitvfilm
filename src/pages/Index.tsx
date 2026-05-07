@@ -153,18 +153,7 @@ const Index = () => {
         setShowVideo(true);
       }
     }, 8000);
-
-    const handleRefresh = () => {
-      toast.info("Atualizando conteúdo...");
-      loadContent();
-    };
-    window.addEventListener('refresh-content', handleRefresh);
-
-    return () => { 
-      clearTimeout(timer); 
-      clearTimeout(videoTimer); 
-      window.removeEventListener('refresh-content', handleRefresh);
-    };
+    return () => { clearTimeout(timer); clearTimeout(videoTimer); };
   }, []);
 
   const loadContent = async () => {

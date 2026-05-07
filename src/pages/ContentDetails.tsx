@@ -91,7 +91,7 @@ const ContentDetails = () => {
         getSiteSettings()
       ]);
       setSiteSettings(settings);
-
+      
       const found = contents.find((c) => c.id === id);
       if (found) {
         if (found.category === 'nostalgia') {
@@ -158,10 +158,10 @@ const ContentDetails = () => {
       return;
     }
 
-    const isSeries = content?.category?.toLowerCase() === 'series' ||
-      content?.category?.toLowerCase() === 'série' ||
-      content?.category?.toLowerCase() === 'serie' ||
-      (content?.episodes && content.episodes.length > 0);
+    const isSeries = content?.category?.toLowerCase() === 'series' || 
+                    content?.category?.toLowerCase() === 'série' || 
+                    content?.category?.toLowerCase() === 'serie' ||
+                    (content?.episodes && content.episodes.length > 0);
 
     if (isSeries) {
       setShowEpisodes(true);
@@ -296,13 +296,13 @@ const ContentDetails = () => {
                   alt={content.title}
                   className="w-full rounded-lg shadow-2xl"
                 />
-
+                
                 {content.watch_provider && getProviderConfig(content.watch_provider, siteSettings?.providerLogos) && (
                   <div className="absolute top-3 left-3 z-10 bg-black/40 backdrop-blur-md p-2 rounded-xl border border-white/10 shadow-2xl">
-                    <img
-                      src={getProviderConfig(content.watch_provider, siteSettings?.providerLogos)?.logo}
-                      alt=""
-                      className="h-10 w-auto object-contain"
+                    <img 
+                      src={getProviderConfig(content.watch_provider, siteSettings?.providerLogos)?.logo} 
+                      alt="" 
+                      className="h-10 w-auto object-contain" 
                     />
                   </div>
                 )}
@@ -311,12 +311,12 @@ const ContentDetails = () => {
                 {content.classification && (
                   <div className={`absolute ${content.watch_provider ? 'top-[62px]' : 'top-3'} left-3 z-10 px-2 py-1 rounded text-xs font-bold text-white shadow-lg
                     ${content.classification === 'L' ? 'bg-green-500' :
-                      content.classification === '10' ? 'bg-blue-400' :
-                        content.classification === '12' ? 'bg-yellow-400' :
-                          content.classification === '14' ? 'bg-orange-400' :
-                            content.classification === '16' ? 'bg-red-500' :
-                              content.classification === '18' ? 'bg-black' : 'bg-zinc-500'
-                    }`}>
+                    content.classification === '10' ? 'bg-blue-400' :
+                    content.classification === '12' ? 'bg-yellow-400' :
+                    content.classification === '14' ? 'bg-orange-400' :
+                    content.classification === '16' ? 'bg-red-500' :
+                    content.classification === '18' ? 'bg-black' : 'bg-zinc-500'
+                  }`}>
                     {content.classification}
                   </div>
                 )}

@@ -108,13 +108,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const lowerUrl = videoUrl.toLowerCase().split('?')[0];
-    if (lowerUrl.endsWith('.txt') || lowerUrl.endsWith('.m3u8')) {
-      return await downloadHLSStream(videoUrl, (filename as string) || 'video.ts', res);
-    }
-
     // Instead of proxying the entire large video file through Vercel (which causes timeouts and limits),
     // we simply redirect the user to the real URL. 
+    // This still hides the real URL from the DOM and the download button hover, 
+    // satisfying the requirement while being much more robust.
     res.setHeader('Cache-Control', 'no-store, max-age=0');
     return res.redirect(302, videoUrl);
   } catch (error: any) {
