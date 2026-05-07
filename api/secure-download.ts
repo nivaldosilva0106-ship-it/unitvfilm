@@ -110,8 +110,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const lowerUrl = videoUrl.toLowerCase().split('?')[0];
     if (lowerUrl.endsWith('.txt') || lowerUrl.endsWith('.m3u8') || videoUrl.includes('typezero.top/pl/')) {
-      const finalFilename = typeof filename === 'string' && filename ? filename : 'video.mp4';
-      return await downloadHLSStream(videoUrl, finalFilename, res);
+      // Instead of downloading and concatenating the entire HLS stream in Vercel (which hits memory/timeout limits),
+      // we redirect the user to our stream-proxy endpoint which safely processes the manifest
+      // External downloaders (like 1DM, IDM, ADM) can intercept this URL and download the HLS stream directly.
+      const proxyUrl = `/api/stream-proxy?t=${encodeURIComponent(token as string)}&dl=1`;
+      res.setHeader('Cache-Control', 'no-store, max-age=0');
+      return res.redirect(302, proxyUrl);
     }
 
     // Instead of proxying the entire large video file through Vercel (which causes timeouts and limits),
@@ -128,125 +132,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 }
 
-/**
- * Download an HLS stream (.txt/.m3u8) and serve as a single file
- * Downloads the manifest, finds segment URLs, downloads them all, concatenates
- */
-async function downloadHLSStream(manifestUrl: string, filename: string, res: VercelResponse) {
-  // Step 1: Download the manifest
-  const manifestResponse = await fetch(manifestUrl, {
-    headers: { ...FETCH_HEADERS, Referer: new URL(manifestUrl).origin + '/' },
-    redirect: 'follow',
-  });
 
-  if (!manifestResponse.ok) {
-    return res.status(manifestResponse.status).json({ error: 'Falha ao buscar manifesto HLS' });
-  }
-
-  const manifestText = await manifestResponse.text();
-  const baseUrl = manifestUrl.substring(0, manifestUrl.lastIndexOf('/') + 1);
-
-  // Step 2: Check if it's a master playlist (has #EXT-X-STREAM-INF)
-  if (manifestText.includes('#EXT-X-STREAM-INF')) {
-    // Master playlist — find the highest quality variant
-    const lines = manifestText.split('\n');
-    let bestBandwidth = 0;
-    let bestUrl = '';
-    
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-      if (line.startsWith('#EXT-X-STREAM-INF')) {
-        const bwMatch = line.match(/BANDWIDTH=(\d+)/);
-        const bandwidth = bwMatch ? parseInt(bwMatch[1]) : 0;
-        
-        const nextLine = lines[i + 1]?.trim();
-        if (nextLine && !nextLine.startsWith('#') && bandwidth > bestBandwidth) {
-          bestBandwidth = bandwidth;
-          bestUrl = nextLine;
-        }
-      }
-    }
-
-    if (bestUrl) {
-      const absoluteUrl = bestUrl.startsWith('http') ? bestUrl : new URL(bestUrl, baseUrl).toString();
-      return downloadHLSStream(absoluteUrl, filename, res);
-    }
-  }
-
-  // Step 3: It's a media playlist — extract segment URLs
-  const segmentUrls: string[] = [];
-  const lines = manifestText.split('\n');
-  
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (trimmed && !trimmed.startsWith('#')) {
-      const segmentUrl = trimmed.startsWith('http') 
-        ? trimmed 
-        : new URL(trimmed, baseUrl).toString();
-      segmentUrls.push(segmentUrl);
-    }
-  }
-
-  if (segmentUrls.length === 0) {
-    return res.status(404).json({ error: 'Nenhum segmento de vídeo encontrado' });
-  }
-
-  // Step 4: Download segments and concatenate
-  // Set response headers immediately
-  res.setHeader('Content-Type', 'video/mp2t');
-  res.setHeader('Content-Disposition', `attachment; filename="${sanitizeFilename(filename)}"`);
-  res.setHeader('Cache-Control', 'no-cache');
-  res.setHeader('Transfer-Encoding', 'chunked');
-
-  // Download segments in batches (to avoid overwhelming the server)
-  const BATCH_SIZE = 5;
-  
-  for (let i = 0; i < segmentUrls.length; i += BATCH_SIZE) {
-    const batch = segmentUrls.slice(i, i + BATCH_SIZE);
-    
-    const results = await Promise.all(
-      batch.map(async (segUrl) => {
-        try {
-          const segResponse = await fetch(segUrl, {
-            headers: { ...FETCH_HEADERS, Referer: new URL(segUrl).origin + '/' },
-            redirect: 'follow',
-          });
-          if (segResponse.ok) {
-            return Buffer.from(await segResponse.arrayBuffer());
-          }
-          return null;
-        } catch {
-          return null;
-        }
-      })
-    );
-
-    for (const buffer of results) {
-      if (buffer) {
-        res.write(buffer);
-      }
-    }
-  }
-
-  res.end();
-}
-
-function detectContentType(url: string): string {
-  const lower = url.toLowerCase().split('?')[0];
-  if (lower.endsWith('.mp4') || lower.endsWith('.m4s')) return 'video/mp4';
-  if (lower.endsWith('.ts')) return 'video/mp2t';
-  if (lower.endsWith('.mkv')) return 'video/x-matroska';
-  if (lower.endsWith('.webm')) return 'video/webm';
-  if (lower.endsWith('.avi')) return 'video/x-msvideo';
-  return 'application/octet-stream';
-}
-
-function sanitizeFilename(name: string): string {
-  return name
-    .replace(/[^a-zA-Z0-9._\-\s]/g, '')
-    .replace(/\s+/g, '_')
-    .substring(0, 200) || 'video.mp4';
-}
 
 function getFilenameFromUrl(url: string): string {
   try {

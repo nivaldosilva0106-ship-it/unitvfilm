@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import {
   Play, Pause, Volume2, VolumeX, Maximize, Minimize,
   Settings, SkipBack, SkipForward, Loader2, Captions, CaptionsOff,
-  PictureInPicture
+  PictureInPicture, Scaling, Tv, Monitor
 } from "lucide-react";
 import Hls from "hls.js";
 import { Slider } from "@/components/ui/slider";
@@ -76,6 +76,7 @@ const formatTime = (seconds: number): string => {
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(muted);
   const [isFullscreenInternal, setIsFullscreenInternal] = useState(false);
+  const [videoAspect, setVideoAspect] = useState<string>('cover');
   
   const isFullscreen = isFullscreenProp !== undefined ? isFullscreenProp : isFullscreenInternal;
   const [showControls, setShowControls] = useState(true);
@@ -620,11 +621,19 @@ const formatTime = (seconds: number): string => {
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+  const aspectClasses: Record<string, string> = {
+    'contain': 'w-full h-full object-contain',
+    'cover': 'w-full h-full object-cover',
+    '16:9': 'w-full h-full object-fill aspect-video',
+    '21:9': 'w-full h-full object-fill aspect-[21/9]',
+    '4:3': 'w-full h-full object-fill aspect-[4/3]',
+  };
+
   return (
     <div
       id="video-player-container-root"
       ref={containerRef}
-      className={`relative w-full h-full bg-black group ${isPiP ? 'fixed inset-0 z-[9999]' : ''}`}
+      className={`relative w-full h-full bg-black group ${isPiP ? 'fixed inset-0 z-[9999]' : ''} flex items-center justify-center`}
       onMouseMove={resetHideTimer}
       onMouseLeave={() => isPlaying && setShowControls(false)}
       onClick={(e) => {
@@ -635,7 +644,7 @@ const formatTime = (seconds: number): string => {
     >
       <video
         ref={videoRef}
-        className="w-full h-full object-cover"
+        className={aspectClasses[videoAspect] || aspectClasses['cover']}
         playsInline
         crossOrigin="anonymous"
         muted={isMuted}
@@ -799,6 +808,36 @@ const formatTime = (seconds: number): string => {
 
             {/* Right Controls */}
             <div className="flex items-center gap-1 md:gap-2">
+
+              {/* Aspect Ratio Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors" title="Proporção da Tela">
+                    <Monitor className="w-4 h-4 md:w-5 md:h-5 text-white" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                  align="end"
+                  className="bg-black/95 border-white/20 backdrop-blur-xl min-w-[150px] md:min-w-[180px]"
+                >
+                  <div className="px-2 py-1.5 text-[10px] md:text-xs text-gray-400 font-semibold">Proporção da Tela</div>
+                  {[
+                    { id: 'cover', label: 'Preencher (Padrão)' },
+                    { id: 'contain', label: 'Original (Ajustar)' },
+                    { id: '16:9', label: '16:9 (TV)' },
+                    { id: '21:9', label: '21:9 (Cinema)' },
+                    { id: '4:3', label: '4:3 (Clássico)' },
+                  ].map(aspect => (
+                    <DropdownMenuItem
+                      key={aspect.id}
+                      onClick={() => setVideoAspect(aspect.id)}
+                      className={`text-white hover:bg-white/10 cursor-pointer text-xs md:text-sm ${videoAspect === aspect.id ? 'bg-primary/20' : ''}`}
+                    >
+                      {aspect.label}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
 
 
               {/* Settings Menu */}

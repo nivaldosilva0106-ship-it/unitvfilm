@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Play, Search, Trash, Loader2, Link as LinkIcon, Download, DownloadIcon, CheckCircle2, Clapperboard, MonitorPlay, Sparkles, X, Plus, PlusCircle, Maximize, AlertTriangle, ShieldCheck, ChevronUp, ChevronDown, Save, Lock, Bell, Upload, Film, Tv, RefreshCw, Clipboard, Clock, Settings2 } from "lucide-react";
+import { Play, Search, Trash, Trash2, Loader2, Link as LinkIcon, Download, DownloadIcon, CheckCircle2, Clapperboard, MonitorPlay, Sparkles, X, Plus, PlusCircle, Maximize, AlertTriangle, ShieldCheck, ChevronUp, ChevronDown, Save, Lock, Bell, Upload, Film, Tv, RefreshCw, Clipboard, Clock, Settings2 } from "lucide-react";
 import { toast } from "sonner";
 import { searchMovies, searchSeries, getImageUrl, getMovieTrailer, getSeriesTrailer, getMovieDetails, getSeriesDetails, getSeasonDetails, getWatchProviders } from "@/lib/tmdb";
 import { sendContentNotification, getAllContents, updateContent } from "@/lib/firebase";

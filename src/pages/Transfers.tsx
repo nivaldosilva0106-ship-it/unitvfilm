@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Header } from "@/components/Header";
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { useAuth } from "@/contexts/AuthContext";
-import { getUserTransfers, addTransfer } from "@/lib/firebase";
+import { getUserTransfers, addTransfer, deleteTransfer, clearAllTransfers } from "@/lib/firebase";
 import { TransferItem } from "@/types/user";
 import { Download, History, ExternalLink, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,32 @@ const Transfers = () => {
         window.open(url, '_blank');
     };
 
+    const handleDelete = async (transferId: string) => {
+        if (!user) return;
+        if (window.confirm("Tem certeza que deseja apagar este item do histórico?")) {
+            try {
+                await deleteTransfer(user.uid, transferId);
+                toast.success("Item apagado com sucesso");
+                setTransfers(prev => prev.filter(t => t.id !== transferId));
+            } catch (error) {
+                toast.error("Erro ao apagar item");
+            }
+        }
+    };
+
+    const handleClearAll = async () => {
+        if (!user) return;
+        if (window.confirm("Tem certeza que deseja apagar TODO o histórico de transferências? Esta ação não pode ser desfeita.")) {
+            try {
+                await clearAllTransfers(user.uid);
+                toast.success("Histórico limpo com sucesso");
+                setTransfers([]);
+            } catch (error) {
+                toast.error("Erro ao limpar histórico");
+            }
+        }
+    };
+
     const filteredTransfers = transfers.filter(t => 
         t.title.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -80,14 +106,26 @@ const Transfers = () => {
                         </div>
                     </div>
 
-                    <div className="relative w-full md:w-80">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
-                        <Input 
-                            placeholder="Buscar no histórico..." 
-                            className="bg-[#151515] border-[#252525] pl-10 focus:border-[#22c55e]/50 transition-all rounded-xl"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                    <div className="relative w-full md:w-80 flex gap-2">
+                        <div className="relative flex-1">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
+                            <Input 
+                                placeholder="Buscar no histórico..." 
+                                className="bg-[#151515] border-[#252525] pl-10 focus:border-[#22c55e]/50 transition-all rounded-xl"
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                        </div>
+                        {transfers.length > 0 && (
+                            <Button 
+                                variant="destructive" 
+                                className="rounded-xl px-4" 
+                                onClick={handleClearAll}
+                                title="Apagar Todo Histórico"
+                            >
+                                <Trash2 className="w-5 h-5" />
+                            </Button>
+                        )}
                     </div>
                 </div>
 
@@ -126,10 +164,20 @@ const Transfers = () => {
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-[#151515] via-transparent to-transparent opacity-80" />
                                     
-                                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col gap-2">
                                         <div className="bg-black/60 backdrop-blur-md p-2 rounded-lg border border-white/10 shadow-xl">
                                             <History className="w-4 h-4 text-[#22c55e]" />
                                         </div>
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleDelete(transfer.id);
+                                            }}
+                                            className="bg-black/60 backdrop-blur-md p-2 rounded-lg border border-red-500/30 shadow-xl hover:bg-red-500/20 transition-colors"
+                                            title="Apagar item"
+                                        >
+                                            <Trash2 className="w-4 h-4 text-red-500" />
+                                        </button>
                                     </div>
                                 </div>
 

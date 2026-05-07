@@ -5,7 +5,7 @@ import { getProviderConfig } from "@/lib/providers";
 import { Content } from "@/types/content";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { X, ArrowLeft, Film, Maximize, Minimize, List, Star, ChevronRight, ChevronDown, Crown, Play, Plus, Check, ShieldCheck, WifiOff, Download } from "lucide-react";
+import { X, ArrowLeft, Film, Maximize, Minimize, List, Star, ChevronRight, ChevronDown, Crown, Play, Plus, Check, ShieldCheck, WifiOff, Download, LayoutGrid } from "lucide-react";
 import { AdManager } from "@/components/AdManager";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import { toast } from "sonner";
@@ -62,9 +62,7 @@ const Player = () => {
     const [showIntro, setShowIntro] = useState(true);
     const [showAdBlockModal, setShowAdBlockModal] = useState(false);
     const [suggestions, setSuggestions] = useState<Content[]>([]);
-    const [showSuggestionsCard, setShowSuggestionsCard] = useState(false);
     const [isSuggestionsOpen, setIsSuggestionsOpen] = useState(false); // Sidebar toggle state
-    const [suggestionCountdown, setSuggestionCountdown] = useState(10);
     const [showControls, setShowControls] = useState(true);
     const [continueWatchingList, setContinueWatchingList] = useState<any[]>([]); // Progress + Content data
     const [isContinueWatchingOpen, setIsContinueWatchingOpen] = useState(false);
@@ -211,16 +209,8 @@ const Player = () => {
             setShowIntro(false);
         }, 2500);
 
-        // Suggestions Card Timer (15s after intro/load)
-        const suggestionsTimer = setTimeout(() => {
-            setShowSuggestionsCard(true);
-            setIsSuggestionsOpen(true);
-            setSuggestionCountdown(10);
-        }, 15000);
-
         return () => {
             clearTimeout(introTimer);
-            clearTimeout(suggestionsTimer);
         };
     }, [id, navigate]);
 
@@ -486,24 +476,7 @@ const Player = () => {
         return finalUrl;
     }, [currentSource, isResuming, lastPositionSeconds]);
 
-    // Suggestion Countdown Logic
-    useEffect(() => {
-        let timer: NodeJS.Timeout;
-        if (showSuggestionsCard && isSuggestionsOpen && suggestionCountdown > 0) {
-            timer = setInterval(() => {
-                setSuggestionCountdown(prev => {
-                    if (prev <= 1) {
-                        setIsSuggestionsOpen(false);
-                        setShowSuggestionsCard(false);
-                        clearInterval(timer);
-                        return 0;
-                    }
-                    return prev - 1;
-                });
-            }, 1000);
-        }
-        return () => { if (timer) clearInterval(timer); };
-    }, [showSuggestionsCard, isSuggestionsOpen, suggestionCountdown]);
+
 
     // 4. Watching Card Effect
     useEffect(() => {
@@ -638,13 +611,12 @@ const Player = () => {
         if (nextEpisode) {
             setSearchParams({ season: nextEpisode.season, episode: nextEpisode.episode });
             // Reset states for new episode
-            setShowSuggestionsCard(false);
+            setIsSuggestionsOpen(false);
             setLastPositionSeconds(0);
             setIsResuming(false);
             setShowResumePrompt(false);
             setShowResumeArrow(false);
             sessionStartTimestamp.current = Date.now();
-            setTimeout(() => setShowSuggestionsCard(true), 7500);
         }
     };
 
@@ -962,6 +934,19 @@ const Player = () => {
                                 <Download className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-emerald-400" />
                             </Button>
 
+                            {/* Recommendations Button */}
+                            {suggestions.length > 0 && !isLiteMode && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setIsSuggestionsOpen(!isSuggestionsOpen)}
+                                    className={`w-7 h-7 sm:w-10 sm:h-10 rounded-full text-white hover:bg-white/20 backdrop-blur-md border transition-all ${isSuggestionsOpen ? 'bg-primary border-primary' : 'bg-black/50 border-white/20'}`}
+                                    title="Ver recomendações"
+                                >
+                                    <LayoutGrid className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                                </Button>
+                            )}
+
 
                             <Button
                                 variant="ghost"
@@ -1026,60 +1011,52 @@ const Player = () => {
                         </div>
                     </div>
 
-                    {/* SUGGESTIONS SIDEBAR (Left Center) */}
-                    {showSuggestionsCard && suggestions.length > 0 && !isLiteMode && (
-                        <div className="absolute top-1/2 -translate-y-1/2 left-4 z-50 flex items-center">
-                            {/* Trigger (Collapsed) */}
-                            <div
-                                onClick={() => setIsSuggestionsOpen(!isSuggestionsOpen)}
-                                className={`relative z-20 flex flex-row items-center gap-2 bg-black/60 backdrop-blur-md px-2 py-3 rounded-full border border-white/20 cursor-pointer shadow-xl transition-all duration-300 hover:bg-primary/90 hover:scale-110 pointer-events-auto ${isSuggestionsOpen ? 'bg-primary border-primary' : ''}`}
-                            >
-                                <span className="writing-vertical-rl text-[10px] font-bold text-white uppercase tracking-widest opacity-90 transition-opacity">
-                                    {isSuggestionsOpen ? 'FECHAR' : 'Sugestões'}
-                                </span>
-                                <div className="flex flex-col gap-0.5">
-                                    <div className="w-0.5 h-0.5 rounded-full bg-white animate-pulse" />
-                                    <div className="w-0.5 h-0.5 rounded-full bg-white animate-pulse delay-75" />
-                                    <div className="w-0.5 h-0.5 rounded-full bg-white animate-pulse delay-150" />
-                                </div>
+                    {/* SUGGESTIONS SIDEBAR (Right Center) */}
+                    {isSuggestionsOpen && suggestions.length > 0 && !isLiteMode && (
+                        <div className="absolute top-0 bottom-0 right-0 z-[80] w-[260px] sm:w-[320px] bg-black/80 backdrop-blur-2xl border-l border-white/10 shadow-2xl flex flex-col pointer-events-auto animate-in slide-in-from-right duration-300">
+                            <div className="p-4 sm:p-6 flex items-center justify-between border-b border-white/10">
+                                <h3 className="text-white font-bold text-sm sm:text-base uppercase tracking-wider">Recomendados</h3>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setIsSuggestionsOpen(false)}
+                                    className="w-8 h-8 rounded-full text-gray-400 hover:text-white hover:bg-white/10"
+                                >
+                                    <X className="w-4 h-4" />
+                                </Button>
                             </div>
-
-                            {/* Suggestions Panel (Expands to Right) — max 5 items, hidden scrollbar */}
-                            <div className={`absolute left-full ml-4 top-1/2 -translate-y-1/2 flex flex-col transition-all duration-500 ease-out bg-black/80 backdrop-blur-xl p-3 rounded-2xl border border-white/10 shadow-2xl w-[200px] sm:w-[230px] max-h-[350px] sm:max-h-[420px] pointer-events-auto ${isSuggestionsOpen ? 'opacity-100 translate-x-0 scale-100 pointer-events-auto' : 'opacity-0 -translate-x-10 scale-95 pointer-events-none'}`}>
-                                <div className="flex items-center justify-between mb-2 border-b border-white/10 pb-2 flex-shrink-0">
-                                    <p className="text-white text-[10px] font-bold uppercase tracking-wider">Recomendados</p>
-                                    <div className="flex items-center gap-1.5">
-                                        <div className="w-4 h-4 rounded-full border-2 border-primary/30 border-t-primary animate-spin" />
-                                        <span className="text-primary text-[10px] font-bold">{suggestionCountdown}s</span>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col gap-1.5 overflow-y-auto scrollbar-hide">
-                                    {suggestions.slice(0, 5).map((suggestion) => (
-                                        <div
-                                            key={suggestion.id}
-                                            onClick={() => navigate(`/watch/${suggestion.id}`)}
-                                            className="relative flex items-center gap-2.5 p-1.5 rounded-lg hover:bg-white/10 cursor-pointer transition-colors group/item"
-                                        >
-                                            <div className="relative w-10 h-14 shrink-0">
-                                                <img
-                                                    src={suggestion.thumbnail_url}
-                                                    alt={suggestion.title}
-                                                    className="w-full h-full object-cover rounded-md shadow-md group-hover/item:scale-105 transition-transform"
-                                                />
+                            <div className="flex-1 overflow-y-auto p-4 sm:p-6 flex flex-col gap-3 sm:gap-4 scrollbar-hide">
+                                {suggestions.map((suggestion) => (
+                                    <div
+                                        key={suggestion.id}
+                                        onClick={() => {
+                                            setIsSuggestionsOpen(false);
+                                            navigate(`/watch/${suggestion.id}`);
+                                        }}
+                                        className="relative flex gap-3 sm:gap-4 p-2 sm:p-3 rounded-xl hover:bg-white/10 cursor-pointer transition-all group/item hover:scale-105"
+                                    >
+                                        <div className="relative w-16 h-24 sm:w-20 sm:h-28 shrink-0">
+                                            <img
+                                                src={suggestion.thumbnail_url}
+                                                alt={suggestion.title}
+                                                className="w-full h-full object-cover rounded-lg shadow-md"
+                                            />
+                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/item:opacity-100 flex items-center justify-center transition-opacity rounded-lg">
+                                                <Play className="w-6 h-6 text-white fill-white" />
                                             </div>
-                                            <div className="flex flex-col min-w-0 flex-1">
-                                                <h4 className="text-white text-[11px] font-bold line-clamp-2 leading-tight group-hover/item:text-primary transition-colors">{suggestion.title}</h4>
-                                                {suggestion.rating && (
-                                                    <div className="flex items-center gap-1 mt-0.5">
-                                                        <Star className="w-2.5 h-2.5 text-yellow-500 fill-yellow-500" />
-                                                        <span className="text-yellow-500 text-[9px] font-medium">{suggestion.rating.toFixed(1)}</span>
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <Play className="w-3.5 h-3.5 text-primary opacity-0 group-hover/item:opacity-100 absolute right-1.5 transition-opacity" />
                                         </div>
-                                    ))}
-                                </div>
+                                        <div className="flex flex-col min-w-0 flex-1 justify-center">
+                                            <h4 className="text-white text-xs sm:text-sm font-bold line-clamp-2 leading-tight group-hover/item:text-primary transition-colors">{suggestion.title}</h4>
+                                            <p className="text-gray-400 text-[10px] sm:text-xs mt-1 line-clamp-2">{suggestion.description}</p>
+                                            {suggestion.rating && (
+                                                <div className="flex items-center gap-1 mt-2">
+                                                    <Star className="w-3 h-3 text-yellow-500 fill-yellow-500" />
+                                                    <span className="text-yellow-500 text-[10px] sm:text-xs font-medium">{suggestion.rating.toFixed(1)}</span>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     )}

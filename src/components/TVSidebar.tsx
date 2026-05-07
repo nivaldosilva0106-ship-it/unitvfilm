@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Home, Search, List, Film, Clapperboard, Tv, Bell, User, LogOut, Settings, Heart, Clock, MonitorPlay } from "lucide-react";
+import { Home, Search, List, Film, Clapperboard, Tv, Bell, User, LogOut, Settings, Heart, Clock, MonitorPlay, LayoutGrid } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useAppConfig } from "@/hooks/useAppConfig";
@@ -17,6 +17,7 @@ import { NotificationDropdown } from "./notifications/NotificationDropdown";
 const sidebarItems = [
   { id: "search", icon: Search, label: "Pesquisar", path: "/search" },
   { id: "home", icon: Home, label: "Início", path: "/" },
+  { id: "categories", icon: LayoutGrid, label: "Categorias", path: "/categories" },
   { id: "notifications", icon: Bell, label: "Notificações", path: "/notifications" },
   { id: "list", icon: List, label: "Minha Lista", path: "/my-list" },
   { id: "nostalgia", icon: Clapperboard, label: "Nostalgia", path: "/nostalgia" },

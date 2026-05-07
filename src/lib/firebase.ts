@@ -699,6 +699,17 @@ export const getUserTransfers = async (userId: string): Promise<TransferItem[]> 
   return [];
 };
 
+export const deleteTransfer = async (userId: string, transferId: string) => {
+  const transferRef = ref(database, `transfers/${userId}/${transferId}`);
+  await remove(transferRef);
+};
+
+export const clearAllTransfers = async (userId: string) => {
+  const transfersRef = ref(database, `transfers/${userId}`);
+  await remove(transfersRef);
+};
+
+
 
 // Plan Management
 export const getPlans = async (): Promise<Plan[]> => {

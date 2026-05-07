@@ -1,4 +1,4 @@
-import { Film, Search, User, LogOut, List, Settings, Home, Download, ChevronDown, Clapperboard, Tv, Menu, FileText, MonitorPlay } from "lucide-react";
+import { Film, Search, User, LogOut, List, Settings, Home, Download, ChevronDown, Clapperboard, Tv, Menu, FileText, MonitorPlay, LayoutGrid } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -224,6 +224,14 @@ export const Header = () => {
                     >
                       <Home className="w-5 h-5" />
                       Início
+                    </button>
+
+                    <button
+                      onClick={() => { navigate("/categories"); }}
+                      className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
+                    >
+                      <LayoutGrid className="w-5 h-5" />
+                      Categorias
                     </button>
 
                     <button
