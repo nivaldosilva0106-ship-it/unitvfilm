@@ -28,8 +28,23 @@ const Transfers = () => {
     const loadTransfers = async () => {
         if (!user) return;
         try {
-            const data = await getUserTransfers(user.uid);
-            setTransfers(data);
+            const [data, contents] = await Promise.all([
+                getUserTransfers(user.uid),
+                import('@/lib/firebase').then(m => m.getAllContents())
+            ]);
+            
+            // Retroactively fix missing thumbnails by matching contentId
+            const mappedData = data.map(transfer => {
+                if (!transfer.thumbnailUrl) {
+                    const content = contents.find(c => c.id === transfer.contentId);
+                    if (content) {
+                        return { ...transfer, thumbnailUrl: content.thumbnail_url };
+                    }
+                }
+                return transfer;
+            });
+            
+            setTransfers(mappedData);
         } catch (error) {
             console.error("Erro ao carregar transferências:", error);
             toast.error("Erro ao carregar histórico");

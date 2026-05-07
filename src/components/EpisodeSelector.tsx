@@ -15,9 +15,10 @@ interface EpisodeSelectorProps {
   title: string;
   trailerUrl?: string;
   onPlayEpisode: (url: string, episodeTitle?: string) => void;
+  thumbnail?: string;
 }
 
-export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, onPlayEpisode }: EpisodeSelectorProps) => {
+export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, onPlayEpisode, thumbnail }: EpisodeSelectorProps) => {
   const [selectedSeason, setSelectedSeason] = useState<number>(1);
   const [focusedIndex, setFocusedIndex] = useState(0);
   const [showTrailerModal, setShowTrailerModal] = useState(false);
@@ -240,7 +241,7 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
           downloads={selectedDownloadEpisode.downloads}
           download_mode={selectedDownloadEpisode.download_mode}
           title={`${title} - S${selectedDownloadEpisode.season}E${selectedDownloadEpisode.episode}: ${selectedDownloadEpisode.title}`}
-          thumbnail="" // Could pass series thumbnail if available
+          thumbnail={selectedDownloadEpisode.thumbnail_url || thumbnail || ""} // Use episode or series thumbnail
           contentId={selectedDownloadEpisode.id}
         />
       )}

@@ -202,6 +202,7 @@ const MyList = () => {
           episodes={selectedSeries.episodes || []}
           title={selectedSeries.title}
           trailerUrl={selectedSeries.trailer_url}
+          thumbnail={selectedSeries.thumbnail_url}
           onPlayEpisode={(url, episodeTitle) => {
             const foundEp = selectedSeries.episodes?.find(e => e.url === url);
             if (foundEp) {

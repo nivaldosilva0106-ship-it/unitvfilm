@@ -1591,15 +1591,32 @@ ${ep.url || ""}`;
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <Label>{isCanais24h ? "Blocos de Programação / Vídeos do Canal" : "Episódios / Temporadas"}</Label>
-              <Button
-                type="button"
-                size="sm"
-                onClick={addEpisode}
-                className="bg-primary hover:bg-primary/90"
-              >
-                <Plus className="w-4 h-4 mr-1" />
-                {isCanais24h ? "Adicionar Bloco" : "Adicionar Episódio"}
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => {
+                    if (window.confirm("Tem certeza que deseja excluir todos os episódios/blocos?")) {
+                      setEditingContent(prev => ({ ...prev, episodes: [] }));
+                      toast.success("Todos removidos com sucesso!");
+                    }
+                  }}
+                  disabled={!editingContent.episodes || editingContent.episodes.length === 0}
+                >
+                  <Trash2 className="w-4 h-4 mr-1" />
+                  Limpar Todos
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={addEpisode}
+                  className="bg-primary hover:bg-primary/90"
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  {isCanais24h ? "Adicionar Bloco" : "Adicionar Episódio"}
+                </Button>
+              </div>
             </div>
 
             {isCanais24h && (

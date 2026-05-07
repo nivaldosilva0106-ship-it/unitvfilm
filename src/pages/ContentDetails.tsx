@@ -510,6 +510,7 @@ const ContentDetails = () => {
               episodes={content.episodes}
               title={content.title}
               trailerUrl={content.trailer_url}
+              thumbnail={content.thumbnail_url}
               onPlayEpisode={(url, episodeTitle) => {
                 const foundEp = content.episodes?.find(e => e.url === url);
                 if (foundEp) {
