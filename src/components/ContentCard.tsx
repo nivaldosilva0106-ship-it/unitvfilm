@@ -123,11 +123,6 @@ export const ContentCard = memo(({
 
       {/* Badges Row - Internal Player & Download */}
       <div className="absolute bottom-2 left-2 z-10 flex gap-1.5">
-        {internal_player_url && !isRestricted && (
-          <div className="bg-primary/90 p-1.5 rounded-full shadow-lg" title="Player Interno Disponível">
-            <Play className="w-3 h-3 text-primary-foreground fill-primary-foreground" />
-          </div>
-        )}
         {hasDownloads && !isRestricted && !hideDownloadIcon && (
           <div className="bg-emerald-500/90 p-1.5 rounded-full shadow-lg" title="Download Disponível">
             <Download className="w-3 h-3 text-white" />

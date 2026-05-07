@@ -56,7 +56,7 @@ export const Header = () => {
 
   // hasSidebar = true when sidebar is visible (lite mode OR desktop)
   const isMobilePhone = /iPhone|Android|Mobile/i.test(navigator.userAgent) && !/TV|SmartTV|GoogleTV|AppleTV|HbbTV|STB/i.test(navigator.userAgent);
-  
+
   // Sidebar is hidden on these paths
   const hiddenPaths = ["/watch/", "/watch-local/", "/login", "/signup", "/profiles", "/nostalgia"];
   const isSidebarHiddenOnPage = hiddenPaths.some(path => location.pathname.startsWith(path));
@@ -203,83 +203,83 @@ export const Header = () => {
           <div className="flex items-center gap-2 sm:gap-4">
             {/* Mobile Menu Trigger - hidden when sidebar active */}
             {!hasSidebar && (
-            <div className="md:hidden">
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="ghost" size="icon" className="text-gray-300">
-                    <Menu className="h-6 w-6" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="bg-background border-white/10 text-white w-[280px]">
-                  <SheetHeader className="text-left border-b border-white/10 pb-4 mb-4">
-                    <SheetTitle className="text-white flex items-center gap-2">
-                      <Film className="w-5 h-5 text-primary" />
-                      UniTvFilm
-                    </SheetTitle>
-                  </SheetHeader>
-                  <nav className="flex flex-col gap-4">
-                    <button
-                      onClick={() => { navigate("/"); }}
-                      className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
-                    >
-                      <Home className="w-5 h-5" />
-                      Início
-                    </button>
+              <div className="md:hidden">
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon" className="text-gray-300">
+                      <Menu className="h-6 w-6" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="bg-background border-white/10 text-white w-[280px]">
+                    <SheetHeader className="text-left border-b border-white/10 pb-4 mb-4">
+                      <SheetTitle className="text-white flex items-center gap-2">
+                        <Film className="w-5 h-5 text-primary" />
+                        UniTvFilm
+                      </SheetTitle>
+                    </SheetHeader>
+                    <nav className="flex flex-col gap-4">
+                      <button
+                        onClick={() => { navigate("/"); }}
+                        className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
+                      >
+                        <Home className="w-5 h-5" />
+                        Início
+                      </button>
 
-                    <button
-                      onClick={() => { navigate("/tv"); }}
-                      className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
-                    >
-                      <Tv className="w-5 h-5" />
-                      TV Online
-                    </button>
+                      <button
+                        onClick={() => { navigate("/tv"); }}
+                        className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
+                      >
+                        <Tv className="w-5 h-5" />
+                        TV Online
+                      </button>
 
-                    <button
-                      onClick={() => { navigate("/transfers"); }}
-                      className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
-                    >
-                      <Download className="w-5 h-5" />
-                      Minhas Transferências
-                    </button>
-                    <button
-                      onClick={() => { navigate("/iptv"); }}
-                      className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
-                    >
-                      <MonitorPlay className="w-5 h-5" />
-                      Gerar IPTV
-                    </button>
-                    <button
-                      onClick={() => { navigate("/about"); }}
-                      className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
-                    >
-                      <FileText className="w-5 h-5" />
-                      Sobre Nós
-                    </button>
-                    <InstallAppButton />
+                      <button
+                        onClick={() => { navigate("/transfers"); }}
+                        className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
+                      >
+                        <Download className="w-5 h-5" />
+                        Minhas Transferências
+                      </button>
+                      <button
+                        onClick={() => { navigate("/iptv"); }}
+                        className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
+                      >
+                        <MonitorPlay className="w-5 h-5" />
+                        Gerar IPTV
+                      </button>
+                      <button
+                        onClick={() => { navigate("/about"); }}
+                        className="flex items-center gap-3 text-lg font-medium text-gray-300 hover:text-primary transition-colors p-2 rounded-lg hover:bg-white/5"
+                      >
+                        <FileText className="w-5 h-5" />
+                        Sobre Nós
+                      </button>
+                      <InstallAppButton />
 
-                    <div className="pt-4 border-t border-white/10 mt-2">
-                      <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 px-2">Créditos Diários</p>
-                      {user && plan && (
-                        <div className="space-y-3 px-2">
-                          {plan.limits.moviesPerDay !== -1 && (
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-400">Filmes</span>
-                              <span className="text-white font-bold">{plan.limits.moviesPerDay - (profile?.credits?.moviesWatched || 0)} / {plan.limits.moviesPerDay}</span>
-                            </div>
-                          )}
-                          {plan.limits.episodesPerDay !== -1 && (
-                            <div className="flex items-center justify-between text-sm">
-                              <span className="text-gray-400">Séries</span>
-                              <span className="text-white font-bold">{plan.limits.episodesPerDay - (profile?.credits?.episodesWatched || 0)} / {plan.limits.episodesPerDay}</span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </nav>
-                </SheetContent>
-              </Sheet>
-            </div>
+                      <div className="pt-4 border-t border-white/10 mt-2">
+                        <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 px-2">Créditos Diários</p>
+                        {user && plan && (
+                          <div className="space-y-3 px-2">
+                            {plan.limits.moviesPerDay !== -1 && (
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-400">Filmes</span>
+                                <span className="text-white font-bold">{plan.limits.moviesPerDay - (profile?.credits?.moviesWatched || 0)} / {plan.limits.moviesPerDay}</span>
+                              </div>
+                            )}
+                            {plan.limits.episodesPerDay !== -1 && (
+                              <div className="flex items-center justify-between text-sm">
+                                <span className="text-gray-400">Séries</span>
+                                <span className="text-white font-bold">{plan.limits.episodesPerDay - (profile?.credits?.episodesWatched || 0)} / {plan.limits.episodesPerDay}</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </nav>
+                  </SheetContent>
+                </Sheet>
+              </div>
             )}
 
             {/* Logo */}
@@ -317,16 +317,6 @@ export const Header = () => {
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-            {/* My Transfers Icon - hidden when sidebar active */}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/transfers")}
-              className="text-gray-300 hover:text-white hover:bg-white/10"
-            >
-              <Download className="h-5 w-5" />
-            </Button>
-
             {/* PWA Install Icon - hidden when sidebar active */}
             {!hasSidebar && <InstallAppButton variant="icon" className="text-gray-300 hover:text-white" />}
 
@@ -358,9 +348,9 @@ export const Header = () => {
 
             {/* Notification Bell - hidden when sidebar active (moved to sidebar) */}
             {!hasSidebar && (
-            <div className="hidden sm:block">
-              <NotificationBell />
-            </div>
+              <div className="hidden sm:block">
+                <NotificationBell />
+              </div>
             )}
 
             {/* Credits Display - Desktop Only */}
