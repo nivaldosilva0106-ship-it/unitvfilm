@@ -1610,6 +1610,7 @@ ${ep.url || ""}`;
                     sortedEpisodes.forEach(ep => {
                       exportText += `temporada ${ep.season || 1}\n`;
                       exportText += `${postTitle} ${ep.title || `Episódio ${ep.episode || 1}`}`.trim() + `\n`;
+                      exportText += `URL Player Interno (m3u8, mp4, ts)\n`;
                       exportText += `${ep.url || ''}\n\n`;
                     });
                     const blob = new Blob([exportText.trim()], { type: 'text/plain' });
