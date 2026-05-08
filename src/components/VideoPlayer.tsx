@@ -705,7 +705,7 @@ const formatTime = (seconds: number): string => {
 
       {/* Center Play/Pause Button */}
       {showControls && !isBuffering && (
-        <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center z-40 pointer-events-none">
           <button
             onClick={(e) => {
               e.stopPropagation();
