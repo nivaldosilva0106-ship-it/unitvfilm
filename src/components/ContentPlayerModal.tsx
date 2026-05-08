@@ -354,6 +354,7 @@ export const ContentPlayerModal = ({
               className="relative w-full h-full"
               onContextMenu={(e) => e.preventDefault()}
             >
+               {currentSource.type === 'internal' ? (
                   <ReactPlayer
                     key={currentSource.url}
                     url={currentSource.url}
@@ -364,7 +365,6 @@ export const ContentPlayerModal = ({
                     onEnded={onPlayNext}
                     style={{ position: 'absolute', top: 0, left: 0 }}
                   />
-                </div>
               ) : (
                 <iframe
                   key={secureVideoUrl}
