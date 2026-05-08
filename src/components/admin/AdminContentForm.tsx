@@ -1606,10 +1606,10 @@ ${ep.url || ""}`;
                       if (a.season !== b.season) return (a.season || 0) - (b.season || 0);
                       return (a.episode || 0) - (b.episode || 0);
                     });
+                    const postTitle = editingContent.title || '';
                     sortedEpisodes.forEach(ep => {
                       exportText += `temporada ${ep.season || 1}\n`;
-                      exportText += `episodio ${ep.episode || 1}\n`;
-                      exportText += `titulo: ${ep.title || `Episódio ${ep.episode || 1}`}\n`;
+                      exportText += `${postTitle} ${ep.title || `Episódio ${ep.episode || 1}`}`.trim() + `\n`;
                       exportText += `${ep.url || ''}\n\n`;
                     });
                     const blob = new Blob([exportText.trim()], { type: 'text/plain' });
