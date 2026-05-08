@@ -1595,6 +1595,42 @@ ${ep.url || ""}`;
                 <Button
                   type="button"
                   size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    if (!editingContent.episodes || editingContent.episodes.length === 0) {
+                      toast.error("Nenhum episódio para exportar.");
+                      return;
+                    }
+                    let exportText = "";
+                    const sortedEpisodes = [...editingContent.episodes].sort((a, b) => {
+                      if (a.season !== b.season) return (a.season || 0) - (b.season || 0);
+                      return (a.episode || 0) - (b.episode || 0);
+                    });
+                    sortedEpisodes.forEach(ep => {
+                      exportText += `temporada ${ep.season || 1}\n`;
+                      exportText += `episodio ${ep.episode || 1}\n`;
+                      exportText += `titulo: ${ep.title || `Episódio ${ep.episode || 1}`}\n`;
+                      exportText += `${ep.url || ''}\n\n`;
+                    });
+                    const blob = new Blob([exportText.trim()], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `episodios_${editingContent.title || 'conteudo'}.txt`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    toast.success("Episódios exportados com sucesso!");
+                  }}
+                  disabled={!editingContent.episodes || editingContent.episodes.length === 0}
+                >
+                  <Download className="w-4 h-4 mr-1" />
+                  Exportar
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
                   variant="destructive"
                   onClick={() => {
                     if (window.confirm("Tem certeza que deseja excluir todos os episódios/blocos?")) {
