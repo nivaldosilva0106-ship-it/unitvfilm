@@ -197,9 +197,14 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       let tiktok_url = isTikTok ? url : "";
 
       if (isCanais24hSelected) {
-        finalUrl = url;
-        if (!isSocial) {
+        if (isDownloadable) {
+          finalUrl = "";
           internal_player_url = url;
+        } else {
+          finalUrl = url;
+          if (!isSocial) {
+            internal_player_url = url;
+          }
         }
       }
 
@@ -1608,9 +1613,7 @@ ${ep.url || ""}`;
                     });
                     const postTitle = editingContent.title || '';
                     sortedEpisodes.forEach(ep => {
-                      exportText += `temporada ${ep.season || 1}\n`;
-                      exportText += `${postTitle} ${ep.title || `Episódio ${ep.episode || 1}`}`.trim() + `\n`;
-                      exportText += `URL Player Interno (m3u8, mp4, ts)\n`;
+                      exportText += `${postTitle} Temporada ${ep.season || 1} ${ep.title || `Episódio ${ep.episode || 1}`}`.trim() + `\n`;
                       exportText += `${ep.internal_player_url || ep.url || ''}\n\n`;
                     });
                     const blob = new Blob([exportText.trim()], { type: 'text/plain' });
