@@ -151,95 +151,40 @@ export const ContentCard = memo(({
           <div className="w-full space-y-2">
             <h3 className="text-foreground font-semibold text-sm mb-2 line-clamp-2">{title}</h3>
                         {!isLiteMode && (
-             <div className="flex justify-center items-center gap-3 pb-2">
-                {enableTooltips ? (
-                  <TooltipProvider delayDuration={300}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          onClick={handleButtonClick(onPlay)}
-                          onFocus={handleButtonFocus}
-                          size="icon"
-                          disabled={isRestricted}
-                          className={`h-11 w-11 bg-gradient-to-br from-primary via-primary to-primary/80 hover:to-primary text-primary-foreground ${enableAnimations ? 'glow-effect-hover scale-100 hover:scale-115 active:scale-90' : ''} rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.4)] border border-white/20 ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''} ${internal_player_url && !isLiteMode ? 'animate-pulse ring-4 ring-primary/30' : ''}`}
-                          tabIndex={0}
-                        >
-                          {isRestricted ? <ShieldCheck className="w-5 h-5" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="top" className="bg-black/95 backdrop-blur-xl border border-white/10 text-white font-bold px-3 py-1.5 shadow-2xl">
-                        <p>{isRestricted ? 'Bloqueado' : internal_player_url ? 'Player Interno' : 'Assistir Now'}</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                ) : (
-                  <Button
-                    onClick={handleButtonClick(onPlay)}
-                    onFocus={handleButtonFocus}
-                    size="icon"
-                    disabled={isRestricted}
-                    className={`h-11 w-11 bg-gradient-to-br from-primary via-primary to-primary/80 text-primary-foreground rounded-full transition-all duration-300 shadow-[0_0_15px_rgba(16,185,129,0.4)] border border-white/20 ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''}`}
-                    tabIndex={0}
-                  >
-                    {isRestricted ? <ShieldCheck className="w-5 h-5" /> : <Play className="w-5 h-5 fill-current ml-0.5" />}
-                  </Button>
-                )}
+             <div className="flex flex-col gap-2 pb-2">
+                <Button
+                  onClick={handleButtonClick(onPlay)}
+                  onFocus={handleButtonFocus}
+                  disabled={isRestricted}
+                  className={`w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary text-white font-bold h-9 text-xs rounded-lg transition-all duration-300 shadow-[0_0_10px_rgba(16,185,129,0.3)] border border-white/10 ${enableAnimations ? 'hover:scale-[1.02] active:scale-[0.98]' : ''} ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  tabIndex={0}
+                >
+                  {isRestricted ? <ShieldCheck className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
+                  {isRestricted ? 'Bloqueado' : internal_player_url && !isLiteMode ? 'Player Interno' : 'Assistir'}
+                </Button>
 
                 <Button
                   onClick={handleButtonClick(onInfo)}
-                  onMouseEnter={() => {
-                    hoverTimeoutRef.current = setTimeout(() => {
-                      onInfo?.();
-                    }, 2000);
-                  }}
-                  onMouseLeave={() => {
-                    if (hoverTimeoutRef.current) {
-                      clearTimeout(hoverTimeoutRef.current);
-                      hoverTimeoutRef.current = null;
-                    }
-                  }}
                   onFocus={handleButtonFocus}
-                  size="icon"
                   variant="secondary"
-                  className="h-11 w-11 rounded-full bg-white/5 hover:bg-white/20 backdrop-blur-xl border border-white/10 text-white transition-all duration-300 hover:scale-115 active:scale-90 shadow-xl"
+                  className={`w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium h-9 text-xs rounded-lg backdrop-blur-md border border-white/10 transition-all duration-300 ${enableAnimations ? 'hover:scale-[1.02] active:scale-[0.98]' : ''}`}
                   tabIndex={0}
                 >
-                  <Info className="w-5 h-5" />
+                  <Info className="w-4 h-4" />
+                  Detalhes
                 </Button>
 
                 {(onDownload || hasDownloads) && (
-                  enableTooltips ? (
-                    <TooltipProvider delayDuration={300}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            onClick={handleButtonClick(onDownload)}
-                            onFocus={handleButtonFocus}
-                            size="icon"
-                            variant="outline"
-                            className="h-11 w-11 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 text-white transition-all duration-300 hover:scale-115 active:scale-90 shadow-[0_4px_15px_rgba(0,0,0,0.4)]"
-                            tabIndex={0}
-                          >
-                            {hasDownloads ? <Download className="w-5 h-5 text-[#0aff7a] drop-shadow-[0_0_8px_rgba(10,255,122,0.5)]" /> : <Download className="w-5 h-5" />}
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="bg-black/95 backdrop-blur-xl border border-white/10 text-white font-bold px-3 py-1.5 shadow-2xl">
-                          <p>{hasDownloads ? 'Baixar Agora' : 'Download'}</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  ) : (
-                    <Button
-                      onClick={handleButtonClick(onDownload)}
-                      onFocus={handleButtonFocus}
-                      size="icon"
-                      variant="outline"
-                      className="h-11 w-11 rounded-full bg-black/40 hover:bg-black/60 backdrop-blur-xl border border-white/10 text-white transition-all duration-300 hover:scale-115 active:scale-90 shadow-xl"
-                      tabIndex={0}
-                    >
-                      {hasDownloads ? <Download className="w-5 h-5 text-[#0aff7a] drop-shadow-[0_0_8px_rgba(10,255,122,0.5)]" /> : <Download className="w-5 h-5" />}
-                    </Button>
-                  )
+                  <Button
+                    onClick={handleButtonClick(onDownload)}
+                    onFocus={handleButtonFocus}
+                    variant="outline"
+                    className={`w-full flex items-center justify-center gap-2 bg-black/40 hover:bg-black/60 text-white font-medium h-9 text-xs rounded-lg backdrop-blur-md border border-white/10 transition-all duration-300 ${enableAnimations ? 'hover:scale-[1.02] active:scale-[0.98]' : ''}`}
+                    tabIndex={0}
+                  >
+                    <Download className={`w-4 h-4 ${hasDownloads ? 'text-[#0aff7a]' : ''}`} />
+                    Baixar
+                  </Button>
                 )}
               </div>
             )}

@@ -703,14 +703,21 @@ const formatTime = (seconds: number): string => {
         </div>
       )}
 
-      {/* Center Play Button (when paused) */}
-      {!isPlaying && !isBuffering && (
-        <div className="absolute inset-0 flex items-center justify-center z-10">
+      {/* Center Play/Pause Button */}
+      {showControls && !isBuffering && (
+        <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
           <button
-            onClick={togglePlay}
-            className="w-14 h-14 md:w-20 md:h-20 bg-primary/90 hover:bg-primary rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-2xl"
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePlay();
+            }}
+            className="w-16 h-16 md:w-20 md:h-20 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-xl border border-white/10 pointer-events-auto"
           >
-            <Play className="w-6 h-6 md:w-10 md:h-10 text-white fill-white ml-1" />
+            {isPlaying ? (
+              <Pause className="w-8 h-8 md:w-10 md:h-10 text-white fill-white" />
+            ) : (
+              <Play className="w-8 h-8 md:w-10 md:h-10 text-white fill-white ml-2" />
+            )}
           </button>
         </div>
       )}
@@ -720,8 +727,7 @@ const formatTime = (seconds: number): string => {
         className={`absolute inset-0 flex flex-col justify-end transition-opacity duration-300 z-30 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
       >
-        {/* Gradient Background */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/40 pointer-events-none" />
+
 
 
         {/* Controls Container */}

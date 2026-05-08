@@ -111,24 +111,24 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-card border-border premium-scrollbar">
-        <DialogHeader>
-          <DialogTitle className="text-2xl text-foreground">{title}</DialogTitle>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-[#0a0a0a] border-white/10 shadow-[0_0_50px_rgba(0,0,0,0.8)] premium-scrollbar sm:rounded-2xl transition-all duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 p-4 sm:p-6">
+        <DialogHeader className="border-b border-white/10 pb-4 mb-2">
+          <DialogTitle className="text-2xl sm:text-3xl font-bold text-white tracking-tight drop-shadow-md">{title}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6">
+        <div className="space-y-6 pt-2">
           {/* Trailer Button */}
           {trailerUrl && (
-            <div className="flex justify-center">
+            <div className="flex justify-start">
               <Button
                 id="trailer-button"
                 onClick={() => setShowTrailerModal(true)}
                 variant="secondary"
-                size="lg"
+                size="sm"
                 tabIndex={0}
-                className="glow-effect-hover"
+                className="bg-white/10 hover:bg-white/20 text-white border border-white/10 backdrop-blur-md rounded-lg shadow-xl"
               >
-                <Video className="w-5 h-5 mr-2" />
+                <Video className="w-4 h-4 mr-2" />
                 Assistir Trailer
               </Button>
             </div>
@@ -140,12 +140,12 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
               <Button
                 key={season}
                 ref={(el) => (seasonButtonRefs.current[index] = el)}
-                variant={selectedSeason === season ? "default" : "outline"}
+                variant="ghost"
                 onClick={() => {
                   setSelectedSeason(season);
                   setFocusedIndex(0);
                 }}
-                className="min-w-[100px]"
+                className={`min-w-[100px] h-9 rounded-full text-sm font-semibold transition-all ${selectedSeason === season ? 'bg-primary text-white shadow-[0_0_15px_rgba(16,185,129,0.4)]' : 'bg-white/5 text-gray-300 hover:bg-white/10 hover:text-white border border-white/5'}`}
                 tabIndex={0}
               >
                 Temporada {season}
@@ -154,7 +154,7 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
           </div>
 
           {/* Episodes List */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             {seasonEpisodes.map((episode, index) => (
               <div
                 key={`${episode.season}-${episode.episode}`}
@@ -170,55 +170,71 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
                     handlePlay(episode.url, `T${episode.season}E${episode.episode} - ${episode.title}`);
                   }
                 }}
-                className={`p-4 bg-secondary rounded-lg transition-all cursor-pointer ${focusedIndex === index ? 'ring-2 ring-primary glow-effect' : 'hover:bg-secondary/80'
-                  }`}
+                className={`group relative flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 rounded-xl transition-all cursor-pointer border ${focusedIndex === index ? 'bg-white/10 border-white/20 scale-[1.01]' : 'border-transparent bg-white/[0.02] hover:bg-white/5 hover:border-white/10 hover:scale-[1.01]'}`}
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-foreground">
-                      T{episode.season}E{episode.episode} - {episode.title}
-                    </h3>
+                {/* Thumbnail / Poster */}
+                {thumbnail && (
+                  <div className="relative w-full sm:w-36 h-32 sm:h-24 rounded-lg overflow-hidden shrink-0 shadow-lg">
+                    <img src={thumbnail} alt={episode.title} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 group-hover:bg-black/10 transition-colors" />
+                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="w-10 h-10 bg-primary/90 rounded-full flex items-center justify-center shadow-lg transform scale-90 group-hover:scale-100 transition-transform">
+                        <Play className="w-5 h-5 text-white fill-white ml-1" />
+                      </div>
+                    </div>
+                    <div className="absolute bottom-1 right-1 bg-black/80 px-1.5 py-0.5 rounded text-[10px] font-bold text-white backdrop-blur-md">
+                      T{episode.season}E{episode.episode}
+                    </div>
                   </div>
-                  <div className="flex gap-2">
+                )}
+
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                  <h3 className="font-bold text-white text-sm sm:text-base line-clamp-2 leading-tight group-hover:text-primary transition-colors">
+                    {episode.episode}. {episode.title || `Episódio ${episode.episode}`}
+                  </h3>
+                  <p className="text-xs text-gray-400 mt-1 line-clamp-1">{title}</p>
+                </div>
+
+                <div className="flex flex-row sm:flex-col lg:flex-row gap-2 shrink-0 mt-2 sm:mt-0">
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      playNavigationSound('select');
+                      handlePlay(episode.url, `T${episode.season}E${episode.episode} - ${episode.title}`);
+                    }}
+                    size="sm"
+                    className="flex-1 sm:flex-none bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 h-9 sm:h-10 px-4 rounded-lg text-xs sm:text-sm transition-transform hover:scale-105 active:scale-95"
+                    tabIndex={-1}
+                  >
+                    <Play className="w-4 h-4 mr-1.5 fill-current" />
+                    Assistir
+                  </Button>
+                  
+                  {/* Download Button */}
+                  {(episode.download_url || (episode.downloads && episode.downloads.length > 0)) && (
                     <Button
                       onClick={(e) => {
                         e.stopPropagation();
                         playNavigationSound('select');
-                        handlePlay(episode.url, `T${episode.season}E${episode.episode} - ${episode.title}`);
+                        handleDownload(episode);
                       }}
                       size="sm"
-                      className="bg-primary hover:bg-primary/90 h-8 px-3"
-                      tabIndex={-1} // Evita que o botão dentro do item focável seja focado separadamente
+                      variant="outline"
+                      className="flex-1 sm:flex-none bg-black/40 hover:bg-black/60 text-white border-white/20 h-9 sm:h-10 px-4 rounded-lg text-xs sm:text-sm backdrop-blur-md transition-transform hover:scale-105 active:scale-95"
+                      tabIndex={-1}
                     >
-                      <Play className="w-4 h-4 mr-2" />
-                      Assistir
+                      <Download className="w-4 h-4 mr-1.5" />
+                      Baixar
                     </Button>
-                    {/* Download Button */}
-                    {(episode.download_url || (episode.downloads && episode.downloads.length > 0)) && (
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          playNavigationSound('select');
-                          handleDownload(episode);
-                        }}
-                        size="sm"
-                        variant="outline"
-                        className="h-8 px-3"
-                        tabIndex={-1} // Evita que o botão dentro do item focável seja focado separadamente
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Baixar
-                      </Button>
-                    )}
-                  </div>
+                  )}
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="mt-4 text-sm text-muted-foreground text-center">
-          Use as setas do teclado/controle para navegar • Enter para selecionar • ESC para fechar
+        <div className="mt-4 text-xs text-gray-500 font-medium text-center border-t border-white/5 pt-4">
+          Navegue com setas • Enter para abrir • ESC para fechar
         </div>
       </DialogContent>
 
