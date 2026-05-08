@@ -609,7 +609,7 @@ const Player = () => {
 
     const handleNextEpisode = () => {
         if (nextEpisode) {
-            setSearchParams({ season: nextEpisode.season, episode: nextEpisode.episode });
+            setSearchParams({ season: nextEpisode.season.toString(), episode: nextEpisode.episode.toString() });
             // Reset states for new episode
             setIsSuggestionsOpen(false);
             setLastPositionSeconds(0);
@@ -972,18 +972,21 @@ const Player = () => {
 
                     {/* NEXT EPISODE BUTTON - FAR RIGHT */}
                     {nextEpisode && (
-                        <div className={`absolute top-1/2 right-4 -translate-y-1/2 z-50 transition-opacity duration-300 flex flex-col items-center gap-2 ${isFullscreen ? 'opacity-0 group-hover:opacity-100' : ''}`}>
+                        <div className={`absolute top-1/2 right-4 -translate-y-1/2 z-[100] transition-opacity duration-300 flex flex-col items-center gap-2 ${isFullscreen ? 'opacity-0 group-hover:opacity-100' : ''}`}>
                             <Button
-                                onClick={handleNextEpisode}
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleNextEpisode();
+                                }}
                                 variant="ghost"
                                 size="icon"
-                                className="w-8 h-8 sm:w-16 sm:h-16 rounded-full bg-black/60 hover:bg-primary text-white backdrop-blur-md border border-white/20 shadow-2xl transition-all duration-300 hover:scale-110 flex items-center justify-center pointer-events-auto"
+                                className="w-10 h-10 sm:w-20 sm:h-20 rounded-full bg-black/60 hover:bg-primary text-white backdrop-blur-md border-2 border-white/20 shadow-[0_0_30px_rgba(0,0,0,0.5)] transition-all duration-300 hover:scale-110 flex items-center justify-center pointer-events-auto group/btn"
                                 title={`Próximo: ${nextEpisode.title}`}
                             >
-                                <ChevronRight className="w-4 h-4 sm:w-8 sm:h-8 ml-0.5" />
+                                <ChevronRight className="w-6 h-6 sm:w-12 sm:h-12 ml-0.5 transition-transform group-hover/btn:translate-x-1" />
                             </Button>
-                            <div className="bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-full border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block">
-                                <span className="text-[9px] text-white uppercase font-bold tracking-wider">Próximo Episódio</span>
+                            <div className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block shadow-lg">
+                                <span className="text-[10px] text-white uppercase font-bold tracking-wider">Próximo Episódio</span>
                             </div>
                         </div>
                     )}
@@ -1093,7 +1096,7 @@ const Player = () => {
                             onEnded={() => {
                                 if (nextEpisode && content) {
                                     toast.info("Reproduzindo próximo episódio...");
-                                    navigate(`/watch/${content.id}?s=${nextEpisode.season}&e=${nextEpisode.episode}`);
+                                    navigate(`/watch/${content.id}?season=${nextEpisode.season}&episode=${nextEpisode.episode}`);
                                 }
                             }}
                         />

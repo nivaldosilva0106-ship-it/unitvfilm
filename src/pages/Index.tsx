@@ -704,16 +704,13 @@ const Index = () => {
           title={selectedSeries.title}
           trailerUrl={selectedSeries.trailer_url}
           thumbnail={selectedSeries.thumbnail_url}
-          onPlayEpisode={(url, episodeTitle) => {
-            const foundEp = selectedSeries.episodes?.find(e => e.url === url);
-            if (foundEp) {
-              const watchUrl = `/watch/${selectedSeries.id}?season=${foundEp.season}&episode=${foundEp.episode}`;
-              if (selectedSeries.is_cinema_mode) {
-                setPendingPlayerState({ contentId: selectedSeries.id, season: foundEp.season, episode: foundEp.episode });
-                setShowCinemaModal(true);
-              } else {
-                navigate(watchUrl);
-              }
+          onPlayEpisode={(ep) => {
+            const watchUrl = `/watch/${selectedSeries.id}?season=${ep.season}&episode=${ep.episode}`;
+            if (selectedSeries.is_cinema_mode) {
+              setPendingPlayerState({ contentId: selectedSeries.id, season: ep.season, episode: ep.episode });
+              setShowCinemaModal(true);
+            } else {
+              navigate(watchUrl);
             }
           }}
         />

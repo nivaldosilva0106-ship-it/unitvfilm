@@ -14,7 +14,7 @@ interface EpisodeSelectorProps {
   episodes: Episode[];
   title: string;
   trailerUrl?: string;
-  onPlayEpisode: (url: string, episodeTitle?: string) => void;
+  onPlayEpisode: (episode: Episode) => void;
   thumbnail?: string;
 }
 
@@ -31,8 +31,8 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
     .filter(ep => ep.season === selectedSeason)
     .sort((a, b) => a.episode - b.episode);
 
-  const handlePlay = (url: string, episodeTitle?: string) => {
-    onPlayEpisode(url, episodeTitle);
+  const handlePlay = (episode: Episode) => {
+    onPlayEpisode(episode);
     onClose();
   };
 
@@ -164,10 +164,10 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
                   setFocusedIndex(index);
                   playNavigationSound('focus');
                 }}
-                onClick={() => handlePlay(episode.url, `T${episode.season}E${episode.episode} - ${episode.title}`)}
+                onClick={() => handlePlay(episode)}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter') {
-                    handlePlay(episode.url, `T${episode.season}E${episode.episode} - ${episode.title}`);
+                    handlePlay(episode);
                   }
                 }}
                 className={`group relative flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 p-3 rounded-xl transition-all cursor-pointer border ${focusedIndex === index ? 'bg-white/10 border-white/20 scale-[1.01]' : 'border-transparent bg-white/[0.02] hover:bg-white/5 hover:border-white/10 hover:scale-[1.01]'}`}

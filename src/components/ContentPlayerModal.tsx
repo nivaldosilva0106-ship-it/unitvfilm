@@ -354,6 +354,32 @@ export const ContentPlayerModal = ({
               className="relative w-full h-full"
               onContextMenu={(e) => e.preventDefault()}
             >
+                  <ReactPlayer
+                    key={currentSource.url}
+                    url={currentSource.url}
+                    width="100%"
+                    height="100%"
+                    controls
+                    playing
+                    onEnded={onPlayNext}
+                    style={{ position: 'absolute', top: 0, left: 0 }}
+                  />
+                </div>
+              ) : (
+                <iframe
+                  key={secureVideoUrl}
+                  ref={iframeRef}
+                  src={secureVideoUrl}
+                  title={`Player - ${title}`}
+                  className="absolute inset-0 w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+                  allowFullScreen
+                  tabIndex={0}
+                  referrerPolicy="no-referrer"
+                  sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
+                />
+              )}
+
               <Button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -364,12 +390,12 @@ export const ContentPlayerModal = ({
                 }}
                 variant="ghost"
                 size="icon"
-                className="absolute top-6 left-6 z-50 w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20"
+                className="absolute top-6 left-6 z-[100] w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20"
               >
                 <ArrowLeft className="w-6 h-6" />
               </Button>
 
-              <div className="absolute top-6 left-20 z-50 flex items-center gap-2 px-4 py-2 text-white bg-black/50 backdrop-blur-md rounded-full shadow-lg border border-white/20">
+              <div className="absolute top-6 left-20 z-[100] flex items-center gap-2 px-4 py-2 text-white bg-black/50 backdrop-blur-md rounded-full shadow-lg border border-white/20">
                 <div className="flex items-center gap-2">
                   <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center glow-effect">
                     <Film className="w-5 h-5 text-white" />
@@ -387,13 +413,13 @@ export const ContentPlayerModal = ({
                 }}
                 variant="ghost"
                 size="icon"
-                className="absolute top-6 right-[136px] z-50 w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20"
+                className="absolute top-6 right-[136px] z-[100] w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20"
               >
                 {isFullscreen ? <Minimize className="w-6 h-6" /> : <Maximize className="w-6 h-6" />}
               </Button>
 
               {hasMultipleSources && (
-                <div className="absolute top-6 right-20 z-50">
+                <div className="absolute top-6 right-20 z-[100]">
                   <Button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -428,7 +454,7 @@ export const ContentPlayerModal = ({
 
               {/* Watching Card */}
               <div
-                className={`absolute bottom-24 left-6 z-50 max-w-sm bg-black/80 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-500 ease-out ${showWatchingCard ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}
+                className={`absolute bottom-24 left-6 z-[100] max-w-sm bg-black/80 backdrop-blur-md rounded-xl shadow-2xl border border-white/20 overflow-hidden transition-all duration-500 ease-out ${showWatchingCard ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-full pointer-events-none'}`}
               >
                 <div className="p-4">
                   <p className="text-xs text-primary font-semibold uppercase tracking-wider mb-2">Você está assistindo</p>
@@ -453,7 +479,7 @@ export const ContentPlayerModal = ({
 
               {/* NEXT EPISODE OVERLAY - TOP RIGHT (Left of Fullscreen) - COMPACT */}
               {(nextEpisode || isLastEpisode) && (
-                <div className="absolute top-6 right-[200px] z-50">
+                <div className="absolute top-6 right-[200px] z-[100]">
                   <div
                     onClick={(e) => {
                       e.stopPropagation();
@@ -501,7 +527,7 @@ export const ContentPlayerModal = ({
 
               {/* NEW NEXT EPISODE CENTER RIGHT BUTTON */}
               {nextEpisode && (
-                <div className="absolute top-1/2 right-4 -translate-y-1/2 z-50">
+                <div className="absolute top-1/2 right-4 -translate-y-1/2 z-[110]">
                    <Button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -519,7 +545,7 @@ export const ContentPlayerModal = ({
 
               {/* Interactive Suggestion Pill - Bottom Right */}
               {suggestions && suggestions.length > 0 && (
-                <div className="absolute bottom-6 right-24 z-50">
+                <div className="absolute bottom-6 right-24 z-[100]">
                   <div className="group relative flex items-end justify-end">
                     {/* Suggestion List Dropdown (Up) */}
                     <div className="absolute bottom-full right-0 mb-3 w-64 bg-black/90 backdrop-blur-md rounded-xl border border-white/10 shadow-2xl overflow-hidden opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 translate-y-2 group-hover:translate-y-0">
@@ -591,33 +617,6 @@ export const ContentPlayerModal = ({
                     </div>
                   </div>
                 </div>
-              )}
-
-              {currentSource?.type === 'internal' ? (
-                <div className="absolute inset-0 w-full h-full bg-black">
-                  <ReactPlayer
-                    key={currentSource.url}
-                    url={currentSource.url}
-                    width="100%"
-                    height="100%"
-                    controls
-                    playing
-                    style={{ position: 'absolute', top: 0, left: 0 }}
-                  />
-                </div>
-              ) : (
-                <iframe
-                  key={secureVideoUrl}
-                  ref={iframeRef}
-                  src={secureVideoUrl}
-                  title={`Player - ${title}`}
-                  className="absolute inset-0 w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-                  allowFullScreen
-                  tabIndex={0}
-                  referrerPolicy="no-referrer"
-                  sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
-                />
               )}
             </div>
           </>
