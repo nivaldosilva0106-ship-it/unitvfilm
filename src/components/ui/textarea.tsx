@@ -13,6 +13,14 @@ const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(({ classNa
       )}
       ref={ref}
       {...props}
+      onFocus={(e) => {
+        if (typeof window !== 'undefined' && window.location.pathname.includes('/admin')) {
+          e.currentTarget.select();
+        }
+        if (props.onFocus) {
+          props.onFocus(e);
+        }
+      }}
     />
   );
 });
