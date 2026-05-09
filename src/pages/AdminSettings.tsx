@@ -746,7 +746,6 @@ export const AdminSettings = () => {
                                 </div>
                             </div>
                         </div>
-                        </div>
                     </div>
 
                     {/* Cache Management */}
