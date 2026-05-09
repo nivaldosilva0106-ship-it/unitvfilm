@@ -76,7 +76,7 @@ const formatTime = (seconds: number): string => {
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(muted);
   const [isFullscreenInternal, setIsFullscreenInternal] = useState(false);
-  const [videoAspect, setVideoAspect] = useState<string>('cover');
+  const [videoAspect, setVideoAspect] = useState<string>('contain');
   
   const isFullscreen = isFullscreenProp !== undefined ? isFullscreenProp : isFullscreenInternal;
   const [showControls, setShowControls] = useState(true);
@@ -828,8 +828,8 @@ const formatTime = (seconds: number): string => {
                 >
                   <div className="px-2 py-1.5 text-[10px] md:text-xs text-gray-400 font-semibold">Proporção da Tela</div>
                   {[
-                    { id: 'cover', label: 'Preencher (Padrão)' },
-                    { id: 'contain', label: 'Original (Ajustar)' },
+                    { id: 'contain', label: 'Original (Padrão)' },
+                    { id: 'cover', label: 'Preencher (Cortar)' },
                     { id: '16:9', label: '16:9 (TV)' },
                     { id: '21:9', label: '21:9 (Cinema)' },
                     { id: '4:3', label: '4:3 (Clássico)' },
