@@ -73,7 +73,7 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
     onEnter: () => {
       if (seasonEpisodes[focusedIndex]) {
         const ep = seasonEpisodes[focusedIndex];
-        handlePlay(ep.url, `T${ep.season}E${ep.episode} - ${ep.title}`);
+        handlePlay(ep);
       }
     },
   });
@@ -200,7 +200,7 @@ export const EpisodeSelector = ({ open, onClose, episodes, title, trailerUrl, on
                     onClick={(e) => {
                       e.stopPropagation();
                       playNavigationSound('select');
-                      handlePlay(episode.url, `T${episode.season}E${episode.episode} - ${episode.title}`);
+                      handlePlay(episode);
                     }}
                     size="sm"
                     className="flex-1 sm:flex-none bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 h-9 sm:h-10 px-4 rounded-lg text-xs sm:text-sm transition-transform hover:scale-105 active:scale-95"
