@@ -450,6 +450,8 @@ const Player = () => {
         return sources;
     }, [content, seasonParam, episodeParam]);
 
+    const currentSource = allSources[currentSourceIndex] || allSources[0];
+
     const hasMultipleSeasons = useMemo(() => {
         if (content?.episodes) {
             const seasons = new Set(content.episodes.map(ep => ep.season));
