@@ -5,7 +5,7 @@ import { getProviderConfig } from "@/lib/providers";
 import { Content } from "@/types/content";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { X, ArrowLeft, Film, Maximize, Minimize, List, Star, ChevronRight, ChevronDown, Crown, Play, Plus, Check, ShieldCheck, WifiOff, Download, LayoutGrid } from "lucide-react";
+import { X, ArrowLeft, Film, Maximize, Minimize, List, Star, ChevronRight, ChevronDown, Crown, Play, Plus, Check, ShieldCheck, WifiOff, Download, LayoutGrid, MoreVertical } from "lucide-react";
 import { AdManager } from "@/components/AdManager";
 import { useContentProtection } from "@/hooks/useContentProtection";
 import { toast } from "sonner";
@@ -14,6 +14,12 @@ import { VideoPlayer } from "@/components/VideoPlayer";
 import { Capacitor } from '@capacitor/core';
 import { useAppConfig } from "@/hooks/useAppConfig";
 import React, { Suspense } from "react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Helper to handle lazy loading errors (ChunkLoadError)
 const lazyWithRetry = (componentImport: () => Promise<any>) =>
@@ -919,105 +925,175 @@ const Player = () => {
                         </div>
 
                         <div className="pointer-events-auto flex items-center gap-1 sm:gap-3">
-                            {allSources.length > 1 && (
-                                <div className="relative">
+                            {/* --- MOBILE DROPDOWN (sm:hidden) --- */}
+                            <div className="sm:hidden block">
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="w-8 h-8 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                        >
+                                            <MoreVertical className="w-4 h-4" />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                        align="end"
+                                        className="bg-black/95 border-white/20 backdrop-blur-xl w-48 z-[90]"
+                                    >
+                                        {allSources.length > 1 && (
+                                            <>
+                                                <div className="px-2 py-1.5 text-xs text-gray-400 font-semibold">Fontes</div>
+                                                {allSources.map((source, index) => (
+                                                    <DropdownMenuItem
+                                                        key={index}
+                                                        onClick={() => setCurrentSourceIndex(index)}
+                                                        className={`text-white text-sm ${currentSourceIndex === index ? 'bg-primary/20' : ''}`}
+                                                    >
+                                                        {source.name}
+                                                        {currentSourceIndex === index && <span className="ml-auto text-primary">✓</span>}
+                                                    </DropdownMenuItem>
+                                                ))}
+                                                <div className="h-px bg-white/10 my-1" />
+                                            </>
+                                        )}
+
+                                        {!isLiteMode && (
+                                            <DropdownMenuItem onClick={handleToggleMyList} className="text-white text-sm">
+                                                {isInMyList ? <Check className="w-4 h-4 mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
+                                                {isInMyList ? "Na Minha Lista" : "Adicionar à Lista"}
+                                            </DropdownMenuItem>
+                                        )}
+
+                                        {hasMultipleSeasons && (
+                                            <DropdownMenuItem onClick={() => setShowEpisodeSelector(true)} className="text-white text-sm">
+                                                <List className="w-4 h-4 mr-2" />
+                                                Trocar Temporada
+                                            </DropdownMenuItem>
+                                        )}
+
+                                        <DropdownMenuItem onClick={handleDownloadClick} className="text-white text-sm">
+                                            <Download className="w-4 h-4 mr-2 text-emerald-400" />
+                                            Baixar Episódio
+                                        </DropdownMenuItem>
+
+                                        {suggestions.length > 0 && !isLiteMode && (
+                                            <DropdownMenuItem onClick={() => setIsSuggestionsOpen(!isSuggestionsOpen)} className="text-white text-sm">
+                                                <LayoutGrid className="w-4 h-4 mr-2" />
+                                                Recomendações
+                                            </DropdownMenuItem>
+                                        )}
+                                        
+                                        <DropdownMenuItem onClick={toggleFullscreen} className="text-white text-sm">
+                                            {isFullscreen ? <Minimize className="w-4 h-4 mr-2" /> : <Maximize className="w-4 h-4 mr-2" />}
+                                            Tela Cheia
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </div>
+
+                            {/* --- DESKTOP BUTTONS (hidden sm:flex) --- */}
+                            <div className="hidden sm:flex items-center gap-3">
+                                {allSources.length > 1 && (
+                                    <div className="relative">
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={() => setShowSourceMenu(!showSourceMenu)}
+                                            className="w-10 h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 tab-focusable"
+                                            tabIndex={0}
+                                        >
+                                            <List className="w-5 h-5" />
+                                        </Button>
+                                        {showSourceMenu && (
+                                            <div className="absolute top-12 right-0 bg-black/90 backdrop-blur-md rounded-lg shadow-xl border border-white/20 overflow-hidden min-w-[150px]">
+                                                {allSources.map((source, index) => (
+                                                    <button
+                                                        key={index}
+                                                        onClick={() => {
+                                                            setCurrentSourceIndex(index);
+                                                            setShowSourceMenu(false);
+                                                        }}
+                                                        className={`w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center justify-between ${currentSourceIndex === index ? 'bg-primary/20' : ''}`}
+                                                        tabIndex={0}
+                                                    >
+                                                        <span className="text-sm">{source.name}</span>
+                                                        {currentSourceIndex === index && <span className="text-primary">✓</span>}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {!isLiteMode && (
                                     <Button
                                         variant="ghost"
                                         size="icon"
-                                        onClick={() => setShowSourceMenu(!showSourceMenu)}
-                                        className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 tab-focusable"
-                                        tabIndex={0}
+                                        onClick={handleToggleMyList}
+                                        className="w-10 h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                        title={isInMyList ? "Remover da lista" : "Assistir mais tarde"}
                                     >
-                                        <List className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                                        {isInMyList ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
                                     </Button>
-                                    {showSourceMenu && (
-                                        <div className="absolute top-9 sm:top-12 right-0 bg-black/90 backdrop-blur-md rounded-lg shadow-xl border border-white/20 overflow-hidden min-w-[150px]">
-                                            {allSources.map((source, index) => (
-                                                <button
-                                                    key={index}
-                                                    onClick={() => {
-                                                        setCurrentSourceIndex(index);
-                                                        setShowSourceMenu(false);
-                                                    }}
-                                                    className={`w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center justify-between ${currentSourceIndex === index ? 'bg-primary/20' : ''}`}
-                                                    tabIndex={0}
-                                                >
-                                                    <span className="text-xs sm:text-sm">{source.name}</span>
-                                                    {currentSourceIndex === index && <span className="text-primary">✓</span>}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                                )}
 
-                            {!isLiteMode && (
+                                {hasMultipleSeasons && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setShowEpisodeSelector(true)}
+                                        className="w-10 h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                        title="Trocar Temporada"
+                                    >
+                                        <List className="w-5 h-5" />
+                                    </Button>
+                                )}
+
+                                {/* Download Button */}
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={handleToggleMyList}
-                                    className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
-                                    title={isInMyList ? "Remover da lista" : "Assistir mais tarde"}
+                                    onClick={handleDownloadClick}
+                                    className="w-10 h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                    title="Baixar este conteúdo"
                                 >
-                                    {isInMyList ? <Check className="w-3.5 h-3.5 sm:w-5 sm:h-5" /> : <Plus className="w-3.5 h-3.5 sm:w-5 sm:h-5" />}
+                                    <Download className="w-5 h-5 text-emerald-400" />
                                 </Button>
-                            )}
 
-                            {hasMultipleSeasons && (
+                                {/* Recommendations Button */}
+                                {suggestions.length > 0 && !isLiteMode && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setIsSuggestionsOpen(!isSuggestionsOpen)}
+                                        className={`w-10 h-10 rounded-full text-white hover:bg-white/20 backdrop-blur-md border transition-all ${isSuggestionsOpen ? 'bg-primary border-primary' : 'bg-black/50 border-white/20'}`}
+                                        title="Ver recomendações"
+                                    >
+                                        <LayoutGrid className="w-5 h-5" />
+                                    </Button>
+                                )}
+
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    onClick={() => setShowEpisodeSelector(true)}
-                                    className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
-                                    title="Trocar Temporada"
+                                    onClick={toggleFullscreen}
+                                    className="w-10 h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                    tabIndex={0}
                                 >
-                                    <List className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                                    {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
                                 </Button>
-                            )}
+                            </div>
 
-                            {/* Download Button */}
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={handleDownloadClick}
-                                className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
-                                title="Baixar este conteúdo"
-                            >
-                                <Download className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-emerald-400" />
-                            </Button>
-
-                            {/* Recommendations Button */}
-                            {suggestions.length > 0 && !isLiteMode && (
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => setIsSuggestionsOpen(!isSuggestionsOpen)}
-                                    className={`w-7 h-7 sm:w-10 sm:h-10 rounded-full text-white hover:bg-white/20 backdrop-blur-md border transition-all ${isSuggestionsOpen ? 'bg-primary border-primary' : 'bg-black/50 border-white/20'}`}
-                                    title="Ver recomendações"
-                                >
-                                    <LayoutGrid className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
-                                </Button>
-                            )}
-
-
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={toggleFullscreen}
-                                className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
-                                tabIndex={0}
-                            >
-                                {isFullscreen ? <Minimize className="w-3.5 h-3.5 sm:w-5 sm:h-5" /> : <Maximize className="w-3.5 h-3.5 sm:w-5 sm:h-5" />}
-                            </Button>
-
+                            {/* CLOSE BUTTON - ALWAYS VISIBLE */}
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => navigate('/')}
-                                className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-red-600 backdrop-blur-md border border-white/20"
+                                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-red-600 backdrop-blur-md border border-white/20"
                                 tabIndex={0}
                             >
-                                <X className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                                <X className="w-4 h-4 sm:w-5 sm:h-5" />
                             </Button>
                         </div>
                     </div>
