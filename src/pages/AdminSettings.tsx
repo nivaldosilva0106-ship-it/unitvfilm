@@ -1,6 +1,6 @@
 // ... (imports)
 import { useState, useEffect } from "react";
-import { Copy, Check, AlertTriangle, Globe, Info, Smartphone, MonitorPlay, Loader2, Wifi, WifiOff } from "lucide-react";
+import { Copy, Check, AlertTriangle, Globe, Info, Smartphone, MonitorPlay, Loader2, Wifi, WifiOff, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSiteSettings, updateSiteSettings } from "@/lib/firebase";
 import { AdminLayout } from "@/components/admin/AdminLayout";
@@ -193,6 +193,36 @@ export const AdminSettings = () => {
             }
         } else {
             e.target.value = "";
+        }
+    };
+
+    const handleClearCache = async () => {
+        if (!confirm("Tem certeza que deseja limpar todo o cache do site? Isso fará logout de sessões não guardadas e apagará preferências locais. O site será recarregado.")) {
+            return;
+        }
+
+        try {
+            // Limpar Local Storage (preservando talvez algum auth se o Firebase usar indexDB, 
+            // mas o localStorage é seguro apagar para limpeza pesada)
+            localStorage.clear();
+            
+            // Limpar Session Storage
+            sessionStorage.clear();
+            
+            // Limpar caches do navegador (Service Workers, PWA, etc)
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                await Promise.all(cacheNames.map(name => caches.delete(name)));
+            }
+
+            toast.success("Cache limpo com sucesso! Recarregando...");
+            
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } catch (error) {
+            console.error("Erro ao limpar cache:", error);
+            toast.error("Ocorreu um erro ao tentar limpar o cache.");
         }
     };
 
@@ -715,6 +745,38 @@ export const AdminSettings = () => {
                                     </p>
                                 </div>
                             </div>
+                        </div>
+                        </div>
+                    </div>
+
+                    {/* Cache Management */}
+                    <div className="bg-card border border-border rounded-lg p-6 border-red-500/20">
+                        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-red-500">
+                            <Trash2 className="w-5 h-5" />
+                            Limpeza de Cache e Dados Locais
+                        </h2>
+                        
+                        <div className="space-y-4">
+                            <p className="text-sm text-muted-foreground">
+                                Se o site estiver lento, com imagens não carregando ou falhando ao ler os links do player, limpar o cache pode resolver. 
+                                Isso removerá os dados temporários armazenados no navegador.
+                            </p>
+
+                            <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg">
+                                <p className="text-xs text-red-500 font-medium">
+                                    ⚠️ O site será recarregado automaticamente após a limpeza.
+                                </p>
+                            </div>
+
+                            <Button 
+                                type="button" 
+                                variant="destructive" 
+                                onClick={handleClearCache}
+                                className="w-full md:w-auto mt-2"
+                            >
+                                <Trash2 className="w-4 h-4 mr-2" />
+                                Limpar Cache do Site
+                            </Button>
                         </div>
                     </div>
 
