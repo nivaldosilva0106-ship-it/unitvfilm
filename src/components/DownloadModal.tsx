@@ -16,7 +16,7 @@ interface DownloadModalProps {
 
 import { addTransfer } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
-import { createSecureDownloadUrl, isProtectedUrl } from "@/lib/secure-url";
+import { createSecureDownloadUrl, createSecurePlaybackUrl, isProtectedUrl } from "@/lib/secure-url";
 
 import { toast } from "sonner";
 
@@ -94,7 +94,14 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
     };
     
     const copyToClipboard = () => {
-        const urlToCopy = window.location.origin + pendingUrl;
+        // If it's a streaming link, give them the direct proxy URL instead of the secure-download redirect
+        // This ensures VLC, 1DM, IDM, etc. can process it directly without struggling with 302 redirects.
+        const pathToCopy = isStreamingLink 
+            ? createSecurePlaybackUrl(originalUrlForCopy) 
+            : pendingUrl;
+            
+        const urlToCopy = window.location.origin + pathToCopy;
+        
         navigator.clipboard.writeText(urlToCopy).then(() => {
             toast.success("Link copiado! Cole no seu gestor de downloads (ex: 1DM, ADM).");
         }).catch(() => {
