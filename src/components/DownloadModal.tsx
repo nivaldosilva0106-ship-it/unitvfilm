@@ -1,6 +1,6 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, AlertTriangle, Info, Loader2 } from "lucide-react";
+import { Download, AlertTriangle, Info, Loader2, Copy } from "lucide-react";
 import { useState, useEffect } from "react";
 
 interface DownloadModalProps {
@@ -18,10 +18,14 @@ import { addTransfer } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { createSecureDownloadUrl, isProtectedUrl } from "@/lib/secure-url";
 
+import { toast } from "sonner";
+
 export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_mode = 'direct', title, thumbnail, contentId }: DownloadModalProps) => {
     const { user } = useAuth();
     const [pendingUrl, setPendingUrl] = useState<string | null>(null);
     const [countdown, setCountdown] = useState<number>(10);
+    const [isStreamingLink, setIsStreamingLink] = useState(false);
+    const [originalUrlForCopy, setOriginalUrlForCopy] = useState<string>("");
 
     // Determine effective links. If no new 'downloads', use legacy 'downloadUrl' as single link.
     const rawLinks = (downloads && downloads.length > 0)
@@ -33,36 +37,45 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
         if (link.type !== 'torrent' && isProtectedUrl(link.url)) {
             return {
                 ...link,
-                url: createSecureDownloadUrl(link.url, `${title.replace(/[^a-zA-Z0-9_-]/g, '_')}`)
+                url: createSecureDownloadUrl(link.url, `${title.replace(/[^a-zA-Z0-9_-]/g, '_')}`),
+                originalUrl: link.url
             };
         }
-        return link;
+        return { ...link, originalUrl: link.url };
     });
 
     const showTorrentWarning = download_mode === 'torrent' || (download_mode === 'mixed' && effectiveLinks.some(l => l.type === 'torrent'));
 
     useEffect(() => {
         let timer: NodeJS.Timeout;
-        if (pendingUrl && countdown > 0) {
+        if (pendingUrl && countdown > 0 && !isStreamingLink) {
             timer = setTimeout(() => setCountdown((prev) => prev - 1), 1000);
-        } else if (pendingUrl && countdown === 0) {
+        } else if (pendingUrl && countdown === 0 && !isStreamingLink) {
             window.open(pendingUrl, '_blank');
             onClose();
             setPendingUrl(null);
         }
         return () => clearTimeout(timer);
-    }, [pendingUrl, countdown, onClose]);
+    }, [pendingUrl, countdown, isStreamingLink, onClose]);
 
     // Reset state when modal closes/opens
     useEffect(() => {
         if (!open) {
             setPendingUrl(null);
             setCountdown(10);
+            setIsStreamingLink(false);
         }
     }, [open]);
 
-    const handleDownload = async (url: string) => {
+    const handleDownload = async (url: string, originalUrl: string) => {
         setPendingUrl(url);
+        setOriginalUrlForCopy(originalUrl);
+        
+        // Check if it's an HLS streaming link (m3u8, txt masquerading as m3u8)
+        const lowerOriginal = originalUrl.toLowerCase().split('?')[0];
+        const isHls = lowerOriginal.endsWith('.m3u8') || lowerOriginal.endsWith('.txt') || lowerOriginal.endsWith('.m3u') || originalUrl.includes('typezero.top/pl/');
+        
+        setIsStreamingLink(isHls);
         setCountdown(10);
         
         // Track the download in Firebase
@@ -78,6 +91,18 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
                 console.error("Error tracking transfer:", error);
             }
         }
+    };
+    
+    const copyToClipboard = () => {
+        const urlToCopy = window.location.origin + pendingUrl;
+        navigator.clipboard.writeText(urlToCopy).then(() => {
+            toast.success("Link copiado! Cole no seu gestor de downloads (ex: 1DM, ADM).");
+        }).catch(() => {
+            // Fallback for some browsers
+            navigator.clipboard.writeText(originalUrlForCopy).then(() => {
+                toast.success("Link copiado!");
+            });
+        });
     };
 
     return (
@@ -103,49 +128,82 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
                 <div className="w-full px-6 space-y-4 pb-6">
                     {pendingUrl ? (
                         <div className="flex flex-col flex-1 items-center justify-center py-6 animate-in fade-in zoom-in-95 duration-500">
-                            <div className="relative w-24 h-24 mb-6">
-                                <svg className="w-full h-full transform -rotate-90">
-                                    <circle
-                                        cx="48"
-                                        cy="48"
-                                        r="45"
-                                        stroke="currentColor"
-                                        strokeWidth="4"
-                                        fill="transparent"
-                                        className="text-gray-800"
-                                    />
-                                    <circle
-                                        cx="48"
-                                        cy="48"
-                                        r="45"
-                                        stroke="currentColor"
-                                        strokeWidth="4"
-                                        fill="transparent"
-                                        strokeDasharray="282.7"
-                                        strokeDashoffset={282.7 - (282.7 * countdown) / 10}
-                                        className="text-[#22c55e] transition-all duration-1000 ease-linear"
-                                    />
-                                </svg>
-                                <div className="absolute inset-0 flex items-center justify-center">
-                                    <span className="text-3xl font-black text-white">{countdown}s</span>
-                                </div>
-                            </div>
-                            <h3 className="text-[#22c55e] font-bold text-lg mb-2 text-center animate-pulse">
-                                Aguarde, vamos redirecionar você...
-                            </h3>
-                            <p className="text-gray-400 text-sm text-center">
-                                O link do download abrirá automaticamente em uma nova aba em {countdown} segundos.
-                            </p>
-                            <Button
-                                onClick={() => {
-                                    window.open(pendingUrl, '_blank');
-                                    onClose();
-                                    setPendingUrl(null);
-                                }}
-                                className="mt-6 bg-[#22c55e] hover:bg-[#22c55e]/80 text-black font-bold w-full uppercase"
-                            >
-                                Clique aqui se demorar
-                            </Button>
+                            {isStreamingLink ? (
+                                <>
+                                    <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 flex gap-3 items-start mb-6 w-full">
+                                        <Info className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+                                        <div className="space-y-2 text-left">
+                                            <p className="text-sm text-blue-200 font-bold">Formato de Streaming (Playlist)</p>
+                                            <p className="text-xs text-gray-300">
+                                                Este link não baixa diretamente no navegador. Para baixar o filme completo, copie o link abaixo e cole num gestor de downloads como o <b>1DM</b>, <b>ADM</b> ou <b>VLC</b> no seu telemóvel.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <Button
+                                        onClick={copyToClipboard}
+                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 flex items-center justify-center gap-2 mb-3"
+                                    >
+                                        <Copy className="w-5 h-5" />
+                                        COPIAR LINK PARA DOWNLOAD
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        onClick={() => {
+                                            setPendingUrl(null);
+                                            setIsStreamingLink(false);
+                                        }}
+                                        className="w-full text-gray-400 border-gray-700 hover:bg-gray-800"
+                                    >
+                                        Voltar
+                                    </Button>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="relative w-24 h-24 mb-6">
+                                        <svg className="w-full h-full transform -rotate-90">
+                                            <circle
+                                                cx="48"
+                                                cy="48"
+                                                r="45"
+                                                stroke="currentColor"
+                                                strokeWidth="4"
+                                                fill="transparent"
+                                                className="text-gray-800"
+                                            />
+                                            <circle
+                                                cx="48"
+                                                cy="48"
+                                                r="45"
+                                                stroke="currentColor"
+                                                strokeWidth="4"
+                                                fill="transparent"
+                                                strokeDasharray="282.7"
+                                                strokeDashoffset={282.7 - (282.7 * countdown) / 10}
+                                                className="text-[#22c55e] transition-all duration-1000 ease-linear"
+                                            />
+                                        </svg>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <span className="text-3xl font-black text-white">{countdown}s</span>
+                                        </div>
+                                    </div>
+                                    <h3 className="text-[#22c55e] font-bold text-lg mb-2 text-center animate-pulse">
+                                        Aguarde, vamos redirecionar você...
+                                    </h3>
+                                    <p className="text-gray-400 text-sm text-center">
+                                        O link do download abrirá automaticamente em uma nova aba em {countdown} segundos.
+                                    </p>
+                                    <Button
+                                        onClick={() => {
+                                            window.open(pendingUrl, '_blank');
+                                            onClose();
+                                            setPendingUrl(null);
+                                        }}
+                                        className="mt-6 bg-[#22c55e] hover:bg-[#22c55e]/80 text-black font-bold w-full uppercase"
+                                    >
+                                        Clique aqui se demorar
+                                    </Button>
+                                </>
+                            )}
                         </div>
                     ) : (
                         <div className="flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-300">
@@ -176,7 +234,7 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
                                 {effectiveLinks.map((link, idx) => (
                                     <Button
                                         key={idx}
-                                        onClick={() => handleDownload(link.url)}
+                                        onClick={() => handleDownload(link.url, link.originalUrl || link.url)}
                                         className="w-full bg-[#262626] hover:bg-[#333] text-white border border-white/10 h-auto py-3 px-4 flex items-center justify-between group"
                                     >
                                         <div className="flex flex-col items-start text-left">
