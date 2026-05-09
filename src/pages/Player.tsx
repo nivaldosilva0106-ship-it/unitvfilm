@@ -26,6 +26,7 @@ const lazyWithRetry = (componentImport: () => Promise<any>) =>
   );
 
 const DownloadModal = lazyWithRetry(() => import("@/components/DownloadModal").then(module => ({ default: module.DownloadModal })));
+const EpisodeSelector = lazyWithRetry(() => import("@/components/EpisodeSelector").then(module => ({ default: module.EpisodeSelector })));
 
 
 const Player = () => {
@@ -74,6 +75,7 @@ const Player = () => {
 
     // Download Modal State
     const [downloadModal, setDownloadModal] = useState<{ open: boolean, url: string, downloads?: { label: string; url: string; type?: 'direct' | 'torrent' }[], download_mode?: 'direct' | 'torrent' | 'mixed', title: string, thumbnail: string }>({ open: false, url: '', title: '', thumbnail: '' });
+    const [showEpisodeSelector, setShowEpisodeSelector] = useState(false);
 
 
     const watchingCardTimerRef = useRef<NodeJS.Timeout | null>(null);
@@ -156,7 +158,12 @@ const Player = () => {
                 const filtered = allContents.filter(c => c.id !== found.id && c.category !== 'canais24h');
                 setSuggestions(filtered.sort(() => 0.5 - Math.random()).slice(0, 15));
 
-                if (found.category === 'series' && found.episodes) {
+                const isSeries = found.category?.toLowerCase() === 'series' || 
+                                found.category?.toLowerCase() === 'série' || 
+                                found.category?.toLowerCase() === 'serie' ||
+                                (found.episodes && found.episodes.length > 0);
+
+                if (isSeries && found.episodes) {
                     const season = parseInt(seasonParam || '1');
                     const episode = parseInt(episodeParam || '1');
                     const ep = found.episodes.find(e => e.season === season && e.episode === episode);
@@ -223,7 +230,12 @@ const Player = () => {
         let nextEp = null;
         let isEpisode = false;
 
-        if (content.category === 'series' && seasonParam && episodeParam) {
+        const isSeries = content.category?.toLowerCase() === 'series' || 
+                        content.category?.toLowerCase() === 'série' || 
+                        content.category?.toLowerCase() === 'serie' ||
+                        (content.episodes && content.episodes.length > 0);
+
+        if (isSeries && seasonParam && episodeParam) {
             const s = parseInt(seasonParam);
             const e = parseInt(episodeParam);
             const episodeData = content.episodes?.find(ep => ep.season === s && ep.episode === e);
@@ -309,7 +321,12 @@ const Player = () => {
     }, [content, seasonParam, episodeParam, checkAccess, isAdmin, profile, currentProfile]);
 
     const currentEpisodeData = useMemo(() => {
-        if (content?.category === 'series' && seasonParam && episodeParam) {
+        const isSeries = content?.category?.toLowerCase() === 'series' || 
+                        content?.category?.toLowerCase() === 'série' || 
+                        content?.category?.toLowerCase() === 'serie' ||
+                        (content?.episodes && content.episodes.length > 0);
+
+        if (isSeries && seasonParam && episodeParam) {
             const s = parseInt(seasonParam);
             const e = parseInt(episodeParam);
             return content.episodes?.find(ep => ep.season === s && ep.episode === e);
@@ -320,7 +337,12 @@ const Player = () => {
     const handleDownloadClick = () => {
         if (!content) return;
         
-        if (content.category === 'series' && currentEpisodeData) {
+        const isSeries = content.category?.toLowerCase() === 'series' || 
+                        content.category?.toLowerCase() === 'série' || 
+                        content.category?.toLowerCase() === 'serie' ||
+                        (content.episodes && content.episodes.length > 0);
+
+        if (isSeries && currentEpisodeData) {
             setDownloadModal({
                 open: true,
                 url: currentEpisodeData.download_url || '',
@@ -384,7 +406,12 @@ const Player = () => {
         const sources: { name: string; url: string; type: 'internal' | 'embed'; subtitle_url?: string }[] = [];
 
         // For series with episodes, check if current episode has internal_player_url
-        if (content.category === 'series' && seasonParam && episodeParam) {
+        const isSeries = content.category?.toLowerCase() === 'series' || 
+                        content.category?.toLowerCase() === 'série' || 
+                        content.category?.toLowerCase() === 'serie' ||
+                        (content.episodes && content.episodes.length > 0);
+
+        if (isSeries && seasonParam && episodeParam) {
             const s = parseInt(seasonParam);
             const e = parseInt(episodeParam);
             const episodeData = content.episodes?.find(ep => ep.season === s && ep.episode === e);
@@ -423,11 +450,22 @@ const Player = () => {
         return sources;
     }, [content, seasonParam, episodeParam]);
 
-    const currentSource = allSources[currentSourceIndex] || allSources[0];
+    const hasMultipleSeasons = useMemo(() => {
+        if (content?.episodes) {
+            const seasons = new Set(content.episodes.map(ep => ep.season));
+            return seasons.size > 1;
+        }
+        return false;
+    }, [content]);
 
     const estimatedDuration = useMemo(() => {
         if (!content) return 5400;
-        if (content.category === 'series') {
+        const isSeries = content.category?.toLowerCase() === 'series' || 
+                        content.category?.toLowerCase() === 'série' || 
+                        content.category?.toLowerCase() === 'serie' ||
+                        (content.episodes && content.episodes.length > 0);
+
+        if (isSeries) {
             if (seasonParam && episodeParam && content.episodes) {
                 const ep = content.episodes.find(e => e.season === parseInt(seasonParam) && e.episode === parseInt(episodeParam));
                 if (ep?.duration) return Number(ep.duration) * 60;
@@ -923,6 +961,18 @@ const Player = () => {
                                 </Button>
                             )}
 
+                            {hasMultipleSeasons && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setShowEpisodeSelector(true)}
+                                    className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                    title="Trocar Temporada"
+                                >
+                                    <List className="w-3.5 h-3.5 sm:w-5 sm:h-5" />
+                                </Button>
+                            )}
+
                             {/* Download Button */}
                             <Button
                                 variant="ghost"
@@ -980,10 +1030,10 @@ const Player = () => {
                                 }}
                                 variant="ghost"
                                 size="icon"
-                                className="w-10 h-10 sm:w-20 sm:h-20 rounded-full bg-black/60 hover:bg-primary text-white backdrop-blur-md border-2 border-white/20 shadow-[0_0_30px_rgba(0,0,0,0.5)] transition-all duration-300 hover:scale-110 flex items-center justify-center pointer-events-auto group/btn"
+                                className="w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-black/60 hover:bg-primary text-white backdrop-blur-md border-2 border-white/20 shadow-[0_0_30px_rgba(0,0,0,0.5)] transition-all duration-300 hover:scale-110 flex items-center justify-center pointer-events-auto group/btn"
                                 title={`Próximo: ${nextEpisode.title}`}
                             >
-                                <ChevronRight className="w-6 h-6 sm:w-12 sm:h-12 ml-0.5 transition-transform group-hover/btn:translate-x-1" />
+                                <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8 ml-0.5 transition-transform group-hover/btn:translate-x-1" />
                             </Button>
                             <div className="bg-black/60 backdrop-blur-md px-3 py-1 rounded-full border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity hidden sm:block shadow-lg">
                                 <span className="text-[10px] text-white uppercase font-bold tracking-wider">Próximo Episódio</span>
@@ -1245,6 +1295,21 @@ const Player = () => {
                     thumbnail={downloadModal.thumbnail}
                     contentId={content?.id || ''}
                 />
+
+                {showEpisodeSelector && content && content.episodes && (
+                    <EpisodeSelector
+                        open={showEpisodeSelector}
+                        onClose={() => setShowEpisodeSelector(false)}
+                        episodes={content.episodes}
+                        title={content.title}
+                        trailerUrl={content.trailer_url}
+                        thumbnail={content.thumbnail_url}
+                        onPlayEpisode={(ep) => {
+                            setSearchParams({ season: ep.season.toString(), episode: ep.episode.toString() });
+                            setShowEpisodeSelector(false);
+                        }}
+                    />
+                )}
             </Suspense>
         </div>
     </div>
