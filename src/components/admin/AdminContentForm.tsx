@@ -351,48 +351,117 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
   };
 
   const shuffleEpisodes = () => {
-    if (!editingContent.episodes) return;
-    const shuffled = [...editingContent.episodes].sort(() => Math.random() - 0.5);
-    setEditingContent(prev => ({ ...prev, episodes: shuffled }));
-    toast.success("Programação embaralhada!");
+    if (!editingContent.episodes || editingContent.episodes.length === 0) return;
+    // Fisher-Yates proper shuffle
+    const arr = [...editingContent.episodes];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    setEditingContent(prev => ({ ...prev, episodes: arr }));
+    toast.success("Programação embaralhada aleatoriamente!");
   };
 
   const orderEpisodes2by2 = () => {
-    if (!editingContent.episodes) return;
-    
-    // Group by title
-    const groups: { [key: string]: Episode[] } = {};
+    if (!editingContent.episodes || editingContent.episodes.length === 0) return;
+
+    /**
+     * Helper: extract a numeric episode index from a title string.
+     * Handles patterns like:
+     *   "Temporada 2 Episódio 5"  → 205  (season*100 + episode for stable sort)
+     *   "S02E05"                  → 205
+     *   "Ep 5" / "Ep. 5"         → 5
+     *   "Parte 3"                 → 3
+     *   trailing bare number      → that number
+     * Returns 0 if nothing found (preserves original relative order).
+     */
+    const getEpisodeIndex = (title: string): number => {
+      const t = title || '';
+
+      // "Temporada X Episódio Y"  or  "Temporada X Ep Y"
+      const tempEpMatch = t.match(/temporada\s+(\d+)\s+(?:epis[oó]dio|ep\.?)\s+(\d+)/i);
+      if (tempEpMatch) return parseInt(tempEpMatch[1]) * 1000 + parseInt(tempEpMatch[2]);
+
+      // "SxxEyy"
+      const sxeyMatch = t.match(/[Ss](\d+)[Ee](\d+)/);
+      if (sxeyMatch) return parseInt(sxeyMatch[1]) * 1000 + parseInt(sxeyMatch[2]);
+
+      // "1x05"
+      const nxMatch = t.match(/(\d+)[xX](\d+)/);
+      if (nxMatch) return parseInt(nxMatch[1]) * 1000 + parseInt(nxMatch[2]);
+
+      // "Episódio N" / "Ep N"
+      const epMatch = t.match(/(?:epis[oó]dio|ep\.?)\s+(\d+)/i);
+      if (epMatch) return parseInt(epMatch[1]);
+
+      // "Parte N"
+      const parteMatch = t.match(/parte\s+(\d+)/i);
+      if (parteMatch) return parseInt(parteMatch[1]);
+
+      // Trailing bare number  "Nome do Vídeo 7"
+      const trailingMatch = t.match(/(\d+)\s*$/);
+      if (trailingMatch) return parseInt(trailingMatch[1]);
+
+      return 0;
+    };
+
+    /**
+     * Helper: derive a "base series name" by stripping episode/season/part info.
+     * e.g. "Os Simpsons Temporada 1 Episódio 5" → "Os Simpsons"
+     *      "Drawn Together S03E01"               → "Drawn Together"
+     *      "Meu Filme - Parte 2"                 → "Meu Filme"
+     */
+    const getBaseTitle = (title: string): string => {
+      let base = title || '';
+      // Remove season+episode combos first (longest patterns first)
+      base = base.replace(/temporada\s+\d+\s+(?:epis[oó]dio|ep\.?)\s+\d+/gi, '');
+      base = base.replace(/[Ss]\d+[Ee]\d+/g, '');
+      base = base.replace(/\d+[xX]\d+/g, '');
+      // Remove standalone labels
+      base = base.replace(/(?:epis[oó]dio|ep\.?)\s+\d+/gi, '');
+      base = base.replace(/temporada\s+\d+/gi, '');
+      base = base.replace(/parte\s+\d+/gi, '');
+      // Clean up trailing separators and whitespace
+      base = base.replace(/[\s\-:_]+$/g, '').trim();
+      return base || title; // fallback to original if everything was stripped
+    };
+
+    // --- 1. Group episodes by base series title ---
+    const groupsMap = new Map<string, Episode[]>();
     editingContent.episodes.forEach(ep => {
-      // Normalize title for grouping (e.g. "Simpsons - Ep 1" -> "Simpsons")
-      const baseTitle = ep.title.split(/[\-\:]/)[0].trim();
-      if (!groups[baseTitle]) groups[baseTitle] = [];
-      groups[baseTitle].push(ep);
+      const key = getBaseTitle(ep.title);
+      if (!groupsMap.has(key)) groupsMap.set(key, []);
+      groupsMap.get(key)!.push(ep);
     });
 
-    const ordered: Episode[] = [];
-    const titles = Object.keys(groups);
-    
-    // Randomize initial title order
-    const shuffledTitles = [...titles].sort(() => Math.random() - 0.5);
-    const tempGroups = { ...groups };
+    // --- 2. Sort each group numerically by episode index ---
+    groupsMap.forEach(eps => {
+      eps.sort((a, b) => getEpisodeIndex(a.title) - getEpisodeIndex(b.title));
+    });
 
-    // This loop picks a title, takes 2 episodes, then moves to next title
-    // to ensure variety but keep 2-by-2 groups
-    let hasContents = true;
-    while (hasContents) {
-      hasContents = false;
-      shuffledTitles.forEach(title => {
-        const group = tempGroups[title];
-        if (group.length > 0) {
-          const batch = group.splice(0, 2);
+    // --- 3. Round-robin: take 2 episodes per group per pass ---
+    // Each group gets a mutable copy so we pop from it across passes.
+    const slots = Array.from(groupsMap.values()).map(eps => [...eps]);
+
+    const ordered: Episode[] = [];
+    let hasContent = true;
+    while (hasContent) {
+      hasContent = false;
+      for (const slot of slots) {
+        if (slot.length > 0) {
+          // Take up to 2 consecutive (already sorted) episodes from this series
+          const batch = slot.splice(0, 2);
           ordered.push(...batch);
-          hasContents = true;
+          hasContent = true;
         }
-      });
+      }
     }
 
     setEditingContent(prev => ({ ...prev, episodes: ordered }));
-    toast.success("Programação organizada (2 em 2)!");
+    const totalShows = groupsMap.size;
+    toast.success(
+      `Programação organizada! ${totalShows} série${totalShows !== 1 ? 's' : ''} intercaladas 2 episódios por vez.`
+    );
   };
 
   const sortEpisodesNumerically = () => {
