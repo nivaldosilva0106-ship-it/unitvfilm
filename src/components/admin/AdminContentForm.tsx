@@ -1612,8 +1612,14 @@ ${ep.url || ""}`;
                       return (a.episode || 0) - (b.episode || 0);
                     });
                     const postTitle = editingContent.title || '';
+                    let currentSeason = -1;
                     sortedEpisodes.forEach(ep => {
-                      exportText += `${postTitle} Temporada ${ep.season || 1} ${ep.title || `Episódio ${ep.episode || 1}`}`.trim() + `\n`;
+                      const epSeason = ep.season || 1;
+                      if (epSeason !== currentSeason) {
+                        exportText += `Temporada ${epSeason}\n`;
+                        currentSeason = epSeason;
+                      }
+                      exportText += `${postTitle} Temporada ${epSeason} ${ep.title || `Episódio ${ep.episode || 1}`}`.trim() + `\n`;
                       exportText += `${ep.internal_player_url || ep.url || ''}\n\n`;
                     });
                     const blob = new Blob([exportText.trim()], { type: 'text/plain' });
