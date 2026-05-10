@@ -171,7 +171,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     const tiktokPattern = /https?:\/\/(?:www\.)?tiktok\.com\/@[^\/]+\/video\/\d+/;
     const urlPattern = /https?:\/\/[^\s]+/;
     const separatorPattern = /^[-\s=]{3,}$/;
-    const seasonHeaderPattern = /(?:temporada\s+(\d+)|(\d+)\s*temporada)/i;
+    const seasonHeaderPattern = /^(?:temporada\s+(\d+)|(\d+)\s*temporada)$/i;
     const hierarchicalPatternWithUrl = /^(\d+\.\s*)?(.+?)\s*[-:]\s*(https?:\/\/[^\s]+)/i;
 
     // Helper for URL mapping
@@ -271,6 +271,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           downloads: urls.downloads as any,
           download_mode: urls.isDownloadable ? 'direct' : undefined
         });
+        runningTitle = "";
         return;
       }
 
@@ -291,8 +292,9 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           downloads: urls.downloads as any,
           download_mode: urls.isDownloadable ? 'direct' : undefined
         });
+        runningTitle = "";
       } else {
-        runningTitle = line.trim();
+        runningTitle = line.trim().replace(/^(?:t[ií]tulo|nome)[:\s-]+/i, '').trim();
         if (!editingContent.title) {
           setEditingContent(prev => ({ ...prev, title: runningTitle }));
         }
