@@ -2684,43 +2684,52 @@ ${ep.url || ""}`;
                           else next.add(c.id);
                           setSelectedImportIds(next);
                         }}
-                        className={`p-3 rounded-lg border transition-all cursor-pointer group relative ${
+                        className={`p-2 rounded-lg border transition-all cursor-pointer group relative flex flex-col gap-2 ${
                           isSelected 
                             ? 'bg-indigo-600/20 border-indigo-500/50 shadow-lg shadow-indigo-500/10' 
                             : 'bg-black/40 border-zinc-800 hover:border-zinc-700 hover:bg-black/60'
                         }`}
                       >
-                        <div className="flex items-start gap-3">
-                          <div className={`mt-1 w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-                            isSelected ? 'bg-indigo-500 border-indigo-400' : 'bg-zinc-900 border-zinc-700 group-hover:border-zinc-500'
-                          }`}>
-                            {isSelected && <CheckCircle2 className="w-3 h-3 text-white" />}
+                        <div className="flex gap-3">
+                          <div className="relative w-14 h-20 shrink-0 rounded-md overflow-hidden bg-zinc-900 border border-white/5">
+                            {c.poster_url ? (
+                              <img src={c.poster_url} alt={c.title} className="w-full h-full object-cover" />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-zinc-700">
+                                <Film className="w-6 h-6" />
+                              </div>
+                            )}
+                            <div className={`absolute top-1 left-1 w-4 h-4 rounded border flex items-center justify-center transition-colors shadow-md ${
+                              isSelected ? 'bg-indigo-500 border-indigo-400' : 'bg-black/60 border-zinc-700 group-hover:border-zinc-500'
+                            }`}>
+                              {isSelected && <CheckCircle2 className="w-3 h-3 text-white" />}
+                            </div>
                           </div>
                           
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
+                          <div className="flex-1 min-w-0 py-1">
+                            <div className="flex items-center gap-1.5 mb-1">
                               {c.category === 'movie' ? (
                                 <Film className="w-3 h-3 text-blue-400 shrink-0" />
                               ) : (
                                 <Tv className="w-3 h-3 text-purple-400 shrink-0" />
                               )}
-                              <p className={`text-xs font-bold truncate ${isSelected ? 'text-indigo-200' : 'text-zinc-300'}`}>
+                              <p className={`text-[11px] font-bold truncate leading-tight ${isSelected ? 'text-indigo-200' : 'text-zinc-300'}`}>
                                 {c.title}
                               </p>
                             </div>
-                            <p className="text-[10px] text-zinc-500 uppercase font-black">{c.category}</p>
+                            <p className="text-[9px] text-zinc-500 uppercase font-black mb-2 tracking-tighter">{c.category}</p>
 
                             {isSelected && c.category !== 'movie' && (
-                              <div className="mt-2" onClick={e => e.stopPropagation()}>
+                              <div onClick={e => e.stopPropagation()}>
                                 <Select 
                                   value={importSeasonConfigs[c.id] || 'all'} 
                                   onValueChange={(v) => setImportSeasonConfigs(prev => ({ ...prev, [c.id]: v }))}
                                 >
-                                  <SelectTrigger className="h-7 text-[10px] bg-black/60 border-indigo-500/30 text-indigo-200">
+                                  <SelectTrigger className="h-6 text-[9px] bg-black/60 border-indigo-500/30 text-indigo-200 px-2">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
-                                    <SelectItem value="all">Todas as Temporadas</SelectItem>
+                                    <SelectItem value="all">Todas Temps</SelectItem>
                                     {Array.from(new Set(c.episodes?.map(ep => ep.season))).sort((a,b) => (a||0)-(b||0)).map(s => (
                                       <SelectItem key={s} value={s?.toString() || "1"}>Temporada {s}</SelectItem>
                                     ))}
