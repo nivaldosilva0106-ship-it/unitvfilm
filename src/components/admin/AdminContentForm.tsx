@@ -62,8 +62,8 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
   const [allSiteContents, setAllSiteContents] = useState<Content[]>([]);
   const [isFetchingContents, setIsFetchingContents] = useState(false);
   const [contentSearchTerm, setContentSearchTerm] = useState("");
-  const [selectedContentId, setSelectedContentId] = useState<string>("");
-  const [selectedSeasonForImport, setSelectedSeasonForImport] = useState<string>("all");
+  const [selectedImportIds, setSelectedImportIds] = useState<Set<string>>(new Set());
+  const [importSeasonConfigs, setImportSeasonConfigs] = useState<{[key: string]: string}>({}); // contentId -> "all" or specific season number
 
   // Initialize externalSeasons from external_source_url if it's a series and has content
   useState(() => {
@@ -526,54 +526,61 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
   };
 
   const addContentToProgramming = () => {
-    const content = allSiteContents.find(c => c.id === selectedContentId);
-    if (!content) return;
+    if (selectedImportIds.size === 0) {
+      toast.error("Selecione pelo menos um conteúdo");
+      return;
+    }
 
     const newEpisodesToAdd: Episode[] = [];
+    
+    selectedImportIds.forEach(id => {
+      const content = allSiteContents.find(c => c.id === id);
+      if (!content) return;
 
-    if (content.category === 'movie') {
-      const urls = [content.internal_player_url, content.google_drive_url, content.tiktok_url, content.video_url]
-        .filter(url => isDirectUrl(url));
-      
-      const urlToUse = urls[0] || "";
-      if (urlToUse) {
-        newEpisodesToAdd.push({
-          id: Math.random().toString(36).substr(2, 9),
-          title: content.title,
-          url: urlToUse.includes('youtube') || urlToUse.includes('tiktok') ? urlToUse : "",
-          internal_player_url: !urlToUse.includes('youtube') && !urlToUse.includes('tiktok') ? urlToUse : "",
-          season: 1,
-          episode: (editingContent.episodes?.length || 0) + 1,
-          duration: 3600 // Default 1h for movies
+      if (content.category === 'movie') {
+        const urls = [content.internal_player_url, content.google_drive_url, content.tiktok_url, content.video_url]
+          .filter(url => isDirectUrl(url));
+        
+        const urlToUse = urls[0] || "";
+        if (urlToUse) {
+          newEpisodesToAdd.push({
+            id: Math.random().toString(36).substr(2, 9),
+            title: content.title,
+            url: urlToUse.includes('youtube') || urlToUse.includes('tiktok') ? urlToUse : "",
+            internal_player_url: !urlToUse.includes('youtube') && !urlToUse.includes('tiktok') ? urlToUse : "",
+            season: 1,
+            episode: (editingContent.episodes?.length || 0) + newEpisodesToAdd.length + 1,
+            duration: 3600
+          });
+        }
+      } else {
+        const seasonConfig = importSeasonConfigs[id] || "all";
+        const episodesToImport = (content.episodes || []).filter(ep => {
+          const matchesSeason = seasonConfig === 'all' || ep.season.toString() === seasonConfig;
+          const hasValidLink = isDirectUrl(ep.internal_player_url) || 
+                             isDirectUrl(ep.google_drive_url) || 
+                             isDirectUrl(ep.tiktok_url) ||
+                             (ep.url && isDirectUrl(ep.url));
+          return matchesSeason && hasValidLink;
+        });
+
+        episodesToImport.forEach(ep => {
+          const urls = [ep.internal_player_url, ep.google_drive_url, ep.tiktok_url, ep.url]
+            .filter(url => isDirectUrl(url));
+          const urlToUse = urls[0] || "";
+
+          newEpisodesToAdd.push({
+            ...ep,
+            id: Math.random().toString(36).substr(2, 9),
+            title: `${content.title} - ${ep.title || `Episódio ${ep.episode}`}`,
+            url: urlToUse.includes('youtube') || urlToUse.includes('tiktok') ? urlToUse : "",
+            internal_player_url: !urlToUse.includes('youtube') && !urlToUse.includes('tiktok') ? urlToUse : "",
+            episode: (editingContent.episodes?.length || 0) + newEpisodesToAdd.length + 1,
+            duration: ep.duration || 1800
+          });
         });
       }
-    } else {
-      // Series or Nostalgia
-      const episodesToImport = (content.episodes || []).filter(ep => {
-        const matchesSeason = selectedSeasonForImport === 'all' || ep.season.toString() === selectedSeasonForImport;
-        const hasValidLink = isDirectUrl(ep.internal_player_url) || 
-                           isDirectUrl(ep.google_drive_url) || 
-                           isDirectUrl(ep.tiktok_url) ||
-                           (ep.url && isDirectUrl(ep.url));
-        return matchesSeason && hasValidLink;
-      });
-
-      episodesToImport.forEach(ep => {
-        const urls = [ep.internal_player_url, ep.google_drive_url, ep.tiktok_url, ep.url]
-          .filter(url => isDirectUrl(url));
-        const urlToUse = urls[0] || "";
-
-        newEpisodesToAdd.push({
-          ...ep,
-          id: Math.random().toString(36).substr(2, 9),
-          title: `${content.title} - ${ep.title || `Episódio ${ep.episode}`}`,
-          url: urlToUse.includes('youtube') || urlToUse.includes('tiktok') ? urlToUse : "",
-          internal_player_url: !urlToUse.includes('youtube') && !urlToUse.includes('tiktok') ? urlToUse : "",
-          episode: (editingContent.episodes?.length || 0) + newEpisodesToAdd.length + 1,
-          duration: ep.duration || 1800
-        });
-      });
-    }
+    });
 
     if (newEpisodesToAdd.length > 0) {
       setEditingContent(prev => ({
@@ -581,9 +588,10 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
         episodes: [...(prev.episodes || []), ...newEpisodesToAdd]
       }));
       toast.success(`${newEpisodesToAdd.length} itens adicionados à programação!`);
-      setSelectedContentId("");
+      setSelectedImportIds(new Set());
+      setImportSeasonConfigs({});
     } else {
-      toast.warning("Nenhum link válido encontrado neste conteúdo.");
+      toast.warning("Nenhum link válido encontrado nos conteúdos selecionados.");
     }
   };
 
@@ -2611,92 +2619,131 @@ ${ep.url || ""}`;
       )}
 
       {isCanais24h && (
-        <div className="mt-4 p-6 bg-indigo-900/10 border border-indigo-500/20 rounded-xl space-y-6">
-          <div className="flex items-center gap-2 text-indigo-400">
-            <PlusCircle className="w-5 h-5" />
-            <h3 className="font-bold text-lg">Importar Conteúdos do Site para Programação</h3>
+        <div className="mt-4 p-6 bg-indigo-900/10 border border-indigo-500/20 rounded-xl space-y-6 shadow-2xl">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-indigo-400">
+              <PlusCircle className="w-5 h-5" />
+              <h3 className="font-bold text-lg">Seleção de Conteúdos para Programação</h3>
+            </div>
+            <div className="flex gap-2">
+              <Button 
+                onClick={addContentToProgramming}
+                disabled={selectedImportIds.size === 0}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-10 shadow-[0_0_15px_rgba(79,70,229,0.4)]"
+              >
+                <PlusCircle className="w-4 h-4 mr-2" />
+                Adicionar Selecionados ({selectedImportIds.size})
+              </Button>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-xs text-zinc-400 uppercase font-bold">1. Buscar Conteúdo</Label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                  <Input 
-                    placeholder="Filtrar por nome..."
-                    value={contentSearchTerm}
-                    onChange={(e) => setContentSearchTerm(e.target.value)}
-                    onFocus={fetchSiteContents}
-                    className="bg-black/40 border-zinc-800 pl-9"
-                  />
-                </div>
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                <Input 
+                  placeholder="Pesquisar filmes ou séries no site..."
+                  value={contentSearchTerm}
+                  onChange={(e) => setContentSearchTerm(e.target.value)}
+                  onFocus={fetchSiteContents}
+                  className="bg-black/40 border-zinc-800 pl-9 h-11"
+                />
               </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs text-zinc-400 uppercase font-bold">2. Selecionar Conteúdo ({allSiteContents.length} disponíveis)</Label>
-                <Select 
-                  value={selectedContentId} 
-                  onValueChange={setSelectedContentId}
-                >
-                  <SelectTrigger className="bg-black/40 border-zinc-800">
-                    <SelectValue placeholder={isFetchingContents ? "Carregando..." : "Escolha um conteúdo..."} />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[300px]">
-                    {allSiteContents
-                      .filter(c => c.title.toLowerCase().includes(contentSearchTerm.toLowerCase()))
-                      .map(c => (
-                        <SelectItem key={c.id} value={c.id}>
-                          <span className="flex items-center gap-2">
-                            {c.category === 'movie' ? <Film className="w-3 h-3 text-blue-400" /> : <Tv className="w-3 h-3 text-purple-400" />}
-                            {c.title} 
-                            <span className="text-[10px] text-zinc-500 ml-2">({c.category})</span>
-                          </span>
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {selectedContentId && allSiteContents.find(c => c.id === selectedContentId)?.category !== 'movie' && (
-                <div className="space-y-2">
-                  <Label className="text-xs text-zinc-400 uppercase font-bold">3. Temporada</Label>
-                  <Select 
-                    value={selectedSeasonForImport} 
-                    onValueChange={setSelectedSeasonForImport}
-                  >
-                    <SelectTrigger className="bg-black/40 border-zinc-800">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">Todas as Temporadas</SelectItem>
-                      {Array.from(new Set(allSiteContents.find(c => c.id === selectedContentId)?.episodes?.map(ep => ep.season))).sort((a,b) => (a||0)-(b||0)).map(s => (
-                        <SelectItem key={s} value={s?.toString() || "1"}>Temporada {s}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              <div className="flex flex-col justify-end h-full">
+              <div className="flex items-center justify-between px-2">
+                <p className="text-xs text-zinc-500">
+                  {selectedImportIds.size} itens selecionados de {allSiteContents.length} disponíveis
+                </p>
                 <Button 
-                  onClick={addContentToProgramming}
-                  disabled={!selectedContentId}
-                  className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold h-10"
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setSelectedImportIds(new Set())}
+                  className="text-xs text-red-400 hover:text-red-300 hover:bg-red-950/20"
                 >
-                  <PlusCircle className="w-4 h-4 mr-2" />
-                  Adicionar à Programação
+                  Limpar Seleção
                 </Button>
               </div>
             </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar p-1">
+              {isFetchingContents ? (
+                <div className="col-span-full py-10 flex flex-col items-center justify-center text-zinc-500 gap-3">
+                  <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+                  <p className="text-sm font-medium">Buscando conteúdos do servidor...</p>
+                </div>
+              ) : (
+                allSiteContents
+                  .filter(c => c.title.toLowerCase().includes(contentSearchTerm.toLowerCase()))
+                  .map(c => {
+                    const isSelected = selectedImportIds.has(c.id);
+                    return (
+                      <div 
+                        key={c.id} 
+                        onClick={() => {
+                          const next = new Set(selectedImportIds);
+                          if (isSelected) next.delete(c.id);
+                          else next.add(c.id);
+                          setSelectedImportIds(next);
+                        }}
+                        className={`p-3 rounded-lg border transition-all cursor-pointer group relative ${
+                          isSelected 
+                            ? 'bg-indigo-600/20 border-indigo-500/50 shadow-lg shadow-indigo-500/10' 
+                            : 'bg-black/40 border-zinc-800 hover:border-zinc-700 hover:bg-black/60'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={`mt-1 w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                            isSelected ? 'bg-indigo-500 border-indigo-400' : 'bg-zinc-900 border-zinc-700 group-hover:border-zinc-500'
+                          }`}>
+                            {isSelected && <CheckCircle2 className="w-3 h-3 text-white" />}
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              {c.category === 'movie' ? (
+                                <Film className="w-3 h-3 text-blue-400 shrink-0" />
+                              ) : (
+                                <Tv className="w-3 h-3 text-purple-400 shrink-0" />
+                              )}
+                              <p className={`text-xs font-bold truncate ${isSelected ? 'text-indigo-200' : 'text-zinc-300'}`}>
+                                {c.title}
+                              </p>
+                            </div>
+                            <p className="text-[10px] text-zinc-500 uppercase font-black">{c.category}</p>
+
+                            {isSelected && c.category !== 'movie' && (
+                              <div className="mt-2" onClick={e => e.stopPropagation()}>
+                                <Select 
+                                  value={importSeasonConfigs[c.id] || 'all'} 
+                                  onValueChange={(v) => setImportSeasonConfigs(prev => ({ ...prev, [c.id]: v }))}
+                                >
+                                  <SelectTrigger className="h-7 text-[10px] bg-black/60 border-indigo-500/30 text-indigo-200">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="all">Todas as Temporadas</SelectItem>
+                                    {Array.from(new Set(c.episodes?.map(ep => ep.season))).sort((a,b) => (a||0)-(b||0)).map(s => (
+                                      <SelectItem key={s} value={s?.toString() || "1"}>Temporada {s}</SelectItem>
+                                    ))}
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+              )}
+            </div>
           </div>
           
-          <p className="text-[10px] text-zinc-500 italic">
-            * Este sistema filtra automaticamente apenas conteúdos com links diretos (MP4, M3U8, TXT, Google Drive, YouTube, TikTok).
-            Conteúdos que utilizam apenas IFRAME/EMBED não serão exibidos aqui.
-          </p>
+          <div className="flex items-center gap-3 p-4 bg-black/40 rounded-lg border border-white/5">
+            <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />
+            <p className="text-[10px] text-zinc-500 italic leading-relaxed">
+              * O sistema filtra apenas conteúdos com links diretos (MP4, M3U8, TXT, Google Drive, YouTube, TikTok).
+              Selecione múltiplos itens acima e clique em "Adicionar Selecionados" para importar em massa.
+            </p>
+          </div>
         </div>
       )}
 
