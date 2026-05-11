@@ -769,6 +769,7 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, waterma
                     watermarkUrl={channelThumb}
                     watermarkPosition={watermarkPosition}
                     watermarkSize={watermarkSize}
+                    initialAspect="cover"
                 />
             )}
         </div>
@@ -905,72 +906,14 @@ export default function Canais24h() {
         })();
     }, []);
 
-    // ---- 3. Get initial program index from global time ----
+    // ---- 3. Get initial program index from global time (DETERMINISTIC — same on all devices) ----
     const getInitialState = useCallback(() => {
         if (!currentChannel || programs.length === 0) return null;
 
         const GAP = 0; 
-        const channelId = currentChannel.id;
         
-        // 1. First, check if we have a saved progression state for this channel locally
-        const SAVED_STATE_KEY = `tv_progression_${channelId}`;
-        const savedSyncStr = localStorage.getItem(SAVED_STATE_KEY);
-        
-        let bestStartingProg = null;
-        let bestStartTime = 0;
-        
-        if (savedSyncStr) {
-            try {
-                const data = JSON.parse(savedSyncStr);
-                const elapsedSinceSave = Math.floor((Date.now() - data.realTimestamp) / 1000);
-                
-                // CRITICAL: If the programming length changed, ignore saved state to avoid index out of bounds or stale sync
-                if (data.programCount !== programs.length) {
-                    localStorage.removeItem(SAVED_STATE_KEY);
-                    throw new Error("Programming changed");
-                }
-
-                // If it's been less than 24 hours, we resume from where they were and skip forward logically
-                // to simulate they left the TV on. (Advances TV time correctly without looping) a true virtual broadcast tracking.
-                if (elapsedSinceSave >= 0 && elapsedSinceSave < 86400) {
-                    let simulatedProgIndex = data.index;
-                    let simulatedElapsedWithinVideo = data.videoTime + elapsedSinceSave;
-                    
-                    // Loop forward through programs mathematically to find the correct active video now!
-                    let iterations = 0;
-                    while (iterations < programs.length) {
-                         const currentDur = programs[simulatedProgIndex]?.duration || 1800; // Use actual duration if present
-                         if (simulatedElapsedWithinVideo < currentDur) {
-                             bestStartingProg = programs[simulatedProgIndex];
-                             bestStartTime = simulatedElapsedWithinVideo;
-                             break;
-                         } else {
-                             // Subtract duration, jump to next block
-                             simulatedElapsedWithinVideo -= currentDur;
-                             simulatedProgIndex = (simulatedProgIndex + 1) % programs.length;
-                         }
-                         iterations++;
-                    }
-                    
-                    if (bestStartingProg) {
-                        return {
-                            item: {
-                                url: bestStartingProg.internal_player_url || bestStartingProg.url || "",
-                                startTime: bestStartTime,
-                                title: bestStartingProg.title || "",
-                                type: "program" as const,
-                                programIndex: simulatedProgIndex,
-                                playbackSpeed: bestStartingProg.playback_speed,
-                                description: bestStartingProg.description || "",
-                            },
-                            duration: bestStartingProg.duration || 1800,
-                        };
-                    }
-                }
-            } catch {}
-        }
-
-        // 2. Fallback to static mathematical scheduler 
+        // Deterministic mathematical scheduler based on real-time clock
+        // All devices with synced clocks will calculate the EXACT same result
         const nowSec = Math.floor((Date.now() + serverOffsetRef.current) / 1000);
         const salt = (currentChannel.id || "").split("").reduce((a, c) => a + c.charCodeAt(0), 0);
         let total = 0;
@@ -1057,8 +1000,9 @@ export default function Canais24h() {
         let breakIdx = currentItem.breakIndex || 0;
         let pSince = currentItem.programsSinceBreak || 0;
 
-        // Helper to get next random media link
-        const getRandom = (list: any[]) => list[Math.floor(Math.random() * list.length)];
+        // Helper to get next media link deterministically (based on time, not random)
+        const nowSeed = Math.floor(Date.now() / 1000);
+        const getSeeded = (list: any[], idx: number) => list[(idx + nowSeed) % list.length];
         const getLinear = (list: any[], idx: number) => list[idx % list.length];
         
         // Check if we need to enter a break block
@@ -1073,10 +1017,10 @@ export default function Canais24h() {
         // 1. Transition FROM Program TO Break (if needed)
         if (shouldBreak) {
             if (globInt > 0 && intervalList.length > 0) {
-                const item = shuffleIntervals ? getRandom(intervalList) : getLinear(intervalList, 0);
+                const item = shuffleIntervals ? getSeeded(intervalList, breakIdx) : getLinear(intervalList, 0);
                 return { url: item.url, startTime: 0, title: item.title || "Intervalo", type: "interval", programIndex: currentItem.programIndex, breakIndex: 1, programsSinceBreak: 0 };
             } else if (globAds > 0 && adList.length > 0) {
-                const item = shuffleAds ? getRandom(adList) : getLinear(adList, 0);
+                const item = shuffleAds ? getSeeded(adList, breakIdx) : getLinear(adList, 0);
                 return { url: item.url, startTime: 0, title: item.title || "Publicidade", type: "ad", programIndex: currentItem.programIndex, breakIndex: 1, programsSinceBreak: 0 };
             } else if (logoUrl) {
                 return { url: logoUrl, startTime: 0, title: "Logo", type: "logo", programIndex: currentItem.programIndex, programsSinceBreak: 0 };
@@ -1090,10 +1034,10 @@ export default function Canais24h() {
             const reqAds = currentProg?.post_video_ads || 0;
             
             if (reqInt > 0 && intervalList.length > 0) {
-                const item = shuffleIntervals ? getRandom(intervalList) : getLinear(intervalList, 0);
+                const item = shuffleIntervals ? getSeeded(intervalList, breakIdx) : getLinear(intervalList, 0);
                 return { url: item.url, startTime: 0, title: item.title || "Intervalo", type: "interval", programIndex: currentItem.programIndex, breakIndex: 1, programsSinceBreak: pSince };
             } else if (reqAds > 0 && adList.length > 0) {
-                const item = shuffleAds ? getRandom(adList) : getLinear(adList, 0);
+                const item = shuffleAds ? getSeeded(adList, breakIdx) : getLinear(adList, 0);
                 return { url: item.url, startTime: 0, title: item.title || "Publicidade", type: "ad", programIndex: currentItem.programIndex, breakIndex: 1, programsSinceBreak: pSince };
             }
         }
@@ -1104,10 +1048,10 @@ export default function Canais24h() {
             const targetAds = freq > 0 ? globAds : ((programs[currentItem.programIndex] || programs[0])?.post_video_ads || 0);
             
             if (breakIdx < targetInt && intervalList.length > 0) {
-                const item = shuffleIntervals ? getRandom(intervalList) : getLinear(intervalList, breakIdx);
+                const item = shuffleIntervals ? getSeeded(intervalList, breakIdx) : getLinear(intervalList, breakIdx);
                 return { url: item.url, startTime: 0, title: item.title || "Intervalo", type: "interval", programIndex: currentItem.programIndex, breakIndex: breakIdx + 1, programsSinceBreak: 0 };
             } else if (targetAds > 0 && adList.length > 0) {
-                const item = shuffleAds ? getRandom(adList) : getLinear(adList, 0);
+                const item = shuffleAds ? getSeeded(adList, breakIdx) : getLinear(adList, 0);
                 return { url: item.url, startTime: 0, title: item.title || "Publicidade", type: "ad", programIndex: currentItem.programIndex, breakIndex: 1, programsSinceBreak: 0 };
             } else if (freq > 0 && logoUrl) {
                 return { url: logoUrl, startTime: 0, title: "Logo", type: "logo", programIndex: currentItem.programIndex, programsSinceBreak: 0 };
@@ -1119,7 +1063,7 @@ export default function Canais24h() {
             const targetAds = freq > 0 ? globAds : ((programs[currentItem.programIndex] || programs[0])?.post_video_ads || 0);
             
             if (breakIdx < targetAds && adList.length > 0) {
-                const item = shuffleAds ? getRandom(adList) : getLinear(adList, breakIdx);
+                const item = shuffleAds ? getSeeded(adList, breakIdx) : getLinear(adList, breakIdx);
                 return { url: item.url, startTime: 0, title: item.title || "Publicidade", type: "ad", programIndex: currentItem.programIndex, breakIndex: breakIdx + 1, programsSinceBreak: 0 };
             } else if (freq > 0 && logoUrl) {
                 return { url: logoUrl, startTime: 0, title: "Logo", type: "logo", programIndex: currentItem.programIndex, programsSinceBreak: 0 };
@@ -1324,27 +1268,10 @@ export default function Canais24h() {
     const handleEndedB = useCallback(() => handleEndedRef.current("B"), []);
 
     // ---- 7. Pre-buffer & time tracking ----
-    const lastSaveRef = useRef(0);
     
     const handleTimeUpdate = useCallback((time: number, duration?: number) => {
         if (time > 0) setRealTime(time);
         if (duration) setRealDuration(duration);
-
-        // Periodically save progression (avoids duration-math skipping bug on refresh)
-        const now = Date.now();
-        if (now - lastSaveRef.current > 5000 && currentChannel) {
-             lastSaveRef.current = now;
-             const activeSlotName = activeSlotRef.current;
-             const runningSlot = activeSlotName === "A" ? slotARef.current : slotBRef.current;
-             if (runningSlot && runningSlot.type === "program") {
-                  localStorage.setItem(`tv_progression_${currentChannel.id}`, JSON.stringify({
-                       index: runningSlot.programIndex,
-                       videoTime: Math.floor(time),
-                       realTimestamp: now,
-                       programCount: programs.length
-                  }));
-             }
-        }
 
         const remaining = (duration || 0) - time;
 
@@ -1660,10 +1587,7 @@ export default function Canais24h() {
                                     </div>
                                     <button 
                                         onClick={() => {
-                                            if (currentChannel) {
-                                                localStorage.removeItem(`tv_progression_${currentChannel.id}`);
-                                                window.location.reload();
-                                            }
+                                            window.location.reload();
                                         }}
                                         className="p-1.5 rounded-lg bg-zinc-700/50 hover:bg-zinc-600/50 transition-colors border border-white/5 group"
                                         title="Sincronizar Programação"

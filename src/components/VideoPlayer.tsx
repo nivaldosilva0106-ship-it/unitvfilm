@@ -37,6 +37,7 @@ interface VideoPlayerProps {
   watermarkUrl?: string;
   watermarkPosition?: string;
   watermarkSize?: number;
+  initialAspect?: string;
 }
 
 const formatTime = (seconds: number): string => {
@@ -65,7 +66,8 @@ const formatTime = (seconds: number): string => {
   active = true,
   watermarkUrl,
   watermarkPosition,
-  watermarkSize
+  watermarkSize,
+  initialAspect = 'contain'
 }: VideoPlayerProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -81,7 +83,7 @@ const formatTime = (seconds: number): string => {
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(muted);
   const [isFullscreenInternal, setIsFullscreenInternal] = useState(false);
-  const [videoAspect, setVideoAspect] = useState<string>('contain');
+  const [videoAspect, setVideoAspect] = useState<string>(initialAspect);
   
   const isFullscreen = isFullscreenProp !== undefined ? isFullscreenProp : isFullscreenInternal;
   const [showControls, setShowControls] = useState(true);
