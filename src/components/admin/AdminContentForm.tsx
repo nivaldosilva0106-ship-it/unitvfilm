@@ -2692,8 +2692,8 @@ ${ep.url || ""}`;
                       >
                         <div className="flex gap-3">
                           <div className="relative w-14 h-20 shrink-0 rounded-md overflow-hidden bg-zinc-900 border border-white/5">
-                            {c.poster_url ? (
-                              <img src={c.poster_url} alt={c.title} className="w-full h-full object-cover" />
+                            {c.thumbnail_url ? (
+                              <img src={c.thumbnail_url} alt={c.title} className="w-full h-full object-cover" />
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-zinc-700">
                                 <Film className="w-6 h-6" />
