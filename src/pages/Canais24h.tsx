@@ -107,6 +107,20 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
         }
     };
 
+    const handleVolumeChange = (value: number[]) => {
+        const newVolume = value[0];
+        setVolume(newVolume);
+        setIsMuted(newVolume === 0);
+        if (playerRef.current) {
+            playerRef.current.setVolume(newVolume);
+            if (newVolume === 0) {
+                playerRef.current.mute();
+            } else {
+                playerRef.current.unMute();
+            }
+        }
+    };
+
     // Keep controls active on mouse move
     const controlsTimeoutRef = useRef<any>(null);
     const handleMouseMove = () => {
@@ -404,6 +418,16 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                                   <button onClick={triggerToggleMute} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
                                       {isMuted || volume === 0 ? <VolumeX className="w-4 h-4 md:w-5 md:h-5 text-white" /> : <Volume2 className="w-4 h-4 md:w-5 md:h-5 text-white" />}
                                   </button>
+                                  <div className="w-16 md:w-20" onClick={(e) => e.stopPropagation()}>
+                                      <Slider
+                                          value={[isMuted ? 0 : volume]}
+                                          min={0}
+                                          max={100}
+                                          step={1}
+                                          onValueChange={handleVolumeChange}
+                                          className="cursor-pointer [&_[data-radix-slider-track]]:h-1 [&_[data-radix-slider-track]]:bg-white/30 [&_[data-radix-slider-range]]:bg-primary [&_[data-radix-slider-thumb]]:w-3 [&_[data-radix-slider-thumb]]:h-3 [&_[data-radix-slider-thumb]]:bg-white"
+                                      />
+                                  </div>
                              </div>
                         </div>
                         <div className="flex items-center gap-1 md:gap-2">
@@ -492,6 +516,12 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
     const toggleMute = (e: React.MouseEvent) => {
         e.stopPropagation();
         setIsMuted(!isMuted);
+    };
+
+    const handleVolumeChange = (value: number[]) => {
+        const newVolume = value[0];
+        setVolume(newVolume);
+        setIsMuted(newVolume === 0);
     };
 
     // Auto-hide controls
@@ -596,6 +626,16 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
                                   <button onClick={toggleMute} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
                                       {isMuted || volume === 0 ? <VolumeX className="w-4 h-4 md:w-5 md:h-5 text-white" /> : <Volume2 className="w-4 h-4 md:w-5 md:h-5 text-white" />}
                                   </button>
+                                  <div className="w-16 md:w-20" onClick={(e) => e.stopPropagation()}>
+                                      <Slider
+                                          value={[isMuted ? 0 : volume]}
+                                          min={0}
+                                          max={1}
+                                          step={0.01}
+                                          onValueChange={handleVolumeChange}
+                                          className="cursor-pointer [&_[data-radix-slider-track]]:h-1 [&_[data-radix-slider-track]]:bg-white/30 [&_[data-radix-slider-range]]:bg-primary [&_[data-radix-slider-thumb]]:w-3 [&_[data-radix-slider-thumb]]:h-3 [&_[data-radix-slider-thumb]]:bg-white"
+                                      />
+                                  </div>
                              </div>
                         </div>
                         <div className="flex items-center gap-1 md:gap-2">
