@@ -12,7 +12,12 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
+import { Gauge } from "lucide-react";
 
 interface VideoPlayerProps {
   url: string;
@@ -894,17 +899,30 @@ const formatTime = (seconds: number): string => {
                   </DropdownMenuItem>
                   <div className="h-px bg-white/10 my-1" />
 
-                  {/* Playback Speed */}
-                  <div className="px-2 py-1.5 text-[10px] md:text-xs text-gray-400 font-semibold">Velocidade</div>
-                  {[0.25, 0.30, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 1, 1.25, 1.5, 2].map(rate => (
-                    <DropdownMenuItem
-                      key={rate}
-                      onClick={() => changePlaybackRate(rate)}
-                      className={`text-white hover:bg-white/10 cursor-pointer text-xs md:text-sm ${playbackRate === rate ? 'bg-primary/20' : ''}`}
-                    >
-                      {rate === 1 ? 'Normal' : `${rate.toFixed(2)}x`}
-                    </DropdownMenuItem>
-                  ))}
+                  <div className="h-px bg-white/10 my-1" />
+ 
+                  {/* Playback Speed Submenu */}
+                  <DropdownMenuSub>
+                    <DropdownMenuSubTrigger className="text-white hover:bg-white/10 cursor-pointer text-xs md:text-sm flex items-center gap-2 px-2 py-2">
+                      <Gauge className="w-3.5 h-3.5 text-gray-400" />
+                      <span>Velocidade</span>
+                      <span className="ml-auto text-[10px] text-primary bg-primary/10 px-1.5 rounded">{playbackRate === 1 ? 'Normal' : `${playbackRate.toFixed(2)}x`}</span>
+                    </DropdownMenuSubTrigger>
+                    <DropdownMenuPortal>
+                      <DropdownMenuSubContent className="bg-black/95 border-white/20 backdrop-blur-xl min-w-[120px] max-h-[300px] overflow-y-auto custom-scrollbar">
+                        {[0.25, 0.30, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 1, 1.25, 1.5, 2].map(rate => (
+                          <DropdownMenuItem
+                            key={rate}
+                            onClick={() => changePlaybackRate(rate)}
+                            className={`text-white hover:bg-white/10 cursor-pointer text-xs md:text-sm ${playbackRate === rate ? 'bg-primary/20' : ''}`}
+                          >
+                            {rate === 1 ? 'Normal' : `${rate.toFixed(2)}x`}
+                            {playbackRate === rate && <span className="ml-auto text-primary">✓</span>}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuSubContent>
+                    </DropdownMenuPortal>
+                  </DropdownMenuSub>
                 </DropdownMenuContent>
               </DropdownMenu>
 
