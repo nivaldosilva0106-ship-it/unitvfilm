@@ -73,8 +73,8 @@ export const IndexHero = memo(({
 
     // YouTube Player System (Stealth Mode)
     useEffect(() => {
-        // PERF: Skip heavy video player on mobile screens (< 768px) to keep it light
-        if (window.innerWidth < 768 || !currentTrailer || !currentTrailer.trailer_url || !showVideo || playerModalOpen || quickViewContentOpen || selectedSeriesOpen) {
+        // PERF: Skip heavy video player if showVideo is false or modais are open
+        if (!currentTrailer || !currentTrailer.trailer_url || !showVideo || playerModalOpen || quickViewContentOpen || selectedSeriesOpen) {
             setIsVideoPlaying(false);
             if (playerRef.current) {
                 try { playerRef.current.pauseVideo(); } catch {}

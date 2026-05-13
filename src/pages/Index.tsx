@@ -147,12 +147,12 @@ const Index = () => {
     const timer = setTimeout(() => {
       setHeroTextVisible(false);
     }, 4000);
-    // Delay hero video load for 8s to allow the page to render first (perf optimization for weaker devices)
+    // Delay hero video load for 2s to allow the page to render first (perf optimization for weaker devices)
     const videoTimer = setTimeout(() => {
       if (enableVideoHero) {
         setShowVideo(true);
       }
-    }, 8000);
+    }, 2000);
     return () => { clearTimeout(timer); clearTimeout(videoTimer); };
   }, []);
 
