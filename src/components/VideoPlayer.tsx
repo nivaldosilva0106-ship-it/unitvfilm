@@ -574,86 +574,34 @@ const formatTime = (seconds: number): string => {
     setPlaybackRate(rate);
   };
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleEnterPiP = () => setIsPiP(true);
+    const handleLeavePiP = () => setIsPiP(false);
+
+    video.addEventListener('enterpictureinpicture', handleEnterPiP);
+    video.addEventListener('leavepictureinpicture', handleLeavePiP);
+
+    return () => {
+      video.removeEventListener('enterpictureinpicture', handleEnterPiP);
+      video.removeEventListener('leavepictureinpicture', handleLeavePiP);
+    };
+  }, []);
+
   const toggleMiniPlayer = async () => {
     const video = videoRef.current;
-    const container = containerRef.current;
-    if (!video || !container) return;
+    if (!video) return;
 
-    // Check if the experimental Document Picture-in-Picture API is available
-    // and if we are not already in PiP.
-    // This API allows us to move an entire HTML element into an always-on-top window.
-    if ("documentPictureInPicture" in window && !isPiP) {
-      try {
-        const pipOptions = {
-          width: container.clientWidth || 640,
-          height: container.clientHeight || 360,
-        };
-
-        // @ts-ignore
-        const pipWindow = await window.documentPictureInPicture.requestWindow(pipOptions);
-        pipWindowRef.current = pipWindow;
-
-        // Move the player container into the PiP window.
-        pipWindow.document.body.append(container);
-        setIsPiP(true);
-
-        // Copy styles from the main window into the PiP window's document.
-        [...document.styleSheets].forEach((styleSheet) => {
-          try {
-            if (styleSheet.cssRules) {
-              const newStyle = pipWindow.document.createElement("style");
-              [...styleSheet.cssRules].forEach((rule) => {
-                newStyle.appendChild(pipWindow.document.createTextNode(rule.cssText));
-              });
-              pipWindow.document.head.appendChild(newStyle);
-            } else if (styleSheet.href) {
-              const newLink = pipWindow.document.createElement("link");
-              newLink.rel = "stylesheet";
-              newLink.href = styleSheet.href;
-              pipWindow.document.head.appendChild(newLink);
-            }
-          } catch (e) {
-            // Some cross-origin stylesheets might throw. Fallback by creating a link.
-            if (styleSheet.href) {
-                const newLink = pipWindow.document.createElement("link");
-                newLink.rel = "stylesheet";
-                newLink.href = styleSheet.href;
-                pipWindow.document.head.appendChild(newLink);
-            }
-          }
-        });
-
-        // Ensure background is correct
-        pipWindow.document.body.style.backgroundColor = "black";
-        pipWindow.document.body.style.margin = "0";
-        pipWindow.document.body.style.overflow = "hidden";
-
-        // Returning from PiP: When the PiP window is closed by the user,
-        // move the container back to the main document.
-        pipWindow.addEventListener("pagehide", () => {
-          const originalParent = document.getElementById("video-player-container-root");
-          if (originalParent) {
-            originalParent.append(container);
-          }
-          setIsPiP(false);
-          pipWindowRef.current = null;
-        });
-
-      } catch (err) {
-        console.error("Document PiP failed, falling back to Video PiP:", err);
-        try {
-           if (video.requestPictureInPicture) await video.requestPictureInPicture();
-        } catch (e) { console.error("Native PiP fallback failed:", e); }
+    try {
+      if (document.pictureInPictureElement) {
+        await document.exitPictureInPicture();
+      } else if (video.requestPictureInPicture) {
+        await video.requestPictureInPicture();
       }
-    } else if (document.pictureInPictureElement) {
-       // Exit native PiP
-       await document.exitPictureInPicture();
-    } else if (isPiP && pipWindowRef.current) {
-       // Exit Document PiP
-       pipWindowRef.current.close();
-    } else if (video.requestPictureInPicture) {
-       // Fallback to native Video PiP if Document PiP isn't supported or active.
-       await video.requestPictureInPicture();
+    } catch (err) {
+      console.error("Native PiP failed:", err);
     }
   };
 
