@@ -26,6 +26,7 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
     const [countdown, setCountdown] = useState<number>(10);
     const [isStreamingLink, setIsStreamingLink] = useState(false);
     const [originalUrlForCopy, setOriginalUrlForCopy] = useState<string>("");
+    const [showAppSelection, setShowAppSelection] = useState(false);
 
     // Determine effective links. If no new 'downloads', use legacy 'downloadUrl' as single link.
     const rawLinks = (downloads && downloads.length > 0)
@@ -64,6 +65,7 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
             setPendingUrl(null);
             setCountdown(10);
             setIsStreamingLink(false);
+            setShowAppSelection(false);
         }
     }, [open]);
 
@@ -199,23 +201,80 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
                                             </div>
                                         </div>
                                     </div>
-                                    <Button
-                                        onClick={copyToClipboard}
-                                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 flex items-center justify-center gap-2 mb-3"
-                                    >
-                                        <Copy className="w-5 h-5" />
-                                        COPIAR LINK PARA DOWNLOAD
-                                    </Button>
-                                    <Button
-                                        variant="outline"
-                                        onClick={() => {
-                                            setPendingUrl(null);
-                                            setIsStreamingLink(false);
-                                        }}
-                                        className="w-full text-gray-400 border-gray-700 hover:bg-gray-800"
-                                    >
-                                        Voltar
-                                    </Button>
+                                    <div className="w-full space-y-2">
+                                        <Button
+                                            onClick={copyToClipboard}
+                                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 flex items-center justify-center gap-2"
+                                        >
+                                            <Copy className="w-5 h-5" />
+                                            COPIAR LINK PARA DOWNLOAD
+                                        </Button>
+
+                                        {/* Intelligent Download Button */}
+                                        <div className="space-y-2">
+                                            <Button
+                                                onClick={() => {
+                                                    const directUrl = window.location.origin + createSecurePlaybackUrl(originalUrlForCopy);
+                                                    // Detect if it's likely Android
+                                                    const isAndroid = /Android/i.test(navigator.userAgent);
+                                                    
+                                                    if (isAndroid) {
+                                                        // Toggle selection if we wanted to be more specific, 
+                                                        // but let's just use a direct choice if they click this button
+                                                        setShowAppSelection(!showAppSelection);
+                                                    } else {
+                                                        toast.info("Esta função é otimizada para Android com 1DM ou ADM instalados.");
+                                                        setShowAppSelection(!showAppSelection);
+                                                    }
+                                                }}
+                                                className="w-full bg-[#22c55e] hover:bg-[#22c55e]/90 text-black font-bold h-12 flex items-center justify-center gap-2 animate-pulse shadow-[0_0_15px_rgba(34,197,94,0.3)]"
+                                            >
+                                                <Download className="w-5 h-5" />
+                                                BAIXAR NO APP (INTELIGENTE)
+                                            </Button>
+
+                                            {showAppSelection && (
+                                                <div className="grid grid-cols-2 gap-2 animate-in slide-in-from-top-2 duration-300">
+                                                    <Button
+                                                        onClick={() => {
+                                                            const directUrl = window.location.origin + createSecurePlaybackUrl(originalUrlForCopy);
+                                                            const intent = `intent:${directUrl}#Intent;package=idm.internet.download.manager;scheme=1dmdownload;S.title=${title};end`;
+                                                            window.location.href = intent;
+                                                            toast.success("Abrindo no 1DM...");
+                                                        }}
+                                                        className="bg-[#262626] hover:bg-[#333] border border-white/5 h-10 text-[10px] gap-2"
+                                                    >
+                                                        <img src="/1dm_icon.png" className="w-4 h-4 rounded-sm" alt="" />
+                                                        ABRIR NO 1DM
+                                                    </Button>
+                                                    <Button
+                                                        onClick={() => {
+                                                            const directUrl = window.location.origin + createSecurePlaybackUrl(originalUrlForCopy);
+                                                            const intent = `intent:${directUrl}#Intent;action=android.intent.action.VIEW;category=android.intent.category.DEFAULT;category=android.intent.category.BROWSABLE;package=com.dv.adm;end`;
+                                                            window.location.href = intent;
+                                                            toast.success("Abrindo no ADM...");
+                                                        }}
+                                                        className="bg-[#262626] hover:bg-[#333] border border-white/5 h-10 text-[10px] gap-2"
+                                                    >
+                                                        <img src="/adm_icon.png" className="w-4 h-4 rounded-sm" alt="" />
+                                                        ABRIR NO ADM
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <Button
+                                            variant="outline"
+                                            onClick={() => {
+                                                setPendingUrl(null);
+                                                setIsStreamingLink(false);
+                                                setShowAppSelection(false);
+                                            }}
+                                            className="w-full text-gray-400 border-gray-700 hover:bg-gray-800 h-10"
+                                        >
+                                            Voltar
+                                        </Button>
+                                    </div>
                                 </>
                             ) : (
                                 <>
