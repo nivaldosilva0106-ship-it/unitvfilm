@@ -1967,7 +1967,7 @@ export default function Canais24h() {
                                                     }}
                                                     className={`absolute right-4 bottom-4 p-2 rounded-xl transition-colors ${
                                                         hasReminder 
-                                                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" 
+                                                        ? "bg-green-500 text-white shadow-lg shadow-green-500/30" 
                                                         : "bg-zinc-800/80 text-zinc-400 hover:bg-zinc-700 hover:text-white"
                                                     }`}
                                                     title={hasReminder ? "Remover Lembrete" : "Avisar-me quando começar"}
