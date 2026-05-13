@@ -187,10 +187,11 @@ const App = () => {
             <AppUpdater />
             <PWAInstallBanner />
             <FocusNavigator />
-            {!isLiteMode && <HolidayDecorations />}
+            <HolidayDecorations />
             <NetworkStatus />
             <OfflineIndicator />
             <GlobalContentProtection />
+            <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.1),transparent_50%)] pointer-events-none" />
             <LiteModeBodyClass />
             <OrientationManager />
             <MobileBottomNav />

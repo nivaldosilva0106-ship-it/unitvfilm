@@ -75,18 +75,18 @@ export const ContentCard = memo(({
   return (
     <div
       ref={cardRef}
-      className={`relative group min-w-[140px] sm:min-w-[160px] cursor-pointer card-hover rounded-lg transition-all focus:outline-none focus:ring-4 focus:ring-primary ${isLiteMode ? 'focus:ring-yellow-400' : ''}`}
+      className={`relative group min-w-[140px] sm:min-w-[160px] cursor-pointer card-hover rounded-lg transition-all focus-within:ring-4 focus-within:ring-primary ${isLiteMode ? 'focus-within:ring-yellow-400' : ''}`}
       onClick={(e) => {
-        // In lite mode, we intercept all clicks directly into the play action.
-        if (isLiteMode && onPlay) onPlay();
-        else onDetails?.();
+        // Only trigger details if we didn't click a button inside
+        if (e.target === e.currentTarget) {
+          onDetails?.();
+        }
       }}
-      tabIndex={isLiteMode ? 0 : undefined}
+      tabIndex={-1}
       onKeyDown={(e) => {
-        if (e.key === 'Enter') {
+        if (e.key === 'Enter' && e.target === e.currentTarget) {
           playNavigationSound('select');
-          if (isLiteMode && onPlay) onPlay();
-          else onDetails?.();
+          onDetails?.();
         }
       }}
       onFocus={handleButtonFocus}
@@ -150,8 +150,7 @@ export const ContentCard = memo(({
         <div className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent transition-opacity duration-300 flex items-end p-3 ${isActuallyNew ? 'pb-9' : ''} ${isRestricted ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'}`}>
           <div className="w-full space-y-2">
             <h3 className="text-foreground font-semibold text-sm mb-2 line-clamp-2">{title}</h3>
-                        {!isLiteMode && (
-             <div className="flex flex-col gap-2 pb-2">
+            <div className="flex flex-col gap-2 pb-2">
                 <Button
                   onClick={handleButtonClick(onPlay)}
                   onFocus={handleButtonFocus}
@@ -160,7 +159,7 @@ export const ContentCard = memo(({
                   tabIndex={0}
                 >
                   {isRestricted ? <ShieldCheck className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
-                  {isRestricted ? 'Bloqueado' : internal_player_url && !isLiteMode ? 'Player Interno' : 'Assistir'}
+                  {isRestricted ? 'Bloqueado' : internal_player_url ? 'Player Interno' : 'Assistir'}
                 </Button>
 
                 <Button
@@ -187,7 +186,6 @@ export const ContentCard = memo(({
                   </Button>
                 )}
               </div>
-            )}
           </div>
         </div>
 
