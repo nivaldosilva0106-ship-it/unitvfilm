@@ -135,7 +135,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const contentType = response.headers.get('content-type') || '';
     const contentLength = response.headers.get('content-length');
     const contentRange = response.headers.get('content-range');
-    const urlLower = videoUrl.toLowerCase().split('?')[0];
+    const finalVideoUrl = response.url || videoUrl;
+    const urlLower = finalVideoUrl.toLowerCase().split('?')[0];
     const extHint = typeof ext === 'string' ? ext.toLowerCase() : '';
 
     // Determine if this is likely a manifest that needs URL rewriting
@@ -156,7 +157,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const body = await response.arrayBuffer();
       const uint8 = new Uint8Array(body);
 
-      const detectedType = detectMediaType(uint8, videoUrl, contentType);
+      const detectedType = detectMediaType(uint8, finalVideoUrl, contentType);
 
       res.setHeader('Content-Type', detectedType);
       res.setHeader('Cache-Control', 'public, max-age=300');
@@ -178,7 +179,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const protocol = req.headers['x-forwarded-proto'] || 'https';
         const host = req.headers.host;
         const proxyBase = `${protocol}://${host}/api/stream-proxy`;
-        const rewritten = rewriteM3U8Urls(text, videoUrl, proxyBase);
+        const rewritten = rewriteM3U8Urls(text, finalVideoUrl, proxyBase);
         return res.send(rewritten);
       }
 
@@ -196,7 +197,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // Fallback: no readable stream, buffer everything
       const body = await response.arrayBuffer();
       const uint8 = new Uint8Array(body);
-      const detectedType = detectMediaType(uint8, videoUrl, contentType);
+      const detectedType = detectMediaType(uint8, finalVideoUrl, contentType);
       res.setHeader('Content-Type', detectedType);
       res.setHeader('Cache-Control', 'public, max-age=300');
       if (contentLength) res.setHeader('Content-Length', contentLength);
@@ -216,7 +217,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const firstChunk = firstRead.value;
-    const detectedType = detectMediaType(firstChunk, videoUrl, contentType);
+    const detectedType = detectMediaType(firstChunk, finalVideoUrl, contentType);
 
     // If the first chunk reveals it's actually a manifest (rare edge case),
     // we need to buffer the rest and rewrite
@@ -239,7 +240,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       const host = req.headers.host;
       const proxyBase = `${protocol}://${host}/api/stream-proxy`;
-      const rewritten = rewriteM3U8Urls(text, videoUrl, proxyBase);
+      const rewritten = rewriteM3U8Urls(text, finalVideoUrl, proxyBase);
       res.setHeader('Content-Type', detectedType);
       res.setHeader('Cache-Control', 'public, max-age=300');
       return res.status(200).send(rewritten);
