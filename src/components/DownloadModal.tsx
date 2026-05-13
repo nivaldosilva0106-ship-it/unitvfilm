@@ -116,7 +116,7 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-            <DialogContent className="sm:max-w-[400px] bg-[#1a1a1a] border-[#333] text-white p-0 gap-0 overflow-hidden shadow-2xl flex flex-col justify-center items-center">
+        <DialogContent className="sm:max-w-[400px] max-h-[90vh] overflow-y-auto bg-[#1a1a1a] border-[#333] text-white p-0 gap-0 shadow-2xl flex flex-col scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
                 <div className="flex flex-col items-center w-full p-6 pb-2">
                     <div className="flex items-center justify-center w-12 h-12 mb-4 rounded-full bg-[#22c55e]/10">
                         <Download className="w-6 h-6 text-[#22c55e]" />
