@@ -9,6 +9,10 @@ import type { VercelRequest, VercelResponse } from '@vercel/node';
  * 
  * The real video URL is never exposed to the client.
  * Tokens are time-limited and encrypted.
+ * 
+ * KEY FIX: Uses streaming for binary content (TS, MP4) instead of
+ * buffering the entire response. This prevents .txt live streams from
+ * hanging forever on browsers and APKs.
  */
 
 // Same key as secure-url.ts — MUST MATCH
@@ -76,7 +80,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  const { t: token, url: directUrl } = req.query;
+  const { t: token, url: directUrl, ext } = req.query;
   let videoUrl: string;
 
   // 1. Encrypted token (secure, preferred)
@@ -110,10 +114,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       headers['Range'] = req.headers.range;
     }
 
+    // Use AbortController with a timeout to prevent hanging on dead streams
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
     const response = await fetch(videoUrl, {
       headers,
       redirect: 'follow',
+      signal: controller.signal,
     });
+
+    clearTimeout(timeout);
 
     if (!response.ok && response.status !== 206) {
       return res.status(response.status).json({
@@ -124,15 +135,111 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const contentType = response.headers.get('content-type') || '';
     const contentLength = response.headers.get('content-length');
     const contentRange = response.headers.get('content-range');
+    const urlLower = videoUrl.toLowerCase().split('?')[0];
+    const extHint = typeof ext === 'string' ? ext.toLowerCase() : '';
 
-    // Read first chunk to detect content type
-    const body = await response.arrayBuffer();
-    const uint8 = new Uint8Array(body);
+    // Determine if this is likely a manifest that needs URL rewriting
+    // We need to buffer manifests, but we should stream binary content
+    const isLikelyManifest = 
+      urlLower.endsWith('.m3u8') ||
+      urlLower.endsWith('.m3u') ||
+      extHint === '.m3u8' ||
+      contentType.includes('mpegurl') ||
+      contentType.includes('x-mpegurl');
 
-    // Detect the real content type by inspecting the data
-    const detectedType = detectMediaType(uint8, videoUrl, contentType);
+    // For .txt URLs: we need to peek at the content to determine type
+    const isTxtUrl = urlLower.endsWith('.txt');
 
-    // Set response headers
+    // If it's clearly a manifest or a .txt that might be a manifest, buffer it
+    if (isLikelyManifest || isTxtUrl) {
+      // Buffer the response to inspect and possibly rewrite
+      const body = await response.arrayBuffer();
+      const uint8 = new Uint8Array(body);
+
+      const detectedType = detectMediaType(uint8, videoUrl, contentType);
+
+      res.setHeader('Content-Type', detectedType);
+      res.setHeader('Cache-Control', 'public, max-age=300');
+
+      if (contentLength) {
+        res.setHeader('Content-Length', contentLength);
+      }
+
+      if (contentRange) {
+        res.setHeader('Content-Range', contentRange);
+        res.status(206);
+      } else {
+        res.status(200);
+      }
+
+      // If it's an HLS manifest, rewrite relative URLs
+      if (detectedType === 'application/vnd.apple.mpegurl' || detectedType === 'audio/mpegurl') {
+        const text = new TextDecoder().decode(uint8);
+        const rewritten = rewriteM3U8Urls(text, videoUrl);
+        return res.send(rewritten);
+      }
+
+      // Otherwise send the buffered content
+      return res.send(Buffer.from(body));
+    }
+
+    // --- STREAMING PATH ---
+    // For binary content (TS segments, MP4, MKV, etc.), pipe directly
+    // This prevents hanging on large files and live streams
+
+    // Read first chunk for type detection
+    const reader = response.body?.getReader();
+    if (!reader) {
+      // Fallback: no readable stream, buffer everything
+      const body = await response.arrayBuffer();
+      const uint8 = new Uint8Array(body);
+      const detectedType = detectMediaType(uint8, videoUrl, contentType);
+      res.setHeader('Content-Type', detectedType);
+      res.setHeader('Cache-Control', 'public, max-age=300');
+      if (contentLength) res.setHeader('Content-Length', contentLength);
+      if (contentRange) {
+        res.setHeader('Content-Range', contentRange);
+        res.status(206);
+      } else {
+        res.status(200);
+      }
+      return res.send(Buffer.from(body));
+    }
+
+    // Read the first chunk to detect content type
+    const firstRead = await reader.read();
+    if (firstRead.done || !firstRead.value) {
+      return res.status(204).end();
+    }
+
+    const firstChunk = firstRead.value;
+    const detectedType = detectMediaType(firstChunk, videoUrl, contentType);
+
+    // If the first chunk reveals it's actually a manifest (rare edge case),
+    // we need to buffer the rest and rewrite
+    if (detectedType === 'application/vnd.apple.mpegurl' || detectedType === 'audio/mpegurl') {
+      const chunks: Uint8Array[] = [firstChunk];
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        chunks.push(value);
+      }
+      const totalLength = chunks.reduce((sum, c) => sum + c.length, 0);
+      const combined = new Uint8Array(totalLength);
+      let offset = 0;
+      for (const chunk of chunks) {
+        combined.set(chunk, offset);
+        offset += chunk.length;
+      }
+
+      const text = new TextDecoder().decode(combined);
+      const rewritten = rewriteM3U8Urls(text, videoUrl);
+      res.setHeader('Content-Type', detectedType);
+      res.setHeader('Cache-Control', 'public, max-age=300');
+      return res.status(200).send(rewritten);
+    }
+
+    // Set headers for binary streaming
     res.setHeader('Content-Type', detectedType);
     res.setHeader('Cache-Control', 'public, max-age=300');
 
@@ -147,16 +254,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.status(200);
     }
 
-    // For HLS manifests (.m3u8 content), rewrite relative URLs to absolute
-    if (detectedType === 'application/vnd.apple.mpegurl' || detectedType === 'audio/mpegurl') {
-      const text = new TextDecoder().decode(uint8);
-      const rewritten = rewriteM3U8Urls(text, videoUrl);
-      return res.send(rewritten);
+    // Write first chunk
+    res.write(Buffer.from(firstChunk));
+
+    // Stream remaining chunks
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      res.write(Buffer.from(value));
     }
 
-    // For binary content (TS segments, MP4, etc.), send directly
-    return res.send(Buffer.from(body));
+    return res.end();
+
   } catch (error: any) {
+    // Handle abort (timeout)
+    if (error.name === 'AbortError') {
+      console.error('Stream proxy timeout for:', videoUrl);
+      return res.status(504).json({
+        error: 'Stream timeout — the upstream server did not respond in time.',
+      });
+    }
+
     console.error('Stream proxy error:', error);
     return res.status(500).json({
       error: 'Stream proxy failed',

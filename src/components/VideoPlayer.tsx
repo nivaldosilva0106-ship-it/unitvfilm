@@ -119,9 +119,10 @@ const formatTime = (seconds: number): string => {
     return isProtectedUrl(u);
   };
 
-  // Detect stream type
-  const isHLS = url?.includes('.m3u8') || url?.includes('m3u8') || 
-    url?.toLowerCase().split('?')[0].endsWith('.txt') || url?.includes('typezero.top');
+  // Detect stream type — use path-only check to avoid query param false positives
+  const urlPath = url?.toLowerCase().split('?')[0] || '';
+  const isHLS = urlPath.endsWith('.m3u8') || urlPath.endsWith('.m3u') || 
+    urlPath.endsWith('.txt') || url?.includes('typezero.top');
   const isGoogleDrive = url?.includes('googleapis.com/drive') || url?.includes('drive.google.com');
 
   // Transform and SECURE video URL — the real URL is NEVER exposed
@@ -184,9 +185,17 @@ const formatTime = (seconds: number): string => {
     };
 
     if (isHLS && Hls.isSupported()) {
+      let networkRetries = 0;
+      const MAX_NETWORK_RETRIES = 3;
+
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
+        // Increase timeouts for slow .txt streams
+        manifestLoadingTimeOut: 15000,
+        manifestLoadingMaxRetry: 3,
+        levelLoadingTimeOut: 15000,
+        fragLoadingTimeOut: 30000,
         // Allow loading from any origin (proxied URLs)
         xhrSetup: (xhr: XMLHttpRequest) => {
           xhr.withCredentials = false;
@@ -217,13 +226,14 @@ const formatTime = (seconds: number): string => {
         if (data.fatal) {
           console.warn('HLS fatal error, attempting fallback...', data.type, data.details);
           
-          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-            // Try to recover first
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR && networkRetries < MAX_NETWORK_RETRIES) {
+            networkRetries++;
+            console.log(`HLS network retry ${networkRetries}/${MAX_NETWORK_RETRIES}`);
             hls.startLoad();
           } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
             hls.recoverMediaError();
           } else {
-            // If not HLS content, fallback to direct native playback
+            // If not HLS content or retries exhausted, fallback to direct native playback
             console.log('HLS completely failed. Falling back to native video for:', url);
             hls.destroy();
             hlsRef.current = null;

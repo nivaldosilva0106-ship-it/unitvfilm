@@ -4,8 +4,8 @@ import { Content } from "@/types/content";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { Button } from "./ui/button";
 import { useRef, useEffect, useState, useMemo } from "react";
-import ReactPlayerComponent from 'react-player';
-const ReactPlayer = ReactPlayerComponent as any;
+import { VideoPlayer } from "./VideoPlayer";
+const ReactPlayer = null; // Legacy — no longer used for internal sources
 import { useAuth } from "@/contexts/AuthContext";
 import { AdManager } from "./AdManager";
 import { useNavigate } from "react-router-dom";
@@ -355,16 +355,17 @@ export const ContentPlayerModal = ({
               onContextMenu={(e) => e.preventDefault()}
             >
                {currentSource.type === 'internal' ? (
-                  <ReactPlayer
-                    key={currentSource.url}
-                    url={currentSource.url}
-                    width="100%"
-                    height="100%"
-                    controls
-                    playing
-                    onEnded={onPlayNext}
-                    style={{ position: 'absolute', top: 0, left: 0 }}
-                  />
+                  <div className="absolute inset-0 w-full h-full">
+                    <VideoPlayer
+                      key={currentSource.url}
+                      url={currentSource.url}
+                      title={displayTitle}
+                      poster={image}
+                      autoPlay={true}
+                      onEnded={onPlayNext}
+                      initialAspect="contain"
+                    />
+                  </div>
               ) : (
                 <iframe
                   key={secureVideoUrl}
