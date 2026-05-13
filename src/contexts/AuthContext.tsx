@@ -107,16 +107,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     if (user?.uid) {
       // Atualizar imediatamente ao entrar
-      updateLastSeen(user.uid).catch(console.error);
-
+      updateLastSeen(user.uid, currentProfile?.name, currentProfile?.avatar).catch(console.error);
+  
       // Atualizar a cada 2 minutos
       const interval = setInterval(() => {
-        updateLastSeen(user.uid).catch(console.error);
+        updateLastSeen(user.uid, currentProfile?.name, currentProfile?.avatar).catch(console.error);
       }, 2 * 60 * 1000);
-
+  
       return () => clearInterval(interval);
     }
-  }, [user]);
+  }, [user, currentProfile]);
 
   const logout = async () => {
     await logOut();

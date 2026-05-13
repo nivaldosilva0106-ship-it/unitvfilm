@@ -103,13 +103,13 @@ export const AdminLayout = ({ children, title }: AdminLayoutProps) => {
                 onlineUsers.map((user) => (
                   <div key={user.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group">
                     <Avatar className="w-11 h-11 border-2 border-white/10 group-hover:border-green-500/30 transition-colors">
-                      <AvatarImage src={user.photoURL} alt={user.name || user.email} />
+                      <AvatarImage src={user.currentProfileAvatar || user.photoURL} alt={user.currentProfileName || user.name || user.email} />
                       <AvatarFallback className="bg-green-500/20 text-green-500 font-bold">
-                        {(user.name || user.email).substring(0, 2).toUpperCase()}
+                        {(user.currentProfileName || user.name || user.email).substring(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-bold truncate group-hover:text-green-400 transition-colors">{user.name || 'Usuário sem nome'}</p>
+                      <p className="text-sm font-bold truncate group-hover:text-green-400 transition-colors">{user.currentProfileName || user.name || 'Usuário sem nome'}</p>
                       <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
                     </div>
                     <div className="flex flex-col items-end gap-1">

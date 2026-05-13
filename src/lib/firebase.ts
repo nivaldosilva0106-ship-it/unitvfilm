@@ -556,9 +556,12 @@ export const adminUpdateUser = async (userId: string, updates: Partial<UserProfi
   return updateUserProfile(userId, updates);
 };
 
-export const updateLastSeen = async (userId: string) => {
+export const updateLastSeen = async (userId: string, profileName?: string, profileAvatar?: string) => {
   const profileRef = ref(database, `profiles/${userId}`);
-  await update(profileRef, { lastSeen: new Date().toISOString() });
+  const updates: any = { lastSeen: new Date().toISOString() };
+  if (profileName) updates.currentProfileName = profileName;
+  if (profileAvatar) updates.currentProfileAvatar = profileAvatar;
+  await update(profileRef, updates);
 };
 
 export const updateLastIPTVGeneration = async (userId: string) => {

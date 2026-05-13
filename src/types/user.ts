@@ -23,6 +23,8 @@ export interface UserProfile {
   trialSignup?: boolean;
   lastSeen?: string;
   lastIPTVGeneratedAt?: string;
+  currentProfileName?: string;
+  currentProfileAvatar?: string;
 }
 
 export interface Plan {
