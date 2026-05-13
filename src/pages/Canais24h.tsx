@@ -1592,10 +1592,12 @@ export default function Canais24h() {
                     minute: '2-digit' 
                 });
                 
+                progStart = startDateMs;
+                
                 if (!prog.duration || prog.duration <= 0) {
                     isTimePredictable = false;
+                    progEnd = startDateMs + (2 * 60 * 60 * 1000); // 2 hours fallback
                 } else {
-                    progStart = startDateMs;
                     progEnd = startDateMs + (prog.duration * 1000);
                     accumulatedSeconds += prog.duration;
                 }
