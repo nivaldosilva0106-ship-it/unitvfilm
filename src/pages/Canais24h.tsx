@@ -992,7 +992,11 @@ export default function Canais24h() {
             setLoading(true);
             try {
                 const all = await getAllContents();
-                const canais = all.filter((c) => c.category === "canais24h");
+                let canais = all.filter((c) => c.category === "canais24h");
+                
+                // Shuffle channels so they appear in a random order on refresh
+                canais = canais.sort(() => Math.random() - 0.5);
+                
                 setContents(canais);
                 if (canais.length > 0) {
                     const t = initialChannelId ? canais.find((c) => c.id === initialChannelId) : canais[0];
