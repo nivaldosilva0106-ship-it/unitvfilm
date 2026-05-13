@@ -26,6 +26,7 @@ export const AdminSettings = () => {
     const [apkLiteDownloadUrl, setApkLiteDownloadUrl] = useState("");
     const [requiredAppVersion, setRequiredAppVersion] = useState<number>(1);
     const [requiredLiteAppVersion, setRequiredLiteAppVersion] = useState<number>(1);
+    const [appUpdateNotes, setAppUpdateNotes] = useState("");
     const [enableApkDownload, setEnableApkDownload] = useState(false);
     const [enablePwaInstall, setEnablePwaInstall] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -76,6 +77,7 @@ export const AdminSettings = () => {
             setApkLiteDownloadUrl(settings.apkLiteDownloadUrl || "");
             setRequiredAppVersion(settings.requiredAppVersion || 1);
             setRequiredLiteAppVersion(settings.requiredLiteAppVersion || 1);
+            setAppUpdateNotes(settings.appUpdateNotes || "");
             setEnableApkDownload(settings.enableApkDownload || false);
             setEnablePwaInstall(settings.enablePwaInstall || false);
             setIptvApiKey(settings.iptvApiKey || "");
@@ -103,6 +105,7 @@ export const AdminSettings = () => {
                 apkLiteDownloadUrl,
                 requiredAppVersion,
                 requiredLiteAppVersion,
+                appUpdateNotes,
                 enableApkDownload,
                 iptvApiKey,
                 iptvApiBaseUrl,
@@ -505,7 +508,17 @@ export const AdminSettings = () => {
                                                 onChange={(e) => setRequiredLiteAppVersion(parseInt(e.target.value) || 1)}
                                                 className="bg-background/50"
                                             />
-                                        </div>
+                                            </div>
+                                    </div>
+                                    <div className="space-y-2 pt-2">
+                                        <Label htmlFor="appUpdateNotes">Notas da Atualização (O que mudou?)</Label>
+                                        <textarea
+                                            id="appUpdateNotes"
+                                            placeholder="Ex: Resolvemos bugs e adicionamos novas funções..."
+                                            value={appUpdateNotes}
+                                            onChange={(e) => setAppUpdateNotes(e.target.value)}
+                                            className="w-full bg-background/50 border border-border rounded-md p-2 text-sm min-h-[80px] focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/50 outline-none transition-all"
+                                        />
                                     </div>
                                     <p className="text-[10px] text-muted-foreground mt-2">
                                         Se a versão instalada for menor que a exigida, o usuário será obrigado a atualizar.

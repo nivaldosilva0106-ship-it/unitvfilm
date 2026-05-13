@@ -416,6 +416,7 @@ export interface SiteSettings {
   enablePwaInstall?: boolean;
   requiredAppVersion?: number;
   requiredLiteAppVersion?: number;
+  appUpdateNotes?: string;
   iptvApiKey?: string;
   iptvApiBaseUrl?: string;
 }
