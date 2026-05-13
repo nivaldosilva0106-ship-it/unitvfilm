@@ -377,7 +377,7 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
             ref={containerRef}
             id={`yt-slot-container-${id}-${videoId}`}
             data-slot-id={id}
-            className="w-full h-full overflow-hidden relative bg-black group pointer-events-auto"
+            className={`w-full h-full overflow-hidden relative bg-black group pointer-events-auto ${isFullscreen && !showControls ? 'cursor-none' : ''}`}
             onMouseMove={handleMouseMove}
             onMouseLeave={() => isPlaying && setShowControls(false)}
             onClick={triggerTogglePlay}
@@ -580,7 +580,7 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
         >
             <div 
                 ref={containerRef}
-                className="w-full h-full relative"
+                className={`w-full h-full relative group ${isFullscreen && !showControls ? 'cursor-none' : ''}`}
                 onMouseMove={handleMouseMove}
                 onMouseLeave={() => isPlaying && setShowControls(false)}
                 onClick={togglePlay}

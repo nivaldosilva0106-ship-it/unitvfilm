@@ -681,7 +681,7 @@ const formatTime = (seconds: number): string => {
     <div
       id="video-player-container-root"
       ref={containerRef}
-      className={`relative w-full h-full bg-black group ${isPiP ? 'fixed inset-0 z-[9999]' : ''} flex items-center justify-center`}
+      className={`relative w-full h-full bg-black group ${isPiP ? 'fixed inset-0 z-[9999]' : ''} flex items-center justify-center ${(onToggleFullscreen ? isFullscreen : isFullscreenInternal) && !showControls ? 'cursor-none' : ''}`}
       onMouseMove={resetHideTimer}
       onMouseLeave={() => isPlaying && setShowControls(false)}
       onClick={(e) => {
