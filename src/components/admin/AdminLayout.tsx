@@ -105,7 +105,7 @@ export const AdminLayout = ({ children, title }: AdminLayoutProps) => {
                     <Avatar className="w-11 h-11 border-2 border-white/10 group-hover:border-green-500/30 transition-colors">
                       <AvatarImage src={user.currentProfileAvatar || user.photoURL} alt={user.currentProfileName || user.name || user.email} />
                       <AvatarFallback className="bg-green-500/20 text-green-500 font-bold">
-                        {(user.currentProfileName || user.name || user.email).substring(0, 2).toUpperCase()}
+                        {(user.currentProfileName || user.name || user.email || 'U').substring(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">

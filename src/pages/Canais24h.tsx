@@ -63,7 +63,8 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
     
     useEffect(() => {
         if (isPlaying) {
-            const timer = setTimeout(() => setShowInitialOverlay(false), 4000);
+            // Wait 3 seconds before hiding the "Connecting" overlay to hide YouTube UI elements
+            const timer = setTimeout(() => setShowInitialOverlay(false), 3000);
             return () => clearTimeout(timer);
         } else {
             setShowInitialOverlay(true);
