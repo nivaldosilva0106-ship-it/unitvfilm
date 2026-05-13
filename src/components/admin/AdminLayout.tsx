@@ -4,7 +4,15 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Menu, Users, Wifi, WifiOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { subscribeToUserStats, type UserStats } from "@/lib/firebase";
+import { subscribeToUserStats, subscribeToOnlineUsers, type UserStats } from "@/lib/firebase";
+import { type UserProfile } from "@/types/user";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -14,14 +22,18 @@ interface AdminLayoutProps {
 export const AdminLayout = ({ children, title }: AdminLayoutProps) => {
   const [collapsed, setCollapsed] = useState(false);
   const [stats, setStats] = useState<UserStats>({ total: 0, active: 0, online: 0, offline: 0 });
+  const [onlineUsers, setOnlineUsers] = useState<UserProfile[]>([]);
+  const [isOnlineModalOpen, setIsOnlineModalOpen] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = subscribeToUserStats(setStats);
+    const unsubscribeStats = subscribeToUserStats(setStats);
+    const unsubscribeOnline = subscribeToOnlineUsers(setOnlineUsers);
     
     document.body.classList.add('admin-mode');
     
     return () => {
-      unsubscribe();
+      unsubscribeStats();
+      unsubscribeOnline();
       document.body.classList.remove('admin-mode');
     };
   }, []);
@@ -49,10 +61,13 @@ export const AdminLayout = ({ children, title }: AdminLayoutProps) => {
               <Users className="w-3.5 h-3.5 text-blue-500" />
               <span className="text-[10px] sm:text-xs font-bold text-blue-500">{stats.active} Ativos</span>
             </div>
-            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full animate-pulse">
+            <button 
+              onClick={() => setIsOnlineModalOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500/10 border border-green-500/20 rounded-full animate-pulse hover:bg-green-500/20 transition-colors cursor-pointer"
+            >
               <Wifi className="w-3.5 h-3.5 text-green-500" />
               <span className="text-[10px] sm:text-xs font-bold text-green-500">{stats.online} Online</span>
-            </div>
+            </button>
             <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-500/10 border border-gray-500/20 rounded-full">
               <WifiOff className="w-3.5 h-3.5 text-gray-400" />
               <span className="text-[10px] sm:text-xs font-bold text-gray-400">{stats.offline} Offline</span>
@@ -62,6 +77,55 @@ export const AdminLayout = ({ children, title }: AdminLayoutProps) => {
         <main className="overflow-x-hidden">
           {children}
         </main>
+
+        <Dialog open={isOnlineModalOpen} onOpenChange={setIsOnlineModalOpen}>
+          <DialogContent className="sm:max-w-[400px] bg-[#1a1a1a] border-white/10 text-white rounded-2xl p-0 overflow-hidden">
+            <DialogHeader className="p-6 pb-2">
+              <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+                <div className="w-8 h-8 rounded-lg bg-green-500/20 flex items-center justify-center">
+                  <Wifi className="w-4 h-4 text-green-500" />
+                </div>
+                Usuários Online
+                <span className="ml-auto bg-green-500/10 text-green-500 text-xs px-2 py-1 rounded-full">
+                  {onlineUsers.length}
+                </span>
+              </DialogTitle>
+            </DialogHeader>
+            <div className="max-h-[450px] overflow-y-auto custom-scrollbar p-6 pt-2 space-y-3">
+              {onlineUsers.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 text-center space-y-3">
+                  <div className="w-12 h-12 rounded-full bg-white/5 flex items-center justify-center">
+                    <Users className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">Nenhum usuário online no momento.</p>
+                </div>
+              ) : (
+                onlineUsers.map((user) => (
+                  <div key={user.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-all group">
+                    <Avatar className="w-11 h-11 border-2 border-white/10 group-hover:border-green-500/30 transition-colors">
+                      <AvatarImage src={user.photoURL} alt={user.name || user.email} />
+                      <AvatarFallback className="bg-green-500/20 text-green-500 font-bold">
+                        {(user.name || user.email).substring(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold truncate group-hover:text-green-400 transition-colors">{user.name || 'Usuário sem nome'}</p>
+                      <p className="text-[11px] text-muted-foreground truncate">{user.email}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)] animate-pulse" />
+                      {user.isPremium && (
+                        <span className="text-[9px] bg-amber-500/20 text-amber-500 px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                          VIP
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

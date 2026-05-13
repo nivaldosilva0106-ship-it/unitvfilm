@@ -597,6 +597,27 @@ export const subscribeToUserStats = (callback: (stats: UserStats) => void) => {
   });
 };
 
+export const subscribeToOnlineUsers = (callback: (users: UserProfile[]) => void) => {
+  const usersRef = ref(database, 'profiles');
+  return onValue(usersRef, (snapshot) => {
+    if (snapshot.exists()) {
+      const users = Object.values(snapshot.val()) as UserProfile[];
+      const now = new Date();
+      const onlineThreshold = 5 * 60 * 1000; // 5 minutes
+
+      const onlineUsers = users.filter(u => {
+        if (!u.lastSeen) return false;
+        const lastSeenDate = new Date(u.lastSeen);
+        return now.getTime() - lastSeenDate.getTime() < onlineThreshold;
+      });
+
+      callback(onlineUsers);
+    } else {
+      callback([]);
+    }
+  });
+};
+
 // ==========================================
 // Progress Tracking (Continue Watching)
 // ==========================================
