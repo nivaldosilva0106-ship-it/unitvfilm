@@ -410,8 +410,16 @@ const formatTime = (seconds: number): string => {
 
   useEffect(() => {
     const handleFSChange = () => {
+      const isFS = !!document.fullscreenElement;
       if (!onToggleFullscreen) {
-        setIsFullscreenInternal(!!document.fullscreenElement);
+        setIsFullscreenInternal(isFS);
+      }
+
+      // Unlock orientation when exiting fullscreen
+      // @ts-ignore
+      if (!isFS && window.screen?.orientation?.unlock) {
+        // @ts-ignore
+        try { window.screen.orientation.unlock(); } catch (e) {}
       }
     };
     document.addEventListener('fullscreenchange', handleFSChange);
@@ -514,9 +522,19 @@ const formatTime = (seconds: number): string => {
       if (!document.fullscreenElement) {
         await containerRef.current.requestFullscreen();
         setIsFullscreenInternal(true);
+        // @ts-ignore
+        if (window.screen?.orientation?.lock) {
+          // @ts-ignore
+          await window.screen.orientation.lock("landscape").catch(() => {});
+        }
       } else {
         await document.exitFullscreen();
         setIsFullscreenInternal(false);
+        // @ts-ignore
+        if (window.screen?.orientation?.unlock) {
+          // @ts-ignore
+          window.screen.orientation.unlock();
+        }
       }
     } catch (e) {
       console.error("Fullscreen failed:", e);

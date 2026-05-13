@@ -387,7 +387,7 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-20 gap-6">
                     {watermarkUrl ? (
                         <div className="animate-pulse">
-                            <img src={watermarkUrl} alt="Channel" className="h-24 md:h-32 w-auto object-contain filter drop-shadow-2xl" />
+                            <img src={watermarkUrl} alt="Channel" className="h-16 md:h-32 w-auto object-contain filter drop-shadow-2xl" />
                         </div>
                     ) : (
                         <div className="w-16 h-16 border-4 border-white/20 border-t-primary rounded-full animate-spin" />
@@ -1402,17 +1402,41 @@ export default function Canais24h() {
     };
 
     // ---- Fullscreen management ----
-    const toggleFullscreen = useCallback(() => {
+    const toggleFullscreen = useCallback(async () => {
         if (!playerContainerRef.current) return;
         if (!document.fullscreenElement) {
-            playerContainerRef.current.requestFullscreen().catch(() => {});
+            try {
+                await playerContainerRef.current.requestFullscreen();
+                // @ts-ignore
+                if (window.screen?.orientation?.lock) {
+                    // @ts-ignore
+                    await window.screen.orientation.lock("landscape").catch(() => {});
+                }
+            } catch (err) {}
         } else {
-            document.exitFullscreen().catch(() => {});
+            try {
+                await document.exitFullscreen();
+                // @ts-ignore
+                if (window.screen?.orientation?.unlock) {
+                    // @ts-ignore
+                    window.screen.orientation.unlock();
+                }
+            } catch (err) {}
         }
     }, []);
 
     useEffect(() => {
-        const onFSChange = () => setIsFullscreen(!!document.fullscreenElement);
+        const onFSChange = () => {
+            const isFS = !!document.fullscreenElement;
+            setIsFullscreen(isFS);
+            
+            // Unlock orientation when exiting fullscreen
+            // @ts-ignore
+            if (!isFS && window.screen?.orientation?.unlock) {
+                // @ts-ignore
+                try { window.screen.orientation.unlock(); } catch (e) {}
+            }
+        };
         document.addEventListener("fullscreenchange", onFSChange);
         return () => document.removeEventListener("fullscreenchange", onFSChange);
     }, []);
@@ -1560,11 +1584,11 @@ export default function Canais24h() {
                                 />
 
                                 {/* Live Badge + Mini-Player button */}
-                                <div className="absolute top-6 right-6 z-50 flex flex-row-reverse items-center gap-2 transition-all">
-                                    <div className="flex items-center gap-1.5 bg-red-600/90 backdrop-blur-sm px-2.5 py-1 rounded text-[11px] font-bold uppercase tracking-wider text-white animate-pulse pointer-events-none">
-                                        <div className="w-2 h-2 bg-white rounded-full" /> AO VIVO
+                                <div className="absolute top-4 right-4 md:top-6 md:right-6 z-50 flex flex-row-reverse items-center gap-2 transition-all">
+                                    <div className="flex items-center gap-1 bg-red-600/90 backdrop-blur-sm px-2 py-0.5 md:px-2.5 md:py-1 rounded text-[9px] md:text-[11px] font-bold uppercase tracking-wider text-white animate-pulse pointer-events-none">
+                                        <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-white rounded-full" /> AO VIVO
                                     </div>
-                                    <div className="bg-black/40 backdrop-blur-sm px-2.5 py-1 rounded text-[11px] font-medium text-white/90 pointer-events-none">
+                                    <div className="bg-black/40 backdrop-blur-sm px-2 py-0.5 md:px-2.5 md:py-1 rounded text-[9px] md:text-[11px] font-medium text-white/90 pointer-events-none">
                                         {isAdMode ? "INTERVALO" : "24h Online"}
                                     </div>
                                     {!isPiP && typeof window !== "undefined" && "documentPictureInPicture" in window && 
@@ -1577,7 +1601,7 @@ export default function Canais24h() {
                                             className="p-1.5 rounded-lg bg-black/50 backdrop-blur-sm hover:bg-white/20 transition-colors border border-white/10 cursor-pointer"
                                             title="Mini-Player"
                                         >
-                                            <PictureInPicture className="w-4 h-4 text-white" />
+                                            <PictureInPicture className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
                                         </button>
                                     )}
                                 </div>
