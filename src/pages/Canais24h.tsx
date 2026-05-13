@@ -4,9 +4,9 @@ import { Header } from "@/components/Header";
 import { Content, Episode } from "@/types/content";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { toast } from "sonner";
-import { Loader2, Film, Tv, Clock, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { Loader2, Film, Tv, Clock, RefreshCw, ChevronLeft, ChevronRight, Heart, ThumbsUp, ThumbsDown } from "lucide-react";
 import { getBaseUrl } from "@/lib/api";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, Link } from "react-router-dom";
 import { useAppConfig } from "@/hooks/useAppConfig";
 
 import { Volume2, VolumeX, Maximize, Minimize, Play, Pause, SkipBack, SkipForward, PictureInPicture } from "lucide-react";
@@ -850,6 +850,54 @@ export default function Canais24h() {
     const [searchParams] = useSearchParams();
     const initialChannelId = searchParams.get("channelId");
     const { isLiteMode } = useAppConfig();
+
+    const [likes, setLikes] = useState<Record<string, { count: number, status: 'like'|'dislike'|null }>>({});
+
+    useEffect(() => {
+        const stored = localStorage.getItem('unitv_channel_likes');
+        if (stored) {
+            try { setLikes(JSON.parse(stored)); } catch(e){}
+        }
+    }, []);
+
+    const getInitialLikes = (id: string) => {
+        let hash = 0;
+        for (let i = 0; i < id.length; i++) hash = id.charCodeAt(i) + ((hash << 5) - hash);
+        return Math.abs(hash) % 1000 + 150; 
+    };
+
+    const handleInteraction = (type: 'like'|'dislike') => {
+        if (!currentChannel) return;
+        setLikes(prev => {
+            const current = prev[currentChannel.id] || { count: getInitialLikes(currentChannel.id), status: null };
+            let newStatus = current.status;
+            let newCount = current.count;
+
+            if (type === 'like') {
+                if (current.status === 'like') {
+                    newStatus = null;
+                    newCount--;
+                } else {
+                    newStatus = 'like';
+                    newCount += current.status === 'dislike' ? 2 : 1;
+                }
+            } else {
+                if (current.status === 'dislike') {
+                    newStatus = null;
+                    newCount++;
+                } else {
+                    newStatus = 'dislike';
+                    newCount -= current.status === 'like' ? 2 : 1;
+                }
+            }
+            
+            const next = { ...prev, [currentChannel.id]: { count: newCount, status: newStatus } };
+            localStorage.setItem('unitv_channel_likes', JSON.stringify(next));
+            return next;
+        });
+    };
+
+    const currentChannelLikes = currentChannel ? (likes[currentChannel.id] || { count: getInitialLikes(currentChannel.id), status: null }) : { count: 0, status: null };
 
     const [contents, setContents] = useState<Content[]>([]);
     const [currentChannel, setCurrentChannel] = useState<Content | null>(null);
@@ -1790,6 +1838,56 @@ export default function Canais24h() {
                         </div>
                     </div>
                 </div>
+
+                {/* Interactive Channel Bar */}
+                <div className="w-full max-w-7xl mx-auto px-4 md:px-8 mb-12">
+                    <div className="flex flex-col sm:flex-row items-center justify-between bg-zinc-900/60 backdrop-blur-xl border border-zinc-800/80 p-4 rounded-2xl shadow-xl">
+                        {/* Channel Info */}
+                        <div className="flex items-center gap-4 mb-4 sm:mb-0 w-full sm:w-auto">
+                            <div className="w-12 h-12 rounded-xl overflow-hidden bg-zinc-950 flex-shrink-0 flex items-center justify-center p-1 border border-white/5">
+                                <img 
+                                    src={currentChannel?.channel_logo_url || '/placeholder.png'} 
+                                    alt="Logo" 
+                                    className="w-full h-full object-contain"
+                                />
+                            </div>
+                            <div className="flex flex-col flex-1 overflow-hidden">
+                                <span className="text-[10px] uppercase font-black text-zinc-500 tracking-wider">Canal Atual</span>
+                                <h3 className="text-base font-bold text-white truncate">{currentChannel?.title || 'Sem Título'}</h3>
+                            </div>
+                        </div>
+                        
+                        {/* Actions */}
+                        <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                            <div className="flex items-center bg-zinc-950/80 rounded-xl border border-white/5 overflow-hidden">
+                                <button 
+                                    onClick={() => handleInteraction('like')} 
+                                    className={`flex items-center gap-1.5 px-4 py-2.5 hover:bg-white/10 transition-colors ${currentChannelLikes.status === 'like' ? 'text-primary' : 'text-zinc-400 hover:text-white'}`}
+                                    title="Gostar"
+                                >
+                                    <ThumbsUp className={`w-4 h-4 ${currentChannelLikes.status === 'like' ? 'fill-primary' : ''}`} />
+                                    <span className="text-xs font-bold">{currentChannelLikes.count}</span>
+                                </button>
+                                <div className="w-[1px] h-4 bg-white/10" />
+                                <button 
+                                    onClick={() => handleInteraction('dislike')} 
+                                    className={`flex items-center gap-1.5 px-4 py-2.5 hover:bg-white/10 transition-colors ${currentChannelLikes.status === 'dislike' ? 'text-white' : 'text-zinc-400 hover:text-white'}`}
+                                    title="Não Gostar"
+                                >
+                                    <ThumbsDown className={`w-4 h-4 ${currentChannelLikes.status === 'dislike' ? 'fill-white' : ''}`} />
+                                </button>
+                            </div>
+                            <Link 
+                                to="/my-list"
+                                className="p-3 rounded-xl bg-zinc-950/80 border border-white/5 hover:border-primary/50 hover:bg-primary/10 transition-all group flex items-center justify-center text-zinc-400 hover:text-primary"
+                                title="Minha Lista"
+                            >
+                                <Heart className="w-5 h-5 group-hover:scale-110 transition-transform" />
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+
 
                 <div className="w-full max-w-7xl mx-auto px-4 md:px-8 relative group/channels">
                     <div className="flex items-center justify-between mb-8">
