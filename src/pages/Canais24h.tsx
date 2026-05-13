@@ -59,16 +59,16 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
     const [duration, setDuration] = useState(0);
     
     const [isMobile] = useState(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768);
-    const [mobileOverlayVisible, setMobileOverlayVisible] = useState(true);
-
+    const [showInitialOverlay, setShowInitialOverlay] = useState(true);
+    
     useEffect(() => {
-        if (isPlaying && isMobile) {
-            const timer = setTimeout(() => setMobileOverlayVisible(false), 4000);
+        if (isPlaying) {
+            const timer = setTimeout(() => setShowInitialOverlay(false), 4000);
             return () => clearTimeout(timer);
-        } else if (!isPlaying) {
-            setMobileOverlayVisible(true);
+        } else {
+            setShowInitialOverlay(true);
         }
-    }, [isPlaying, isMobile]);
+    }, [isPlaying]);
 
     const onTimeUpdateRef = useRef(onTimeUpdate);
     const onEndedRef = useRef(onEnded);
@@ -375,15 +375,8 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
             {/* Catch clicks so they don't go to iframe */}
             <div className="absolute inset-0 z-10 pointer-events-none" />
 
-            {/* Mobile YouTube UI Hider Overlay */}
-            {isMobile && mobileOverlayVisible && !hasError && (
-                <div className="absolute inset-0 bg-black/90 z-[15] pointer-events-none transition-opacity duration-1000 flex items-center justify-center">
-                     <p className="text-white/30 text-xs tracking-widest uppercase animate-pulse">Optimizando vídeo...</p>
-                </div>
-            )}
-
-            {/* Logo / Loading / Error Overlay */}
-            {(!isPlaying || hasError) && (
+            {/* Logo / Loading / Error Overlay - stays for 4s after isPlaying to hide YouTube UI */}
+            {(showInitialOverlay || hasError) && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-black z-20 gap-6">
                     {watermarkUrl ? (
                         <div className="animate-pulse">
@@ -395,6 +388,7 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                     <p className="text-white/70 font-bold text-xs md:text-sm animate-pulse tracking-[0.2em] uppercase px-4 text-center">
                         {hasError ? "Conteúdo Indisponível. A saltar..." : "A ligar à emissão..."}
                     </p>
+                    {!hasError && <p className="text-white/30 text-[10px] uppercase tracking-[0.2em]">Canais24h Premium</p>}
                 </div>
             )}
 
