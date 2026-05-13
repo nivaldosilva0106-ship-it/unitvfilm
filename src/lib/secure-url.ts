@@ -170,7 +170,35 @@ export function createSecurePlaybackUrl(url: string): string {
     ext = '&ext=.ts';
   }
   
-  return `/api/stream-proxy?t=${token}${ext}`;
+  // APK FIX: In native apps (Capacitor/APK), relative URLs like "/api/..." fail 
+  // because they point to http://localhost/api/...
+  // We MUST use the absolute domain from SiteSettings or window.location.origin
+  let baseUrl = '';
+  if (typeof window !== 'undefined') {
+    // Check if we are in a native APK environment (Capacitor)
+    const isNative = (window as any).Capacitor?.isNative || 
+                    window.location.hostname === 'localhost' || 
+                    window.location.hostname === '127.0.0.1';
+
+    if (isNative) {
+      try {
+        const cached = localStorage.getItem('cached_settings');
+        if (cached) {
+          const settings = JSON.parse(cached);
+          if (settings.officialSiteUrl) {
+            baseUrl = settings.officialSiteUrl.replace(/\/$/, '');
+          }
+        }
+      } catch (e) {}
+      
+      // Fallback if settings not found - use the production Vercel domain
+      if (!baseUrl) {
+        baseUrl = 'https://unitvfilm.vercel.app'; // Default fallback
+      }
+    }
+  }
+  
+  return `${baseUrl}/api/stream-proxy?t=${token}${ext}`;
 }
 
 /**
@@ -184,5 +212,26 @@ export function createSecureDownloadUrl(url: string, filename?: string): string 
   const params = new URLSearchParams({ t: token });
   if (filename) params.set('f', filename);
   
-  return `/api/secure-download?${params.toString()}`;
+  // APK FIX: Absolute URL for downloads in native environment
+  let baseUrl = '';
+  if (typeof window !== 'undefined') {
+    const isNative = (window as any).Capacitor?.isNative || 
+                    window.location.hostname === 'localhost' || 
+                    window.location.hostname === '127.0.0.1';
+
+    if (isNative) {
+      try {
+        const cached = localStorage.getItem('cached_settings');
+        if (cached) {
+          const settings = JSON.parse(cached);
+          if (settings.officialSiteUrl) {
+            baseUrl = settings.officialSiteUrl.replace(/\/$/, '');
+          }
+        }
+      } catch (e) {}
+      if (!baseUrl) baseUrl = 'https://unitvfilm.vercel.app';
+    }
+  }
+  
+  return `${baseUrl}/api/secure-download?${params.toString()}`;
 }

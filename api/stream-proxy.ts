@@ -175,7 +175,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       // If it's an HLS manifest, rewrite relative URLs
       if (detectedType === 'application/vnd.apple.mpegurl' || detectedType === 'audio/mpegurl') {
         const text = new TextDecoder().decode(uint8);
-        const rewritten = rewriteM3U8Urls(text, videoUrl);
+        const protocol = req.headers['x-forwarded-proto'] || 'https';
+        const host = req.headers.host;
+        const proxyBase = `${protocol}://${host}/api/stream-proxy`;
+        const rewritten = rewriteM3U8Urls(text, videoUrl, proxyBase);
         return res.send(rewritten);
       }
 
@@ -233,7 +236,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       const text = new TextDecoder().decode(combined);
-      const rewritten = rewriteM3U8Urls(text, videoUrl);
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const host = req.headers.host;
+      const proxyBase = `${protocol}://${host}/api/stream-proxy`;
+      const rewritten = rewriteM3U8Urls(text, videoUrl, proxyBase);
       res.setHeader('Content-Type', detectedType);
       res.setHeader('Cache-Control', 'public, max-age=300');
       return res.status(200).send(rewritten);
@@ -352,7 +358,7 @@ function detectMediaType(data: Uint8Array, url: string, serverContentType: strin
 /**
  * Rewrite relative URLs in M3U8 manifests to absolute URLs proxied through this endpoint
  */
-function rewriteM3U8Urls(manifest: string, originalUrl: string): string {
+function rewriteM3U8Urls(manifest: string, originalUrl: string, proxyBase: string): string {
   const baseUrl = originalUrl.substring(0, originalUrl.lastIndexOf('/') + 1);
 
   return manifest.split('\n').map(line => {
@@ -363,32 +369,27 @@ function rewriteM3U8Urls(manifest: string, originalUrl: string): string {
       // But check for URI= attributes in tags like #EXT-X-KEY
       if (trimmed.includes('URI="')) {
         return trimmed.replace(/URI="([^"]+)"/g, (match, uri) => {
-          if (uri.startsWith('http://') || uri.startsWith('https://')) {
-            return `URI="/api/stream-proxy?url=${encodeURIComponent(uri)}"`;
+          let absoluteUri = uri;
+          if (!uri.startsWith('http://') && !uri.startsWith('https://')) {
+            absoluteUri = new URL(uri, baseUrl).toString();
           }
-          const absoluteUri = new URL(uri, baseUrl).toString();
-          return `URI="/api/stream-proxy?url=${encodeURIComponent(absoluteUri)}"`;
+          return `URI="${proxyBase}?url=${encodeURIComponent(absoluteUri)}"`;
         });
       }
       return line;
     }
 
     // If it's a URL line (segment or sub-manifest)
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      // Absolute URL — proxy it
-      return `/api/stream-proxy?url=${encodeURIComponent(trimmed)}`;
-    }
-
-    // Relative URL — make absolute, then proxy
-    if (trimmed && !trimmed.startsWith('#')) {
+    let finalUrl = trimmed;
+    if (!trimmed.startsWith('http://') && !trimmed.startsWith('https://')) {
       try {
-        const absoluteUrl = new URL(trimmed, baseUrl).toString();
-        return `/api/stream-proxy?url=${encodeURIComponent(absoluteUrl)}`;
+        finalUrl = new URL(trimmed, baseUrl).toString();
       } catch {
         return line;
       }
     }
 
-    return line;
+    // Return the proxied URL using the absolute proxyBase
+    return `${proxyBase}?url=${encodeURIComponent(finalUrl)}`;
   }).join('\n');
 }

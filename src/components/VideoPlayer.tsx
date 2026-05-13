@@ -119,8 +119,8 @@ const formatTime = (seconds: number): string => {
   // Detect if URL needs secure proxying (to hide real URL from users)
   const needsSecureProxy = (u: string) => {
     if (!u) return false;
-    // Already proxied/secured
-    if (u.startsWith('/api/')) return false;
+    // Already proxied/secured (either relative or absolute)
+    if (u.includes('/api/stream-proxy') || u.includes('/api/secure-download')) return false;
     // Use the centralized protection check
     return isProtectedUrl(u);
   };
