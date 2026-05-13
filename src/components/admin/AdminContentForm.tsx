@@ -2046,6 +2046,29 @@ ${ep.url || ""}`;
                   <Upload className="w-4 h-4 mr-2" />
                   Importar Programação
                 </Button>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    if (!editingContent.episodes) return;
+                    const initialCount = editingContent.episodes.length;
+                    const newEps = editingContent.episodes.filter(ep => ep.title?.trim().toLowerCase() !== "deleted video");
+                    const removedCount = initialCount - newEps.length;
+                    
+                    if (removedCount > 0) {
+                      setEditingContent(prev => ({ ...prev, episodes: newEps }));
+                      toast.success(`${removedCount} vídeo(s) apagado(s) removido(s) com sucesso!`);
+                    } else {
+                      toast.info("Nenhum vídeo apagado encontrado.");
+                    }
+                  }}
+                  className="border-red-500/40 text-red-400 hover:bg-red-500/10"
+                  title="Remove todos os blocos com o título 'Deleted video'"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Limpar Links Quebrados
+                </Button>
               </div>
             )}
 
