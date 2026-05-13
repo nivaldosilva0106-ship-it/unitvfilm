@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, memo, useMemo } from "react";
-import { getAllContents } from "@/lib/firebase";
+import { getAllContents, addToMyList, removeFromMyList, getMyList } from "@/lib/firebase";
 import { Header } from "@/components/Header";
 import { Content, Episode } from "@/types/content";
 import { VideoPlayer } from "@/components/VideoPlayer";
@@ -8,6 +8,7 @@ import { Loader2, Film, Tv, Clock, RefreshCw, ChevronLeft, ChevronRight, Heart, 
 import { getBaseUrl } from "@/lib/api";
 import { useSearchParams, Link } from "react-router-dom";
 import { useAppConfig } from "@/hooks/useAppConfig";
+import { useAuth } from "@/contexts/AuthContext";
 
 import { Volume2, VolumeX, Maximize, Minimize, Play, Pause, SkipBack, SkipForward, PictureInPicture } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
@@ -855,6 +856,61 @@ export default function Canais24h() {
     const [currentChannel, setCurrentChannel] = useState<Content | null>(null);
     const [loading, setLoading] = useState(true);
     const [showApkWarning, setShowApkWarning] = useState(false);
+
+    const { user } = useAuth();
+    const [myListId, setMyListId] = useState<string | null>(null);
+    const [isInMyList, setIsInMyList] = useState(false);
+
+    useEffect(() => {
+        if (!user || !currentChannel) return;
+        
+        let isMounted = true;
+        const checkMyList = async () => {
+            try {
+                const list = await getMyList(user.uid);
+                if (!isMounted) return;
+                
+                const listItem = list.find(item => item.contentId === currentChannel.id);
+                if (listItem) {
+                    setIsInMyList(true);
+                    setMyListId(listItem.id);
+                } else {
+                    setIsInMyList(false);
+                    setMyListId(null);
+                }
+            } catch (err) {
+                console.error("Error checking my list:", err);
+            }
+        };
+        
+        checkMyList();
+        return () => { isMounted = false; };
+    }, [user, currentChannel]);
+
+    const handleFavorite = async () => {
+        if (!user) {
+            toast.error("Precisas iniciar sessão para adicionar aos favoritos");
+            return;
+        }
+        if (!currentChannel) return;
+        
+        try {
+            if (isInMyList && myListId) {
+                await removeFromMyList(user.uid, myListId);
+                setIsInMyList(false);
+                setMyListId(null);
+                toast.success("Canal removido da tua lista");
+            } else {
+                const newItem = await addToMyList(user.uid, currentChannel);
+                setIsInMyList(true);
+                setMyListId(newItem.id);
+                toast.success("Canal adicionado à tua lista");
+            }
+        } catch (error) {
+            console.error("Error handling favorite:", error);
+            toast.error("Erro ao atualizar favoritos");
+        }
+    };
 
     const [likes, setLikes] = useState<Record<string, { count: number, status: 'like'|'dislike'|null }>>({});
 
@@ -1922,13 +1978,13 @@ export default function Canais24h() {
                                     <ThumbsDown className={`w-4 h-4 ${currentChannelLikes.status === 'dislike' ? 'fill-white' : ''}`} />
                                 </button>
                             </div>
-                            <Link 
-                                to="/my-list"
-                                className="p-3 rounded-xl bg-zinc-950/80 border border-white/5 hover:border-primary/50 hover:bg-primary/10 transition-all group flex items-center justify-center text-zinc-400 hover:text-primary"
-                                title="Minha Lista"
+                            <button 
+                                onClick={handleFavorite}
+                                className={`p-3 rounded-xl bg-zinc-950/80 border border-white/5 hover:border-primary/50 hover:bg-primary/10 transition-all group flex items-center justify-center ${isInMyList ? 'text-primary' : 'text-zinc-400 hover:text-primary'}`}
+                                title={isInMyList ? "Remover dos Favoritos" : "Adicionar aos Favoritos"}
                             >
-                                <Heart className="w-5 h-5 group-hover:scale-110 transition-transform" />
-                            </Link>
+                                <Heart className={`w-5 h-5 group-hover:scale-110 transition-transform ${isInMyList ? 'fill-primary' : ''}`} />
+                            </button>
                         </div>
                     </div>
                 </div>

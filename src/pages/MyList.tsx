@@ -167,11 +167,11 @@ const MyList = () => {
                   providerLogos={siteSettings?.providerLogos}
                 />
                 <button
-                  onClick={() => handleRemove(item.id)}
-                  className="absolute top-2 right-2 bg-destructive/90 hover:bg-destructive text-destructive-foreground p-1.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                  onClick={(e) => { e.stopPropagation(); handleRemove(item.id); }}
+                  className="absolute top-2 right-2 bg-destructive/90 hover:bg-destructive text-destructive-foreground p-2 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 shadow-lg"
                   title="Remover da lista"
                 >
-                  <Trash2 className="w-3 h-3" />
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             ))}
