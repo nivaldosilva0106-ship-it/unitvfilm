@@ -44,6 +44,8 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
     watermarkUrl?: string;
     watermarkPosition?: string;
     watermarkSize?: number;
+    mobileWatermarkPosition?: string;
+    mobileWatermarkSize?: number;
 }) => {
     const playerRef = useRef<any>(null);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -407,11 +409,11 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
             )}
 
             {watermarkUrl && isPlaying && !hasError && (
-                <div className={`absolute ${getWatermarkClasses(watermarkPosition)} z-[35] pointer-events-none select-none transition-all duration-300 opacity-70`}>
+                <div className={`absolute ${getWatermarkClasses(isMobile ? (mobileWatermarkPosition || watermarkPosition) : watermarkPosition)} z-[35] pointer-events-none select-none transition-all duration-300 opacity-70`}>
                     <img 
                         src={watermarkUrl} 
                         alt="Watermark" 
-                        style={{ height: `${(watermarkSize || 8) * 4}px` }}
+                        style={{ height: `${((isMobile ? (mobileWatermarkSize || watermarkSize) : watermarkSize) || 8) * 4}px` }}
                         className="w-auto object-contain filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" 
                     />
                 </div>
@@ -491,6 +493,8 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
     watermarkUrl?: string;
     watermarkPosition?: string;
     watermarkSize?: number;
+    mobileWatermarkPosition?: string;
+    mobileWatermarkSize?: number;
 }) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const [isPlaying, setIsPlaying] = useState(active);
@@ -587,11 +591,11 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
             >
                 {/* Watermark Logo Overlay */}
                 {watermarkUrl && (
-                    <div className={`absolute ${getWatermarkClasses(watermarkPosition)} z-[35] pointer-events-none select-none transition-all duration-300 opacity-70`}>
+                    <div className={`absolute ${getWatermarkClasses(isMobile ? (mobileWatermarkPosition || watermarkPosition) : watermarkPosition)} z-[35] pointer-events-none select-none transition-all duration-300 opacity-70`}>
                         <img 
                             src={watermarkUrl} 
                             alt="Watermark" 
-                            style={{ height: `${(watermarkSize || 8) * 4}px` }}
+                            style={{ height: `${((isMobile ? (mobileWatermarkSize || watermarkSize) : watermarkSize) || 8) * 4}px` }}
                             className="w-auto object-contain filter drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]" 
                         />
                     </div>
@@ -698,7 +702,7 @@ SocialPlayer.displayName = "SocialPlayer";
 // ============================================================
 // PLAYER SLOT — Renders YouTube or VideoPlayer
 // ============================================================
-const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, watermarkPosition, watermarkSize, onTimeUpdate, onEnded, onToggleFullscreen, isFullscreen, isLiteMode }: {
+const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, watermarkPosition, watermarkSize, mobileWatermarkPosition, mobileWatermarkSize, onTimeUpdate, onEnded, onToggleFullscreen, isFullscreen, isLiteMode }: {
     id: string;
     content: QueueItem | null;
     tiktokUrl: string | null;
@@ -706,12 +710,16 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, waterma
     channelThumb?: string;
     watermarkPosition?: string;
     watermarkSize?: number;
+    mobileWatermarkPosition?: string;
+    mobileWatermarkSize?: number;
     onTimeUpdate?: (time: number, duration?: number) => void;
     onEnded?: () => void;
     onToggleFullscreen?: () => void;
     isFullscreen?: boolean;
     isLiteMode?: boolean;
 }) => {
+    const [isMobile] = useState(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768);
+
     const getYtId = (url?: string) => {
         if (!url) return null;
         const m = url.match(/^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=|shorts\/|live\/)([^#&?]*).*/);
@@ -774,6 +782,8 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, waterma
                     watermarkUrl={channelThumb}
                     watermarkPosition={watermarkPosition}
                     watermarkSize={watermarkSize}
+                    mobileWatermarkPosition={mobileWatermarkPosition}
+                    mobileWatermarkSize={mobileWatermarkSize}
                 />
             ) : isSocial ? (
                 <SocialPlayer
@@ -786,6 +796,8 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, waterma
                     watermarkUrl={channelThumb}
                     watermarkPosition={watermarkPosition}
                     watermarkSize={watermarkSize}
+                    mobileWatermarkPosition={mobileWatermarkPosition}
+                    mobileWatermarkSize={mobileWatermarkSize}
                 />
             ) : (
                 <VideoPlayer
@@ -806,8 +818,8 @@ const PlayerSlot = memo(({ id, content, tiktokUrl, active, channelThumb, waterma
                     muted={!active}
                     initialPlaybackRate={content.playbackSpeed}
                     watermarkUrl={channelThumb}
-                    watermarkPosition={watermarkPosition}
-                    watermarkSize={watermarkSize}
+                    watermarkPosition={isMobile ? (mobileWatermarkPosition || watermarkPosition) : watermarkPosition}
+                    watermarkSize={isMobile ? (mobileWatermarkSize || watermarkSize) : watermarkSize}
                     initialAspect="cover"
                 />
             )}
@@ -1582,6 +1594,8 @@ export default function Canais24h() {
                                     channelThumb={currentChannel.channel_logo_url}
                                     watermarkPosition={currentChannel.watermark_position}
                                     watermarkSize={currentChannel.watermark_size}
+                                    mobileWatermarkPosition={currentChannel.mobile_watermark_position}
+                                    mobileWatermarkSize={currentChannel.mobile_watermark_size}
                                     onTimeUpdate={handleTimeUpdate}
                                     onEnded={handleEndedA}
                                     onToggleFullscreen={toggleFullscreen}
@@ -1596,6 +1610,8 @@ export default function Canais24h() {
                                     channelThumb={currentChannel.channel_logo_url}
                                     watermarkPosition={currentChannel.watermark_position}
                                     watermarkSize={currentChannel.watermark_size}
+                                    mobileWatermarkPosition={currentChannel.mobile_watermark_position}
+                                    mobileWatermarkSize={currentChannel.mobile_watermark_size}
                                     onTimeUpdate={handleTimeUpdate}
                                     onEnded={handleEndedB}
                                     onToggleFullscreen={toggleFullscreen}

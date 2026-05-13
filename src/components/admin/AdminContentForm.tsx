@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Play, Search, Trash, Trash2, Loader2, Link as LinkIcon, Download, DownloadIcon, CheckCircle2, Clapperboard, MonitorPlay, Sparkles, X, Plus, PlusCircle, Maximize, AlertTriangle, ShieldCheck, ChevronUp, ChevronDown, Save, Lock, Bell, Upload, Film, Tv, RefreshCw, Clipboard, Clock, Settings2 } from "lucide-react";
+import { Play, Search, Trash, Trash2, Loader2, Link as LinkIcon, Download, DownloadIcon, CheckCircle2, Clapperboard, MonitorPlay, Sparkles, X, Plus, PlusCircle, Maximize, AlertTriangle, ShieldCheck, ChevronUp, ChevronDown, Save, Lock, Bell, Upload, Film, Tv, RefreshCw, Clipboard, Clock, Settings2, Monitor, Smartphone } from "lucide-react";
 import { toast } from "sonner";
 import { searchMovies, searchSeries, getImageUrl, getMovieTrailer, getSeriesTrailer, getMovieDetails, getSeriesDetails, getSeasonDetails, getWatchProviders } from "@/lib/tmdb";
 import { sendContentNotification, getAllContents, updateContent } from "@/lib/firebase";
@@ -1536,79 +1536,177 @@ ${ep.url || ""}`;
             )}
           </div>
           {isCanais24h && (
-            <div className="space-y-4 p-4 border border-primary/20 rounded-lg bg-primary/5">
-              <Label className="text-primary font-semibold text-sm">🎨 Configuração da Logo (Watermark)</Label>
-              <div>
-                <Label className="text-xs text-zinc-400">URL da Logo do Canal *</Label>
-                <Input
-                  value={editingContent.channel_logo_url || ''}
-                  onChange={(e) => setEditingContent(prev => ({ ...prev, channel_logo_url: e.target.value }))}
-                  className="bg-input border-primary/30 focus:border-primary"
-                  placeholder="https://... (Aparecerá no canto do player)"
-                />
-                {editingContent.channel_logo_url && (
-                  <img src={editingContent.channel_logo_url} className="mt-2 h-12 w-auto object-contain rounded bg-black/40 p-1 border border-white/10" />
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-xs text-zinc-400">Posição da Logo</Label>
-                  <Select
-                    value={editingContent.watermark_position || 'bottom-left'}
-                    onValueChange={(v) => setEditingContent(prev => ({ ...prev, watermark_position: v as any }))}
-                  >
-                    <SelectTrigger className="bg-input border-border">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="top-left">↖ Superior Esquerdo</SelectItem>
-                      <SelectItem value="top-right">↗ Superior Direito</SelectItem>
-                      <SelectItem value="bottom-left">↙ Inferior Esquerdo</SelectItem>
-                      <SelectItem value="bottom-right">↘ Inferior Direito</SelectItem>
-                    </SelectContent>
-                  </Select>
+            <div className="space-y-6 p-5 border border-primary/20 rounded-xl bg-primary/5">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                  <span className="text-lg">🎨</span>
                 </div>
                 <div>
-                  <Label className="text-xs text-zinc-400">Tamanho da Logo: {editingContent.watermark_size || 8}</Label>
+                  <h3 className="text-primary font-bold text-base">Configuração da Logo (Watermark)</h3>
+                  <p className="text-xs text-zinc-500">Defina a aparência da marca d'água no player</p>
+                </div>
+              </div>
+
+              <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+                <Label className="text-xs text-zinc-400 font-bold uppercase tracking-wider mb-2 block">URL da Logo do Canal *</Label>
+                <div className="flex gap-2">
                   <Input
-                    type="range"
-                    min="2"
-                    max="30"
-                    step="1"
-                    value={editingContent.watermark_size || 8}
-                    onChange={(e) => setEditingContent(prev => ({ ...prev, watermark_size: parseInt(e.target.value) }))}
-                    className="w-full accent-primary mt-1"
+                    value={editingContent.channel_logo_url || ''}
+                    onChange={(e) => setEditingContent(prev => ({ ...prev, channel_logo_url: e.target.value }))}
+                    className="bg-input border-primary/30 focus:border-primary h-11"
+                    placeholder="https://... (Aparecerá no canto do player)"
                   />
-                  <div className="flex justify-between text-[9px] text-zinc-500 mt-0.5">
-                    <span>Pequeno</span>
-                    <span>Grande</span>
-                  </div>
+                  {editingContent.channel_logo_url && (
+                    <div className="h-11 w-11 rounded border border-white/10 bg-black/40 p-1 flex items-center justify-center shrink-0">
+                      <img src={editingContent.channel_logo_url} className="max-h-full max-w-full object-contain" />
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {editingContent.channel_logo_url && (
-                <div className="relative w-full aspect-video bg-zinc-900 rounded-lg border border-zinc-800 overflow-hidden">
-                  <p className="absolute top-1 left-1/2 -translate-x-1/2 text-[9px] text-zinc-600 font-mono">PRÉ-VISUALIZAÇÃO</p>
-                  <div
-                    className={`absolute z-10 pointer-events-none ${
-                      (editingContent.watermark_position || 'bottom-left') === 'top-left' ? 'top-3 left-3' :
-                      (editingContent.watermark_position || 'bottom-left') === 'top-right' ? 'top-3 right-3' :
-                      (editingContent.watermark_position || 'bottom-left') === 'bottom-right' ? 'bottom-3 right-3' :
-                      'bottom-3 left-3'
-                    }`}
-                  >
-                    <img
-                      src={editingContent.channel_logo_url}
-                      alt="Preview"
-                      style={{ height: `${(editingContent.watermark_size || 8) * 4}px` }}
-                      className="w-auto object-contain filter drop-shadow-lg opacity-70"
-                    />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Desktop Version */}
+                <div className="space-y-4 p-4 rounded-lg bg-white/[0.02] border border-white/5 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-blue-500/50" />
+                  <div className="flex items-center justify-between">
+                    <Label className="text-blue-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                      <Monitor className="w-3 h-3" /> Desktop / TV
+                    </Label>
                   </div>
+                  
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <Label className="text-[10px] text-zinc-500 uppercase mb-1.5 block">Posição no Player</Label>
+                      <Select
+                        value={editingContent.watermark_position || 'bottom-left'}
+                        onValueChange={(v) => setEditingContent(prev => ({ ...prev, watermark_position: v as any }))}
+                      >
+                        <SelectTrigger className="bg-input border-border h-9 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="top-left">↖ Superior Esquerdo</SelectItem>
+                          <SelectItem value="top-right">↗ Superior Direito</SelectItem>
+                          <SelectItem value="bottom-left">↙ Inferior Esquerdo</SelectItem>
+                          <SelectItem value="bottom-right">↘ Inferior Direito</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <Label className="text-[10px] text-zinc-500 uppercase">Tamanho: {editingContent.watermark_size || 8}</Label>
+                        <span className="text-[10px] font-mono text-blue-400/80">Default: 8</span>
+                      </div>
+                      <Input
+                        type="range"
+                        min="2"
+                        max="35"
+                        step="1"
+                        value={editingContent.watermark_size || 8}
+                        onChange={(e) => setEditingContent(prev => ({ ...prev, watermark_size: parseInt(e.target.value) }))}
+                        className="w-full accent-blue-500 h-4"
+                      />
+                    </div>
+                  </div>
+
+                  {editingContent.channel_logo_url && (
+                    <div className="relative w-full aspect-video bg-zinc-950 rounded border border-white/10 overflow-hidden shadow-inner mt-4">
+                      <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
+                        <Play className="w-10 h-10" />
+                      </div>
+                      <div
+                        className={`absolute z-10 pointer-events-none ${
+                          (editingContent.watermark_position || 'bottom-left') === 'top-left' ? 'top-3 left-3' :
+                          (editingContent.watermark_position || 'bottom-left') === 'top-right' ? 'top-3 right-3' :
+                          (editingContent.watermark_position || 'bottom-left') === 'bottom-right' ? 'bottom-3 right-3' :
+                          'bottom-3 left-3'
+                        }`}
+                      >
+                        <img
+                          src={editingContent.channel_logo_url}
+                          alt="Preview Desktop"
+                          style={{ height: `${(editingContent.watermark_size || 8) * 3}px` }}
+                          className="w-auto object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] opacity-80"
+                        />
+                      </div>
+                      <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-500/30" />
+                    </div>
+                  )}
                 </div>
-              )}
+
+                {/* Mobile Version */}
+                <div className="space-y-4 p-4 rounded-lg bg-white/[0.02] border border-white/5 relative overflow-hidden">
+                  <div className="absolute top-0 left-0 w-1 h-full bg-pink-500/50" />
+                  <div className="flex items-center justify-between">
+                    <Label className="text-pink-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
+                      <Smartphone className="w-3 h-3" /> Mobile / Tablet
+                    </Label>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 gap-4">
+                    <div>
+                      <Label className="text-[10px] text-zinc-500 uppercase mb-1.5 block">Posição no Player</Label>
+                      <Select
+                        value={editingContent.mobile_watermark_position || 'top-right'}
+                        onValueChange={(v) => setEditingContent(prev => ({ ...prev, mobile_watermark_position: v as any }))}
+                      >
+                        <SelectTrigger className="bg-input border-border h-9 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="top-left">↖ Superior Esquerdo</SelectItem>
+                          <SelectItem value="top-right">↗ Superior Direito</SelectItem>
+                          <SelectItem value="bottom-left">↙ Inferior Esquerdo</SelectItem>
+                          <SelectItem value="bottom-right">↘ Inferior Direito</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <div className="flex justify-between items-center mb-1.5">
+                        <Label className="text-[10px] text-zinc-500 uppercase">Tamanho: {editingContent.mobile_watermark_size || 6}</Label>
+                        <span className="text-[10px] font-mono text-pink-400/80">Default: 6</span>
+                      </div>
+                      <Input
+                        type="range"
+                        min="2"
+                        max="25"
+                        step="1"
+                        value={editingContent.mobile_watermark_size || 6}
+                        onChange={(e) => setEditingContent(prev => ({ ...prev, mobile_watermark_size: parseInt(e.target.value) }))}
+                        className="w-full accent-pink-500 h-4"
+                      />
+                    </div>
+                  </div>
+
+                  {editingContent.channel_logo_url && (
+                    <div className="flex justify-center mt-4">
+                      <div className="relative w-28 aspect-[9/16] bg-zinc-950 rounded-2xl border-4 border-zinc-800 overflow-hidden shadow-xl">
+                        <div className="absolute top-1 left-1/2 -translate-x-1/2 w-8 h-1.5 bg-zinc-800 rounded-full" />
+                        <div className="absolute inset-0 flex items-center justify-center opacity-5 pointer-events-none scale-50">
+                          <Play className="w-10 h-10" />
+                        </div>
+                        <div
+                          className={`absolute z-10 pointer-events-none ${
+                            (editingContent.mobile_watermark_position || 'top-right') === 'top-left' ? 'top-2 left-2' :
+                            (editingContent.mobile_watermark_position || 'top-right') === 'top-right' ? 'top-2 right-2' :
+                            (editingContent.mobile_watermark_position || 'top-right') === 'bottom-right' ? 'bottom-2 right-2' :
+                            'bottom-2 left-2'
+                          }`}
+                        >
+                          <img
+                            src={editingContent.channel_logo_url}
+                            alt="Preview Mobile"
+                            style={{ height: `${(editingContent.mobile_watermark_size || 6) * 2.5}px` }}
+                            className="w-auto object-contain filter drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)] opacity-80"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
-          )}
+          )}}
         </div>
 
         <div>
