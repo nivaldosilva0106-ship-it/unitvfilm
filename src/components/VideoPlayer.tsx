@@ -859,6 +859,7 @@ const formatTime = (seconds: number): string => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
+                  container={containerRef.current}
                   className="bg-black/95 border-white/20 backdrop-blur-xl min-w-[150px] md:min-w-[180px]"
                 >
                   <div className="px-2 py-1.5 text-[10px] md:text-xs text-gray-400 font-semibold">Proporção da Tela</div>
@@ -890,6 +891,7 @@ const formatTime = (seconds: number): string => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent
                   align="end"
+                  container={containerRef.current}
                   className="bg-black/95 border-white/20 backdrop-blur-xl min-w-[150px] md:min-w-[180px]"
                 >
                   {/* Quality */}
@@ -938,7 +940,7 @@ const formatTime = (seconds: number): string => {
                       <span>Velocidade</span>
                       <span className="ml-auto text-[10px] text-primary bg-primary/10 px-1.5 rounded">{playbackRate === 1 ? 'Normal' : `${playbackRate.toFixed(2)}x`}</span>
                     </DropdownMenuSubTrigger>
-                    <DropdownMenuPortal>
+                    <DropdownMenuPortal container={containerRef.current}>
                       <DropdownMenuSubContent className="bg-black/95 border-white/20 backdrop-blur-xl min-w-[120px] max-h-[300px] overflow-y-auto custom-scrollbar">
                         {[0.25, 0.30, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 1, 1.25, 1.5, 2].map(rate => (
                           <DropdownMenuItem
