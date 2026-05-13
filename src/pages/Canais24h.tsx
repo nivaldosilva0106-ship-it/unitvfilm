@@ -1496,12 +1496,27 @@ export default function Canais24h() {
     const getUpcomingPrograms = () => {
         if (programs.length === 0) return [];
         const idx = currentIndexRef.current;
-        const upcoming: Episode[] = [];
-        const limit = programs.length > 1 ? Math.min(15, programs.length - 1) : 1;
-        // Se a lista de programas for pequena, podemos apenas mostrar o máximo disponível, ou repetir.
-        // A pedido do utilizador: ver "mais de 10 programações". Vamos tentar mostrar 15 se disponíveis.
+        const upcoming: { prog: Episode, timeStr: string }[] = [];
+        
+        let currentRemainingSeconds = 0;
+        if (realDuration && realTime && realDuration > realTime) {
+            currentRemainingSeconds = realDuration - realTime;
+        }
+        
+        let accumulatedSeconds = currentRemainingSeconds;
+
         for (let i = 1; i <= 15; i++) {
-            upcoming.push(programs[(idx + i) % programs.length]);
+            const prog = programs[(idx + i) % programs.length];
+            
+            const startDate = new Date(Date.now() + accumulatedSeconds * 1000);
+            const timeStr = startDate.toLocaleTimeString('pt-AO', { 
+                timeZone: 'Africa/Luanda', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            
+            upcoming.push({ prog, timeStr });
+            accumulatedSeconds += prog.duration || 0;
         }
         return upcoming;
     };
@@ -1814,20 +1829,28 @@ export default function Canais24h() {
                                 ref={epgListRef}
                                 className="flex overflow-x-auto gap-4 pb-4 md:pb-2 scrollbar-hide snap-x scroll-smooth"
                             >
-                                {getUpcomingPrograms().map((prog, idx) => {
+                                {getUpcomingPrograms().map(({ prog, timeStr }, idx) => {
                                     if (!prog) return null;
                                     return (
-                                        <div key={idx} className="min-w-[240px] md:min-w-[280px] flex-none bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl group hover:border-primary/50 transition-colors snap-start">
-                                            <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">
-                                                {idx === 0 ? "Próximo" : "A seguir"}
-                                            </span>
-                                            <div className="overflow-hidden mt-2">
-                                                <h3 className="text-sm font-bold text-zinc-300 whitespace-nowrap animate-marquee group-hover:text-white hover:pause-animation">
-                                                    {prog.title || "Sem Título"}
-                                                </h3>
+                                        <div key={idx} className="min-w-[240px] md:min-w-[280px] flex-none bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl group hover:border-primary/50 transition-colors snap-start flex flex-col justify-between">
+                                            <div>
+                                                <div className="flex items-center justify-between mb-3">
+                                                    <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">
+                                                        {idx === 0 ? "Próximo" : "A seguir"}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold text-zinc-400 bg-zinc-950 px-2 py-0.5 rounded-md flex items-center gap-1 border border-white/5 shadow-inner">
+                                                        <Clock className="w-3 h-3 text-zinc-500" />
+                                                        {timeStr}
+                                                    </span>
+                                                </div>
+                                                <div className="overflow-hidden">
+                                                    <h3 className="text-sm font-bold text-zinc-300 whitespace-nowrap animate-marquee group-hover:text-white hover:pause-animation">
+                                                        {prog.title || "Sem Título"}
+                                                    </h3>
+                                                </div>
                                             </div>
                                             {prog.duration && (
-                                                <span className="text-[10px] text-zinc-500 mt-1 block">
+                                                <span className="text-[10px] text-zinc-500 mt-2 block">
                                                     {Math.floor(prog.duration / 60)} min
                                                 </span>
                                             )}
