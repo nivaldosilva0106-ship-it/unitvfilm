@@ -252,7 +252,12 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     toast.info(`Sincronizando blocos de programação...`);
     
     lines.forEach((line) => {
-      if (separatorPattern.test(line)) return;
+      if (separatorPattern.test(line)) {
+        if (isCanais24hSelected) {
+          runningTitle = ""; // Reset current title propagation on separator boundary
+        }
+        return;
+      }
 
       const seasonMatch = line.match(seasonHeaderPattern);
       if (seasonMatch) {
@@ -276,7 +281,12 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           downloads: urls.downloads as any,
           download_mode: urls.isDownloadable ? 'direct' : undefined
         });
-        runningTitle = "";
+        
+        if (isCanais24hSelected) {
+          runningTitle = epTitle; // Use this title for subsequent links in Canais 24h
+        } else {
+          runningTitle = "";
+        }
         return;
       }
 
@@ -297,7 +307,10 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
           downloads: urls.downloads as any,
           download_mode: urls.isDownloadable ? 'direct' : undefined
         });
-        runningTitle = "";
+        
+        if (!isCanais24hSelected) {
+          runningTitle = "";
+        }
       } else {
         runningTitle = line.trim().replace(/^(?:t[ií]tulo|nome)[:\s-]+/i, '').trim();
         if (!editingContent.title) {
