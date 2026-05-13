@@ -80,7 +80,13 @@ const formatTime = (seconds: number): string => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
+  const [volume, setVolume] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('unitv-player-volume');
+      return saved !== null ? parseFloat(saved) : 1;
+    }
+    return 1;
+  });
   const [isMuted, setIsMuted] = useState(muted);
   const [isFullscreenInternal, setIsFullscreenInternal] = useState(false);
   const [videoAspect, setVideoAspect] = useState<string>(initialAspect);
@@ -425,6 +431,13 @@ const formatTime = (seconds: number): string => {
     document.addEventListener('fullscreenchange', handleFSChange);
     return () => document.removeEventListener('fullscreenchange', handleFSChange);
   }, [onToggleFullscreen]);
+
+  // Persist volume
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('unitv-player-volume', volume.toString());
+    }
+  }, [volume]);
 
 
 

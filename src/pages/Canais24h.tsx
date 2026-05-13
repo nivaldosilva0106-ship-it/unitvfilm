@@ -53,7 +53,13 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
     const [isPlaying, setIsPlaying] = useState(false);
     const [hasError, setHasError] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
-    const [volume, setVolume] = useState(100);
+    const [volume, setVolume] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('unitv-player-volume');
+            return saved !== null ? parseFloat(saved) * 100 : 100;
+        }
+        return 100;
+    });
     const [showControls, setShowControls] = useState(false);
     const [currentTime, setCurrentTime] = useState(startTime || 0);
     const [duration, setDuration] = useState(0);
@@ -70,6 +76,13 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
             setShowInitialOverlay(true);
         }
     }, [isPlaying]);
+
+    // Persist volume
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('unitv-player-volume', (volume / 100).toString());
+        }
+    }, [volume]);
 
     const onTimeUpdateRef = useRef(onTimeUpdate);
     const onEndedRef = useRef(onEnded);
@@ -482,9 +495,22 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
     const containerRef = useRef<HTMLDivElement>(null);
     const [isPlaying, setIsPlaying] = useState(active);
     const [isMuted, setIsMuted] = useState(true);
-    const [volume, setVolume] = useState(1);
+    const [volume, setVolume] = useState(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('unitv-player-volume');
+            return saved !== null ? parseFloat(saved) : 1;
+        }
+        return 1;
+    });
     const [showControls, setShowControls] = useState(false);
     const playerRef = useRef<any>(null);
+
+    // Persist volume
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('unitv-player-volume', volume.toString());
+        }
+    }, [volume]);
 
     // Safeguard against missing URL
     if (!url) {
@@ -514,7 +540,6 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
         if (active) {
             const t = setTimeout(() => {
                 setIsMuted(false);
-                setVolume(1);
             }, 800);
             return () => clearTimeout(t);
         } else {
