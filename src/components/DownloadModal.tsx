@@ -137,13 +137,66 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
                         <div className="flex flex-col flex-1 items-center justify-center py-6 animate-in fade-in zoom-in-95 duration-500">
                             {isStreamingLink ? (
                                 <>
-                                    <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 flex gap-3 items-start mb-6 w-full">
-                                        <Info className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
-                                        <div className="space-y-2 text-left">
-                                            <p className="text-sm text-blue-200 font-bold">Formato de Streaming (Playlist)</p>
-                                            <p className="text-xs text-gray-300">
-                                                Este link não baixa diretamente no navegador. Para baixar o filme completo, copie o link abaixo e cole num gestor de downloads como o <b>1DM</b>, <b>ADM</b> ou <b>VLC</b> no seu telemóvel.
-                                            </p>
+                                    <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 flex flex-col gap-4 mb-6 w-full">
+                                        <div className="flex gap-3 items-start">
+                                            <Info className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
+                                            <div className="space-y-2 text-left">
+                                                <p className="text-sm text-blue-200 font-bold">Formato de Streaming (Playlist)</p>
+                                                <p className="text-xs text-gray-300">
+                                                    Este link não baixa diretamente no navegador. Para baixar o filme completo, use um gestor de downloads.
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-2 mt-2">
+                                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Apps Recomendados:</p>
+                                            
+                                            <div className="grid grid-cols-1 gap-2">
+                                                {/* 1DM */}
+                                                <a 
+                                                    href="https://play.google.com/store/apps/details?id=idm.internet.download.manager&hl=pt" 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-3 p-2 rounded-lg bg-black/40 border border-white/5 hover:bg-black/60 transition-colors group"
+                                                >
+                                                    <img src="/1dm_icon.png" className="w-8 h-8 rounded object-contain" alt="1DM" />
+                                                    <div className="flex-1">
+                                                        <p className="text-[11px] font-bold text-white group-hover:text-blue-400 transition-colors">1DM (Android)</p>
+                                                        <p className="text-[9px] text-gray-500">Ideal para .m3u8 e .ts</p>
+                                                    </div>
+                                                    <Download className="w-3.5 h-3.5 text-gray-600 group-hover:text-blue-400 transition-colors" />
+                                                </a>
+
+                                                {/* ADM */}
+                                                <a 
+                                                    href="https://play.google.com/store/apps/details?id=com.dv.adm&hl=pt" 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-3 p-2 rounded-lg bg-black/40 border border-white/5 hover:bg-black/60 transition-colors group"
+                                                >
+                                                    <img src="/adm_icon.png" className="w-8 h-8 rounded object-contain" alt="ADM" />
+                                                    <div className="flex-1">
+                                                        <p className="text-[11px] font-bold text-white group-hover:text-blue-400 transition-colors">ADM (Android)</p>
+                                                        <p className="text-[9px] text-gray-500">Rápido e multitarefa</p>
+                                                    </div>
+                                                    <Download className="w-3.5 h-3.5 text-gray-600 group-hover:text-blue-400 transition-colors" />
+                                                </a>
+
+                                                {/* IDM PC */}
+                                                <a 
+                                                    href="https://www.internetdownloadmanager.com" 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="flex items-center gap-3 p-2 rounded-lg bg-black/40 border border-white/5 hover:bg-black/60 transition-colors group"
+                                                >
+                                                    <img src="/idm_pc_icon.png" className="w-8 h-8 rounded object-contain" alt="IDM PC" />
+                                                    <div className="flex-1">
+                                                        <p className="text-[11px] font-bold text-white group-hover:text-blue-400 transition-colors">Internet Download Manager (PC)</p>
+                                                        <p className="text-[9px] text-gray-500">Versão para Computador</p>
+                                                    </div>
+                                                    <Download className="w-3.5 h-3.5 text-gray-600 group-hover:text-blue-400 transition-colors" />
+                                                </a>
+                                            </div>
                                         </div>
                                     </div>
                                     <Button
