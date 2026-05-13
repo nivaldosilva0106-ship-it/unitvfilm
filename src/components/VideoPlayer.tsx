@@ -971,6 +971,15 @@ const formatTime = (seconds: number): string => {
                 </DropdownMenuContent>
               </DropdownMenu>
 
+              {/* Mini Player / Picture-in-Picture */}
+              <button
+                onClick={toggleMiniPlayer}
+                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                title="Mini Leitor (PiP)"
+              >
+                <PictureInPicture className={`w-4 h-4 md:w-5 md:h-5 ${isPiP ? 'text-primary' : 'text-white'}`} />
+              </button>
+
               {/* Fullscreen */}
               <button
                 onClick={toggleFullscreen}
