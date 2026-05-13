@@ -134,7 +134,7 @@ export const ContentCard = memo(({
         <img
           src={getOptimizedImageUrl(thumbnail, 'poster', imageQuality)}
           alt={title}
-          className={`w-full h-[200px] sm:h-[240px] object-cover ${isRestricted ? 'grayscale-[0.5] blur-[1px]' : ''} ${!isLiteMode ? 'transition-transform duration-500 group-hover:scale-110' : ''}`}
+          className={`w-full h-[200px] sm:h-[240px] object-cover ${isRestricted ? 'grayscale-[0.5] blur-[1px]' : ''} ${!isLiteMode ? 'transition-transform duration-500 md:group-hover:scale-110' : ''}`}
           loading="lazy"
         />
 

@@ -44,7 +44,8 @@ export const MarqueeContentRow = memo(({
 
     // Auto-scroll effect
     useEffect(() => {
-        if (contents.length <= visibleItems || isLiteMode) return; // Don't auto-scroll if all items fit OR if we are in TV Lite mode (prevents lag)
+        // PERF: Don't auto-scroll on mobile screens (< 768px) OR if all items fit OR if we are in TV Lite mode
+        if (window.innerWidth < 768 || contents.length <= visibleItems || isLiteMode) return; 
 
         const interval = setInterval(() => {
             setScrollPosition((prev) => {
@@ -82,9 +83,9 @@ export const MarqueeContentRow = memo(({
                 <div className="overflow-x-auto md:overflow-hidden scrollbar-hide snap-x snap-mandatory">
                     <div
                         className="flex gap-2.5 sm:gap-4 transition-transform duration-500 ease-out will-change-transform"
-                        style={{
+                        style={window.innerWidth >= 768 ? {
                             transform: `translateX(-${scrollPosition * (itemWidth + 16)}px)`,
-                        }}
+                        } : {}}
                     >
                         {contents.map((content, index) => (
                             <div key={content.id} className="flex-shrink-0 relative snap-start w-[140px] xs:w-[160px] sm:w-[180px] md:w-[200px]">

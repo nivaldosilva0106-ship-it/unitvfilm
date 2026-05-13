@@ -102,6 +102,60 @@ All colors MUST be HSL.
   }
 }
 
+/* Mobile Performance Optimizations (Standard Mode) */
+@media (max-width: 768px) {
+  * {
+    /* Disable smooth scroll on mobile to avoid lag in long lists */
+    scroll-behavior: auto !important;
+  }
+
+  /* Reduce glassmorphism intensity on mobile */
+  .glass-effect, 
+  [class*="backdrop-blur"],
+  [class*="backdrop-filter"] {
+    backdrop-filter: blur(4px) !important;
+    -webkit-backdrop-filter: blur(4px) !important;
+    background-color: rgba(0, 0, 0, 0.7) !important;
+  }
+
+  /* Simplify transitions for smoother feel on mid-range devices */
+  .transition-all,
+  .transition-transform,
+  .transition-opacity {
+    transition-duration: 200ms !important;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1) !important;
+  }
+
+  /* Hardware acceleration for rows and interactive cards */
+  .content-row-container,
+  .marquee-content-row,
+  .content-card-link {
+    transform: translateZ(0);
+    will-change: transform;
+    backface-visibility: hidden;
+  }
+
+  /* Reduce shadow complexity on mobile to save GPU */
+  .shadow-2xl, .shadow-xl {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5) !important;
+  }
+  
+  /* Disable heavy hover effects on touch devices */
+  @media (hover: none) {
+    .hover\:scale-110:hover, 
+    .hover\:scale-105:hover {
+      transform: none !important;
+    }
+  }
+
+  /* Optimize header performance on mobile */
+  header {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: #050505 !important;
+  }
+}
+
 /* Force scrollbar styles for standard elements */
 html, body, #root {
   scrollbar-width: thin;
