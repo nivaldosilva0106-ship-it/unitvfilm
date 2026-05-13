@@ -1499,8 +1499,17 @@ export default function Canais24h() {
         const upcoming: { prog: Episode, timeStr: string }[] = [];
         
         let currentRemainingSeconds = 0;
-        if (realDuration && realTime && realDuration > realTime) {
-            currentRemainingSeconds = realDuration - realTime;
+        let isTimePredictable = true;
+
+        if (realDuration && realDuration > 0) {
+            currentRemainingSeconds = Math.max(0, realDuration - realTime);
+        } else {
+            const currentProg = programs[idx % programs.length];
+            if (currentProg && currentProg.duration && currentProg.duration > 0) {
+                currentRemainingSeconds = Math.max(0, currentProg.duration - realTime);
+            } else {
+                isTimePredictable = false;
+            }
         }
         
         let accumulatedSeconds = currentRemainingSeconds;
@@ -1508,15 +1517,24 @@ export default function Canais24h() {
         for (let i = 1; i <= 15; i++) {
             const prog = programs[(idx + i) % programs.length];
             
-            const startDate = new Date(Date.now() + accumulatedSeconds * 1000);
-            const timeStr = startDate.toLocaleTimeString('pt-AO', { 
-                timeZone: 'Africa/Luanda', 
-                hour: '2-digit', 
-                minute: '2-digit' 
-            });
+            let timeStr = "Não Programado";
+            
+            if (isTimePredictable) {
+                const startDate = new Date(Date.now() + accumulatedSeconds * 1000);
+                timeStr = startDate.toLocaleTimeString('pt-AO', { 
+                    timeZone: 'Africa/Luanda', 
+                    hour: '2-digit', 
+                    minute: '2-digit' 
+                });
+                
+                if (!prog.duration || prog.duration <= 0) {
+                    isTimePredictable = false;
+                } else {
+                    accumulatedSeconds += prog.duration;
+                }
+            }
             
             upcoming.push({ prog, timeStr });
-            accumulatedSeconds += prog.duration || 0;
         }
         return upcoming;
     };
