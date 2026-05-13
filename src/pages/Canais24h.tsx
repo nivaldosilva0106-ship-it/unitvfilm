@@ -1403,7 +1403,14 @@ export default function Canais24h() {
         const scrollAmount = direction === "left" ? -400 : 400;
         channelListRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
     };
-    
+
+    const epgListRef = useRef<HTMLDivElement>(null);
+    const scrollEpg = (direction: "left" | "right") => {
+        if (!epgListRef.current) return;
+        const scrollAmount = direction === "left" ? -300 : 300;
+        epgListRef.current.scrollBy({ left: scrollAmount, behavior: "smooth" });
+    };
+
     
     // Manual refresh function
     const handleRefresh = useCallback(async () => {
@@ -1442,7 +1449,10 @@ export default function Canais24h() {
         if (programs.length === 0) return [];
         const idx = currentIndexRef.current;
         const upcoming: Episode[] = [];
-        for (let i = 1; i <= 3; i++) {
+        const limit = programs.length > 1 ? Math.min(15, programs.length - 1) : 1;
+        // Se a lista de programas for pequena, podemos apenas mostrar o máximo disponível, ou repetir.
+        // A pedido do utilizador: ver "mais de 10 programações". Vamos tentar mostrar 15 se disponíveis.
+        for (let i = 1; i <= 15; i++) {
             upcoming.push(programs[(idx + i) % programs.length]);
         }
         return upcoming;
@@ -1720,7 +1730,7 @@ export default function Canais24h() {
                         </div>
 
                         {/* EPG */}
-                        <div className="lg:col-span-8 flex flex-col gap-4">
+                        <div className="lg:col-span-8 flex flex-col gap-4 relative group/epg">
                             <div className="flex items-center justify-between gap-2">
                                 <div className="flex items-center gap-2">
                                     <Clock className="w-4 h-4 text-primary" />
@@ -1728,19 +1738,38 @@ export default function Canais24h() {
                                         Programação de Hoje
                                     </span>
                                 </div>
-                                <button 
-                                    onClick={handleRefresh}
-                                    title="Atualizar Programação"
-                                    className="p-1 hover:bg-white/10 rounded-full transition-colors text-zinc-500 hover:text-primary"
-                                >
-                                    <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
-                                </button>
+                                <div className="flex items-center gap-2">
+                                    <div className="hidden md:flex items-center gap-1">
+                                        <button 
+                                            onClick={() => scrollEpg("left")}
+                                            className="p-1.5 rounded-full bg-zinc-800/50 hover:bg-primary/20 border border-white/5 transition-all text-zinc-400 hover:text-primary"
+                                        >
+                                            <ChevronLeft className="w-4 h-4" />
+                                        </button>
+                                        <button 
+                                            onClick={() => scrollEpg("right")}
+                                            className="p-1.5 rounded-full bg-zinc-800/50 hover:bg-primary/20 border border-white/5 transition-all text-zinc-400 hover:text-primary"
+                                        >
+                                            <ChevronRight className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                    <button 
+                                        onClick={handleRefresh}
+                                        title="Atualizar Programação"
+                                        className="p-1.5 hover:bg-white/10 rounded-full transition-colors text-zinc-500 hover:text-primary"
+                                    >
+                                        <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                                    </button>
+                                </div>
                             </div>
-                            <div className="flex overflow-x-auto md:grid md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4 md:pb-0 scrollbar-hide snap-x">
+                            <div 
+                                ref={epgListRef}
+                                className="flex overflow-x-auto gap-4 pb-4 md:pb-2 scrollbar-hide snap-x scroll-smooth"
+                            >
                                 {getUpcomingPrograms().map((prog, idx) => {
                                     if (!prog) return null;
                                     return (
-                                        <div key={idx} className="min-w-[280px] md:min-w-0 bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl group hover:border-primary/50 transition-colors snap-center">
+                                        <div key={idx} className="min-w-[240px] md:min-w-[280px] flex-none bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl group hover:border-primary/50 transition-colors snap-start">
                                             <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">
                                                 {idx === 0 ? "Próximo" : "A seguir"}
                                             </span>
