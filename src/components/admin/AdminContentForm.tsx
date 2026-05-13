@@ -1969,7 +1969,7 @@ ${ep.url || ""}`;
               </div>
             </div>
 
-            {isCanais24h && (
+            {(isCanais24h || isNostalgia) && (
               <div className="flex flex-wrap gap-2 p-3 bg-primary/5 border border-primary/20 rounded-lg mb-4">
                 <p className="w-full text-xs font-bold text-primary mb-1 uppercase tracking-wider">Ferramentas de Programação:</p>
                 <Button 
