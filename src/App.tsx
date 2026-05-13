@@ -20,6 +20,7 @@ import { RedirectManager } from "@/components/RedirectManager";
 import { useAppConfig } from "@/hooks/useAppConfig";
 
 import { ErrorBoundary } from "./components/ErrorBoundary";
+import { ReminderAlert } from "./components/ReminderAlert";
 
 const queryClient = new QueryClient();
 
@@ -190,6 +191,7 @@ const App = () => {
             <HolidayDecorations />
             <NetworkStatus />
             <OfflineIndicator />
+            <ReminderAlert />
             <GlobalContentProtection />
             <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.1),transparent_50%)] pointer-events-none" />
             <LiteModeBodyClass />

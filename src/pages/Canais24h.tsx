@@ -4,7 +4,8 @@ import { Header } from "@/components/Header";
 import { Content, Episode } from "@/types/content";
 import { VideoPlayer } from "@/components/VideoPlayer";
 import { toast } from "sonner";
-import { Loader2, Film, Tv, Clock, RefreshCw, ChevronLeft, ChevronRight, Heart, ThumbsUp, ThumbsDown } from "lucide-react";
+import { Loader2, Film, Tv, Clock, RefreshCw, ChevronLeft, ChevronRight, Heart, ThumbsUp, ThumbsDown, Bell, BellRing } from "lucide-react";
+import { useReminders } from "@/hooks/useReminders";
 import { getBaseUrl } from "@/lib/api";
 import { useSearchParams, Link } from "react-router-dom";
 import { useAppConfig } from "@/hooks/useAppConfig";
@@ -851,6 +852,7 @@ export default function Canais24h() {
     const [searchParams] = useSearchParams();
     const initialChannelId = searchParams.get("channelId");
     const { isLiteMode } = useAppConfig();
+    const { isReminded, addReminder, removeReminder } = useReminders();
 
     const [contents, setContents] = useState<Content[]>([]);
     const [currentChannel, setCurrentChannel] = useState<Content | null>(null);
@@ -1556,7 +1558,7 @@ export default function Canais24h() {
     const getUpcomingPrograms = () => {
         if (programs.length === 0) return [];
         const idx = currentIndexRef.current;
-        const upcoming: { prog: Episode, timeStr: string }[] = [];
+        const upcoming: { prog: Episode, timeStr: string, startTime: number, endTime: number }[] = [];
         
         let currentRemainingSeconds = 0;
         let isTimePredictable = true;
@@ -1578,9 +1580,12 @@ export default function Canais24h() {
             const prog = programs[(idx + i) % programs.length];
             
             let timeStr = "Não Programado";
+            let progStart = 0;
+            let progEnd = 0;
             
             if (isTimePredictable) {
-                const startDate = new Date(Date.now() + accumulatedSeconds * 1000);
+                const startDateMs = Date.now() + accumulatedSeconds * 1000;
+                const startDate = new Date(startDateMs);
                 timeStr = startDate.toLocaleTimeString('pt-AO', { 
                     timeZone: 'Africa/Luanda', 
                     hour: '2-digit', 
@@ -1590,11 +1595,13 @@ export default function Canais24h() {
                 if (!prog.duration || prog.duration <= 0) {
                     isTimePredictable = false;
                 } else {
+                    progStart = startDateMs;
+                    progEnd = startDateMs + (prog.duration * 1000);
                     accumulatedSeconds += prog.duration;
                 }
             }
             
-            upcoming.push({ prog, timeStr });
+            upcoming.push({ prog, timeStr, startTime: progStart, endTime: progEnd });
         }
         return upcoming;
     };
@@ -1907,10 +1914,14 @@ export default function Canais24h() {
                                 ref={epgListRef}
                                 className="flex overflow-x-auto gap-4 pb-4 md:pb-2 scrollbar-hide snap-x scroll-smooth"
                             >
-                                {getUpcomingPrograms().map(({ prog, timeStr }, idx) => {
+                                {getUpcomingPrograms().map(({ prog, timeStr, startTime, endTime }, idx) => {
                                     if (!prog) return null;
+                                    const reminderId = `${currentChannel?.id}-${prog.title}-${startTime}`;
+                                    const hasReminder = isReminded(reminderId);
+                                    const canRemind = timeStr !== "Não Programado" && startTime > 0;
+
                                     return (
-                                        <div key={idx} className="min-w-[240px] md:min-w-[280px] flex-none bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl group hover:border-primary/50 transition-colors snap-start flex flex-col justify-between">
+                                        <div key={idx} className="min-w-[240px] md:min-w-[280px] flex-none bg-zinc-900/40 border border-zinc-800/50 p-5 rounded-2xl group hover:border-primary/50 transition-colors snap-start flex flex-col justify-between relative">
                                             <div>
                                                 <div className="flex items-center justify-between mb-3">
                                                     <span className="text-[9px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">
@@ -1921,7 +1932,7 @@ export default function Canais24h() {
                                                         {timeStr}
                                                     </span>
                                                 </div>
-                                                <div className="overflow-hidden">
+                                                <div className="overflow-hidden pr-8">
                                                     <h3 className="text-sm font-bold text-zinc-300 whitespace-nowrap animate-marquee group-hover:text-white hover:pause-animation">
                                                         {prog.title || "Sem Título"}
                                                     </h3>
@@ -1931,6 +1942,36 @@ export default function Canais24h() {
                                                 <span className="text-[10px] text-zinc-500 mt-2 block">
                                                     {Math.floor(prog.duration / 60)} min
                                                 </span>
+                                            )}
+
+                                            {/* Reminder Bell */}
+                                            {canRemind && (
+                                                <button
+                                                    onClick={() => {
+                                                        if (hasReminder) {
+                                                            removeReminder(reminderId);
+                                                            toast.success("Lembrete removido.");
+                                                        } else {
+                                                            addReminder({
+                                                                id: reminderId,
+                                                                channelId: currentChannel?.id || "",
+                                                                channelTitle: currentChannel?.title || "",
+                                                                programTitle: prog.title || "Programa",
+                                                                startTime,
+                                                                endTime
+                                                            });
+                                                            toast.success(`Lembrete definido para ${timeStr}`);
+                                                        }
+                                                    }}
+                                                    className={`absolute right-4 bottom-4 p-2 rounded-xl transition-colors ${
+                                                        hasReminder 
+                                                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" 
+                                                        : "bg-zinc-800/80 text-zinc-400 hover:bg-zinc-700 hover:text-white"
+                                                    }`}
+                                                    title={hasReminder ? "Remover Lembrete" : "Avisar-me quando começar"}
+                                                >
+                                                    {hasReminder ? <BellRing className="w-4 h-4 animate-pulse" /> : <Bell className="w-4 h-4" />}
+                                                </button>
                                             )}
                                         </div>
                                     );
