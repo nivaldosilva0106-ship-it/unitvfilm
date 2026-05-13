@@ -852,7 +852,7 @@ export default function Canais24h() {
     const [searchParams] = useSearchParams();
     const initialChannelId = searchParams.get("channelId");
     const { isLiteMode } = useAppConfig();
-    const { isReminded, addReminder, removeReminder } = useReminders();
+    const { reminders, addReminder, removeReminder } = useReminders();
 
     const [contents, setContents] = useState<Content[]>([]);
     const [currentChannel, setCurrentChannel] = useState<Content | null>(null);
@@ -1918,8 +1918,15 @@ export default function Canais24h() {
                             >
                                 {getUpcomingPrograms().map(({ prog, timeStr, startTime, endTime }, idx) => {
                                     if (!prog) return null;
-                                    const reminderId = `${currentChannel?.id}-${prog.title}-${startTime}`;
-                                    const hasReminder = isReminded(reminderId);
+                                    
+                                    // Fuzzy match to account for Date.now() drift
+                                    const existingReminder = reminders.find(r => 
+                                        r.channelId === currentChannel?.id && 
+                                        r.programTitle === prog.title && 
+                                        Math.abs(r.startTime - startTime) < 60000 // Within 1 minute
+                                    );
+                                    
+                                    const hasReminder = !!existingReminder;
                                     const canRemind = timeStr !== "Não Programado" && startTime > 0;
 
                                     return (
@@ -1950,12 +1957,13 @@ export default function Canais24h() {
                                             {canRemind && (
                                                 <button
                                                     onClick={() => {
-                                                        if (hasReminder) {
-                                                            removeReminder(reminderId);
+                                                        if (hasReminder && existingReminder) {
+                                                            removeReminder(existingReminder.id);
                                                             toast.success("Lembrete removido.");
                                                         } else {
+                                                            const newId = `${currentChannel?.id}-${prog.title}-${Date.now()}`;
                                                             addReminder({
-                                                                id: reminderId,
+                                                                id: newId,
                                                                 channelId: currentChannel?.id || "",
                                                                 channelTitle: currentChannel?.title || "",
                                                                 programTitle: prog.title || "Programa",
