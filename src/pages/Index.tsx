@@ -41,7 +41,7 @@ const getYouTubeId = (url: string | undefined | null) => {
 const Index = () => {
   const navigate = useNavigate();
   const { user, currentProfile, loading: authLoading } = useAuth();
-  const { isLiteMode, enableVideoHero, maxCardsInRow } = useAppConfig();
+  const { isLiteMode, enableVideoHero, maxCardsInRow, maxSectionsPerPage } = useAppConfig();
   const isOnline = useOnlineStatus();
 
   const [allContentData, setAllContentData] = useState<Content[]>([]);
