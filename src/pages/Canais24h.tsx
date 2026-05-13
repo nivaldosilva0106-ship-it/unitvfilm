@@ -851,6 +851,11 @@ export default function Canais24h() {
     const initialChannelId = searchParams.get("channelId");
     const { isLiteMode } = useAppConfig();
 
+    const [contents, setContents] = useState<Content[]>([]);
+    const [currentChannel, setCurrentChannel] = useState<Content | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [showApkWarning, setShowApkWarning] = useState(false);
+
     const [likes, setLikes] = useState<Record<string, { count: number, status: 'like'|'dislike'|null }>>({});
 
     useEffect(() => {
@@ -898,11 +903,6 @@ export default function Canais24h() {
     };
 
     const currentChannelLikes = currentChannel ? (likes[currentChannel.id] || { count: getInitialLikes(currentChannel.id), status: null }) : { count: 0, status: null };
-
-    const [contents, setContents] = useState<Content[]>([]);
-    const [currentChannel, setCurrentChannel] = useState<Content | null>(null);
-    const [loading, setLoading] = useState(true);
-    const [showApkWarning, setShowApkWarning] = useState(false);
 
     // Detect Capacitor (APK)
     useEffect(() => {
