@@ -910,8 +910,23 @@ export default function Canais24h() {
     // Sort programs naturally (alphabetically but with awareness of numbers)
     // This allows "Ep 1, Ep 2, Ep 10" to be in correct order automatically.
     const programs = useMemo(() => {
-        return (currentChannel?.episodes || []).filter(Boolean);
-    }, [currentChannel?.episodes]);
+        const eps = (currentChannel?.episodes || []).filter(Boolean);
+        if (eps.length === 0 && currentChannel) {
+            const mainUrl = currentChannel.internal_player_url || currentChannel.video_url || currentChannel.main_video_id || "";
+            if (mainUrl) {
+                return [{
+                    title: currentChannel.title,
+                    url: mainUrl,
+                    internal_player_url: mainUrl,
+                    season: 1,
+                    episode: 1,
+                    duration: 86400 * 365, // 1 year duration
+                    playback_speed: 1
+                } as Episode];
+            }
+        }
+        return eps;
+    }, [currentChannel]);
     const intervalList = currentChannel?.interval_list || [];
     const adList = currentChannel?.ad_list || [];
 
