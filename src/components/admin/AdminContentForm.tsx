@@ -1535,39 +1535,41 @@ ${ep.url || ""}`;
               <img src={editingContent.backdrop_url} className="mt-2 w-full h-32 object-cover rounded-md border border-white/10" />
             )}
           </div>
-          {isCanais24h && (
-            <div className="space-y-6 p-5 border border-primary/20 rounded-xl bg-primary/5">
-              <div className="flex items-center gap-2 mb-2">
-                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
-                  <span className="text-lg">🎨</span>
-                </div>
-                <div>
-                  <h3 className="text-primary font-bold text-base">Configuração da Logo (Watermark)</h3>
-                  <p className="text-xs text-zinc-500">Defina a aparência da marca d'água no player</p>
-                </div>
-              </div>
+        </div>
 
-              <div className="bg-black/20 p-4 rounded-lg border border-white/5">
-                <Label className="text-xs text-zinc-400 font-bold uppercase tracking-wider mb-2 block">URL da Logo do Canal *</Label>
-                <div className="flex gap-2">
-                  <Input
-                    value={editingContent.channel_logo_url || ''}
-                    onChange={(e) => setEditingContent(prev => ({ ...prev, channel_logo_url: e.target.value }))}
-                    className="bg-input border-primary/30 focus:border-primary h-11"
-                    placeholder="https://... (Aparecerá no canto do player)"
-                  />
-                  {editingContent.channel_logo_url && (
-                    <div className="h-11 w-11 rounded border border-white/10 bg-black/40 p-1 flex items-center justify-center shrink-0">
-                      <img src={editingContent.channel_logo_url} className="max-h-full max-w-full object-contain" />
-                    </div>
-                  )}
-                </div>
+        {isCanais24h && (
+          <div className="space-y-6 p-6 border border-primary/20 rounded-xl bg-primary/5">
+            <div className="flex items-center gap-2 mb-2">
+              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
+                <span className="text-lg">🎨</span>
               </div>
+              <div>
+                <h3 className="text-primary font-bold text-base">Configuração da Logo (Watermark)</h3>
+                <p className="text-xs text-zinc-500">Defina a aparência da marca d'água no player</p>
+              </div>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {/* Desktop Version */}
-                <div className="space-y-4 p-4 rounded-lg bg-white/[0.02] border border-white/5 relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-1 h-full bg-blue-500/50" />
+            <div className="bg-black/20 p-4 rounded-lg border border-white/5">
+              <Label className="text-xs text-zinc-400 font-bold uppercase tracking-wider mb-2 block">URL da Logo do Canal *</Label>
+              <div className="flex gap-2">
+                <Input
+                  value={editingContent.channel_logo_url || ''}
+                  onChange={(e) => setEditingContent(prev => ({ ...prev, channel_logo_url: e.target.value }))}
+                  className="bg-input border-primary/30 focus:border-primary h-11"
+                  placeholder="https://... (Aparecerá no canto do player)"
+                />
+                {editingContent.channel_logo_url && (
+                  <div className="h-11 w-11 rounded border border-white/10 bg-black/40 p-1 flex items-center justify-center shrink-0">
+                    <img src={editingContent.channel_logo_url} className="max-h-full max-w-full object-contain" />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+              {/* Desktop Version */}
+              <div className="space-y-4 p-4 rounded-lg bg-white/[0.02] border border-white/5 relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 h-full bg-blue-500/50" />
                   <div className="flex items-center justify-between">
                     <Label className="text-blue-400 font-bold text-xs uppercase tracking-widest flex items-center gap-2">
                       <Monitor className="w-3 h-3" /> Desktop / TV
@@ -1706,8 +1708,7 @@ ${ep.url || ""}`;
                 </div>
               </div>
             </div>
-          )}
-        </div>
+        )}
 
         <div>
           <Label>URL da Imagem de Capa *</Label>
