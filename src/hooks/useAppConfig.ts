@@ -9,6 +9,7 @@ export interface AppConfig {
   enableAnimations: boolean;
   enableTooltips: boolean;
   maxCardsInRow: number;
+  maxSectionsPerPage: number;
 }
 
 export const useAppConfig = (): AppConfig => {
@@ -26,7 +27,8 @@ export const useAppConfig = (): AppConfig => {
       enableBackdropBlur: !isLite,
       enableAnimations: !isLite,
       enableTooltips: !isLite,
-      maxCardsInRow: isLite ? 10 : 40, // Reduced from 15 to 10 for better performance
+      maxCardsInRow: isLite ? 8 : 40, // Reduced from 10 to 8 for Lite for maximum fluidity
+      maxSectionsPerPage: isLite ? 4 : 20, // New constraint for Lite
     };
   }, []);
 

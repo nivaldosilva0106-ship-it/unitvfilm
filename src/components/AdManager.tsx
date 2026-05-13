@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { getActiveAdsByPlacement } from '@/lib/firebase';
 import type { Ad } from '@/types/ad';
+import { useAppConfig } from '@/hooks/useAppConfig';
 
 interface AdManagerProps {
   placement: Ad['placement'];
@@ -8,12 +9,14 @@ interface AdManagerProps {
 }
 
 export const AdManager = ({ placement, className = '' }: AdManagerProps) => {
+  const { isLiteMode } = useAppConfig();
   const [ads, setAds] = useState<Ad[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (isLiteMode) return;
     loadAds();
-  }, [placement]);
+  }, [placement, isLiteMode]);
 
   useEffect(() => {
     // Execute scripts only when ads change

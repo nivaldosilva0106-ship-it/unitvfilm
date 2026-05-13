@@ -213,17 +213,7 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
                                         {/* Intelligent Download Button */}
                                         <div className="space-y-2">
                                             <Button
-                                                onClick={() => {
-                                                    // Detect if it's likely Android
-                                                    const isAndroid = /Android/i.test(navigator.userAgent);
-                                                    
-                                                    if (isAndroid) {
-                                                        setShowAppSelection(!showAppSelection);
-                                                    } else {
-                                                        // On PC, we still show the selection as requested
-                                                        setShowAppSelection(!showAppSelection);
-                                                    }
-                                                }}
+                                                onClick={() => setShowAppSelection(!showAppSelection)}
                                                 className="w-full bg-[#22c55e] hover:bg-[#22c55e]/90 text-black font-bold h-12 flex items-center justify-center gap-2 animate-pulse shadow-[0_0_15px_rgba(34,197,94,0.3)]"
                                             >
                                                 <Download className="w-5 h-5" />
@@ -231,7 +221,8 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
                                             </Button>
 
                                             {showAppSelection && (
-                                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 animate-in slide-in-from-top-2 duration-300">
+                                                <div className="grid grid-cols-3 gap-2 animate-in slide-in-from-top-2 duration-300">
+                                                    {/* 1DM */}
                                                     <Button
                                                         onClick={() => {
                                                             const directUrl = window.location.origin + createSecurePlaybackUrl(originalUrlForCopy);
@@ -239,11 +230,13 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
                                                             window.location.href = intent;
                                                             toast.success("Abrindo no 1DM...");
                                                         }}
-                                                        className="bg-[#262626] hover:bg-[#333] border border-white/5 h-12 text-[10px] flex-col gap-1 py-1"
+                                                        className="bg-[#262626] hover:bg-[#333] border border-white/5 h-16 text-[9px] flex-col gap-1 py-2 px-1"
                                                     >
-                                                        <img src="/1dm_icon.png" className="w-5 h-5 rounded-sm" alt="" />
-                                                        <span>1DM</span>
+                                                        <img src="/1dm_icon.png" className="w-6 h-6 rounded-sm object-contain" alt="1DM" />
+                                                        <span className="font-bold">1DM</span>
                                                     </Button>
+
+                                                    {/* ADM */}
                                                     <Button
                                                         onClick={() => {
                                                             const directUrl = window.location.origin + createSecurePlaybackUrl(originalUrlForCopy);
@@ -251,22 +244,23 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
                                                             window.location.href = intent;
                                                             toast.success("Abrindo no ADM...");
                                                         }}
-                                                        className="bg-[#262626] hover:bg-[#333] border border-white/5 h-12 text-[10px] flex-col gap-1 py-1"
+                                                        className="bg-[#262626] hover:bg-[#333] border border-white/5 h-16 text-[9px] flex-col gap-1 py-2 px-1"
                                                     >
-                                                        <img src="/adm_icon.png" className="w-5 h-5 rounded-sm" alt="" />
-                                                        <span>ADM</span>
+                                                        <img src="/adm_icon.png" className="w-6 h-6 rounded-sm object-contain" alt="ADM" />
+                                                        <span className="font-bold">ADM</span>
                                                     </Button>
+
+                                                    {/* IDM PC */}
                                                     <Button
                                                         onClick={() => {
                                                             const directUrl = window.location.origin + createSecurePlaybackUrl(originalUrlForCopy);
-                                                            // For PC IDM, direct link is the most reliable way for extension to catch
                                                             window.open(directUrl, '_blank');
                                                             toast.success("Link enviado ao IDM PC!");
                                                         }}
-                                                        className="bg-[#262626] hover:bg-[#333] border border-white/5 h-12 text-[10px] flex-col gap-1 py-1"
+                                                        className="bg-[#262626] hover:bg-[#333] border border-white/5 h-16 text-[9px] flex-col gap-1 py-2 px-1"
                                                     >
-                                                        <img src="/idm_pc_icon.png" className="w-5 h-5 rounded-sm" alt="" />
-                                                        <span>IDM PC</span>
+                                                        <img src="/idm_pc_icon.png" className="w-6 h-6 rounded-sm object-contain" alt="IDM PC" />
+                                                        <span className="font-bold">IDM PC</span>
                                                     </Button>
                                                 </div>
                                             )}

@@ -348,8 +348,8 @@ const Index = () => {
           s.data = s.data.slice(0, maxCardsInRow);
         }
       });
-      // Limit to top 5 most relevant sections on Home to save RAM
-      finalSections = finalSections.slice(0, 5);
+      // Limit sections to save RAM
+      finalSections = finalSections.slice(0, maxSectionsPerPage);
     }
 
     if (canais24hSection.data.length > 0) {

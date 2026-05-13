@@ -230,8 +230,8 @@ const Admin = () => {
 
   return (
     <AdminLayout title="Gerenciar Conteúdos">
-      <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-0 h-[calc(100vh-64px)] overflow-hidden">
-        <div className="space-y-4 overflow-y-auto p-2 pt-4 lg:pl-4 text-white custom-scrollbar flex flex-col">
+      <div className="grid lg:grid-cols-[1.4fr_0.6fr] gap-4 h-[calc(100vh-64px)] overflow-hidden">
+        <div className="space-y-4 overflow-y-auto p-4 pt-4 lg:pl-6 text-white custom-scrollbar flex flex-col">
           <div className="bg-secondary/20 border border-secondary/30 rounded-xl p-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
