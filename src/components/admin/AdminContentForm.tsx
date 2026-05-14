@@ -395,29 +395,34 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
      */
     const getEpisodeIndex = (title: string): number => {
       const t = title || '';
+      const lower = t.toLowerCase();
 
       // "Temporada X Episódio Y"  or  "Temporada X Ep Y"
-      const tempEpMatch = t.match(/temporada\s+(\d+)\s+(?:epis[oó]dio|ep\.?)\s+(\d+)/i);
+      const tempEpMatch = lower.match(/temporada\s+(\d+)\s+(?:epis[oó]dio|ep\.?)\s+(\d+)/);
       if (tempEpMatch) return parseInt(tempEpMatch[1]) * 1000 + parseInt(tempEpMatch[2]);
 
+      // "T01 E02" or "T1 E2" or "T01E02"
+      const tEPMatch = lower.match(/t(\d+)\s*e(\d+)/);
+      if (tEPMatch) return parseInt(tEPMatch[1]) * 1000 + parseInt(tEPMatch[2]);
+
       // "SxxEyy"
-      const sxeyMatch = t.match(/[Ss](\d+)[Ee](\d+)/);
+      const sxeyMatch = lower.match(/s(\d+)e(\d+)/);
       if (sxeyMatch) return parseInt(sxeyMatch[1]) * 1000 + parseInt(sxeyMatch[2]);
 
       // "1x05"
-      const nxMatch = t.match(/(\d+)[xX](\d+)/);
+      const nxMatch = lower.match(/(\d+)x(\d+)/);
       if (nxMatch) return parseInt(nxMatch[1]) * 1000 + parseInt(nxMatch[2]);
 
       // "Episódio N" / "Ep N"
-      const epMatch = t.match(/(?:epis[oó]dio|ep\.?)\s+(\d+)/i);
+      const epMatch = lower.match(/(?:epis[oó]dio|ep\.?)\s+(\d+)/);
       if (epMatch) return parseInt(epMatch[1]);
 
       // "Parte N"
-      const parteMatch = t.match(/parte\s+(\d+)/i);
+      const parteMatch = lower.match(/parte\s+(\d+)/);
       if (parteMatch) return parseInt(parteMatch[1]);
 
       // Trailing bare number  "Nome do Vídeo 7"
-      const trailingMatch = t.match(/(\d+)\s*$/);
+      const trailingMatch = lower.match(/(\d+)\s*$/);
       if (trailingMatch) return parseInt(trailingMatch[1]);
 
       return 0;
@@ -431,17 +436,19 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
      */
     const getBaseTitle = (title: string): string => {
       let base = title || '';
-      // Remove season+episode combos first (longest patterns first)
+      const lower = base.toLowerCase();
+      // Remove season+episode combos first
       base = base.replace(/temporada\s+\d+\s+(?:epis[oó]dio|ep\.?)\s+\d+/gi, '');
-      base = base.replace(/[Ss]\d+[Ee]\d+/g, '');
-      base = base.replace(/\d+[xX]\d+/g, '');
+      base = base.replace(/t\d+\s*e\d+/gi, '');
+      base = base.replace(/s\d+e\d+/gi, '');
+      base = base.replace(/\d+x\d+/gi, '');
       // Remove standalone labels
       base = base.replace(/(?:epis[oó]dio|ep\.?)\s+\d+/gi, '');
       base = base.replace(/temporada\s+\d+/gi, '');
       base = base.replace(/parte\s+\d+/gi, '');
-      // Clean up trailing separators and whitespace
-      base = base.replace(/[\s\-:_]+$/g, '').trim();
-      return base || title; // fallback to original if everything was stripped
+      // Clean up trailing separators, numbers and whitespace
+      base = base.replace(/[\s\-:_\d]+$/g, '').trim();
+      return base || title; 
     };
 
     // --- 1. Group episodes by base series title ---
@@ -2006,16 +2013,7 @@ ${ep.url || ""}`;
                   <Sparkles className="w-4 h-4 mr-2" />
                   Auto-Configurar Intervalos/Publicidades
                 </Button>
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={orderEpisodes2by2}
-                  className="border-primary/40 text-primary hover:bg-primary/10"
-                >
-                  <Sparkles className="w-4 h-4 mr-2" />
-                  Ordem (2 em 2 Episódios)
-                </Button>
+
                 <Button 
                   type="button" 
                   variant="outline" 
@@ -2053,7 +2051,10 @@ ${ep.url || ""}`;
                   onClick={() => {
                     if (!editingContent.episodes) return;
                     const initialCount = editingContent.episodes.length;
-                    const newEps = editingContent.episodes.filter(ep => ep.title?.trim().toLowerCase() !== "deleted video");
+                    const newEps = editingContent.episodes.filter(ep => {
+                      const t = ep.title?.trim().toLowerCase() || "";
+                      return t !== "deleted video" && t !== "private video";
+                    });
                     const removedCount = initialCount - newEps.length;
                     
                     if (removedCount > 0) {
@@ -2064,10 +2065,20 @@ ${ep.url || ""}`;
                     }
                   }}
                   className="border-red-500/40 text-red-400 hover:bg-red-500/10"
-                  title="Remove todos os blocos com o título 'Deleted video'"
+                  title="Remove blocos com o título 'Deleted video' ou 'Private video'"
                 >
                   <Trash2 className="w-4 h-4 mr-2" />
                   Limpar Links Quebrados
+                </Button>
+                
+                <Button 
+                  type="button" 
+                  onClick={orderEpisodes2by2}
+                  className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/30 font-bold py-6 text-sm"
+                  title="Organiza as séries de 2 em 2 episódios com intercalação inteligente"
+                >
+                  <MonitorPlay className="w-5 h-5 mr-2 animate-pulse" />
+                  Programação Televisiva Profissional (Organização Inteligente)
                 </Button>
               </div>
             )}
