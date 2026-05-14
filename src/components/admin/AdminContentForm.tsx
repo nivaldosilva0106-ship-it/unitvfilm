@@ -417,8 +417,8 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       const nxMatch = lower.match(/(\d+)x(\d+)/);
       if (nxMatch) return parseInt(nxMatch[1]) * 1000 + parseInt(nxMatch[2]);
 
-      // "Episódio N" / "Ep N"
-      const epMatch = lower.match(/(?:epis[oó]dio|ep\.?)\s+(\d+)/);
+      // "Episódio N" / "Ep N" / "Capítulo N" / "Cap N"
+      const epMatch = lower.match(/(?:epis[oó]dio|ep\.?|cap[ií]tulo|cap\.?)\s+(\d+)/);
       if (epMatch) return parseInt(epMatch[1]);
 
       // "Parte N"
@@ -442,16 +442,16 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       let base = title || '';
       const lower = base.toLowerCase();
       // Remove season+episode combos first
-      base = base.replace(/temporada\s+\d+\s+(?:epis[oó]dio|ep\.?)\s+\d+/gi, '');
+      base = base.replace(/temporada\s+\d+\s+(?:epis[oó]dio|ep\.?|cap[ií]tulo|cap\.?)\s+\d+/gi, '');
       base = base.replace(/t\d+\s*e\d+/gi, '');
       base = base.replace(/s\d+e\d+/gi, '');
       base = base.replace(/\d+x\d+/gi, '');
       // Remove standalone labels
-      base = base.replace(/(?:epis[oó]dio|ep\.?)\s+\d+/gi, '');
+      base = base.replace(/(?:epis[oó]dio|ep\.?|cap[ií]tulo|cap\.?)\s+(\d+)(?:\/\d+)?/gi, '');
       base = base.replace(/temporada\s+\d+/gi, '');
       base = base.replace(/parte\s+\d+/gi, '');
       // Clean up trailing separators, numbers and whitespace
-      base = base.replace(/[\s\-:_\d]+$/g, '').trim();
+      base = base.replace(/[\s\-:_\d\/]+$/g, '').trim();
       return base || title; 
     };
 
