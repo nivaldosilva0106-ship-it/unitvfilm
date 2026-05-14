@@ -133,7 +133,7 @@ export function useReminders() {
                 try {
                     new Notification("O teu programa começou!", {
                         body: `${activeReminder.programTitle} no canal ${activeReminder.channelTitle} já está a dar.`,
-                        icon: "/favicon.ico"
+                        icon: "/favicon.png"
                     });
                 } catch (e) {}
             }
