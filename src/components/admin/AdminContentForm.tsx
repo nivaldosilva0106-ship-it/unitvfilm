@@ -464,28 +464,78 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       eps.sort((a, b) => getEpisodeIndex(a.title) - getEpisodeIndex(b.title));
     });
 
-    // --- 3. Round-robin: take 2 episodes per group per pass ---
-    // Each group gets a mutable copy so we pop from it across passes.
-    const slots = Array.from(groupsMap.values()).map(eps => [...eps]);
+    // --- 3. Separate Series/Franchises from Standalones ---
+    const seriesSlots: Episode[][] = [];
+    let standalones: Episode[] = [];
+
+    groupsMap.forEach((eps, key) => {
+      if (eps.length > 1) {
+        seriesSlots.push(eps); // Has numbered sequence
+      } else {
+        standalones.push(eps[0]); // Standalone video/movie
+      }
+    });
+
+    // Shuffle standalones randomly (os filmes de forma aleatória)
+    for (let i = standalones.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [standalones[i], standalones[j]] = [standalones[j], standalones[i]];
+    }
+
+    // Determine how many cycles (days) we need based on the longest series
+    let maxCycles = 0;
+    seriesSlots.forEach(slot => {
+      const cycles = Math.ceil(slot.length / 2);
+      if (cycles > maxCycles) maxCycles = cycles;
+    });
+    if (maxCycles === 0 && standalones.length > 0) maxCycles = 1;
+
+    // Distribute standalones evenly across cycles
+    const standalonesPerCycle = Math.ceil(standalones.length / (maxCycles || 1));
 
     const ordered: Episode[] = [];
-    let hasContent = true;
-    while (hasContent) {
-      hasContent = false;
-      for (const slot of slots) {
+
+    // --- 4. Build the playlist cycle by cycle (Day 1, Day 2, etc.) ---
+    for (let cycle = 0; cycle < maxCycles; cycle++) {
+      const currentSeriesPairs: Episode[][] = [];
+      
+      // Pull up to 2 episodes for each series for THIS cycle
+      seriesSlots.forEach(slot => {
         if (slot.length > 0) {
-          // Take up to 2 consecutive (already sorted) episodes from this series
-          const batch = slot.splice(0, 2);
-          ordered.push(...batch);
-          hasContent = true;
+          currentSeriesPairs.push(slot.splice(0, 2));
+        }
+      });
+
+      // Pull standalones for THIS cycle
+      const currentStandalones = standalones.splice(0, standalonesPerCycle);
+
+      // Interleave series pairs with standalone movies
+      let pIdx = 0;
+      let sIdx = 0;
+      
+      while (pIdx < currentSeriesPairs.length || sIdx < currentStandalones.length) {
+        // Add one series pair (e.g. Ep 1 & 2)
+        if (pIdx < currentSeriesPairs.length) {
+          ordered.push(...currentSeriesPairs[pIdx]);
+          pIdx++;
+        }
+        // Add one random movie as a separator
+        if (sIdx < currentStandalones.length) {
+          ordered.push(currentStandalones[sIdx]);
+          sIdx++;
         }
       }
     }
+    
+    // Just in case any standalones were left over due to rounding
+    if (standalones.length > 0) {
+      ordered.push(...standalones);
+    }
 
     setEditingContent(prev => ({ ...prev, episodes: ordered }));
-    const totalShows = groupsMap.size;
+    const totalShows = seriesSlots.length;
     toast.success(
-      `Programação organizada! ${totalShows} série${totalShows !== 1 ? 's' : ''} intercaladas 2 episódios por vez.`
+      `Programação Organizada! Criados ${maxCycles} ciclos/dias com ${totalShows} séries e filmes avulsos misturados.`
     );
   };
 
