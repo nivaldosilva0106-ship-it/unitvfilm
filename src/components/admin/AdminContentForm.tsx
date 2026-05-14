@@ -383,6 +383,10 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
   const orderEpisodes2by2 = () => {
     if (!editingContent.episodes || editingContent.episodes.length === 0) return;
 
+    const epsPerDayStr = prompt("Quantos episódios/vídeos da mesma série quer passar por dia? (Ex: 2 ou 3)", "2");
+    if (!epsPerDayStr) return;
+    const itemsPerDay = parseInt(epsPerDayStr, 10) || 2;
+
     /**
      * Helper: extract a numeric episode index from a title string.
      * Handles patterns like:
@@ -485,7 +489,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     // Determine how many cycles (days) we need based on the longest series
     let maxCycles = 0;
     seriesSlots.forEach(slot => {
-      const cycles = Math.ceil(slot.length / 2);
+      const cycles = Math.ceil(slot.length / itemsPerDay);
       if (cycles > maxCycles) maxCycles = cycles;
     });
     if (maxCycles === 0 && standalones.length > 0) maxCycles = 1;
@@ -497,33 +501,33 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
 
     // --- 4. Build the playlist cycle by cycle (Day 1, Day 2, etc.) ---
     for (let cycle = 0; cycle < maxCycles; cycle++) {
-      const currentSeriesPairs: Episode[][] = [];
+      const daySeriesItems: Episode[][] = [];
       
-      // Pull up to 2 episodes for each series for THIS cycle
+      // Pull up to `itemsPerDay` episodes for each series for THIS cycle
       seriesSlots.forEach(slot => {
         if (slot.length > 0) {
-          currentSeriesPairs.push(slot.splice(0, 2));
+          daySeriesItems.push(slot.splice(0, itemsPerDay));
         }
       });
 
       // Pull standalones for THIS cycle
-      const currentStandalones = standalones.splice(0, standalonesPerCycle);
+      const dayStandalones = standalones.splice(0, standalonesPerCycle);
 
-      // Interleave series pairs with standalone movies
-      let pIdx = 0;
-      let sIdx = 0;
-      
-      while (pIdx < currentSeriesPairs.length || sIdx < currentStandalones.length) {
-        // Add one series pair (e.g. Ep 1 & 2)
-        if (pIdx < currentSeriesPairs.length) {
-          ordered.push(...currentSeriesPairs[pIdx]);
-          pIdx++;
-        }
-        // Add one random movie as a separator
-        if (sIdx < currentStandalones.length) {
-          ordered.push(currentStandalones[sIdx]);
-          sIdx++;
-        }
+      // Interleave items by creating multiple 'passes' within the day.
+      // This prevents episodes of the same series from playing back-to-back.
+      for (let pass = 0; pass < itemsPerDay; pass++) {
+        // In each pass, add 1 episode from each series
+        daySeriesItems.forEach(seriesEps => {
+          if (seriesEps.length > pass) {
+            ordered.push(seriesEps[pass]);
+          }
+        });
+        
+        // Add a chunk of today's standalone movies to space things out further
+        const remainingPasses = itemsPerDay - pass;
+        const sCount = Math.ceil(dayStandalones.length / remainingPasses);
+        const standalonesForThisPass = dayStandalones.splice(0, sCount);
+        ordered.push(...standalonesForThisPass);
       }
     }
     
@@ -535,7 +539,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     setEditingContent(prev => ({ ...prev, episodes: ordered }));
     const totalShows = seriesSlots.length;
     toast.success(
-      `Programação Organizada! Criados ${maxCycles} ciclos/dias com ${totalShows} séries e filmes avulsos misturados.`
+      `Programação Organizada! Criados ${maxCycles} dias com ${totalShows} séries. (Distribuídos ${itemsPerDay} vezes ao dia)`
     );
   };
 
