@@ -389,6 +389,8 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     if (!epsPerDayStr) return;
     const itemsPerDay = parseInt(epsPerDayStr, 10) || 2;
 
+    const isMarathonMode = confirm("Deseja organizar em blocos de MARATONA (episódios seguidos da mesma série) ou no formato VARIEDADE (intercalando as séries para não repetir na sequência)?\n\n[OK] = Formato MARATONA (Blocos)\n[Cancelar] = Formato VARIEDADE (Intercalado)");
+
     /**
      * Helper: extract a numeric episode index from a title string.
      * Handles patterns like:
@@ -515,21 +517,29 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       // Pull standalones for THIS cycle
       const dayStandalones = standalones.splice(0, standalonesPerCycle);
 
-      // Interleave items by creating multiple 'passes' within the day.
-      // This prevents episodes of the same series from playing back-to-back.
-      for (let pass = 0; pass < itemsPerDay; pass++) {
-        // In each pass, add 1 episode from each series
+      if (isMarathonMode) {
+        // Marathon Mode: Play all `itemsPerDay` episodes of each series sequentially
         daySeriesItems.forEach(seriesEps => {
-          if (seriesEps.length > pass) {
-            ordered.push(seriesEps[pass]);
-          }
+          ordered.push(...seriesEps);
         });
-        
-        // Add a chunk of today's standalone movies to space things out further
-        const remainingPasses = itemsPerDay - pass;
-        const sCount = Math.ceil(dayStandalones.length / remainingPasses);
-        const standalonesForThisPass = dayStandalones.splice(0, sCount);
-        ordered.push(...standalonesForThisPass);
+        // Append all standalones for this cycle at the end (or interspersed if we wanted, but end is fine for marathons)
+        ordered.push(...dayStandalones);
+      } else {
+        // Variety Mode: Interleave items by creating multiple 'passes' within the day
+        for (let pass = 0; pass < itemsPerDay; pass++) {
+          // In each pass, add 1 episode from each series
+          daySeriesItems.forEach(seriesEps => {
+            if (seriesEps.length > pass) {
+              ordered.push(seriesEps[pass]);
+            }
+          });
+          
+          // Add a chunk of today's standalone movies to space things out further
+          const remainingPasses = itemsPerDay - pass;
+          const sCount = Math.ceil(dayStandalones.length / remainingPasses);
+          const standalonesForThisPass = dayStandalones.splice(0, sCount);
+          ordered.push(...standalonesForThisPass);
+        }
       }
     }
     
@@ -540,8 +550,9 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
 
     setEditingContent(prev => ({ ...prev, episodes: ordered }));
     const totalShows = seriesSlots.length;
+    const modeLabel = isMarathonMode ? "Maratona" : "Variedade";
     toast.success(
-      `Programação Organizada! Criados ${maxCycles} dias com ${totalShows} séries. (Distribuídos ${itemsPerDay} vezes ao dia)`
+      `Programação Organizada! Criados ${maxCycles} dias com ${totalShows} séries em modo ${modeLabel}. (Distribuídos ${itemsPerDay} vezes ao dia)`
     );
   };
 

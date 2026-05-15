@@ -1735,6 +1735,39 @@ export default function Canais24h() {
         };
     }, []);
 
+    const isMarathon = useMemo(() => {
+        const currentActive = activeSlot === "A" ? slotA : slotB;
+        if (!currentActive || currentActive.type !== "program") return false;
+        
+        const idx = currentActive.programIndex;
+        const currentProg = programs[idx];
+        if (!currentProg) return false;
+        
+        const getBaseTitle = (t: string) => {
+            let base = t || '';
+            const lower = base.toLowerCase();
+            base = base.replace(/temporada\s+\d+\s+(?:epis[oó]dio|ep\.?|cap[ií]tulo|cap\.?)\s+\d+/gi, '');
+            base = base.replace(/t\d+\s*e\d+/gi, '');
+            base = base.replace(/s\d+e\d+/gi, '');
+            base = base.replace(/\d+x\d+/gi, '');
+            base = base.replace(/(?:epis[oó]dio|ep\.?|cap[ií]tulo|cap\.?)\s+(\d+)(?:\/\d+)?/gi, '');
+            base = base.replace(/temporada\s+\d+/gi, '');
+            base = base.replace(/parte\s+\d+/gi, '');
+            base = base.replace(/[\s\-:_\d\/]+$/g, '').trim();
+            return base || t;
+        };
+
+        const baseTitle = getBaseTitle(currentProg.title);
+        
+        const prevProg = programs[idx - 1];
+        const nextProg = programs[idx + 1];
+        
+        const isPrevSame = prevProg && getBaseTitle(prevProg.title) === baseTitle;
+        const isNextSame = nextProg && getBaseTitle(nextProg.title) === baseTitle;
+        
+        return isPrevSame || isNextSame;
+    }, [activeSlot, slotA, slotB, programs]);
+
     // ============================================================
     // RENDER
     // ============================================================
@@ -1793,6 +1826,14 @@ export default function Canais24h() {
                                     isFullscreen={isFullscreen}
                                     isLiteMode={isLiteMode}
                                 />
+
+                                {isMarathon && !isAdMode && (
+                                    <div className="absolute top-4 left-4 md:top-6 md:left-6 z-50 pointer-events-none animate-in fade-in duration-500">
+                                        <div className="bg-red-600/90 backdrop-blur-sm text-white px-3 py-1 rounded-md text-[10px] md:text-xs font-black tracking-widest uppercase shadow-[0_0_15px_rgba(220,38,38,0.5)] border border-red-500/30">
+                                            Maratona
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Live Badge + Mini-Player button */}
                                 <div className="absolute top-4 right-4 md:top-6 md:right-6 z-50 flex flex-row-reverse items-center gap-2 transition-all">
