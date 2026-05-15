@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Play, Search, Trash, Trash2, Loader2, Link as LinkIcon, Download, DownloadIcon, CheckCircle2, Clapperboard, MonitorPlay, Sparkles, X, Plus, PlusCircle, Maximize, AlertTriangle, ShieldCheck, ChevronUp, ChevronDown, Save, Lock, Bell, Upload, Film, Tv, RefreshCw, Clipboard, Clock, Settings2, Monitor, Smartphone } from "lucide-react";
+import { Play, Search, Trash, Trash2, Loader2, Link as LinkIcon, Download, DownloadIcon, CheckCircle2, Clapperboard, MonitorPlay, Sparkles, X, Plus, PlusCircle, Maximize, AlertTriangle, ShieldCheck, ChevronUp, ChevronDown, Save, Lock, Bell, Upload, Film, Tv, RefreshCw, Clipboard, Clock, Settings2, Monitor, Smartphone, LayoutList, Shuffle, Check } from "lucide-react";
 import { toast } from "sonner";
 import { searchMovies, searchSeries, getImageUrl, getMovieTrailer, getSeriesTrailer, getMovieDetails, getSeriesDetails, getSeasonDetails, getWatchProviders } from "@/lib/tmdb";
 import { sendContentNotification, getAllContents, updateContent } from "@/lib/firebase";
@@ -54,6 +54,11 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
   // --- Programming Import Modal State ---
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [importModalText, setImportModalText] = useState("");
+
+  // --- Smart Programming Modal State ---
+  const [isSmartScheduleModalOpen, setIsSmartScheduleModalOpen] = useState(false);
+  const [smartScheduleBatchSize, setSmartScheduleBatchSize] = useState("2");
+  const [smartScheduleMode, setSmartScheduleMode] = useState<"marathon" | "variety">("variety");
 
   // --- External Sync Series State ---
   const [externalSeasons, setExternalSeasons] = useState<{
@@ -384,12 +389,14 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
 
   const orderEpisodes2by2 = () => {
     if (!editingContent.episodes || editingContent.episodes.length === 0) return;
+    setIsSmartScheduleModalOpen(true);
+  };
 
-    const epsPerDayStr = prompt("Quantos episódios/vídeos da mesma série quer passar por dia? (Ex: 2 ou 3)", "2");
-    if (!epsPerDayStr) return;
-    const itemsPerDay = parseInt(epsPerDayStr, 10) || 2;
+  const applySmartSchedule = () => {
+    if (!editingContent.episodes || editingContent.episodes.length === 0) return;
 
-    const isMarathonMode = confirm("Deseja organizar em blocos de MARATONA (episódios seguidos da mesma série) ou no formato VARIEDADE (intercalando as séries para não repetir na sequência)?\n\n[OK] = Formato MARATONA (Blocos)\n[Cancelar] = Formato VARIEDADE (Intercalado)");
+    const itemsPerDay = parseInt(smartScheduleBatchSize, 10) || 2;
+    const isMarathonMode = smartScheduleMode === "marathon";
 
     /**
      * Helper: extract a numeric episode index from a title string.
@@ -554,6 +561,7 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
     toast.success(
       `Programação Organizada! Criados ${maxCycles} dias com ${totalShows} séries em modo ${modeLabel}. (Distribuídos ${itemsPerDay} vezes ao dia)`
     );
+    setIsSmartScheduleModalOpen(false);
   };
 
   const sortEpisodesNumerically = () => {
@@ -3419,6 +3427,84 @@ Título do Bloco
               >
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Processar e Importar
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Smart Programming Modal */}
+      <Dialog open={isSmartScheduleModalOpen} onOpenChange={setIsSmartScheduleModalOpen}>
+        <DialogContent className="max-w-md bg-zinc-900 border-zinc-800 text-white p-0 overflow-hidden">
+          <div className="p-6 space-y-6">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-xl font-bold">
+                <MonitorPlay className="w-5 h-5 text-primary" />
+                Organização Inteligente
+              </DialogTitle>
+              <p className="text-zinc-400 text-sm">
+                Configure como o sistema deve estruturar e agrupar os episódios na grade diária.
+              </p>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Episódios por Dia (por Série)</Label>
+                <Input 
+                  type="number"
+                  min="1"
+                  value={smartScheduleBatchSize}
+                  onChange={(e) => setSmartScheduleBatchSize(e.target.value)}
+                  className="bg-zinc-950 border-zinc-800 focus:border-primary text-white"
+                  placeholder="Ex: 2"
+                />
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <Label>Formato de Exibição</Label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div 
+                    onClick={() => setSmartScheduleMode("marathon")}
+                    className={`cursor-pointer border p-4 rounded-xl transition-all ${smartScheduleMode === 'marathon' ? 'border-primary bg-primary/10' : 'border-zinc-800 bg-zinc-950 hover:border-zinc-700'}`}
+                  >
+                    <h3 className="font-bold mb-1 flex items-center gap-2 text-sm text-white">
+                      <LayoutList className="w-4 h-4 text-red-500" />
+                      Maratona
+                    </h3>
+                    <p className="text-xs text-zinc-500 leading-relaxed">
+                      Agrupa todos os episódios diários da mesma série em um único bloco contínuo.
+                    </p>
+                  </div>
+
+                  <div 
+                    onClick={() => setSmartScheduleMode("variety")}
+                    className={`cursor-pointer border p-4 rounded-xl transition-all ${smartScheduleMode === 'variety' ? 'border-primary bg-primary/10' : 'border-zinc-800 bg-zinc-950 hover:border-zinc-700'}`}
+                  >
+                    <h3 className="font-bold mb-1 flex items-center gap-2 text-sm text-white">
+                      <Shuffle className="w-4 h-4 text-green-500" />
+                      Variedade
+                    </h3>
+                    <p className="text-xs text-zinc-500 leading-relaxed">
+                      Intercala um episódio de cada série para não repetir a mesma logo a seguir.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="flex items-center justify-end gap-3 pt-2">
+              <DialogClose asChild>
+                <Button variant="ghost" className="text-zinc-400 hover:text-white hover:bg-zinc-800/50">
+                  <X className="w-4 h-4 mr-2" />
+                  Cancelar
+                </Button>
+              </DialogClose>
+              <Button 
+                onClick={applySmartSchedule}
+                className="bg-primary hover:bg-primary/90 text-white font-bold px-6 glow-effect-hover"
+              >
+                <Check className="w-4 h-4 mr-2" />
+                Aplicar e Organizar
               </Button>
             </DialogFooter>
           </div>
