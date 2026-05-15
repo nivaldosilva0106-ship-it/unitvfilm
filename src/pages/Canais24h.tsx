@@ -442,11 +442,11 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                 <div className="relative p-3 md:p-4 space-y-2 md:space-y-3 z-40">
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-1 md:gap-2">
-                             <button onClick={triggerTogglePlay} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
+                             <button onClick={triggerTogglePlay} type="button" className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors pointer-events-auto">
                                  {isPlaying ? <Pause className="w-4 h-4 md:w-6 md:h-6 text-white fill-white" /> : <Play className="w-4 h-4 md:w-6 md:h-6 text-white fill-white ml-0.5" />}
                              </button>
                              <div className="flex items-center gap-1 md:gap-2">
-                                  <button onClick={triggerToggleMute} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
+                                  <button onClick={triggerToggleMute} type="button" className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors pointer-events-auto">
                                       {isMuted || volume === 0 ? <VolumeX className="w-4 h-4 md:w-5 md:h-5 text-white" /> : <Volume2 className="w-4 h-4 md:w-5 md:h-5 text-white" />}
                                   </button>
                                   <div className="w-16 md:w-20" onClick={(e) => e.stopPropagation()}>
@@ -465,7 +465,7 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
 
 
                             {onToggleFullscreen && (
-                                <button onClick={onToggleFullscreen} className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
+                                <button onClick={onToggleFullscreen} type="button" className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors pointer-events-auto">
                                     {isFullscreen ? <Minimize className="w-4 h-4 md:w-5 md:h-5 text-white" /> : <Maximize className="w-4 h-4 md:w-5 md:h-5 text-white" />}
                                 </button>
                             )}
@@ -1780,7 +1780,7 @@ export default function Canais24h() {
                     <div
                         ref={playerContainerRef}
                         id="player-container"
-                        className="relative w-full bg-black rounded-lg overflow-hidden shadow-2xl aspect-video group/container"
+                        className={`relative w-full bg-black overflow-hidden shadow-2xl group/container ${isFullscreen ? 'fixed inset-0 z-[100] rounded-none !max-w-none h-screen w-screen flex flex-col justify-center' : 'rounded-lg aspect-video'}`}
                     >
                         {loading ? (
                             <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/80">

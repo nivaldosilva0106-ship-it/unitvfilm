@@ -814,7 +814,7 @@ const formatTime = (seconds: number): string => {
               {/* Aspect Ratio Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors" title="Proporção da Tela">
+                  <button type="button" className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors pointer-events-auto" title="Proporção da Tela">
                     <Monitor className="w-4 h-4 md:w-5 md:h-5 text-white" />
                   </button>
                 </DropdownMenuTrigger>
@@ -846,7 +846,7 @@ const formatTime = (seconds: number): string => {
               {/* Settings Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors">
+                  <button type="button" className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors pointer-events-auto">
                     <Settings className="w-4 h-4 md:w-5 md:h-5 text-white" />
                   </button>
                 </DropdownMenuTrigger>
@@ -930,8 +930,9 @@ const formatTime = (seconds: number): string => {
 
               {/* Fullscreen */}
               <button
+                type="button"
                 onClick={toggleFullscreen}
-                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors pointer-events-auto"
               >
                 {isFullscreen ? (
                   <Minimize className="w-4 h-4 md:w-5 md:h-5 text-white" />
