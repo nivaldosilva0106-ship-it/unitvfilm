@@ -17,6 +17,8 @@ import type { Content, Episode } from "@/types/content";
 import type { TMDBMovie, TMDBSeries } from "@/lib/tmdb";
 import { AdminBulkUpdate } from "./AdminBulkUpdate";
 import { getAutoEmbedMovie, getAutoEmbedEpisode } from "@/lib/embedplayer";
+import { getProviderConfig } from "@/lib/providers";
+
 
 interface AdminContentFormProps {
   editingContent: Partial<Content>;
@@ -624,7 +626,8 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
             internal_player_url: !urlToUse.includes('youtube') && !urlToUse.includes('tiktok') ? urlToUse : "",
             season: 1,
             episode: (editingContent.episodes?.length || 0) + newEpisodesToAdd.length + 1,
-            duration: 3600
+            duration: 3600,
+            description: content.description
           });
         }
       } else {
@@ -650,7 +653,8 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
             url: urlToUse.includes('youtube') || urlToUse.includes('tiktok') ? urlToUse : "",
             internal_player_url: !urlToUse.includes('youtube') && !urlToUse.includes('tiktok') ? urlToUse : "",
             episode: (editingContent.episodes?.length || 0) + newEpisodesToAdd.length + 1,
-            duration: ep.duration || 1800
+            duration: ep.duration || 1800,
+            description: ep.description || content.description
           });
         });
       }
@@ -2872,7 +2876,10 @@ ${ep.url || ""}`;
                 </div>
               ) : (
                 allSiteContents
-                  .filter(c => c.title.toLowerCase().includes(contentSearchTerm.toLowerCase()))
+                  .filter(c => 
+                    c.title.toLowerCase().includes(contentSearchTerm.toLowerCase()) ||
+                    (c.watch_provider && c.watch_provider.toLowerCase().includes(contentSearchTerm.toLowerCase()))
+                  )
                   .map(c => {
                     const isSelected = selectedImportIds.has(c.id);
                     return (
@@ -2897,6 +2904,16 @@ ${ep.url || ""}`;
                             ) : (
                               <div className="w-full h-full flex items-center justify-center text-zinc-700">
                                 <Film className="w-6 h-6" />
+                              </div>
+                            )}
+                            
+                            {c.watch_provider && (
+                              <div className="absolute bottom-1 right-1 w-5 h-5 bg-black/80 rounded-sm p-0.5 border border-white/10">
+                                <img 
+                                  src={getProviderConfig(c.watch_provider)?.logo} 
+                                  alt={c.watch_provider}
+                                  className="w-full h-full object-contain"
+                                />
                               </div>
                             )}
                             <div className={`absolute top-1 left-1 w-4 h-4 rounded border flex items-center justify-center transition-colors shadow-md ${
