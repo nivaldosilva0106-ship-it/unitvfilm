@@ -151,8 +151,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // For .txt URLs: we need to peek at the content to determine type
     const isTxtUrl = urlLower.endsWith('.txt');
 
-    // If it's clearly a manifest or a .txt that might be a manifest, buffer it
-    if (isLikelyManifest || isTxtUrl) {
+    // If it's clearly a manifest, buffer it
+    if (isLikelyManifest) {
       // Buffer the response to inspect and possibly rewrite
       const body = await response.arrayBuffer();
       const uint8 = new Uint8Array(body);
@@ -374,7 +374,14 @@ function rewriteM3U8Urls(manifest: string, originalUrl: string, proxyBase: strin
           if (!uri.startsWith('http://') && !uri.startsWith('https://')) {
             absoluteUri = new URL(uri, baseUrl).toString();
           }
-          return `URI="${proxyBase}?url=${encodeURIComponent(absoluteUri)}"`;
+          let extHint = '';
+          const uriLower = absoluteUri.toLowerCase().split('?')[0];
+          if (uriLower.endsWith('.m3u8') || uriLower.endsWith('.m3u')) extHint = '&ext=.m3u8';
+          else if (uriLower.endsWith('.ts')) extHint = '&ext=.ts';
+          else if (uriLower.endsWith('.mp4')) extHint = '&ext=.mp4';
+          else if (uriLower.endsWith('.aac')) extHint = '&ext=.aac';
+          
+          return `URI="${proxyBase}?url=${encodeURIComponent(absoluteUri)}${extHint}"`;
         });
       }
       return line;
@@ -390,7 +397,14 @@ function rewriteM3U8Urls(manifest: string, originalUrl: string, proxyBase: strin
       }
     }
 
-    // Return the proxied URL using the absolute proxyBase
-    return `${proxyBase}?url=${encodeURIComponent(finalUrl)}`;
+    let extHint = '';
+    const finalLower = finalUrl.toLowerCase().split('?')[0];
+    if (finalLower.endsWith('.m3u8') || finalLower.endsWith('.m3u')) extHint = '&ext=.m3u8';
+    else if (finalLower.endsWith('.ts')) extHint = '&ext=.ts';
+    else if (finalLower.endsWith('.mp4')) extHint = '&ext=.mp4';
+    else if (finalLower.endsWith('.aac')) extHint = '&ext=.aac';
+
+    // Return the proxied URL using the absolute proxyBase with extension hint
+    return `${proxyBase}?url=${encodeURIComponent(finalUrl)}${extHint}`;
   }).join('\n');
 }
