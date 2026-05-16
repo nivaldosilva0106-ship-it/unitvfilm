@@ -59,8 +59,13 @@ export const getAllContents = async (): Promise<Content[]> => {
 
   try {
     const contentRef = ref(database, 'contents');
-    // Use a shorter timeout for the network check if we have cache
-    const snapshot = await get(contentRef);
+    
+    // Internal timeout to prevent infinite hangs on slow networks
+    const snapshot = await Promise.race([
+      get(contentRef),
+      new Promise<any>((_, reject) => setTimeout(() => reject(new Error('Fetch Timeout')), 12000))
+    ]);
+    
     if (snapshot.exists()) {
       const data = snapshot.val();
       const contents = Object.values(data) as Content[];

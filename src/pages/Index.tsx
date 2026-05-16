@@ -170,6 +170,7 @@ const Index = () => {
           if (Array.isArray(cachedData) && cachedData.length > 0) {
             setAllContentData(cachedData);
             hasCache = true;
+            setLoading(false); // Show cache immediately to avoid "CARREGANDO" screen
           }
         } catch (e) {}
       }
@@ -179,8 +180,8 @@ const Index = () => {
         setLoading(true);
       }
 
-      // 2. Network Fetch with optimized timeout
-      const data = await withTimeout(getAllContents(), 5000, [] as Content[]);
+      // 2. Network Fetch with optimized timeout (increased for slow TV devices)
+      const data = await withTimeout(getAllContents(), 10000, [] as Content[]);
 
       if (data.length > 0) {
         setAllContentData(data);
