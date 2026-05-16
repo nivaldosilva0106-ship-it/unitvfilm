@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { ContentPlayerModal } from "@/components/ContentPlayerModal";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
@@ -28,9 +28,12 @@ export default function Categories() {
     const [allContent, setAllContent] = useState<Content[]>([]);
     const [loading, setLoading] = useState(true);
     const [myList, setMyList] = useState<string[]>([]);
+    const [searchParams] = useSearchParams();
 
     // Filter State
-    const [typeFilter, setTypeFilter] = useState<'all' | 'movie' | 'series' | 'tv' | 'nostalgia'>('all');
+    const [typeFilter, setTypeFilter] = useState<'all' | 'movie' | 'series' | 'tv' | 'nostalgia'>(
+        (searchParams.get('type') as any) || 'all'
+    );
     const [accessFilter, setAccessFilter] = useState<'all' | 'free' | 'premium'>('all');
 
     // Modal State
