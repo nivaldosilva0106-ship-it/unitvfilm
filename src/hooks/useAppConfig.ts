@@ -28,7 +28,7 @@ export const useAppConfig = (): AppConfig => {
       enableAnimations: !isLite,
       enableTooltips: !isLite,
       maxCardsInRow: isLite ? 8 : 40, // Reduced from 10 to 8 for Lite for maximum fluidity
-      maxSectionsPerPage: isLite ? 4 : 20, // New constraint for Lite
+      maxSectionsPerPage: isLite ? 8 : 20, // Increased from 4 to 8 for more variety in Lite mode
     };
   }, []);
 

@@ -436,11 +436,6 @@ const Index = () => {
 
   // When clicking the card itself (not the play button)
   const handleDetailsContent = useCallback((content: Content) => {
-    if (isLiteMode) {
-      handlePlayContent(content);
-      return;
-    }
-    
     if (content.category === 'canais24h') {
       navigate(`/canais24h?channelId=${content.id}`);
       return;
@@ -542,7 +537,7 @@ const Index = () => {
   const isEffectivelyOffline = (!isOnline && !hasChosenOnline) || networkFailed;
 
   // Honor profile preference for local library — disabled by default in lite mode (Smart TV)
-  const canShowLocalLib = isLiteMode ? false : ((currentProfile as any)?.showLocalLibrary !== false);
+  const canShowLocalLib = ((currentProfile as any)?.showLocalLibrary !== false);
 
   if (isEffectivelyOffline && allContentData.length === 0) {
     return (
