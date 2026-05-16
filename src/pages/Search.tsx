@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Content } from "@/types/content";
 import { QuickViewModal } from "@/components/QuickViewModal";
+import { useSpatialNavigation, FOCUSABLE_CLASS } from "@/hooks/useSpatialNavigation";
 
 const Search = () => {
   const navigate = useNavigate();
@@ -19,6 +20,20 @@ const Search = () => {
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [quickViewContent, setQuickViewContent] = useState<Content | null>(null);
+
+  useSpatialNavigation({
+    enabled: true,
+    onBack: () => {
+      if (quickViewContent) {
+        setQuickViewContent(null);
+      } else {
+        navigate(-1);
+      }
+    },
+    onEnter: (el) => {
+      el.click();
+    }
+  });
 
   const categories = [
     { id: 'movie', label: 'Filmes', icon: Film },
@@ -99,13 +114,15 @@ const Search = () => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Pesquisar por título, descrição..."
-              className="w-full h-14 pl-12 pr-12 bg-secondary/20 border-white/10 rounded-2xl text-lg focus:ring-2 focus:ring-primary/20 transition-all"
+              className={`w-full h-14 pl-12 pr-12 bg-secondary/20 border-white/10 rounded-2xl text-lg focus:ring-2 focus:ring-primary/20 transition-all ${FOCUSABLE_CLASS}`}
               autoFocus
+              tabIndex={0}
             />
             {searchQuery && (
               <button 
                 onClick={() => setSearchQuery("")}
-                className="absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-full transition-colors"
+                className={`absolute right-4 top-1/2 -translate-y-1/2 p-1 hover:bg-white/10 rounded-full transition-colors ${FOCUSABLE_CLASS}`}
+                tabIndex={0}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -117,8 +134,9 @@ const Search = () => {
              <Button
                 variant={selectedCategory === null ? "default" : "outline"}
                 onClick={() => setSelectedCategory(null)}
-                className="rounded-full"
+                className={`rounded-full ${FOCUSABLE_CLASS}`}
                 size="sm"
+                tabIndex={0}
               >
                 Todos
               </Button>
@@ -127,8 +145,9 @@ const Search = () => {
                 key={cat.id}
                 variant={selectedCategory === cat.id ? "default" : "outline"}
                 onClick={() => setSelectedCategory(cat.id === selectedCategory ? null : cat.id)}
-                className="rounded-full gap-2"
+                className={`rounded-full gap-2 ${FOCUSABLE_CLASS}`}
                 size="sm"
+                tabIndex={0}
               >
                 <cat.icon className="w-4 h-4" />
                 {cat.label}

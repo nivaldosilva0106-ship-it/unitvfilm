@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from "@/contexts/AuthContext";
 import { getProviderConfig } from "@/lib/providers";
+import { useSpatialNavigation, FOCUSABLE_CLASS } from "@/hooks/useSpatialNavigation";
 
 // LiveTV Component - Updated Access Control - Deploy: 2026-01-24T17:19
 const LiveTV = () => {
@@ -26,6 +27,22 @@ const LiveTV = () => {
     const [currentPlayerIndex, setCurrentPlayerIndex] = useState(0);
     const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
     const [showApkWarning, setShowApkWarning] = useState(false);
+
+    useSpatialNavigation({
+        enabled: true,
+        onBack: () => {
+            if (showApkWarning) {
+                setShowApkWarning(false);
+            } else if (isSidebarOpen && isMobilePhone) {
+                setIsSidebarOpen(false);
+            } else {
+                navigate('/');
+            }
+        },
+        onEnter: (el) => {
+            el.click();
+        }
+    });
 
     // Detect Capacitor (APK)
     useEffect(() => {
@@ -206,11 +223,13 @@ const LiveTV = () => {
                                 <div
                                     key={channel.id}
                                     onClick={() => handleChannelClick(channel)}
+                                    tabIndex={0}
                                     className={`
                                         group flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all duration-200
                                         ${activeChannel?.id === channel.id
                                             ? 'bg-primary/20 border border-primary/50 shadow-[0_0_15px_rgba(220,38,38,0.2)]'
                                             : 'hover:bg-white/5 border border-transparent'}
+                                        ${FOCUSABLE_CLASS}
                                     `}
                                 >
                                     <div className="relative w-14 h-10 flex-shrink-0 rounded bg-black/50 overflow-hidden">
@@ -272,11 +291,13 @@ const LiveTV = () => {
                                 <div className="absolute top-4 left-4 z-40">
                                     <div
                                         onClick={toggleAdBlock}
+                                        tabIndex={0}
                                         className={`
                                             flex items-center gap-2 px-3 py-1.5 rounded-full backdrop-blur-md cursor-pointer transition-all hover:scale-105 select-none
                                             ${adBlockEnabled
                                                 ? 'bg-green-500/20 border border-green-500/50 text-green-400'
                                                 : 'bg-yellow-500/20 border border-yellow-500/50 text-yellow-400'}
+                                            ${FOCUSABLE_CLASS}
                                         `}
                                     >
                                         {adBlockEnabled ? <ShieldCheck className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
@@ -291,7 +312,8 @@ const LiveTV = () => {
                                     <div className="absolute top-4 left-1/2 -translate-x-1/2 z-40">
                                         <div
                                             onClick={switchPlayer}
-                                            className="flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-md cursor-pointer transition-all hover:scale-105 select-none bg-primary/20 border border-primary/50 text-primary hover:bg-primary/30"
+                                            tabIndex={0}
+                                            className={`flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-md cursor-pointer transition-all hover:scale-105 select-none bg-primary/20 border border-primary/50 text-primary hover:bg-primary/30 ${FOCUSABLE_CLASS}`}
                                         >
                                             <Monitor className="w-4 h-4" />
                                             <span className="text-xs font-bold uppercase tracking-wide">
@@ -332,7 +354,7 @@ const LiveTV = () => {
                                     </p>
                                     <Button
                                         onClick={() => navigate('/signup')}
-                                        className="w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold h-12 text-lg shadow-lg"
+                                        className={`w-full bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-bold h-12 text-lg shadow-lg ${FOCUSABLE_CLASS}`}
                                     >
                                         <Crown className="w-5 h-5 mr-2" />
                                         Virar Premium Agora
@@ -370,7 +392,7 @@ const LiveTV = () => {
                         <div className="flex flex-col gap-3">
                             <Button 
                                 onClick={() => setShowApkWarning(false)}
-                                className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 rounded-xl"
+                                className={`bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 rounded-xl ${FOCUSABLE_CLASS}`}
                             >
                                 Assistir mesmo assim
                             </Button>

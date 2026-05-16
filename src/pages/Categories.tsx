@@ -16,6 +16,7 @@ import { getAllContents, addToMyList, removeFromMyList, getMyList } from "@/lib/
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Filter } from "lucide-react";
+import { useSpatialNavigation, FOCUSABLE_CLASS } from "@/hooks/useSpatialNavigation";
 
 const GENRES = ['Ação', 'Aventura', 'Comédia', 'Drama', 'Terror', 'Romance', 'Ficção', 'Animação', 'Documentário', 'Infantil', 'Fantasia', 'Suspense'];
 
@@ -39,6 +40,28 @@ export default function Categories() {
     const [quickViewContent, setQuickViewContent] = useState<Content | null>(null);
     const [showCinemaModal, setShowCinemaModal] = useState(false);
     const [pendingPlayerState, setPendingPlayerState] = useState<any>(null);
+
+    useSpatialNavigation({
+        enabled: true,
+        onBack: () => {
+            if (selectedSeries) {
+                setSelectedSeries(null);
+            } else if (playerModal.open) {
+                setPlayerModal({ open: false, url: '', title: '', isPremium: false });
+            } else if (downloadModal.open) {
+                setDownloadModal({ open: false, url: '', title: '', thumbnail: '' });
+            } else if (quickViewContent) {
+                setQuickViewContent(null);
+            } else if (showCinemaModal) {
+                setShowCinemaModal(false);
+            } else {
+                navigate("/");
+            }
+        },
+        onEnter: (el) => {
+            el.click();
+        }
+    });
 
     useEffect(() => {
         loadData();

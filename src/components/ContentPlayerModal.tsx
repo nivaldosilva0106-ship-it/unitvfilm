@@ -2,6 +2,7 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { X, Crown, ArrowLeft, List, Film, Maximize, Minimize, Star, Plus, ChevronUp, ChevronRight } from "lucide-react";
 import { Content } from "@/types/content";
 import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
+import { useSpatialNavigation, FOCUSABLE_CLASS } from "@/hooks/useSpatialNavigation";
 import { Button } from "./ui/button";
 import { useRef, useEffect, useState, useMemo } from "react";
 import { VideoPlayer } from "./VideoPlayer";
@@ -63,6 +64,14 @@ export const ContentPlayerModal = ({
   const dialogContentRef = useRef<HTMLDivElement>(null);
   const { profile, isAdmin, checkAccess, plan } = useAuth();
   const navigate = useNavigate();
+
+  // Initialize TV Spatial Navigation
+  useSpatialNavigation({ 
+    enabled: open,
+    onBack: () => {
+      if (open) onClose();
+    }
+  });
 
   const [showSourceMenu, setShowSourceMenu] = useState(false);
   const [currentSourceIndex, setCurrentSourceIndex] = useState(0);
@@ -304,7 +313,7 @@ export const ContentPlayerModal = ({
           onClick={onClose}
           variant="ghost"
           size="icon"
-          className="absolute top-6 right-6 z-50 w-12 h-12 text-white bg-black/70 hover:bg-red-600 hover:scale-110 backdrop-blur-md transition-all rounded-full shadow-lg border-2 border-white/20"
+          className={`absolute top-6 right-6 z-50 w-12 h-12 text-white bg-black/70 hover:bg-red-600 hover:scale-110 backdrop-blur-md transition-all rounded-full shadow-lg border-2 border-white/20 ${FOCUSABLE_CLASS}`}
         >
           <X className="w-7 h-7" />
         </Button>
@@ -325,7 +334,7 @@ export const ContentPlayerModal = ({
               <div className="flex flex-col gap-3">
                 <Button
                   size="lg"
-                  className="w-full"
+                  className={`w-full ${FOCUSABLE_CLASS}`}
                   onClick={() => {
                     onClose();
                     navigate('/signup'); // Direct to signup/plans
@@ -337,7 +346,7 @@ export const ContentPlayerModal = ({
                 <Button
                   size="lg"
                   variant="outline"
-                  className="w-full"
+                  className={`w-full ${FOCUSABLE_CLASS}`}
                   onClick={onClose}
                 >
                   Voltar
@@ -391,7 +400,7 @@ export const ContentPlayerModal = ({
                 }}
                 variant="ghost"
                 size="icon"
-                className="absolute top-6 left-6 z-[100] w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20"
+                className={`absolute top-6 left-6 z-[100] w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20 ${FOCUSABLE_CLASS}`}
               >
                 <ArrowLeft className="w-6 h-6" />
               </Button>
@@ -414,7 +423,7 @@ export const ContentPlayerModal = ({
                 }}
                 variant="ghost"
                 size="icon"
-                className="absolute top-6 right-[136px] z-[100] w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20"
+                className={`absolute top-6 right-[136px] z-[100] w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20 ${FOCUSABLE_CLASS}`}
               >
                 {isFullscreen ? <Minimize className="w-6 h-6" /> : <Maximize className="w-6 h-6" />}
               </Button>
@@ -428,7 +437,7 @@ export const ContentPlayerModal = ({
                     }}
                     variant="ghost"
                     size="icon"
-                    className="w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20"
+                    className={`w-12 h-12 text-white bg-black/50 hover:bg-black/70 backdrop-blur-md rounded-full shadow-lg border border-white/20 ${FOCUSABLE_CLASS}`}
                   >
                     <List className="w-6 h-6" />
                   </Button>
@@ -442,7 +451,7 @@ export const ContentPlayerModal = ({
                             setCurrentSourceIndex(index);
                             setShowSourceMenu(false);
                           }}
-                          className={`w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center justify-between ${currentSourceIndex === index ? 'bg-primary/20' : ''}`}
+                          className={`w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center justify-between ${currentSourceIndex === index ? 'bg-primary/20' : ''} ${FOCUSABLE_CLASS}`}
                         >
                           <span>{source.name}</span>
                           {currentSourceIndex === index && <span className="text-primary">✓</span>}
@@ -488,7 +497,7 @@ export const ContentPlayerModal = ({
                         onPlayNext();
                       }
                     }}
-                    className={`group flex flex-col items-end gap-1 ${nextEpisode ? 'cursor-pointer' : 'cursor-default'}`}
+                    className={`group flex flex-col items-end gap-1 ${nextEpisode ? `cursor-pointer ${FOCUSABLE_CLASS}` : 'cursor-default'}`}
                   >
                     <div className={`bg-black/60 backdrop-blur-md border border-white/10 rounded-full pl-3 pr-5 py-2 shadow-2xl transition-all duration-300 max-w-[300px] flex items-center ${nextEpisode ? 'hover:bg-black/80 group-hover:scale-105 group-hover:border-primary/50' : 'border-red-500/30'}`}>
                       <div className="flex gap-3 items-center">
@@ -536,7 +545,7 @@ export const ContentPlayerModal = ({
                       }}
                        variant="ghost"
                        size="icon"
-                       className="w-14 h-14 rounded-full bg-black/50 hover:bg-primary hover:text-white backdrop-blur-sm border border-white/10 shadow-lg transition-all duration-300 hover:scale-110 group"
+                       className={`w-14 h-14 rounded-full bg-black/50 hover:bg-primary hover:text-white backdrop-blur-sm border border-white/10 shadow-lg transition-all duration-300 hover:scale-110 group ${FOCUSABLE_CLASS}`}
                        title={`Próximo: ${nextEpisode.title}`}
                    >
                       <ChevronRight className="w-8 h-8 text-white group-hover:text-white" />
@@ -564,7 +573,7 @@ export const ContentPlayerModal = ({
                                   navigate(`/content/${item.id}`);
                                 }
                               }}
-                              className="flex gap-2 p-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors group/item"
+                              className={`flex gap-2 p-2 hover:bg-white/10 rounded-lg cursor-pointer transition-colors group/item ${FOCUSABLE_CLASS}`}
                             >
                               <img src={item.thumbnail_url} className="w-10 h-14 object-cover rounded-md bg-gray-800 shadow-sm" />
                               <div className="flex flex-col justify-center min-w-0">
@@ -592,7 +601,7 @@ export const ContentPlayerModal = ({
                           navigate(`/content/${suggestions[0].id}`);
                         }
                       }}
-                      className="flex items-center gap-3 bg-black/40 hover:bg-black/80 backdrop-blur-md border border-white/10 rounded-full pl-1 pr-4 py-1.5 cursor-pointer transition-all duration-300 group-hover:border-white/30 group-hover:scale-105"
+                      className={`flex items-center gap-3 bg-black/40 hover:bg-black/80 backdrop-blur-md border border-white/10 rounded-full pl-1 pr-4 py-1.5 cursor-pointer transition-all duration-300 group-hover:border-white/30 group-hover:scale-105 ${FOCUSABLE_CLASS}`}
                     >
                       <div className="relative flex-shrink-0">
                         <img

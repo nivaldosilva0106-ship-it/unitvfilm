@@ -7,6 +7,7 @@ import {
 import Hls from "hls.js";
 import { Slider } from "@/components/ui/slider";
 import { createSecurePlaybackUrl, isProtectedUrl } from "@/lib/secure-url";
+import { FOCUSABLE_CLASS } from "@/hooks/useSpatialNavigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -707,7 +708,8 @@ const formatTime = (seconds: number): string => {
               e.stopPropagation();
               togglePlay();
             }}
-            className="w-16 h-16 md:w-20 md:h-20 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-xl border border-white/10 pointer-events-auto"
+            className={`w-16 h-16 md:w-20 md:h-20 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-xl border border-white/10 pointer-events-auto ${FOCUSABLE_CLASS}`}
+            tabIndex={0}
           >
             {isPlaying ? (
               <Pause className="w-8 h-8 md:w-10 md:h-10 text-white fill-white" />
@@ -756,7 +758,8 @@ const formatTime = (seconds: number): string => {
             <div className="flex items-center gap-1 md:gap-2">
               <button
                 onClick={togglePlay}
-                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors pointer-events-auto ${FOCUSABLE_CLASS}`}
+                tabIndex={0}
               >
                 {isPlaying ? (
                   <Pause className="w-4 h-4 md:w-6 md:h-6 text-white fill-white" />
@@ -769,14 +772,16 @@ const formatTime = (seconds: number): string => {
                 <>
                   <button
                     onClick={() => skip(-10)}
-                    className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                    className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors pointer-events-auto ${FOCUSABLE_CLASS}`}
+                    tabIndex={0}
                   >
                     <SkipBack className="w-4 h-4 md:w-5 md:h-5 text-white" />
                   </button>
 
                   <button
                     onClick={() => skip(10)}
-                    className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                    className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors pointer-events-auto ${FOCUSABLE_CLASS}`}
+                    tabIndex={0}
                   >
                     <SkipForward className="w-4 h-4 md:w-5 md:h-5 text-white" />
                   </button>
@@ -787,7 +792,8 @@ const formatTime = (seconds: number): string => {
               <div className="flex items-center gap-1 md:gap-2">
                 <button
                   onClick={toggleMute}
-                  className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                  className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors pointer-events-auto ${FOCUSABLE_CLASS}`}
+                  tabIndex={0}
                 >
                   {isMuted || volume === 0 ? (
                     <VolumeX className="w-4 h-4 md:w-5 md:h-5 text-white" />
@@ -814,7 +820,7 @@ const formatTime = (seconds: number): string => {
               {/* Aspect Ratio Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button type="button" className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors pointer-events-auto" title="Proporção da Tela">
+                  <button type="button" className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors pointer-events-auto ${FOCUSABLE_CLASS}`} title="Proporção da Tela" tabIndex={0}>
                     <Monitor className="w-4 h-4 md:w-5 md:h-5 text-white" />
                   </button>
                 </DropdownMenuTrigger>
@@ -846,7 +852,7 @@ const formatTime = (seconds: number): string => {
               {/* Settings Menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button type="button" className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors pointer-events-auto">
+                  <button type="button" className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors pointer-events-auto ${FOCUSABLE_CLASS}`} tabIndex={0}>
                     <Settings className="w-4 h-4 md:w-5 md:h-5 text-white" />
                   </button>
                 </DropdownMenuTrigger>
@@ -922,8 +928,9 @@ const formatTime = (seconds: number): string => {
               {/* Mini Player / Picture-in-Picture */}
               <button
                 onClick={toggleMiniPlayer}
-                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors pointer-events-auto ${FOCUSABLE_CLASS}`}
                 title="Mini Leitor (PiP)"
+                tabIndex={0}
               >
                 <PictureInPicture className={`w-4 h-4 md:w-5 md:h-5 ${isPiP ? 'text-primary' : 'text-white'}`} />
               </button>
@@ -932,7 +939,8 @@ const formatTime = (seconds: number): string => {
               <button
                 type="button"
                 onClick={toggleFullscreen}
-                className="w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors pointer-events-auto"
+                className={`w-8 h-8 md:w-10 md:h-10 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors pointer-events-auto ${FOCUSABLE_CLASS}`}
+                tabIndex={0}
               >
                 {isFullscreen ? (
                   <Minimize className="w-4 h-4 md:w-5 md:h-5 text-white" />

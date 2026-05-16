@@ -14,6 +14,7 @@ import { VideoPlayer } from "@/components/VideoPlayer";
 import { Capacitor } from '@capacitor/core';
 import { useAppConfig } from "@/hooks/useAppConfig";
 import React, { Suspense } from "react";
+import { useSpatialNavigation, FOCUSABLE_CLASS } from "@/hooks/useSpatialNavigation";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +37,24 @@ const EpisodeSelector = lazyWithRetry(() => import("@/components/EpisodeSelector
 
 
 const Player = () => {
+    // Initialize TV Spatial Navigation
+    useSpatialNavigation({ 
+        enabled: true,
+        onBack: () => {
+            if (showEpisodeSelector) {
+                setShowEpisodeSelector(false);
+            } else if (isSuggestionsOpen) {
+                setIsSuggestionsOpen(false);
+            } else if (isContinueWatchingOpen) {
+                setIsContinueWatchingOpen(false);
+            } else if (downloadModal.open) {
+                setDownloadModal({ ...downloadModal, open: false });
+            } else {
+                navigate(-1);
+            }
+        }
+    });
+
     const { id } = useParams();
     const [searchParams, setSearchParams] = useSearchParams();
     const navigate = useNavigate();
@@ -869,7 +888,7 @@ const Player = () => {
                                                 setShowResumeArrow(true);
                                             }
                                         }}
-                                        className="bg-primary hover:bg-primary/90 text-white font-bold py-5 sm:py-6 rounded-xl text-sm sm:text-base w-full"
+                                        className={`bg-primary hover:bg-primary/90 text-white font-bold py-5 sm:py-6 rounded-xl text-sm sm:text-base w-full ${FOCUSABLE_CLASS}`}
                                     >
                                         Continuar ({formatTime(lastPositionSeconds)})
                                     </Button>
@@ -882,7 +901,7 @@ const Player = () => {
                                             setLastPositionSeconds(0);
                                             sessionStartTimestamp.current = Date.now();
                                         }}
-                                        className="text-gray-400 hover:text-white hover:bg-white/5 py-5 sm:py-6 text-sm sm:text-base w-full"
+                                        className={`text-gray-400 hover:text-white hover:bg-white/5 py-5 sm:py-6 text-sm sm:text-base w-full ${FOCUSABLE_CLASS}`}
                                     >
                                         Recomeçar
                                     </Button>
@@ -898,7 +917,7 @@ const Player = () => {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => navigate(-1)}
-                                className="w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 pointer-events-auto"
+                                className={`w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 pointer-events-auto ${FOCUSABLE_CLASS}`}
                                 tabIndex={0}
                             >
                                 <ArrowLeft className="w-4 h-4 sm:w-6 sm:h-6" />
@@ -932,7 +951,8 @@ const Player = () => {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="w-8 h-8 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                            className={`w-8 h-8 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 ${FOCUSABLE_CLASS}`}
+                                            tabIndex={0}
                                         >
                                             <MoreVertical className="w-4 h-4" />
                                         </Button>
@@ -1000,7 +1020,7 @@ const Player = () => {
                                             variant="ghost"
                                             size="icon"
                                             onClick={() => setShowSourceMenu(!showSourceMenu)}
-                                            className="w-10 h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 tab-focusable"
+                                            className={`w-10 h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 ${FOCUSABLE_CLASS}`}
                                             tabIndex={0}
                                         >
                                             <List className="w-5 h-5" />
@@ -1014,7 +1034,7 @@ const Player = () => {
                                                             setCurrentSourceIndex(index);
                                                             setShowSourceMenu(false);
                                                         }}
-                                                        className={`w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center justify-between ${currentSourceIndex === index ? 'bg-primary/20' : ''}`}
+                                                        className={`w-full px-4 py-3 text-left text-white hover:bg-white/10 transition-colors flex items-center justify-between ${currentSourceIndex === index ? 'bg-primary/20' : ''} ${FOCUSABLE_CLASS}`}
                                                         tabIndex={0}
                                                     >
                                                         <span className="text-sm">{source.name}</span>
@@ -1031,8 +1051,9 @@ const Player = () => {
                                         variant="ghost"
                                         size="icon"
                                         onClick={handleToggleMyList}
-                                        className="w-10 h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                        className={`w-10 h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 ${FOCUSABLE_CLASS}`}
                                         title={isInMyList ? "Remover da lista" : "Assistir mais tarde"}
+                                        tabIndex={0}
                                     >
                                         {isInMyList ? <Check className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
                                     </Button>
@@ -1043,8 +1064,9 @@ const Player = () => {
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => setShowEpisodeSelector(true)}
-                                        className="w-10 h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                        className={`w-10 h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 ${FOCUSABLE_CLASS}`}
                                         title="Trocar Temporada"
+                                        tabIndex={0}
                                     >
                                         <List className="w-5 h-5" />
                                     </Button>
@@ -1055,8 +1077,9 @@ const Player = () => {
                                     variant="ghost"
                                     size="icon"
                                     onClick={handleDownloadClick}
-                                    className="w-10 h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                    className={`w-10 h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 ${FOCUSABLE_CLASS}`}
                                     title="Baixar este conteúdo"
+                                    tabIndex={0}
                                 >
                                     <Download className="w-5 h-5 text-emerald-400" />
                                 </Button>
@@ -1067,8 +1090,9 @@ const Player = () => {
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => setIsSuggestionsOpen(!isSuggestionsOpen)}
-                                        className={`w-10 h-10 rounded-full text-white hover:bg-white/20 backdrop-blur-md border transition-all ${isSuggestionsOpen ? 'bg-primary border-primary' : 'bg-black/50 border-white/20'}`}
+                                        className={`w-10 h-10 rounded-full text-white hover:bg-white/20 backdrop-blur-md border transition-all ${isSuggestionsOpen ? 'bg-primary border-primary' : 'bg-black/50 border-white/20'} ${FOCUSABLE_CLASS}`}
                                         title="Ver recomendações"
+                                        tabIndex={0}
                                     >
                                         <LayoutGrid className="w-5 h-5" />
                                     </Button>
@@ -1078,7 +1102,7 @@ const Player = () => {
                                     variant="ghost"
                                     size="icon"
                                     onClick={toggleFullscreen}
-                                    className="w-10 h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20"
+                                    className={`w-10 h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 ${FOCUSABLE_CLASS}`}
                                     tabIndex={0}
                                 >
                                     {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
@@ -1090,7 +1114,7 @@ const Player = () => {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => navigate('/')}
-                                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-red-600 backdrop-blur-md border border-white/20"
+                                className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-red-600 backdrop-blur-md border border-white/20 ${FOCUSABLE_CLASS}`}
                                 tabIndex={0}
                             >
                                 <X className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -1108,8 +1132,9 @@ const Player = () => {
                                 }}
                                 variant="ghost"
                                 size="icon"
-                                className="w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-black/60 hover:bg-primary text-white backdrop-blur-md border-2 border-white/20 shadow-[0_0_30px_rgba(0,0,0,0.5)] transition-all duration-300 hover:scale-110 flex items-center justify-center pointer-events-auto group/btn"
+                                className={`w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-black/60 hover:bg-primary text-white backdrop-blur-md border-2 border-white/20 shadow-[0_0_30px_rgba(0,0,0,0.5)] transition-all duration-300 hover:scale-110 flex items-center justify-center pointer-events-auto group/btn ${FOCUSABLE_CLASS}`}
                                 title={`Próximo: ${nextEpisode.title}`}
+                                tabIndex={0}
                             >
                                 <ChevronRight className="w-6 h-6 sm:w-8 sm:h-8 ml-0.5 transition-transform group-hover/btn:translate-x-1" />
                             </Button>
@@ -1151,7 +1176,7 @@ const Player = () => {
                                     variant="ghost"
                                     size="icon"
                                     onClick={() => setIsSuggestionsOpen(false)}
-                                    className="w-8 h-8 rounded-full text-gray-400 hover:text-white hover:bg-white/10"
+                                    className={`w-8 h-8 rounded-full text-gray-400 hover:text-white hover:bg-white/10 ${FOCUSABLE_CLASS}`}
                                 >
                                     <X className="w-4 h-4" />
                                 </Button>
@@ -1164,7 +1189,7 @@ const Player = () => {
                                             setIsSuggestionsOpen(false);
                                             navigate(`/watch/${suggestion.id}`);
                                         }}
-                                        className="relative flex gap-3 sm:gap-4 p-2 sm:p-3 rounded-xl hover:bg-white/10 cursor-pointer transition-all group/item hover:scale-105"
+                                        className={`relative flex gap-3 sm:gap-4 p-2 sm:p-3 rounded-xl hover:bg-white/10 cursor-pointer transition-all group/item hover:scale-105 ${FOCUSABLE_CLASS}`}
                                     >
                                         <div className="relative w-16 h-24 sm:w-20 sm:h-28 shrink-0">
                                             <img
@@ -1263,7 +1288,7 @@ const Player = () => {
                             }}
                             variant="ghost"
                             size="icon"
-                            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white border border-white/20 backdrop-blur-md transition-all duration-300 hover:bg-primary hover:scale-110 ${isContinueWatchingOpen ? 'rotate-180' : ''}`}
+                            className={`w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white border border-white/20 backdrop-blur-md transition-all duration-300 hover:bg-primary hover:scale-110 ${isContinueWatchingOpen ? 'rotate-180' : ''} ${FOCUSABLE_CLASS}`}
                         >
                             <ChevronDown className="w-6 h-6 sm:w-8 sm:h-8" />
                         </Button>
@@ -1293,7 +1318,7 @@ const Player = () => {
                                         }
                                         window.scrollTo(0, 0);
                                     }}
-                                    className="group/card relative cursor-pointer"
+                                    className={`group/card relative cursor-pointer ${FOCUSABLE_CLASS}`}
                                 >
                                     <div className="relative aspect-[2/3] rounded-xl overflow-hidden border border-white/5 shadow-xl transition-all duration-300 group-hover/card:scale-105 group-hover/card:border-primary/50 group-hover/card:shadow-primary/20">
                                         <img

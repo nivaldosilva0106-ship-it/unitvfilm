@@ -12,6 +12,7 @@ import { EpisodeSelector } from '@/components/EpisodeSelector';
 import { CinemaWarningModal } from '@/components/CinemaWarningModal';
 import type { MyListItem } from '@/types/user';
 import type { Content } from '@/types/content';
+import { useSpatialNavigation, FOCUSABLE_CLASS } from '@/hooks/useSpatialNavigation';
 
 const MyList = () => {
   const navigate = useNavigate();
@@ -25,6 +26,24 @@ const MyList = () => {
   const [showCinemaModal, setShowCinemaModal] = useState(false);
   const [pendingPlayerState, setPendingPlayerState] = useState<any>(null);
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+
+  useSpatialNavigation({
+    enabled: true,
+    onBack: () => {
+      if (selectedSeries) {
+        setSelectedSeries(null);
+      } else if (showCinemaModal) {
+        setShowCinemaModal(false);
+      } else if (quickViewContent) {
+        setQuickViewContent(null);
+      } else {
+        navigate(-1);
+      }
+    },
+    onEnter: (el) => {
+      el.click();
+    }
+  });
 
 
   useEffect(() => {
@@ -168,7 +187,8 @@ const MyList = () => {
                 />
                 <button
                   onClick={(e) => { e.stopPropagation(); handleRemove(item.id); }}
-                  className="absolute top-2 right-2 bg-destructive/90 hover:bg-destructive text-destructive-foreground p-2 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 shadow-lg"
+                  className={`absolute top-2 right-2 bg-destructive/90 hover:bg-destructive text-destructive-foreground p-2 rounded-full opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity z-10 shadow-lg ${FOCUSABLE_CLASS}`}
+                  tabIndex={0}
                   title="Remover da lista"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -187,7 +207,8 @@ const MyList = () => {
             </p>
             <button
               onClick={() => navigate('/')}
-              className="text-primary hover:underline"
+              className={`text-primary hover:underline ${FOCUSABLE_CLASS}`}
+              tabIndex={0}
             >
               Explorar conteúdo
             </button>

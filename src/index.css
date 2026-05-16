@@ -234,6 +234,27 @@ html, body, #root {
     animation: play-flash 1.2s cubic-bezier(0.4, 0, 0.6, 1) forwards;
   }
 
+  /* ===== Custom TV Spatial Navigation Styles ===== */
+  .tv-focusable {
+    outline: none !important; /* Disable native outline to use custom ring */
+  }
+
+  /* When an element is focused via D-Pad (has focus) */
+  .tv-focusable:focus,
+  .tv-focusable:focus-visible {
+    position: relative;
+    z-index: 50;
+    box-shadow: 0 0 0 4px hsl(var(--primary)), 0 0 15px hsl(var(--primary) / 0.6) !important;
+    transform: scale(1.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-radius: inherit;
+  }
+
+  /* Specific adjustment for buttons inside menus to not pop out too aggressively */
+  .tv-focusable:focus.menu-item {
+    transform: scale(1.02);
+  }
+
   /* Holiday Decorations Styles */
   .holiday-decorations {
     position: fixed;

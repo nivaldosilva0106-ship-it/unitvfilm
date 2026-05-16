@@ -3,6 +3,8 @@ import { useKeyboardNavigation } from "@/hooks/useKeyboardNavigation";
 import { useState, useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
+import { FOCUSABLE_CLASS } from "@/hooks/useSpatialNavigation";
+
 interface CategoryNavigationProps {
   categories: string[];
   selectedCategory: string;
@@ -61,7 +63,8 @@ export const CategoryNavigation = ({ categories, selectedCategory, onSelectCateg
             "capitalize transition-all duration-200",
             selectedCategory === category 
               ? "bg-primary text-primary-foreground glow-effect" // Adicionado glow-effect
-              : "border-primary/50 hover:border-primary hover:bg-primary/10"
+              : "border-primary/50 hover:border-primary hover:bg-primary/10",
+            FOCUSABLE_CLASS
           )}
           tabIndex={0}
         >

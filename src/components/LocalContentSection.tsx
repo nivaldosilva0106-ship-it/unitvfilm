@@ -7,6 +7,7 @@ import { getImageUrl } from '@/lib/tmdb';
 import { useNavigate } from 'react-router-dom';
 import { db } from '@/lib/db';
 import { toast } from 'sonner';
+import { FOCUSABLE_CLASS } from '@/hooks/useSpatialNavigation';
 
 interface LocalContentSectionProps {
   fullPage?: boolean; // When true, renders as a full-page offline view
@@ -115,7 +116,7 @@ export const LocalContentSection = ({ fullPage = false }: LocalContentSectionPro
             </>
           )}
         </div>
-        <div className="flex flex-col items-center justify-center py-12 px-6 rounded-3xl border-2 border-dashed border-zinc-800 bg-white/5 hover:bg-white/10 transition-colors group cursor-pointer w-full max-w-lg" onClick={addFolder}>
+        <div className={`flex flex-col items-center justify-center py-12 px-6 rounded-3xl border-2 border-dashed border-zinc-800 bg-white/5 hover:bg-white/10 transition-colors group cursor-pointer w-full max-w-lg ${FOCUSABLE_CLASS}`} tabIndex={0} onClick={addFolder}>
           <div className="bg-primary/20 p-4 rounded-full mb-4 group-hover:scale-110 transition-transform">
              <FolderPlus className="w-8 h-8 text-primary" />
           </div>
@@ -128,7 +129,7 @@ export const LocalContentSection = ({ fullPage = false }: LocalContentSectionPro
               : 'Adicione uma pasta do seu computador ou celular para indexar seus filmes e séries locais com pôsteres e informações do TMDB.'
             }
           </p>
-          <Button onClick={(e) => { e.stopPropagation(); addFolder(); }} className="rounded-full px-8">
+          <Button onClick={(e) => { e.stopPropagation(); addFolder(); }} className={`rounded-full px-8 ${FOCUSABLE_CLASS}`} tabIndex={0}>
             Adicionar Pasta
           </Button>
         </div>
@@ -145,15 +146,15 @@ export const LocalContentSection = ({ fullPage = false }: LocalContentSectionPro
           {isScanning && <RefreshCw className="w-4 h-4 animate-spin text-zinc-500" />}
         </div>
         <div className="flex gap-1 sm:gap-2">
-          <Button variant="ghost" size="sm" onClick={scanLibrary} disabled={isScanning} className="text-zinc-400 hover:text-white px-2 sm:px-3">
+          <Button variant="ghost" size="sm" onClick={scanLibrary} disabled={isScanning} className={`text-zinc-400 hover:text-white px-2 sm:px-3 ${FOCUSABLE_CLASS}`} tabIndex={0}>
              <RefreshCw className={`w-4 h-4 sm:mr-2 ${isScanning ? 'animate-spin' : ''}`} />
              <span className="hidden sm:inline">Sincronizar</span>
           </Button>
-          <Button variant="ghost" size="sm" onClick={addFolder} className="text-zinc-400 hover:text-white px-2 sm:px-3">
+          <Button variant="ghost" size="sm" onClick={addFolder} className={`text-zinc-400 hover:text-white px-2 sm:px-3 ${FOCUSABLE_CLASS}`} tabIndex={0}>
              <FolderPlus className="w-4 h-4 sm:mr-2" />
              <span className="hidden sm:inline">Nova Pasta</span>
           </Button>
-          <Button variant="ghost" size="sm" onClick={() => setShowConfirmClear(true)} className="text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2 sm:px-3">
+          <Button variant="ghost" size="sm" onClick={() => setShowConfirmClear(true)} className={`text-red-400 hover:text-red-300 hover:bg-red-500/10 px-2 sm:px-3 ${FOCUSABLE_CLASS}`} tabIndex={0}>
              <Trash2 className="w-4 h-4 sm:mr-2" />
              <span className="hidden sm:inline">Limpar</span>
           </Button>
@@ -170,10 +171,10 @@ export const LocalContentSection = ({ fullPage = false }: LocalContentSectionPro
               Todos os filmes indexados e pastas serão removidos. Os arquivos originais no seu dispositivo não serão afetados.
             </p>
             <div className="flex gap-3 justify-center">
-              <Button variant="ghost" onClick={() => setShowConfirmClear(false)} className="text-zinc-400">
+              <Button variant="ghost" onClick={() => setShowConfirmClear(false)} className={`text-zinc-400 ${FOCUSABLE_CLASS}`} tabIndex={0}>
                 Cancelar
               </Button>
-              <Button onClick={handleClearAll} className="bg-red-600 hover:bg-red-500 text-white">
+              <Button onClick={handleClearAll} className={`bg-red-600 hover:bg-red-500 text-white ${FOCUSABLE_CLASS}`} tabIndex={0}>
                 Limpar Tudo
               </Button>
             </div>
@@ -191,10 +192,10 @@ export const LocalContentSection = ({ fullPage = false }: LocalContentSectionPro
               Deseja remover "{itemToDelete.title}"? Os arquivos no seu dispositivo não serão excluídos.
             </p>
             <div className="flex gap-3 justify-center">
-              <Button variant="ghost" onClick={() => setItemToDelete(null)} className="text-zinc-400">
+              <Button variant="ghost" onClick={() => setItemToDelete(null)} className={`text-zinc-400 ${FOCUSABLE_CLASS}`} tabIndex={0}>
                 Cancelar
               </Button>
-              <Button onClick={handleDeleteItem} className="bg-red-600 hover:bg-red-500 text-white">
+              <Button onClick={handleDeleteItem} className={`bg-red-600 hover:bg-red-500 text-white ${FOCUSABLE_CLASS}`} tabIndex={0}>
                 Remover
               </Button>
             </div>
@@ -211,7 +212,7 @@ export const LocalContentSection = ({ fullPage = false }: LocalContentSectionPro
                 <h3 className="text-2xl font-bold text-white">{selectedGroup.title}</h3>
                 <p className="text-zinc-500 text-sm italic">{selectedGroup.items.length} episódios encontrados</p>
               </div>
-              <Button variant="ghost" size="icon" onClick={() => setSelectedGroup(null)} className="rounded-full">
+              <Button variant="ghost" size="icon" onClick={() => setSelectedGroup(null)} className={`rounded-full ${FOCUSABLE_CLASS}`} tabIndex={0}>
                 <Library className="w-5 h-5" />
               </Button>
             </div>
@@ -224,7 +225,8 @@ export const LocalContentSection = ({ fullPage = false }: LocalContentSectionPro
                     navigate(`/watch-local/${episode.id}`);
                     setSelectedGroup(null);
                   }}
-                  className="flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-primary/30 transition-all cursor-pointer group"
+                  className={`flex items-center gap-4 p-3 rounded-xl bg-white/5 hover:bg-white/10 border border-transparent hover:border-primary/30 transition-all cursor-pointer group ${FOCUSABLE_CLASS}`}
+                  tabIndex={0}
                 >
                   <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-zinc-800 flex items-center justify-center font-bold text-primary group-hover:scale-110 transition-transform">
                     {episode.season && episode.episode ? `${episode.season}x${episode.episode.toString().padStart(2, '0')}` : '?'}
@@ -248,7 +250,7 @@ export const LocalContentSection = ({ fullPage = false }: LocalContentSectionPro
               onClick={() => scrollRow('left')}
               className="absolute left-0 top-1/2 -translate-y-1/2 z-20 h-[240px] w-12 flex items-center justify-center bg-gradient-to-r from-background to-transparent opacity-0 group-hover/row:opacity-100 transition-opacity cursor-pointer text-white"
             >
-              <div className="bg-black/50 p-2 rounded-full hover:bg-black/80 transition-colors">
+              <div className={`bg-black/50 p-2 rounded-full hover:bg-black/80 transition-colors ${FOCUSABLE_CLASS}`} tabIndex={0}>
                 <ChevronLeft className="w-6 h-6" />
               </div>
             </button>
@@ -256,7 +258,7 @@ export const LocalContentSection = ({ fullPage = false }: LocalContentSectionPro
               onClick={() => scrollRow('right')}
               className="absolute right-0 top-1/2 -translate-y-1/2 z-20 h-[240px] w-12 flex items-center justify-center bg-gradient-to-l from-background to-transparent opacity-0 group-hover/row:opacity-100 transition-opacity cursor-pointer text-white"
             >
-              <div className="bg-black/50 p-2 rounded-full hover:bg-black/80 transition-colors">
+              <div className={`bg-black/50 p-2 rounded-full hover:bg-black/80 transition-colors ${FOCUSABLE_CLASS}`} tabIndex={0}>
                 <ChevronRight className="w-6 h-6" />
               </div>
             </button>
@@ -290,7 +292,8 @@ export const LocalContentSection = ({ fullPage = false }: LocalContentSectionPro
                   e.stopPropagation();
                   setItemToDelete(group);
                 }}
-                className="absolute top-2 right-2 p-2 bg-red-600/80 hover:bg-red-600 text-white rounded-full opacity-0 group-hover/card:opacity-100 transition-opacity z-10 shadow-lg"
+                className={`absolute top-2 right-2 p-2 bg-red-600/80 hover:bg-red-600 text-white rounded-full opacity-0 group-hover/card:opacity-100 transition-opacity z-10 shadow-lg ${FOCUSABLE_CLASS}`}
+                tabIndex={0}
                 title="Remover da Biblioteca"
               >
                 <Trash2 className="w-4 h-4" />

@@ -19,6 +19,7 @@ import { isContentAllowedForProfile } from "@/lib/utils";
 import { DownloadModal } from "@/components/DownloadModal";
 import { CinemaWarningModal } from "@/components/CinemaWarningModal";
 import { CommentsSection } from "@/components/CommentsSection";
+import { useSpatialNavigation, FOCUSABLE_CLASS } from "@/hooks/useSpatialNavigation";
 
 const ContentDetails = () => {
   const { id } = useParams();
@@ -37,6 +38,26 @@ const ContentDetails = () => {
   const [pendingPlayerState, setPendingPlayerState] = useState<any>(null);
   const [relatedContents, setRelatedContents] = useState<Content[]>([]);
   const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+
+  useSpatialNavigation({
+    enabled: true,
+    onBack: () => {
+      if (showEpisodes) {
+        setShowEpisodes(false);
+      } else if (showTrailerModal) {
+        setShowTrailerModal(false);
+      } else if (showDownloadModal) {
+        setShowDownloadModal(false);
+      } else if (showCinemaModal) {
+        setShowCinemaModal(false);
+      } else {
+        navigate("/");
+      }
+    },
+    onEnter: (el) => {
+      el.click();
+    }
+  });
 
   useEffect(() => {
     loadContent();
@@ -281,7 +302,7 @@ const ContentDetails = () => {
           <Button
             variant="ghost"
             onClick={() => navigate("/")}
-            className="mb-6"
+            className={`mb-6 ${FOCUSABLE_CLASS}`}
             tabIndex={0}
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
@@ -367,7 +388,7 @@ const ContentDetails = () => {
                 {isContentAllowedForProfile(content.classification, currentProfile?.isKids || false) ? (
                   <Button
                     onClick={() => handlePlay()}
-                    className="bg-primary hover:bg-primary/90 text-primary-foreground glow-effect-hover flex-1 sm:flex-none py-6"
+                    className={`bg-primary hover:bg-primary/90 text-primary-foreground glow-effect-hover flex-1 sm:flex-none py-6 ${FOCUSABLE_CLASS}`}
                     tabIndex={0}
                   >
                     <Play className="w-5 h-5 mr-2" />
@@ -383,7 +404,7 @@ const ContentDetails = () => {
                 <Button
                   onClick={handleToggleMyList}
                   variant={inMyList ? "default" : "outline"}
-                  className={`flex-1 sm:flex-none py-6 ${inMyList ? "bg-primary/20 hover:bg-primary/30" : ""}`}
+                  className={`flex-1 sm:flex-none py-6 ${inMyList ? "bg-primary/20 hover:bg-primary/30" : ""} ${FOCUSABLE_CLASS}`}
                   tabIndex={0}
                 >
                   <Heart className={`w-5 h-5 mr-2 ${inMyList ? 'fill-primary text-primary' : ''}`} />
@@ -394,7 +415,7 @@ const ContentDetails = () => {
                   <Button
                     onClick={handleTrailer}
                     variant="secondary"
-                    className="flex-1 sm:flex-none py-6"
+                    className={`flex-1 sm:flex-none py-6 ${FOCUSABLE_CLASS}`}
                     tabIndex={0}
                   >
                     <Film className="w-5 h-5 mr-2" />
@@ -406,7 +427,7 @@ const ContentDetails = () => {
                   <Button
                     onClick={handleDownload}
                     variant="outline"
-                    className="flex-1 sm:flex-none py-6"
+                    className={`flex-1 sm:flex-none py-6 ${FOCUSABLE_CLASS}`}
                     tabIndex={0}
                   >
                     <Download className="w-5 h-5 mr-2" />

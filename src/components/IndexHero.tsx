@@ -6,6 +6,7 @@ import { getProviderConfig } from "@/lib/providers";
 import { useAppConfig } from "@/hooks/useAppConfig";
 import { getOptimizedImageUrl } from "@/lib/utils";
 import { getTmdbLogoUrl } from "@/lib/tmdb";
+import { FOCUSABLE_CLASS } from "@/hooks/useSpatialNavigation";
 
 declare global {
     interface Window {
@@ -210,7 +211,7 @@ export const IndexHero = memo(({
                 <div className="absolute right-0 bottom-32 z-50 flex items-center gap-4 animate-in fade-in slide-in-from-right-8 duration-1000">
                     <button
                         onClick={toggleAudio}
-                        className="p-3 rounded-full bg-black/40 hover:bg-black/60 text-white border border-white/20 transition-all backdrop-blur-md shadow-lg mr-4"
+                        className={`p-3 rounded-full bg-black/40 hover:bg-black/60 text-white border border-white/20 transition-all backdrop-blur-md shadow-lg mr-4 ${FOCUSABLE_CLASS}`}
                         aria-label={isMuted ? "Ativar som" : "Mudo"}
                     >
                         {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
@@ -306,7 +307,7 @@ export const IndexHero = memo(({
                         <div className="flex flex-wrap items-center gap-3 mt-4">
                             <button
                                 onClick={() => handlePlayContent(activeContent)}
-                                className="group/btn relative bg-green-800 hover:bg-green-700 text-white font-bold h-11 md:h-13 px-6 md:px-8 rounded-full transition-all duration-300 hover:scale-105 active:scale-95 shadow-[0_4px_14px_0_rgba(22,101,52,0.5)] flex items-center justify-center gap-2 text-base md:text-lg"
+                                className={`group/btn relative bg-green-800 hover:bg-green-700 text-white font-bold h-11 md:h-13 px-6 md:px-8 rounded-full transition-all duration-300 hover:scale-105 active:scale-95 shadow-[0_4px_14px_0_rgba(22,101,52,0.5)] flex items-center justify-center gap-2 text-base md:text-lg ${FOCUSABLE_CLASS}`}
                             >
                                 <Play className="w-5 h-5 md:w-6 md:h-6 fill-current" /> 
                                 Assistir
@@ -314,7 +315,7 @@ export const IndexHero = memo(({
 
                             <button
                                 onClick={() => handleInfoContent(activeContent)}
-                                className="bg-white/10 hover:bg-white/20 text-white font-bold h-11 md:h-13 px-6 md:px-8 rounded-full backdrop-blur-xl border border-white/20 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 text-base md:text-lg shadow-xl"
+                                className={`bg-white/10 hover:bg-white/20 text-white font-bold h-11 md:h-13 px-6 md:px-8 rounded-full backdrop-blur-xl border border-white/20 transition-all duration-300 hover:scale-105 active:scale-95 flex items-center justify-center gap-2 text-base md:text-lg shadow-xl ${FOCUSABLE_CLASS}`}
                             >
                                 <Info className="w-5 h-5 md:w-6 md:h-6" /> 
                                 Mais informações
@@ -322,7 +323,7 @@ export const IndexHero = memo(({
 
                             <button
                                 onClick={(e) => { e.stopPropagation(); handleToggleMyList(activeContent); }}
-                                className="w-11 h-11 md:w-13 md:h-13 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-xl border border-white/20 transition-all duration-300 hover:scale-105 active:scale-95 shadow-xl"
+                                className={`w-11 h-11 md:w-13 md:h-13 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-full backdrop-blur-xl border border-white/20 transition-all duration-300 hover:scale-105 active:scale-95 shadow-xl ${FOCUSABLE_CLASS}`}
                             >
                                 {isInList ? <Check className="w-5 h-5 md:w-6 md:h-6" /> : <Plus className="w-5 h-5 md:w-6 md:h-6" />}
                             </button>

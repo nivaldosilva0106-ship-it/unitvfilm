@@ -7,9 +7,10 @@ import { toast } from "sonner";
 import { Loader2, Film, Tv, Clock, RefreshCw, ChevronLeft, ChevronRight, Heart, ThumbsUp, ThumbsDown, Bell, BellRing } from "lucide-react";
 import { useReminders } from "@/hooks/useReminders";
 import { getBaseUrl } from "@/lib/api";
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, Link, useNavigate } from "react-router-dom";
 import { useAppConfig } from "@/hooks/useAppConfig";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSpatialNavigation, FOCUSABLE_CLASS } from "@/hooks/useSpatialNavigation";
 
 import { Volume2, VolumeX, Maximize, Minimize, Play, Pause, SkipBack, SkipForward, PictureInPicture } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
@@ -849,6 +850,21 @@ interface QueueItem {
 // MAIN PAGE
 // ============================================================
 export default function Canais24h() {
+    // Initialize TV Spatial Navigation
+    const navigate = useNavigate();
+    useSpatialNavigation({ 
+        enabled: true,
+        onBack: () => {
+            if (showApkWarning) {
+                setShowApkWarning(false);
+            } else if (isFullscreen) {
+                toggleFullscreen();
+            } else {
+                navigate("/");
+            }
+        }
+    });
+
     const [searchParams] = useSearchParams();
     const initialChannelId = searchParams.get("channelId");
     const { isLiteMode } = useAppConfig();
@@ -1850,16 +1866,13 @@ export default function Canais24h() {
                                                 e.stopPropagation();
                                                 toggleMiniPlayer();
                                             }}
-                                            className="p-1.5 rounded-lg bg-black/50 backdrop-blur-sm hover:bg-white/20 transition-colors border border-white/10 cursor-pointer"
+                                            className={`p-1.5 rounded-lg bg-black/50 backdrop-blur-sm hover:bg-white/20 transition-colors border border-white/10 cursor-pointer ${FOCUSABLE_CLASS}`}
                                             title="Mini-Player"
                                         >
                                             <PictureInPicture className="w-3.5 h-3.5 md:w-4 md:h-4 text-white" />
                                         </button>
                                     )}
                                 </div>
-
-                                {/* Periodic Title Badge */}
-
                             </>
                         )}
                     </div>
@@ -1884,7 +1897,7 @@ export default function Canais24h() {
                                         onClick={() => {
                                             window.location.reload();
                                         }}
-                                        className="p-1.5 rounded-lg bg-zinc-700/50 hover:bg-zinc-600/50 transition-colors border border-white/5 group"
+                                        className={`p-1.5 rounded-lg bg-zinc-700/50 hover:bg-zinc-600/50 transition-colors border border-white/5 group ${FOCUSABLE_CLASS}`}
                                         title="Sincronizar Programação"
                                     >
                                         <div className="flex items-center gap-1.5 text-[10px] font-bold text-zinc-400 group-hover:text-white uppercase tracking-wider">
@@ -1933,13 +1946,13 @@ export default function Canais24h() {
                                     <div className="hidden md:flex items-center gap-1">
                                         <button 
                                             onClick={() => scrollEpg("left")}
-                                            className="p-1.5 rounded-full bg-zinc-800/50 hover:bg-primary/20 border border-white/5 transition-all text-zinc-400 hover:text-primary"
+                                            className={`p-1.5 rounded-full bg-zinc-800/50 hover:bg-primary/20 border border-white/5 transition-all text-zinc-400 hover:text-primary ${FOCUSABLE_CLASS}`}
                                         >
                                             <ChevronLeft className="w-4 h-4" />
                                         </button>
                                         <button 
                                             onClick={() => scrollEpg("right")}
-                                            className="p-1.5 rounded-full bg-zinc-800/50 hover:bg-primary/20 border border-white/5 transition-all text-zinc-400 hover:text-primary"
+                                            className={`p-1.5 rounded-full bg-zinc-800/50 hover:bg-primary/20 border border-white/5 transition-all text-zinc-400 hover:text-primary ${FOCUSABLE_CLASS}`}
                                         >
                                             <ChevronRight className="w-4 h-4" />
                                         </button>
@@ -1947,7 +1960,7 @@ export default function Canais24h() {
                                     <button 
                                         onClick={handleRefresh}
                                         title="Atualizar Programação"
-                                        className="p-1.5 hover:bg-white/10 rounded-full transition-colors text-zinc-500 hover:text-primary"
+                                        className={`p-1.5 hover:bg-white/10 rounded-full transition-colors text-zinc-500 hover:text-primary ${FOCUSABLE_CLASS}`}
                                     >
                                         <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
                                     </button>
@@ -1960,11 +1973,10 @@ export default function Canais24h() {
                                 {getUpcomingPrograms().map(({ prog, timeStr, startTime, endTime }, idx) => {
                                     if (!prog) return null;
                                     
-                                    // Fuzzy match to account for Date.now() drift
                                     const existingReminder = reminders.find(r => 
                                         r.channelId === currentChannel?.id && 
                                         r.programTitle === prog.title && 
-                                        Math.abs(r.startTime - startTime) < 60000 // Within 1 minute
+                                        Math.abs(r.startTime - startTime) < 60000 
                                     );
                                     
                                     const hasReminder = !!existingReminder;
@@ -2018,7 +2030,7 @@ export default function Canais24h() {
                                                         hasReminder 
                                                         ? "bg-green-500 text-white shadow-lg shadow-green-500/30" 
                                                         : "bg-zinc-800/80 text-zinc-400 hover:bg-zinc-700 hover:text-white"
-                                                    }`}
+                                                    } ${FOCUSABLE_CLASS}`}
                                                     title={hasReminder ? "Remover Lembrete" : "Avisar-me quando começar"}
                                                 >
                                                     {hasReminder ? <BellRing className="w-4 h-4 animate-pulse" /> : <Bell className="w-4 h-4" />}
@@ -2055,7 +2067,7 @@ export default function Canais24h() {
                             <div className="flex items-center bg-zinc-950/80 rounded-xl border border-white/5 overflow-hidden">
                                 <button 
                                     onClick={() => handleInteraction('like')} 
-                                    className={`flex items-center gap-1.5 px-4 py-2.5 hover:bg-white/10 transition-colors ${currentChannelLikes.status === 'like' ? 'text-primary' : 'text-zinc-400 hover:text-white'}`}
+                                    className={`flex items-center gap-1.5 px-4 py-2.5 hover:bg-white/10 transition-colors ${currentChannelLikes.status === 'like' ? 'text-primary' : 'text-zinc-400 hover:text-white'} ${FOCUSABLE_CLASS}`}
                                     title="Gostar"
                                 >
                                     <ThumbsUp className={`w-4 h-4 ${currentChannelLikes.status === 'like' ? 'fill-primary' : ''}`} />
@@ -2064,7 +2076,7 @@ export default function Canais24h() {
                                 <div className="w-[1px] h-4 bg-white/10" />
                                 <button 
                                     onClick={() => handleInteraction('dislike')} 
-                                    className={`flex items-center gap-1.5 px-4 py-2.5 hover:bg-white/10 transition-colors ${currentChannelLikes.status === 'dislike' ? 'text-white' : 'text-zinc-400 hover:text-white'}`}
+                                    className={`flex items-center gap-1.5 px-4 py-2.5 hover:bg-white/10 transition-colors ${currentChannelLikes.status === 'dislike' ? 'text-white' : 'text-zinc-400 hover:text-white'} ${FOCUSABLE_CLASS}`}
                                     title="Não Gostar"
                                 >
                                     <ThumbsDown className={`w-4 h-4 ${currentChannelLikes.status === 'dislike' ? 'fill-white' : ''}`} />
@@ -2072,7 +2084,7 @@ export default function Canais24h() {
                             </div>
                             <button 
                                 onClick={handleFavorite}
-                                className={`p-3 rounded-xl bg-zinc-950/80 border border-white/5 hover:border-primary/50 hover:bg-primary/10 transition-all group flex items-center justify-center ${isInMyList ? 'text-primary' : 'text-zinc-400 hover:text-primary'}`}
+                                className={`p-3 rounded-xl bg-zinc-950/80 border border-white/5 hover:border-primary/50 hover:bg-primary/10 transition-all group flex items-center justify-center ${isInMyList ? 'text-primary' : 'text-zinc-400 hover:text-primary'} ${FOCUSABLE_CLASS}`}
                                 title={isInMyList ? "Remover dos Favoritos" : "Adicionar aos Favoritos"}
                             >
                                 <Heart className={`w-5 h-5 group-hover:scale-110 transition-transform ${isInMyList ? 'fill-primary' : ''}`} />
@@ -2093,13 +2105,13 @@ export default function Canais24h() {
                         <div className="hidden md:flex items-center gap-2">
                             <button 
                                 onClick={() => scrollChannels("left")}
-                                className="p-2 rounded-full bg-zinc-800/50 hover:bg-primary/20 border border-white/5 transition-all text-zinc-400 hover:text-primary"
+                                className={`p-2 rounded-full bg-zinc-800/50 hover:bg-primary/20 border border-white/5 transition-all text-zinc-400 hover:text-primary ${FOCUSABLE_CLASS}`}
                             >
                                 <ChevronLeft className="w-5 h-5" />
                             </button>
                             <button 
                                 onClick={() => scrollChannels("right")}
-                                className="p-2 rounded-full bg-zinc-800/50 hover:bg-primary/20 border border-white/5 transition-all text-zinc-400 hover:text-primary"
+                                className={`p-2 rounded-full bg-zinc-800/50 hover:bg-primary/20 border border-white/5 transition-all text-zinc-400 hover:text-primary ${FOCUSABLE_CLASS}`}
                             >
                                 <ChevronRight className="w-5 h-5" />
                             </button>
@@ -2113,12 +2125,16 @@ export default function Canais24h() {
                         {contents.map((channel) => (
                             <div
                                 key={channel.id}
-                                className={`flex-none w-[160px] md:w-[200px] aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer group relative border-2 snap-start transition-all ${
+                                tabIndex={0}
+                                className={`flex-none w-[160px] md:w-[200px] aspect-[4/3] rounded-2xl overflow-hidden cursor-pointer group relative border-2 snap-start transition-all ${FOCUSABLE_CLASS} ${
                                     currentChannel?.id === channel.id
                                         ? "border-primary shadow-[0_0_20px_rgba(229,9,20,0.3)]"
                                         : "border-zinc-800/50"
                                 }`}
                                 onClick={() => handleChannelClick(channel)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') handleChannelClick(channel);
+                                }}
                             >
                                 <img
                                     src={channel.thumbnail_url}
@@ -2154,7 +2170,7 @@ export default function Canais24h() {
                         <div className="flex flex-col gap-3">
                             <Button 
                                 onClick={() => setShowApkWarning(false)}
-                                className="bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 rounded-xl"
+                                className={`bg-primary hover:bg-primary/90 text-primary-foreground font-bold h-12 rounded-xl ${FOCUSABLE_CLASS}`}
                             >
                                 Assistir mesmo assim
                             </Button>

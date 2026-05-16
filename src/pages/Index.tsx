@@ -38,8 +38,11 @@ const getYouTubeId = (url: string | undefined | null) => {
   return (match && match[2].length === 11) ? match[2] : null;
 };
 
+import { useSpatialNavigation, FOCUSABLE_CLASS } from "@/hooks/useSpatialNavigation";
+
 const Index = () => {
   const navigate = useNavigate();
+  useSpatialNavigation({ enabled: true });
   const { user, currentProfile, loading: authLoading } = useAuth();
   const { isLiteMode, enableVideoHero, maxCardsInRow, maxSectionsPerPage } = useAppConfig();
   const isOnline = useOnlineStatus();
@@ -591,7 +594,8 @@ const Index = () => {
                   onClick={() => {
                     navigate(`/provider/${provider.id}`);
                   }}
-                  className="flex-shrink-0 w-[72px] h-[72px] sm:w-auto sm:h-auto sm:aspect-square bg-zinc-900/50 rounded-2xl border border-white/5 p-3 flex items-center justify-center cursor-pointer hover:bg-zinc-800 hover:border-primary/50 hover:scale-105 transition-all duration-300 shadow-lg group"
+                  className={`flex-shrink-0 w-[72px] h-[72px] sm:w-auto sm:h-auto sm:aspect-square bg-zinc-900/50 rounded-2xl border border-white/5 p-3 flex items-center justify-center cursor-pointer hover:bg-zinc-800 hover:border-primary/50 hover:scale-105 transition-all duration-300 shadow-lg group ${FOCUSABLE_CLASS}`}
+                  tabIndex={0}
                 >
                   <img
                     src={siteSettings?.providerLogos?.[provider.id] || provider.logo}
@@ -637,8 +641,9 @@ const Index = () => {
                         {section.data.map((channel: Content) => (
                           <div
                             key={channel.id}
-                            className="flex-shrink-0 w-[160px] sm:w-[200px] aspect-[4/3] rounded-xl overflow-hidden cursor-pointer group relative border border-zinc-800/50 hover:border-primary transition-all duration-300"
+                            className={`flex-shrink-0 w-[160px] sm:w-[200px] aspect-[4/3] rounded-xl overflow-hidden cursor-pointer group relative border border-zinc-800/50 hover:border-primary transition-all duration-300 ${FOCUSABLE_CLASS}`}
                             onClick={() => navigate(`/canais24h?channelId=${channel.id}`)}
+                            tabIndex={0}
                           >
                             <img
                               src={channel.thumbnail_url}

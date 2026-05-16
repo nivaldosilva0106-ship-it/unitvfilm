@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Lock, Unlock } from "lucide-react";
+import { FOCUSABLE_CLASS } from "@/hooks/useSpatialNavigation";
 
 interface CategoryAccessFilterProps {
     value: 'all' | 'free' | 'premium';
@@ -13,8 +14,9 @@ export function CategoryAccessFilter({ value, onChange }: CategoryAccessFilterPr
                 variant="ghost"
                 size="sm"
                 onClick={() => onChange('all')}
-                className={`h-8 px-4 sm:px-3 rounded text-xs whitespace-nowrap ${value === 'all' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
+                className={`h-8 px-4 sm:px-3 rounded text-xs whitespace-nowrap ${FOCUSABLE_CLASS} ${value === 'all' ? 'bg-muted text-foreground' : 'text-muted-foreground hover:text-foreground'
                     }`}
+                tabIndex={0}
             >
                 Todos
             </Button>
@@ -22,8 +24,9 @@ export function CategoryAccessFilter({ value, onChange }: CategoryAccessFilterPr
                 variant="ghost"
                 size="sm"
                 onClick={() => onChange('free')}
-                className={`h-8 px-4 sm:px-3 rounded text-xs gap-1 whitespace-nowrap ${value === 'free' ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:text-foreground'
+                className={`h-8 px-4 sm:px-3 rounded text-xs gap-1 whitespace-nowrap ${FOCUSABLE_CLASS} ${value === 'free' ? 'bg-emerald-600 text-white' : 'text-muted-foreground hover:text-foreground'
                     }`}
+                tabIndex={0}
             >
                 <Unlock className="w-3 h-3" /> Grátis
             </Button>
@@ -31,8 +34,9 @@ export function CategoryAccessFilter({ value, onChange }: CategoryAccessFilterPr
                 variant="ghost"
                 size="sm"
                 onClick={() => onChange('premium')}
-                className={`h-8 px-4 sm:px-3 rounded text-xs gap-1 whitespace-nowrap ${value === 'premium' ? 'bg-amber-600 text-white' : 'text-muted-foreground hover:text-foreground'
+                className={`h-8 px-4 sm:px-3 rounded text-xs gap-1 whitespace-nowrap ${FOCUSABLE_CLASS} ${value === 'premium' ? 'bg-amber-600 text-white' : 'text-muted-foreground hover:text-foreground'
                     }`}
+                tabIndex={0}
             >
                 <Lock className="w-3 h-3" /> Premium
             </Button>

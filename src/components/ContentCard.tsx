@@ -7,6 +7,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { isContentAllowedForProfile, getOptimizedImageUrl } from "@/lib/utils";
 import { getProviderConfig } from "@/lib/providers";
 import { useAppConfig } from "@/hooks/useAppConfig";
+import { FOCUSABLE_CLASS } from "@/hooks/useSpatialNavigation";
 
 interface ContentCardProps {
   title: string;
@@ -155,7 +156,7 @@ export const ContentCard = memo(({
                   onClick={handleButtonClick(onPlay)}
                   onFocus={handleButtonFocus}
                   disabled={isRestricted}
-                  className={`w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary text-white font-bold h-9 text-xs rounded-lg transition-all duration-300 shadow-[0_0_10px_rgba(16,185,129,0.3)] border border-white/10 ${enableAnimations ? 'hover:scale-[1.02] active:scale-[0.98]' : ''} ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  className={`w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary text-white font-bold h-9 text-xs rounded-lg transition-all duration-300 shadow-[0_0_10px_rgba(16,185,129,0.3)] border border-white/10 ${enableAnimations ? 'hover:scale-[1.02] active:scale-[0.98]' : ''} ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''} ${FOCUSABLE_CLASS}`}
                   tabIndex={0}
                 >
                   {isRestricted ? <ShieldCheck className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
@@ -166,7 +167,7 @@ export const ContentCard = memo(({
                   onClick={handleButtonClick(onInfo)}
                   onFocus={handleButtonFocus}
                   variant="secondary"
-                  className={`w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium h-9 text-xs rounded-lg backdrop-blur-md border border-white/10 transition-all duration-300 ${enableAnimations ? 'hover:scale-[1.02] active:scale-[0.98]' : ''}`}
+                  className={`w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium h-9 text-xs rounded-lg backdrop-blur-md border border-white/10 transition-all duration-300 ${enableAnimations ? 'hover:scale-[1.02] active:scale-[0.98]' : ''} ${FOCUSABLE_CLASS}`}
                   tabIndex={0}
                 >
                   <Info className="w-4 h-4" />
@@ -178,7 +179,7 @@ export const ContentCard = memo(({
                     onClick={handleButtonClick(onDownload)}
                     onFocus={handleButtonFocus}
                     variant="outline"
-                    className={`w-full flex items-center justify-center gap-2 bg-black/40 hover:bg-black/60 text-white font-medium h-9 text-xs rounded-lg backdrop-blur-md border border-white/10 transition-all duration-300 ${enableAnimations ? 'hover:scale-[1.02] active:scale-[0.98]' : ''}`}
+                    className={`w-full flex items-center justify-center gap-2 bg-black/40 hover:bg-black/60 text-white font-medium h-9 text-xs rounded-lg backdrop-blur-md border border-white/10 transition-all duration-300 ${enableAnimations ? 'hover:scale-[1.02] active:scale-[0.98]' : ''} ${FOCUSABLE_CLASS}`}
                     tabIndex={0}
                   >
                     <Download className={`w-4 h-4 ${hasDownloads ? 'text-[#0aff7a]' : ''}`} />

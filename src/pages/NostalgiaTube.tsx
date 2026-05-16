@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { DownloadModal } from "@/components/DownloadModal";
 import { voteContent, getUserVote } from "@/lib/firebase";
 import { VideoPlayer } from "@/components/VideoPlayer";
+import { useSpatialNavigation, FOCUSABLE_CLASS } from "@/hooks/useSpatialNavigation";
 
 const formatTime = (seconds: number) => {
     if (!seconds) return "0:00";
@@ -75,6 +76,22 @@ export default function NostalgiaTube(): JSX.Element {
     const [lastProgress, setLastProgress] = useState<any>(null); // Last watched episode progress
     const [tiktokVideoUrl, setTiktokVideoUrl] = useState<string | null>(null); // Fetched TikTok link
     const [siteSettings, setSiteSettings] = useState<SiteSettings | null>(null);
+
+    useSpatialNavigation({
+        enabled: true,
+        onBack: () => {
+            if (showDownloadModal) {
+                setShowDownloadModal(false);
+            } else if (showQualityMenu) {
+                setShowQualityMenu(false);
+            } else {
+                navigate('/');
+            }
+        },
+        onEnter: (el) => {
+            el.click();
+        }
+    });
 
     // Quality labels mapping - MUST be before any conditional returns
     const qualityLabels: { [key: string]: string } = useMemo(() => ({
@@ -967,7 +984,7 @@ export default function NostalgiaTube(): JSX.Element {
                                                                 handleEpisodeClick(e as any, 0);
                                                             }
                                                         }}
-                                                        className="bg-primary hover:bg-primary/90 text-white gap-2 px-6 py-6 text-lg rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.6)] transition-all animate-bounce"
+                                                        className={`bg-primary hover:bg-primary/90 text-white gap-2 px-6 py-6 text-lg rounded-full shadow-[0_0_20px_rgba(16,185,129,0.4)] hover:shadow-[0_0_30px_rgba(16,185,129,0.6)] transition-all animate-bounce ${FOCUSABLE_CLASS}`}
                                                     >
                                                         <RotateCw className="w-5 h-5" />
                                                         Continuar Assistindo
@@ -1054,7 +1071,7 @@ export default function NostalgiaTube(): JSX.Element {
 
                                         <div className="flex items-center justify-between mt-1">
                                             <div className="flex items-center gap-1 md:gap-3">
-                                                <Button size="icon" variant="ghost" className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full" onClick={togglePlay}>
+                                                <Button size="icon" variant="ghost" className={`text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full ${FOCUSABLE_CLASS}`} onClick={togglePlay}>
                                                     {isPlaying ? <Pause className="w-4 h-4 md:w-5 md:h-5 fill-current" /> : <Play className="w-4 h-4 md:w-5 md:h-5 fill-current" />}
                                                 </Button>
 
@@ -1063,7 +1080,7 @@ export default function NostalgiaTube(): JSX.Element {
                                                     <span className="text-[10px] font-bold text-red-500 tracking-wider">LIVE</span>
                                                 </div>
 
-                                                <Button size="icon" variant="ghost" className="hidden md:flex text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full" onClick={toggleMute}>
+                                                <Button size="icon" variant="ghost" className={`hidden md:flex text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full ${FOCUSABLE_CLASS}`} onClick={toggleMute}>
                                                     {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                                                 </Button>
 
@@ -1074,7 +1091,7 @@ export default function NostalgiaTube(): JSX.Element {
 
                                             <div className="flex items-center gap-1 md:gap-2">
                                                 <div className="relative">
-                                                    <Button size="icon" variant="ghost" className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full" onClick={() => setShowQualityMenu(!showQualityMenu)}>
+                                                    <Button size="icon" variant="ghost" className={`text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full ${FOCUSABLE_CLASS}`} onClick={() => setShowQualityMenu(!showQualityMenu)}>
                                                         <Settings className="w-4 h-4 md:w-5 md:h-5" />
                                                     </Button>
                                                     {showQualityMenu && (
@@ -1082,7 +1099,7 @@ export default function NostalgiaTube(): JSX.Element {
                                                             <div className="p-3 border-b border-white/5 text-xs font-semibold text-gray-400 uppercase tracking-wider">Qualidade</div>
                                                             <div className="max-h-[250px] overflow-y-auto py-1">
                                                                 {availableQualities.map((quality) => (
-                                                                    <button key={quality} onClick={() => changeQuality(quality)} className={`w-full text-left px-4 py-2.5 text-xs font-medium hover:bg-white/10 transition-colors flex items-center justify-between ${currentQuality === quality ? 'text-primary bg-primary/10' : 'text-gray-200'}`}>
+                                                                    <button key={quality} onClick={() => changeQuality(quality)} className={`w-full text-left px-4 py-2.5 text-xs font-medium hover:bg-white/10 transition-colors flex items-center justify-between ${currentQuality === quality ? 'text-primary bg-primary/10' : 'text-gray-200'} ${FOCUSABLE_CLASS}`}>
                                                                         {qualityLabels[quality] || quality}
                                                                         {currentQuality === quality && <Check className="w-3 h-3" />}
                                                                     </button>
@@ -1092,7 +1109,7 @@ export default function NostalgiaTube(): JSX.Element {
                                                     )}
                                                 </div>
 
-                                                <Button size="icon" variant="ghost" className="text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full" onClick={toggleFullscreen}>
+                                                <Button size="icon" variant="ghost" className={`text-white hover:bg-white/20 h-8 w-8 md:h-10 md:w-10 rounded-full ${FOCUSABLE_CLASS}`} onClick={toggleFullscreen}>
                                                     <Maximize className="w-4 h-4 md:w-5 md:h-5" />
                                                 </Button>
                                             </div>
@@ -1117,7 +1134,7 @@ export default function NostalgiaTube(): JSX.Element {
                                     </p>
                                     <Button
                                         onClick={() => playNextEpisode()}
-                                        className="bg-red-500 hover:bg-red-600 text-white w-full py-6 rounded-xl font-bold gap-2 transition-all shadow-[0_0_20px_rgba(239,68,68,0.3)]"
+                                        className={`bg-red-500 hover:bg-red-600 text-white w-full py-6 rounded-xl font-bold gap-2 transition-all shadow-[0_0_20px_rgba(239,68,68,0.3)] ${FOCUSABLE_CLASS}`}
                                     >
                                         <RotateCw className="w-5 h-5" />
                                         Tentar Outro Episódio
@@ -1174,7 +1191,7 @@ export default function NostalgiaTube(): JSX.Element {
                                             variant="ghost"
                                             size="sm"
                                             onClick={(e) => handleVote(e, 'like')}
-                                            className={`flex items-center gap-1.5 hover:bg-white/10 relative z-10 ${userVote === 'like' ? 'text-primary' : 'text-gray-400'}`}
+                                            className={`flex items-center gap-1.5 hover:bg-white/10 relative z-10 ${userVote === 'like' ? 'text-primary' : 'text-gray-400'} ${FOCUSABLE_CLASS}`}
                                         >
                                             <ThumbsUp className={`w-4 h-4 pointer-events-none ${userVote === 'like' ? 'fill-current' : ''}`} />
                                             <span className="pointer-events-none">{currentContent.likes || 0}</span>
@@ -1184,7 +1201,7 @@ export default function NostalgiaTube(): JSX.Element {
                                             variant="ghost"
                                             size="sm"
                                             onClick={(e) => handleVote(e, 'dislike')}
-                                            className={`flex items-center gap-1.5 hover:bg-white/10 relative z-10 ${userVote === 'dislike' ? 'text-red-500' : 'text-gray-400'}`}
+                                            className={`flex items-center gap-1.5 hover:bg-white/10 relative z-10 ${userVote === 'dislike' ? 'text-red-500' : 'text-gray-400'} ${FOCUSABLE_CLASS}`}
                                         >
                                             <ThumbsDown className={`w-4 h-4 pointer-events-none ${userVote === 'dislike' ? 'fill-current' : ''}`} />
                                             <span className="pointer-events-none">{currentContent.dislikes || 0}</span>
@@ -1200,7 +1217,7 @@ export default function NostalgiaTube(): JSX.Element {
                                                 }
                                                 setShowDownloadModal(true);
                                             }}
-                                            className="flex items-center gap-2 border-white/20 bg-white/5 hover:bg-white/10 text-gray-200 relative z-10"
+                                            className={`flex items-center gap-2 border-white/20 bg-white/5 hover:bg-white/10 text-gray-200 relative z-10 ${FOCUSABLE_CLASS}`}
                                         >
                                             <Download className="w-4 h-4 pointer-events-none" />
                                             <span className="hidden sm:inline pointer-events-none">Download</span>
@@ -1220,7 +1237,7 @@ export default function NostalgiaTube(): JSX.Element {
                                             {(canScrollLeft || true) && (
                                                 <button
                                                     onClick={() => scrollEpisodes('left')}
-                                                    className={`absolute left-0 top-1/2 -translate-y-1/2 z-50 bg-black/80 hover:bg-black/90 text-white p-2 rounded-full transition-all border border-white/10 shadow-lg ${!canScrollLeft ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                                                    className={`absolute left-0 top-1/2 -translate-y-1/2 z-50 bg-black/80 hover:bg-black/90 text-white p-2 rounded-full transition-all border border-white/10 shadow-lg ${!canScrollLeft ? 'opacity-0 pointer-events-none' : 'opacity-100'} ${FOCUSABLE_CLASS}`}
                                                 >
                                                     <ChevronLeft className="w-6 h-6" />
                                                 </button>
@@ -1244,7 +1261,7 @@ export default function NostalgiaTube(): JSX.Element {
                                                             className={`flex-none w-48 md:w-60 group relative rounded-lg overflow-hidden border transition-all active:scale-95 touch-manipulation z-50 ${currentEpisodeIndex === idx
                                                                 ? 'border-primary ring-1 ring-primary bg-primary/20'
                                                                 : 'border-white/10 hover:border-white/30 bg-[#222]'
-                                                                }`}
+                                                                } ${FOCUSABLE_CLASS}`}
                                                         >
                                                             <div className="aspect-video w-full relative bg-zinc-900 pointer-events-none">
                                                                 <img
@@ -1270,7 +1287,7 @@ export default function NostalgiaTube(): JSX.Element {
                                             {(canScrollRight || true) && (
                                                 <button
                                                     onClick={() => scrollEpisodes('right')}
-                                                    className={`absolute right-0 top-1/2 -translate-y-1/2 z-50 bg-black/80 hover:bg-black/90 text-white p-2 rounded-full transition-all border border-white/10 shadow-lg ${!canScrollRight ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+                                                    className={`absolute right-0 top-1/2 -translate-y-1/2 z-50 bg-black/80 hover:bg-black/90 text-white p-2 rounded-full transition-all border border-white/10 shadow-lg ${!canScrollRight ? 'opacity-0 pointer-events-none' : 'opacity-100'} ${FOCUSABLE_CLASS}`}
                                                 >
                                                     <ChevronRight className="w-6 h-6" />
                                                 </button>
@@ -1294,8 +1311,9 @@ export default function NostalgiaTube(): JSX.Element {
                             {contents.map((content) => (
                                 <div
                                     key={content.id}
-                                    className="bg-zinc-900/50 rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-300 border border-white/5 hover:border-primary/50 group/card min-w-[200px] md:min-w-[260px] snap-start relative z-10"
+                                    className={`bg-zinc-900/50 rounded-xl overflow-hidden cursor-pointer hover:scale-105 transition-transform duration-300 border border-white/5 hover:border-primary/50 group/card min-w-[200px] md:min-w-[260px] snap-start relative z-10 ${FOCUSABLE_CLASS}`}
                                     onClick={(e) => handlePostClick(e, content)}
+                                    tabIndex={0}
                                 >
                                     <div className="aspect-[2/3] rounded-lg overflow-hidden border border-white/5 transition-transform duration-300 group-hover:scale-105 group-hover:shadow-lg group-hover:shadow-primary/20 pointer-events-none relative">
                                         <img
