@@ -545,7 +545,7 @@ const Player = () => {
 
     // 4. Watching Card Effect
     useEffect(() => {
-        if (!loading && accessState.granted) {
+        if (!loading && accessState.granted && !isLiteMode) {
             const showWatchingCardCycle = () => {
                 setShowWatchingCard(true);
                 setCardProgress(100);
@@ -735,7 +735,7 @@ const Player = () => {
     if (loading || showIntro) {
         return (
             <div className="fixed inset-0 w-screen h-screen flex flex-col items-center justify-center z-[100] bg-[#0a0a0a] overflow-hidden">
-                {isOnline && <AdManager placement="player" />}
+                {isOnline && !isLiteMode && <AdManager placement="player" />}
                 {/* Background Image */}
                 {content && (
                     <div className="absolute inset-0 z-0">
@@ -852,7 +852,7 @@ const Player = () => {
     return (
         <div className={`min-h-screen bg-black text-white relative transition-all duration-300 ${isLiteMode ? 'overflow-hidden' : ''}`}>
             <div className="w-full relative group">
-                <AdManager placement="player" className="absolute top-20 left-1/2 -translate-x-1/2 z-40" />
+                {!isLiteMode && <AdManager placement="player" className="absolute top-20 left-1/2 -translate-x-1/2 z-40" />}
 
                 {/* Controls Container */}
                 <div 
@@ -860,7 +860,7 @@ const Player = () => {
                     className="group relative w-full h-screen bg-black overflow-hidden shadow-2xl"
                 >
                     {/* GLOBAL OVERLAY (CONTROLS) */}
-                    <div className={`absolute inset-0 z-[60] flex flex-col justify-between transition-opacity duration-500 bg-gradient-to-t from-black/60 via-transparent to-black/60 ${showControls ? 'opacity-100' : 'opacity-0'} pointer-events-none`}>
+                    <div className={`absolute inset-0 z-[60] flex flex-col justify-between transition-opacity duration-500 ${!isLiteMode ? 'bg-gradient-to-t from-black/60 via-transparent to-black/60' : 'bg-black/80'} ${showControls ? 'opacity-100' : 'opacity-0'} pointer-events-none`}>
 
                     {/* Resume Playback Prompt */}
                     {showResumePrompt && (
@@ -997,7 +997,7 @@ const Player = () => {
                                             Baixar Episódio
                                         </DropdownMenuItem>
 
-                                        {suggestions.length > 0 && (
+                                        {suggestions.length > 0 && !isLiteMode && (
                                             <DropdownMenuItem onClick={() => setIsSuggestionsOpen(!isSuggestionsOpen)} className="text-white text-sm">
                                                 <LayoutGrid className="w-4 h-4 mr-2" />
                                                 Recomendações
@@ -1085,7 +1085,7 @@ const Player = () => {
                                 </Button>
 
                                 {/* Recommendations Button */}
-                                {suggestions.length > 0 && (
+                                {suggestions.length > 0 && !isLiteMode && (
                                     <Button
                                         variant="ghost"
                                         size="icon"
@@ -1168,7 +1168,7 @@ const Player = () => {
                     </div>
 
                     {/* SUGGESTIONS SIDEBAR (Right Center) */}
-                    {isSuggestionsOpen && suggestions.length > 0 && (
+                    {isSuggestionsOpen && suggestions.length > 0 && !isLiteMode && (
                         <div className="absolute top-0 bottom-0 right-0 z-[80] w-[260px] sm:w-[320px] bg-black/80 backdrop-blur-2xl border-l border-white/10 shadow-2xl flex flex-col pointer-events-auto animate-in slide-in-from-right duration-300">
                             <div className="p-4 sm:p-6 flex items-center justify-between border-b border-white/10">
                                 <h3 className="text-white font-bold text-sm sm:text-base uppercase tracking-wider">Recomendados</h3>
@@ -1272,7 +1272,7 @@ const Player = () => {
                 )}
 
                 {/* CONTINUE WATCHING TOGGLE ARROW */}
-                {continueWatchingList.length > 0 && (
+                {continueWatchingList.length > 0 && !isLiteMode && (
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-50 transition-opacity duration-300 pointer-events-auto">
                         <Button
                             onClick={() => {
@@ -1297,7 +1297,7 @@ const Player = () => {
             </div>
 
             {/* Continue Watching List Section */}
-            {continueWatchingList.length > 0 && (
+            {continueWatchingList.length > 0 && !isLiteMode && (
                 <div className={`transition-all duration-700 ease-in-out overflow-hidden ${isContinueWatchingOpen ? 'max-h-[2000px] opacity-100' : 'max-h-0 opacity-0'}`}>
                     <div className="px-6 md:px-12 py-12 pb-24 bg-gradient-to-b from-black to-[#0a0a0a]">
                         <div className="flex items-center gap-3 mb-8">

@@ -344,32 +344,26 @@ const Index = () => {
     // Return Featured first + Shuffled sections + Canais 24h + TV ALWAYS LAST
     let finalSections = [featuredSection, ...shuffled];
     
-    // Apply item limits
-    const LIMIT = isLiteMode ? maxCardsInRow : 15;
-    finalSections.forEach(s => {
-      if (s.data.length > LIMIT) {
-        s.data = s.data.slice(0, LIMIT);
-      }
-    });
-
+    // Apply item limits and section limits for Lite mode
     if (isLiteMode) {
+      finalSections.forEach(s => {
+        if (s.data.length > maxCardsInRow) {
+          s.data = s.data.slice(0, maxCardsInRow);
+        }
+      });
       // Limit sections to save RAM
       finalSections = finalSections.slice(0, maxSectionsPerPage);
     }
 
     if (canais24hSection.data.length > 0) {
-      const data = canais24hSection.data;
-      canais24hSection.data = data.slice(0, LIMIT);
       finalSections.push(canais24hSection);
     }
     if (tvSection.data.length > 0) {
-      const data = tvSection.data;
-      tvSection.data = data.slice(0, LIMIT);
       finalSections.push(tvSection);
     }
 
     return finalSections;
-  }, [categorizedContent, selectedCategory, isLiteMode, maxCardsInRow, maxSectionsPerPage]);
+  }, [categorizedContent, selectedCategory]);
 
   const currentTrailer = trailerContents[currentTrailerIndex] || null;
 
@@ -436,6 +430,11 @@ const Index = () => {
 
   // When clicking the card itself (not the play button)
   const handleDetailsContent = useCallback((content: Content) => {
+    if (isLiteMode) {
+      handlePlayContent(content);
+      return;
+    }
+    
     if (content.category === 'canais24h') {
       navigate(`/canais24h?channelId=${content.id}`);
       return;
@@ -494,29 +493,6 @@ const Index = () => {
     }
   }, [currentProfile, myList]);
 
-  const handleSeeMore = useCallback((sectionId: string) => {
-    switch (sectionId) {
-      case 'movies':
-        navigate('/categories?type=movie');
-        break;
-      case 'series':
-        navigate('/categories?type=series');
-        break;
-      case 'tv':
-        navigate('/tv');
-        break;
-      case 'nostalgia':
-        navigate('/categories?type=nostalgia');
-        break;
-      case 'canais24h':
-        navigate('/canais24h');
-        break;
-      default:
-        navigate('/categories');
-        break;
-    }
-  }, [navigate]);
-
   const getNextEpisode = (series: Content, currentSeason: number, currentEpisodeNum: number) => {
     if (!series.episodes) return null;
     const episodes = series.episodes;
@@ -537,7 +513,7 @@ const Index = () => {
   const isEffectivelyOffline = (!isOnline && !hasChosenOnline) || networkFailed;
 
   // Honor profile preference for local library — disabled by default in lite mode (Smart TV)
-  const canShowLocalLib = ((currentProfile as any)?.showLocalLibrary !== false);
+  const canShowLocalLib = isLiteMode ? false : ((currentProfile as any)?.showLocalLibrary !== false);
 
   if (isEffectivelyOffline && allContentData.length === 0) {
     return (
@@ -650,25 +626,15 @@ const Index = () => {
                     onInfoContent={handleInfoContent}
                     onDetailsContent={handleDetailsContent}
                     onDownloadContent={handleDownloadContent}
-                    onSeeMore={() => handleSeeMore(section.id)}
                     showNumbers={section.showNumbers}
                     hideDownloadIcon={true}
                     providerLogos={siteSettings?.providerLogos}
                   />
                 ) : section.type === 'channels' ? (
                   <div className="mb-12">
-                    <div className="flex items-center justify-between mb-6 px-4 sm:px-8">
-                      <div className="flex items-center gap-3">
-                        <Tv className="w-6 h-6 text-primary" />
-                        <h2 className="text-2xl font-bold text-foreground uppercase tracking-tighter italic">{section.title}</h2>
-                      </div>
-                      <button 
-                        onClick={() => handleSeeMore(section.id)}
-                        className="text-primary hover:text-primary/80 text-sm font-bold flex items-center gap-1 transition-colors group/more"
-                      >
-                        Ver mais
-                        <ChevronRight className="w-4 h-4 group-hover/more:translate-x-1 transition-transform" />
-                      </button>
+                    <div className="flex items-center gap-3 mb-6 px-4 sm:px-8">
+                      <Tv className="w-6 h-6 text-primary" />
+                      <h2 className="text-2xl font-bold text-foreground uppercase tracking-tighter italic">{section.title}</h2>
                     </div>
                     <div className="relative group/row">
                       <div className="flex gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-8 py-2">
@@ -704,7 +670,6 @@ const Index = () => {
                     onInfoContent={handleInfoContent}
                     onDetailsContent={handleDetailsContent}
                     onDownloadContent={handleDownloadContent}
-                    onSeeMore={() => handleSeeMore(section.id)}
                     hideDownloadIcon={true}
                     providerLogos={siteSettings?.providerLogos}
                   />

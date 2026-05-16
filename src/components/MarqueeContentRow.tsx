@@ -12,7 +12,6 @@ interface MarqueeContentRowProps {
     onDetailsContent?: (content: Content) => void;
     onTrailerContent?: (content: Content) => void;
     onDownloadContent: (content: Content) => void;
-    onSeeMore?: () => void;
     showNumbers?: boolean;
     hideDownloadIcon?: boolean;
     providerLogos?: Record<string, string>;
@@ -25,7 +24,6 @@ export const MarqueeContentRow = memo(({
     onDetailsContent,
     onTrailerContent,
     onDownloadContent,
-    onSeeMore,
     showNumbers = false,
     hideDownloadIcon = false,
     providerLogos = {},
@@ -66,18 +64,7 @@ export const MarqueeContentRow = memo(({
 
     return (
         <div className="mb-6 sm:mb-8 group/row">
-            <div className="flex items-center justify-between mb-3 sm:mb-4 px-4 md:px-8">
-                <h2 className="text-xl sm:text-2xl font-bold tracking-tight">{title}</h2>
-                {onSeeMore && (
-                    <button 
-                        onClick={onSeeMore}
-                        className="text-primary hover:text-primary/80 text-sm font-bold flex items-center gap-1 transition-colors group/more"
-                    >
-                        Ver mais
-                        <ChevronRight className="w-4 h-4 group-hover/more:translate-x-1 transition-transform" />
-                    </button>
-                )}
-            </div>
+            <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 px-4 md:px-8 tracking-tight">{title}</h2>
             <div className="relative px-4 md:px-8 lg:px-12">
                 {/* Desktop Left Arrow */}
                 {scrollPosition > 0 && (

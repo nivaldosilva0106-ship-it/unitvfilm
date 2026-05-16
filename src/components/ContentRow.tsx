@@ -13,12 +13,11 @@ interface ContentRowProps {
   onDetailsContent?: (content: Content) => void;
   onTrailerContent?: (content: Content) => void;
   onDownloadContent?: (content: Content) => void;
-  onSeeMore?: () => void;
   hideDownloadIcon?: boolean;
   providerLogos?: Record<string, string>;
 }
 
-export const ContentRow = memo(({ title, contents, onPlayContent, onInfoContent, onDetailsContent, onTrailerContent, onDownloadContent, onSeeMore, hideDownloadIcon, providerLogos }: ContentRowProps) => {
+export const ContentRow = memo(({ title, contents, onPlayContent, onInfoContent, onDetailsContent, onTrailerContent, onDownloadContent, hideDownloadIcon, providerLogos }: ContentRowProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
@@ -90,18 +89,7 @@ export const ContentRow = memo(({ title, contents, onPlayContent, onInfoContent,
 
   return (
     <div className="mb-8" ref={containerRef}>
-      <div className="flex items-center justify-between mb-4 px-4 sm:px-8">
-        <h2 className="text-2xl font-bold text-foreground">{title}</h2>
-        {onSeeMore && (
-          <button 
-            onClick={onSeeMore}
-            className="text-primary hover:text-primary/80 text-sm font-bold flex items-center gap-1 transition-colors group/more"
-          >
-            Ver mais
-            <ChevronRight className="w-4 h-4 group-hover/more:translate-x-1 transition-transform" />
-          </button>
-        )}
-      </div>
+      <h2 className="text-2xl font-bold text-foreground mb-4 px-4 sm:px-8">{title}</h2>
       {!isVisible ? (
         // Lightweight placeholder while off-screen
         <div className="h-[260px] px-4 sm:px-8" />
