@@ -46,60 +46,47 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       if (firebaseUser) {
-        // Parallelize profile Restoration and secondary data
-        (async () => {
-          const savedProfileId = localStorage.getItem('unitv_current_profile_id');
-          if (savedProfileId) {
-            try {
-              // Use a timeout for profile fetching to avoid hanging the app
-              const profiles = await Promise.race([
-                getAccountProfiles(firebaseUser.uid),
-                new Promise<Profile[]>((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
-              ]).catch(() => [] as Profile[]);
-
-              const matched = profiles.find(p => p.id === savedProfileId);
-              if (matched) setCurrentProfile(matched);
-            } catch (e) {
-              console.error("Error restoring profile", e);
-            }
-          }
-
-          // Auto-select dummy profile for Guest users
-          if (firebaseUser.isAnonymous && !currentProfile) {
-            const guestProfile: Profile = {
-              id: 'guest',
-              userId: firebaseUser.uid,
-              name: 'Convidado',
-              avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=guest',
-              isKids: false,
-              createdAt: new Date().toISOString()
-            };
-            setCurrentProfile(guestProfile);
-          }
-        })();
-
         unsubscribeProfile = subscribeToUserProfile(firebaseUser.uid, async (userProfile) => {
           if (userProfile && userProfile.subscriptionExpiresAt) {
             const isExpired = await checkSubscriptionExpired(firebaseUser.uid);
-            if (isExpired) return;
+            if (isExpired) return; // The DB update will trigger a new onValue tick
           }
           setProfile(userProfile);
 
           if (userProfile) {
-            try {
-              const [adminStatus, plans] = await Promise.all([
-                isUserAdmin(firebaseUser.uid),
-                getPlans()
-              ]);
-              setIsAdmin(adminStatus);
-              const currentPlanId = userProfile.planId || 'free';
-              const activePlan = plans.find(p => p.id === currentPlanId) || plans.find(p => p.id === 'free') || null;
-              setPlan(activePlan);
-            } catch (e) {
-              console.error("Error loading profile details", e);
-            }
+            const adminStatus = await isUserAdmin(firebaseUser.uid);
+            setIsAdmin(adminStatus);
+
+            const plans = await getPlans();
+            const currentPlanId = userProfile.planId || 'free';
+            const activePlan = plans.find(p => p.id === currentPlanId) || plans.find(p => p.id === 'free') || null;
+            setPlan(activePlan);
           }
         });
+
+        const savedProfileId = localStorage.getItem('unitv_current_profile_id');
+        if (savedProfileId) {
+          try {
+            const profiles = await getAccountProfiles(firebaseUser.uid);
+            const matched = profiles.find(p => p.id === savedProfileId);
+            if (matched) setCurrentProfile(matched);
+          } catch (e) {
+            console.error("Error restoring profile", e);
+          }
+        }
+
+        // Auto-select dummy profile for Guest users
+        if (firebaseUser.isAnonymous) {
+          const guestProfile: Profile = {
+            id: 'guest',
+            userId: firebaseUser.uid,
+            name: 'Convidado',
+            avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=guest',
+            isKids: false,
+            createdAt: new Date().toISOString()
+          };
+          setCurrentProfile(guestProfile);
+        }
       } else {
         setProfile(null);
         setPlan(null);

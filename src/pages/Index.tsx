@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { LoadingScreen } from "@/components/LoadingScreen";
-import { Volume2, VolumeX, Play, Info, Plus, Check, Star, Tv, ChevronRight } from "lucide-react";
+import { Volume2, VolumeX, Play, Info, Plus, Check, Star, Tv } from "lucide-react";
 import { ContentRow } from "@/components/ContentRow";
 import { MarqueeContentRow } from "@/components/MarqueeContentRow";
 import { CategoryNavigation } from "@/components/CategoryNavigation";
@@ -115,33 +115,6 @@ const Index = () => {
     ]);
   };
 
-  // Helper: Deterministic shuffle using a numeric seed
-  const seededShuffle = <T,>(array: T[], seed: number): T[] => {
-    const arr = [...array];
-    let m = arr.length, t, i;
-    while (m) {
-      i = Math.floor(Math.abs(Math.sin(seed++) * m--));
-      t = arr[m];
-      arr[m] = arr[i];
-      arr[i] = t;
-    }
-    return arr;
-  };
-
-  const processContentData = useCallback((data: Content[]) => {
-    if (!data || data.length === 0) return;
-
-    // Daily Random Seed for stability
-    const today = new Date().toISOString().slice(0, 10);
-    let seed = 0;
-    for (let i = 0; i < today.length; i++) seed += today.charCodeAt(i);
-
-    const featuredCandidates = data.filter(c => c.backdrop_url && c.category !== 'tv');
-    const shuffledFeatured = seededShuffle(featuredCandidates, seed);
-    setTrailerContents(shuffledFeatured.slice(0, 8));
-    setRandomContent(seededShuffle(data, seed + 100));
-  }, []);
-
   const loadInitialData = async () => {
     // If we know we're offline, skip everything immediately
     if (!navigator.onLine || !isOnline) {
@@ -196,9 +169,7 @@ const Index = () => {
           const cachedData = JSON.parse(cached);
           if (Array.isArray(cachedData) && cachedData.length > 0) {
             setAllContentData(cachedData);
-            processContentData(cachedData); // Populate hero/random content from cache
             hasCache = true;
-            setLoading(false); 
           }
         } catch (e) {}
       }
@@ -209,39 +180,61 @@ const Index = () => {
       }
 
       // 2. Network Fetch with optimized timeout
-      const data = await withTimeout(getAllContents(), 10000, [] as Content[]);
+      const data = await withTimeout(getAllContents(), 5000, [] as Content[]);
 
       if (data.length > 0) {
         setAllContentData(data);
-        processContentData(data); // Refresh with fresh network data
         localStorage.setItem('cached_contents', JSON.stringify(data));
         setLoading(false);
-        setNetworkFailed(false);
-        setRetryCount(0);
-      } else if (allContentData.length === 0) {
-        // Fallback/Retry logic if no data (network failed and no cache)
-        if (!hasChosenOnline) {
-          if (retryCount < 2) {
-            setRetryCount(prev => prev + 1);
-            setTimeout(() => loadContent(), 1000);
-            return;
+      } else {
+        // 3. Fallback/Retry logic if no data (network failed and no cache)
+        if (allContentData.length === 0) {
+          if (!hasChosenOnline) {
+            if (retryCount < 2) {
+              setRetryCount(prev => prev + 1);
+              setTimeout(() => loadContent(), 1000);
+              return;
+            }
+            setShowConnectivityModal(true);
+            setLoading(false);
+          } else {
+            setNetworkFailed(true);
+            setLoading(false);
           }
-          setShowConnectivityModal(true);
-          setLoading(false);
-        } else {
-          setNetworkFailed(true);
-          setLoading(false);
+          return;
         }
       }
+
+      const settings = await withTimeout(getSliderSettings(), 5000, { mode: 'random' as const, selectedContentIds: [] });
+
+      // Daily Random Seed
+      const today = new Date().toISOString().slice(0, 10);
+      let seed = 0;
+      for (let i = 0; i < today.length; i++) seed += today.charCodeAt(i);
+
+      if (settings.mode === 'manual' && settings.selectedContentIds?.length > 0) {
+        const selected = data.filter(c => settings.selectedContentIds.includes(c.id));
+        const shuffledManual = [...selected].sort(() => 0.5 - Math.random());
+        setTrailerContents(shuffledManual.length > 0 ? shuffledManual : data.slice(0, 5));
+      } else {
+        const featuredCandidates = data.filter(c => c.backdrop_url && c.category !== 'tv');
+        setTrailerContents([...featuredCandidates].sort(() => 0.5 - Math.random()).slice(0, 5));
+      }
+
+      setRandomContent([...data].sort(() => 0.5 - Math.random()));
+      setNetworkFailed(false);
+      setRetryCount(0); // Success, reset retries
+      setLoading(false); // SUCCESS
     } catch (error) {
       console.error("Error loading content:", error);
-      if (retryCount < 5) {
+      if (retryCount < 10) {
+        console.log(`[UniTvFilm] Error attempt ${retryCount + 1}/10, retrying...`);
         setRetryCount(prev => prev + 1);
         setTimeout(() => loadContent(), 2000);
       } else {
         setNetworkFailed(true);
         setShowConnectivityModal(true);
-        setLoading(false); 
+        setLoading(false); // TOTAL FAILURE
       }
     }
   };
@@ -308,11 +301,6 @@ const Index = () => {
   const randomSections = useMemo(() => {
     if (selectedCategory !== 'Todos') return [];
 
-    // Use a stable seed for deterministic sorting
-    const today = new Date().toISOString().slice(0, 10);
-    let seed = 0;
-    for (let i = 0; i < today.length; i++) seed += today.charCodeAt(i);
-
     const featuredSection = {
       id: 'featured',
       type: 'marquee',
@@ -322,26 +310,26 @@ const Index = () => {
     };
 
     const shufflableSections = [
-      { id: 'recent', type: 'row', title: 'Lançamentos Recentes', data: [...categorizedContent.recentReleases], showNumbers: false },
+      { id: 'recent', type: 'row', title: 'Lançamentos Recentes', data: [...categorizedContent.recentReleases].sort(() => Math.random() - 0.5), showNumbers: false },
       { id: 'trending', type: 'row', title: 'Em Alta', data: [...categorizedContent.topRated].sort((a, b) => (b.rating || 0) - (a.rating || 0)), showNumbers: false },
-      { id: 'topRated', type: 'row', title: 'Mais Assistidos', data: [...categorizedContent.topRated], showNumbers: false },
-      { id: 'movies', type: 'row', title: 'Filmes', data: [...categorizedContent.movies], showNumbers: false },
-      { id: 'series', type: 'row', title: 'Séries', data: [...categorizedContent.series], showNumbers: false },
-      { id: 'nostalgia', type: 'row', title: 'Nostalgia', data: [...categorizedContent.nostalgia], showNumbers: false },
-      { id: 'action', type: 'row', title: 'Ação e Aventura', data: [...categorizedContent.actionAdventure], showNumbers: false },
-      { id: 'dramaCrime', type: 'row', title: 'Drama & Crime', data: [...categorizedContent.dramaCrime], showNumbers: false },
-      { id: 'comedyRomance', type: 'row', title: 'Comédia & Romance', data: [...categorizedContent.comedyRomance], showNumbers: false },
-      { id: 'comedy', type: 'row', title: 'Comédia e Terror', data: [...categorizedContent.comedyHorror], showNumbers: false },
+      { id: 'topRated', type: 'row', title: 'Mais Assistidos', data: [...categorizedContent.topRated].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'movies', type: 'row', title: 'Filmes', data: [...categorizedContent.movies].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'series', type: 'row', title: 'Séries', data: [...categorizedContent.series].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'nostalgia', type: 'row', title: 'Nostalgia', data: [...categorizedContent.nostalgia].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'action', type: 'row', title: 'Ação e Aventura', data: [...categorizedContent.actionAdventure].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'dramaCrime', type: 'row', title: 'Drama & Crime', data: [...categorizedContent.dramaCrime].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'comedyRomance', type: 'row', title: 'Comédia & Romance', data: [...categorizedContent.comedyRomance].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'comedy', type: 'row', title: 'Comédia e Terror', data: [...categorizedContent.comedyHorror].sort(() => Math.random() - 0.5), showNumbers: false },
     ].filter(s => s.data.length > 0);
 
-    // Deterministic shuffle using seed
-    const shuffled = seededShuffle(shufflableSections, seed);
+    // Shuffle only the non-featured sections
+    const shuffled = shufflableSections.sort(() => Math.random() - 0.5);
 
     const tvSection = {
       id: 'tv',
       type: 'row',
       title: 'TV ao Vivo',
-      data: seededShuffle([...categorizedContent.tvChannels], seed + 1),
+      data: [...categorizedContent.tvChannels].sort(() => Math.random() - 0.5),
       showNumbers: false
     };
 
@@ -349,16 +337,9 @@ const Index = () => {
       id: 'canais24h',
       type: 'channels',
       title: 'Transmissão 24 Horas',
-      data: seededShuffle([...categorizedContent.canais24h], seed + 2),
+      data: [...categorizedContent.canais24h].sort(() => Math.random() - 0.5),
       showNumbers: false
     };
-
-    // Deterministically shuffle inner rows
-    shuffled.forEach((s, i) => {
-      if (s.id !== 'trending') {
-        s.data = seededShuffle(s.data, seed + i + 10);
-      }
-    });
 
     // Return Featured first + Shuffled sections + Canais 24h + TV ALWAYS LAST
     let finalSections = [featuredSection, ...shuffled];
@@ -372,20 +353,23 @@ const Index = () => {
     });
 
     if (isLiteMode) {
+      // Limit sections to save RAM
       finalSections = finalSections.slice(0, maxSectionsPerPage);
     }
 
     if (canais24hSection.data.length > 0) {
-      canais24hSection.data = canais24hSection.data.slice(0, LIMIT);
+      const data = canais24hSection.data;
+      canais24hSection.data = data.slice(0, LIMIT);
       finalSections.push(canais24hSection);
     }
     if (tvSection.data.length > 0) {
-      tvSection.data = tvSection.data.slice(0, LIMIT);
+      const data = tvSection.data;
+      tvSection.data = data.slice(0, LIMIT);
       finalSections.push(tvSection);
     }
 
     return finalSections;
-  }, [categorizedContent, selectedCategory, isLiteMode, maxCardsInRow, maxSectionsPerPage, seededShuffle]);
+  }, [categorizedContent, selectedCategory, isLiteMode, maxCardsInRow, maxSectionsPerPage]);
 
   const currentTrailer = trailerContents[currentTrailerIndex] || null;
 
