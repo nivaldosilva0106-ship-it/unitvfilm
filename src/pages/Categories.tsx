@@ -9,16 +9,23 @@ import { CinemaWarningModal } from "@/components/CinemaWarningModal";
 import { AdManager } from "@/components/AdManager";
 import { CategoryTypeFilter } from "@/components/categories/CategoryTypeFilter";
 import { CategoryAccessFilter } from "@/components/categories/CategoryAccessFilter";
-import { CategoryGenreSection } from "@/components/categories/CategoryGenreSection";
 import { CategoryEmptyState } from "@/components/categories/CategoryEmptyState";
+import { ContentCard } from "@/components/ContentCard";
 import { Content } from "@/types/content";
 import { getAllContents, addToMyList, removeFromMyList, getMyList } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Filter } from "lucide-react";
+import { Compass, Sparkles, MonitorPlay, Film } from "lucide-react";
 import { useSpatialNavigation, FOCUSABLE_CLASS } from "@/hooks/useSpatialNavigation";
 
 const GENRES = ['Ação', 'Aventura', 'Comédia', 'Drama', 'Terror', 'Romance', 'Ficção', 'Animação', 'Documentário', 'Infantil', 'Fantasia', 'Suspense'];
+
+const MAIN_CATEGORIES = [
+    { name: 'Tudo', icon: Compass },
+    { name: 'Novidades', icon: Sparkles },
+    { name: 'Canais 24h', icon: MonitorPlay },
+    { name: 'Nostalgia', icon: Film }
+];
 
 export default function Categories() {
     const navigate = useNavigate();
@@ -29,7 +36,8 @@ export default function Categories() {
     const [loading, setLoading] = useState(true);
     const [myList, setMyList] = useState<string[]>([]);
 
-    // Filter State
+    // Navigation/Filter State
+    const [selectedCategory, setSelectedCategory] = useState<string>('Tudo');
     const [typeFilter, setTypeFilter] = useState<'all' | 'movie' | 'series' | 'tv' | 'nostalgia'>('all');
     const [accessFilter, setAccessFilter] = useState<'all' | 'free' | 'premium'>('all');
 
@@ -84,23 +92,80 @@ export default function Categories() {
         }
     };
 
+    // Combine standard genres with any dynamic genres from content
+    const dynamicGenres = useMemo(() => {
+        const set = new Set<string>(GENRES);
+        allContent.forEach(c => {
+            if (c.genre && Array.isArray(c.genre)) {
+                c.genre.forEach(g => {
+                    if (g && g.trim() !== '') {
+                        const capitalized = g.trim().charAt(0).toUpperCase() + g.trim().slice(1);
+                        set.add(capitalized);
+                    }
+                });
+            }
+        });
+        return Array.from(set).sort();
+    }, [allContent]);
+
+    // Count utility for sidebar indicators
+    const getCategoryCount = (cat: string) => {
+        if (cat === 'Tudo') return allContent.length;
+        if (cat === 'Novidades') {
+            return allContent.filter(c => c.isNew || (c.newSince && (new Date().getTime() - new Date(c.newSince).getTime() < 86400000 * 7))).length;
+        }
+        if (cat === 'Canais 24h') {
+            return allContent.filter(c => c.category === 'tv').length;
+        }
+        if (cat === 'Nostalgia') {
+            return allContent.filter(c => c.category === 'nostalgia').length;
+        }
+        // Genre filter
+        return allContent.filter(c => {
+            if (c.genre && Array.isArray(c.genre)) {
+                return c.genre.some(g => g.toLowerCase() === cat.toLowerCase());
+            }
+            return c.description?.toLowerCase().includes(cat.toLowerCase()) ||
+                c.title.toLowerCase().includes(cat.toLowerCase());
+        }).length;
+    };
+
     const filteredContent = useMemo(() => {
         let filtered = allContent;
 
-        // Type Filter
+        // 1. Menu Category Filter
+        if (selectedCategory === 'Novidades') {
+            filtered = filtered.filter(c => c.isNew || (c.newSince && (new Date().getTime() - new Date(c.newSince).getTime() < 86400000 * 7)));
+        } else if (selectedCategory === 'Canais 24h') {
+            filtered = filtered.filter(c => c.category === 'tv');
+        } else if (selectedCategory === 'Nostalgia') {
+            filtered = filtered.filter(c => c.category === 'nostalgia');
+        } else if (selectedCategory !== 'Tudo') {
+            filtered = filtered.filter(c => {
+                if (c.genre && Array.isArray(c.genre)) {
+                    return c.genre.some(g => g.toLowerCase() === selectedCategory.toLowerCase());
+                }
+                return c.description?.toLowerCase().includes(selectedCategory.toLowerCase()) ||
+                    c.title.toLowerCase().includes(selectedCategory.toLowerCase());
+            });
+        }
+
+        // 2. Type Filter (Filmes, Séries, etc.)
         if (typeFilter !== 'all') {
             filtered = filtered.filter(c => c.category === typeFilter);
         }
 
-        // Access Filter
-        if (accessFilter !== 'free') {
-            if (accessFilter === 'premium') filtered = filtered.filter(c => c.isPremium);
-        } else {
-            filtered = filtered.filter(c => !c.isPremium);
+        // 3. Access Filter (Grátis, Premium)
+        if (accessFilter !== 'all') {
+            if (accessFilter === 'premium') {
+                filtered = filtered.filter(c => c.isPremium);
+            } else {
+                filtered = filtered.filter(c => !c.isPremium);
+            }
         }
 
         return filtered;
-    }, [allContent, typeFilter, accessFilter]);
+    }, [allContent, selectedCategory, typeFilter, accessFilter]);
 
     // Handlers
     const handlePlayContent = (content: Content) => {
@@ -186,34 +251,172 @@ export default function Categories() {
         <div className="min-h-screen bg-background text-foreground font-sans">
             <Header />
 
-            <div className="pt-20 sm:pt-24 pb-8 container mx-auto px-4">
-                <div className="flex flex-col md:flex-row items-center justify-between mb-8 gap-6">
-                    <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
-                        <Filter className="w-6 h-6 sm:w-8 sm:h-8 text-primary" /> Categorias
-                    </h1>
+            <div className="pt-24 sm:pt-28 pb-16 container mx-auto px-4">
+                <div className="flex flex-col md:flex-row gap-8 items-start">
+                    
+                    {/* Left Sidebar Menu - Desktop Only */}
+                    <div className="hidden md:flex flex-col w-64 lg:w-72 sticky top-24 shrink-0 max-h-[calc(100vh-140px)] overflow-y-auto pr-4 premium-scrollbar space-y-6">
+                        <div>
+                            <p className="text-[11px] font-bold tracking-widest text-muted-foreground uppercase mb-3 px-3">
+                                Suas Categorias
+                            </p>
+                            <div className="space-y-1">
+                                {MAIN_CATEGORIES.map(cat => {
+                                    const Icon = cat.icon;
+                                    const isActive = selectedCategory === cat.name;
+                                    return (
+                                        <button
+                                            key={cat.name}
+                                            onClick={() => setSelectedCategory(cat.name)}
+                                            className={`w-full text-left py-2.5 px-3 rounded-lg text-sm font-semibold transition-all flex items-center justify-between group ${
+                                                isActive
+                                                    ? "text-primary bg-primary/10 border-l-[4px] border-primary pl-3.5 font-bold shadow-[inset_1px_0_0_rgba(16,185,129,0.1)]"
+                                                    : "text-foreground/60 hover:text-foreground pl-4 hover:bg-white/5"
+                                            } ${FOCUSABLE_CLASS}`}
+                                            tabIndex={0}
+                                        >
+                                            <div className="flex items-center gap-2.5">
+                                                <Icon className={`w-4 h-4 ${isActive ? 'text-primary' : 'text-foreground/45 group-hover:text-foreground/80'}`} />
+                                                <span>{cat.name}</span>
+                                            </div>
+                                            <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded text-white/50 font-medium group-hover:text-white/80 transition-colors">
+                                                {getCategoryCount(cat.name)}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
 
-                    {/* Filters */}
-                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full md:w-auto">
-                        <CategoryTypeFilter value={typeFilter} onChange={setTypeFilter} />
-                        <CategoryAccessFilter value={accessFilter} onChange={setAccessFilter} />
+                        <div className="h-px bg-white/5 w-full" />
+
+                        <div>
+                            <p className="text-[11px] font-bold tracking-widest text-muted-foreground uppercase mb-3 px-3">
+                                Todos os Gêneros
+                            </p>
+                            <div className="space-y-1">
+                                {dynamicGenres.map(genre => {
+                                    const isActive = selectedCategory === genre;
+                                    return (
+                                        <button
+                                            key={genre}
+                                            onClick={() => setSelectedCategory(genre)}
+                                            className={`w-full text-left py-2.5 px-3 rounded-lg text-sm font-semibold transition-all flex items-center justify-between group ${
+                                                isActive
+                                                    ? "text-primary bg-primary/10 border-l-[4px] border-primary pl-3.5 font-bold shadow-[inset_1px_0_0_rgba(16,185,129,0.1)]"
+                                                    : "text-foreground/60 hover:text-foreground pl-4 hover:bg-white/5"
+                                            } ${FOCUSABLE_CLASS}`}
+                                            tabIndex={0}
+                                        >
+                                            <span>{genre}</span>
+                                            <span className="text-[10px] bg-white/10 px-2 py-0.5 rounded text-white/50 font-medium group-hover:text-white/80 transition-colors">
+                                                {getCategoryCount(genre)}
+                                            </span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Top Horizontal Scrollbar - Mobile Only */}
+                    <div className="flex md:hidden items-center gap-2 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 sticky top-16 bg-background/95 backdrop-blur z-20 border-b border-white/5 mb-4 w-[100vw]">
+                        {MAIN_CATEGORIES.map(cat => {
+                            const Icon = cat.icon;
+                            const isActive = selectedCategory === cat.name;
+                            return (
+                                <button
+                                    key={cat.name}
+                                    onClick={() => setSelectedCategory(cat.name)}
+                                    className={`px-4 py-2 rounded-full text-xs font-semibold flex items-center gap-1.5 transition-all whitespace-nowrap border ${
+                                        isActive
+                                            ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20"
+                                            : "bg-white/5 text-foreground/75 border-white/5 hover:text-white"
+                                    }`}
+                                >
+                                    <Icon className="w-3.5 h-3.5" />
+                                    <span>{cat.name}</span>
+                                    <span className="text-[9px] opacity-60">
+                                        ({getCategoryCount(cat.name)})
+                                    </span>
+                                </button>
+                            );
+                        })}
+                        <div className="w-px h-6 bg-white/10 shrink-0" />
+                        {dynamicGenres.map(genre => {
+                            const isActive = selectedCategory === genre;
+                            return (
+                                <button
+                                    key={genre}
+                                    onClick={() => setSelectedCategory(genre)}
+                                    className={`px-4 py-2 rounded-full text-xs font-semibold transition-all whitespace-nowrap border ${
+                                        isActive
+                                            ? "bg-primary text-primary-foreground border-primary shadow-lg shadow-primary/20"
+                                            : "bg-white/5 text-foreground/75 border-white/5 hover:text-white"
+                                    }`}
+                                >
+                                    <span>{genre}</span>
+                                    <span className="text-[9px] opacity-60">
+                                        ({getCategoryCount(genre)})
+                                    </span>
+                                </button>
+                            );
+                        })}
+                    </div>
+
+                    {/* Main Grid Section */}
+                    <div className="flex-1 w-full">
+                        {/* Header Row */}
+                        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-white/5 pb-4 mb-6">
+                            <div>
+                                <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight flex items-center gap-3">
+                                    <span className="w-1.5 h-8 bg-primary rounded-full shadow-[0_0_12px_hsl(var(--primary))]" />
+                                    {selectedCategory}
+                                </h2>
+                                <p className="text-xs text-muted-foreground mt-1 ml-4.5">
+                                    {filteredContent.length} {filteredContent.length === 1 ? 'título disponível' : 'títulos disponíveis'}
+                                </p>
+                            </div>
+
+                            {/* Filters Pills */}
+                            <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+                                <CategoryTypeFilter value={typeFilter} onChange={setTypeFilter} />
+                                <CategoryAccessFilter value={accessFilter} onChange={setAccessFilter} />
+                            </div>
+                        </div>
+
+                        <AdManager placement="header" className="mb-6" />
+
+                        {/* Poster Grid */}
+                        {filteredContent.length > 0 ? (
+                            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mt-6">
+                                {filteredContent.map(content => (
+                                    <ContentCard
+                                        key={content.id}
+                                        title={content.title}
+                                        thumbnail={content.thumbnail_url}
+                                        onPlay={() => handlePlayContent(content)}
+                                        onInfo={() => handleInfoContent(content)}
+                                        onDetails={() => handleDetailsContent(content)}
+                                        onDownload={() => handleDownloadContent(content)}
+                                        isPremium={content.isPremium}
+                                        isNew={content.isNew}
+                                        newSince={content.newSince}
+                                        category={content.category}
+                                        classification={content.classification}
+                                        internal_player_url={content.internal_player_url}
+                                        hasDownloads={content.downloads && content.downloads.length > 0}
+                                        hasInternalPlayer={!!content.internal_player_url}
+                                        hasDownload={!!content.download_url}
+                                        watch_provider={content.watch_provider}
+                                    />
+                                ))}
+                            </div>
+                        ) : (
+                            <CategoryEmptyState />
+                        )}
                     </div>
                 </div>
-
-                <AdManager placement="header" className="mb-8" />
-
-                {/* Content Rows by Genre */}
-                {filteredContent.length > 0 ? (
-                    <CategoryGenreSection
-                        filteredContent={filteredContent}
-                        genres={GENRES}
-                        onPlayContent={handlePlayContent}
-                        onInfoContent={handleInfoContent}
-                        onDetailsContent={handleDetailsContent}
-                        onDownloadContent={handleDownloadContent}
-                    />
-                ) : (
-                    <CategoryEmptyState />
-                )}
             </div>
 
             {/* Modals */}
