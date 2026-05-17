@@ -1883,13 +1883,13 @@ export default function Canais24h() {
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                         {/* Now Playing */}
                         <div className="lg:col-span-4 flex flex-col">
-                            <div className="bg-zinc-800/80 backdrop-blur-xl border border-zinc-700/50 p-6 rounded-2xl shadow-2xl">
+                            <div className="bg-zinc-800/80 backdrop-blur-xl border border-zinc-700/50 p-6 rounded-2xl shadow-2xl group">
                                 <span className="inline-block px-2 py-0.5 bg-primary/20 text-primary text-[9px] font-bold rounded mb-3 border border-primary/30 uppercase tracking-tighter italic">
                                     O que estás a ver
                                 </span>
                                 <div className="flex items-center justify-between mb-2 overflow-hidden">
                                     <div className="flex-1 overflow-hidden mr-4">
-                                        <h2 className="text-xl font-bold text-white leading-tight whitespace-nowrap animate-marquee hover:pause-animation">
+                                        <h2 className="text-xl font-bold text-white leading-tight hover-marquee">
                                             {isAdMode ? "Intervalo Comercial" : (nowPlayingTitle || currentChannel?.title)}
                                         </h2>
                                     </div>
@@ -1995,7 +1995,7 @@ export default function Canais24h() {
                                                     </span>
                                                 </div>
                                                 <div className="overflow-hidden pr-8">
-                                                    <h3 className="text-sm font-bold text-zinc-300 whitespace-nowrap animate-marquee group-hover:text-white hover:pause-animation">
+                                                    <h3 className="text-sm font-bold text-zinc-300 hover-marquee group-hover:text-white">
                                                         {prog.title || "Sem Título"}
                                                     </h3>
                                                 </div>

@@ -513,7 +513,7 @@ export const ContentPlayerModal = ({
                             <>
                               <span className="text-[10px] text-primary uppercase font-bold tracking-wider leading-none mb-1">Próximo: T{nextEpisode.season} E{nextEpisode.episode}</span>
                               <div className="relative overflow-hidden h-5 w-48">
-                                <p className="text-xs text-white font-bold whitespace-nowrap animate-marquee leading-normal flex items-center h-full">
+                                <p className="text-xs text-white font-bold leading-normal flex items-center h-full hover-marquee">
                                   {`Assistir: ${nextEpisode.title}`}
                                 </p>
                               </div>
