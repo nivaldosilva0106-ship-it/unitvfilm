@@ -272,7 +272,7 @@ export default function AdminSystem() {
                         Object.entries(profilesObj).forEach(([subProfileId, p]: [string, any]) => {
                             if (p && typeof p === 'object') {
                                 subProfilesList.push({
-                                    id: subProfileId,
+                                    id: `${userId}_${subProfileId}`,
                                     userId: userId,
                                     name: p.name || "Perfil",
                                     avatar: p.avatar || "",
