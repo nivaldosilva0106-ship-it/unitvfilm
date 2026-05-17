@@ -184,7 +184,11 @@ const Index = () => {
 
       if (data.length > 0) {
         setAllContentData(data);
-        localStorage.setItem('cached_contents', JSON.stringify(data));
+        try {
+          localStorage.setItem('cached_contents', JSON.stringify(data));
+        } catch (storageError) {
+          console.warn("[UniTvFilm] Failed to save contents to localStorage:", storageError);
+        }
         setLoading(false);
       } else {
         // 3. Fallback/Retry logic if no data (network failed and no cache)
