@@ -30,8 +30,8 @@ export const MarqueeContentRow = memo(({
 }: MarqueeContentRowProps) => {
     const [scrollPosition, setScrollPosition] = useState(0);
     const { isLiteMode } = useAppConfig();
-    const itemWidth = 200; // Approximate width of each card
-    const visibleItems = 6;
+    const itemWidth = 280; // Widescreen landscape card width
+    const visibleItems = 4; // Adjust visible items to match wider cards
     const maxScroll = Math.max(0, contents.length - visibleItems);
 
     const scroll = (direction: 'left' | 'right') => {
@@ -88,7 +88,7 @@ export const MarqueeContentRow = memo(({
                         } : {}}
                     >
                         {contents.map((content, index) => (
-                            <div key={content.id} className="flex-shrink-0 relative snap-start w-[140px] xs:w-[160px] sm:w-[180px] md:w-[200px]">
+                            <div key={content.id} className="flex-shrink-0 relative snap-start w-[200px] xs:w-[240px] sm:w-[260px] md:w-[280px]">
                                 <ContentCard
                                     title={content.title}
                                     thumbnail={content.thumbnail_url}

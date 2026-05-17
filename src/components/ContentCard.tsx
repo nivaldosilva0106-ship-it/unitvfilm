@@ -76,7 +76,7 @@ export const ContentCard = memo(({
   return (
     <div
       ref={cardRef}
-      className={`relative group min-w-[140px] sm:min-w-[160px] cursor-pointer card-hover rounded-lg transition-all focus-within:ring-4 focus-within:ring-primary ${isLiteMode ? 'focus-within:ring-yellow-400' : ''}`}
+      className={`relative group w-full cursor-pointer card-hover rounded-lg transition-all focus-within:ring-4 focus-within:ring-primary ${isLiteMode ? 'focus-within:ring-yellow-400' : ''}`}
       onClick={(e) => {
         // Only trigger details if we didn't click a button inside
         if (e.target === e.currentTarget) {
@@ -131,11 +131,11 @@ export const ContentCard = memo(({
         )}
       </div>
 
-      <div className="relative overflow-hidden rounded-lg">
+      <div className="relative overflow-hidden rounded-lg aspect-video bg-zinc-900/40">
         <img
-          src={getOptimizedImageUrl(thumbnail, 'poster', imageQuality)}
+          src={getOptimizedImageUrl(thumbnail, 'backdrop', imageQuality)}
           alt={title}
-          className={`w-full h-[200px] sm:h-[240px] object-cover ${isRestricted ? 'grayscale-[0.5] blur-[1px]' : ''} ${!isLiteMode ? 'transition-transform duration-500 md:group-hover:scale-110' : ''}`}
+          className={`w-full aspect-video object-cover ${isRestricted ? 'grayscale-[0.5] blur-[1px]' : ''} ${!isLiteMode ? 'transition-transform duration-500 md:group-hover:scale-110' : ''}`}
           loading="lazy"
         />
 
@@ -148,30 +148,30 @@ export const ContentCard = memo(({
           </div>
         )}
 
-        <div className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent transition-opacity duration-300 flex items-end p-3 ${isActuallyNew ? 'pb-9' : ''} ${isRestricted ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'}`}>
-          <div className="w-full space-y-2">
-            <h3 className="text-foreground font-semibold text-sm mb-2 line-clamp-2">{title}</h3>
-            <div className="flex flex-col gap-2 pb-2">
+        <div className={`absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent transition-opacity duration-300 flex items-end p-2.5 ${isActuallyNew ? 'pb-9' : ''} ${isRestricted ? 'opacity-0 pointer-events-none' : 'opacity-0 group-hover:opacity-100 group-focus-within:opacity-100'}`}>
+          <div className="w-full">
+            <h3 className="text-foreground font-semibold text-xs mb-1.5 line-clamp-1">{title}</h3>
+            <div className="flex items-center gap-1.5 w-full">
                 <Button
                   onClick={handleButtonClick(onPlay)}
                   onFocus={handleButtonFocus}
                   disabled={isRestricted}
-                  className={`w-full flex items-center justify-center gap-2 bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary text-white font-bold h-9 text-xs rounded-lg transition-all duration-300 shadow-[0_0_10px_rgba(16,185,129,0.3)] border border-white/10 ${enableAnimations ? 'hover:scale-[1.02] active:scale-[0.98]' : ''} ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''} ${FOCUSABLE_CLASS}`}
+                  className={`flex-1 flex items-center justify-center gap-1 bg-gradient-to-r from-primary to-primary/80 hover:from-primary hover:to-primary text-white font-bold h-8 text-[11px] px-2 rounded-lg transition-all duration-300 shadow-[0_0_10px_rgba(16,185,129,0.3)] border border-white/10 ${enableAnimations ? 'hover:scale-[1.02] active:scale-[0.98]' : ''} ${isRestricted ? 'opacity-50 cursor-not-allowed' : ''} ${FOCUSABLE_CLASS}`}
                   tabIndex={0}
                 >
-                  {isRestricted ? <ShieldCheck className="w-4 h-4" /> : <Play className="w-4 h-4 fill-current" />}
-                  {isRestricted ? 'Bloqueado' : internal_player_url ? 'Player Interno' : 'Assistir'}
+                  {isRestricted ? <ShieldCheck className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+                  <span className="truncate">{isRestricted ? 'Bloqueado' : internal_player_url ? 'Player' : 'Assistir'}</span>
                 </Button>
 
                 <Button
                   onClick={handleButtonClick(onInfo)}
                   onFocus={handleButtonFocus}
                   variant="secondary"
-                  className={`w-full flex items-center justify-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium h-9 text-xs rounded-lg backdrop-blur-md border border-white/10 transition-all duration-300 ${enableAnimations ? 'hover:scale-[1.02] active:scale-[0.98]' : ''} ${FOCUSABLE_CLASS}`}
+                  className={`h-8 w-8 p-0 flex items-center justify-center bg-white/10 hover:bg-white/20 text-white rounded-lg backdrop-blur-md border border-white/10 transition-all duration-300 ${enableAnimations ? 'hover:scale-[1.02] active:scale-[0.98]' : ''} ${FOCUSABLE_CLASS}`}
                   tabIndex={0}
+                  title="Detalhes"
                 >
                   <Info className="w-4 h-4" />
-                  Detalhes
                 </Button>
 
                 {(onDownload || hasDownloads) && (
@@ -179,11 +179,11 @@ export const ContentCard = memo(({
                     onClick={handleButtonClick(onDownload)}
                     onFocus={handleButtonFocus}
                     variant="outline"
-                    className={`w-full flex items-center justify-center gap-2 bg-black/40 hover:bg-black/60 text-white font-medium h-9 text-xs rounded-lg backdrop-blur-md border border-white/10 transition-all duration-300 ${enableAnimations ? 'hover:scale-[1.02] active:scale-[0.98]' : ''} ${FOCUSABLE_CLASS}`}
+                    className={`h-8 w-8 p-0 flex items-center justify-center bg-black/40 hover:bg-black/60 text-white rounded-lg backdrop-blur-md border border-white/10 transition-all duration-300 ${enableAnimations ? 'hover:scale-[1.02] active:scale-[0.98]' : ''} ${FOCUSABLE_CLASS}`}
                     tabIndex={0}
+                    title="Baixar"
                   >
                     <Download className={`w-4 h-4 ${hasDownloads ? 'text-[#0aff7a]' : ''}`} />
-                    Baixar
                   </Button>
                 )}
               </div>

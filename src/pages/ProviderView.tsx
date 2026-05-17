@@ -142,7 +142,7 @@ const ProviderView = () => {
 
                 {/* Content Grid */}
                 {filteredContent.length > 0 ? (
-                    <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8 gap-4 sm:gap-6">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-6">
                         {filteredContent.map((content, index) => (
                             <div
                                 key={content.id}
