@@ -165,13 +165,13 @@ const Search = () => {
             </div>
 
             {loading ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {[...Array(10)].map((_, i) => (
-                  <div key={i} className="aspect-video bg-secondary/20 animate-pulse rounded-xl" />
+                  <div key={i} className="aspect-[2/3] bg-secondary/20 animate-pulse rounded-xl" />
                 ))}
               </div>
             ) : filteredResults.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                 {filteredResults.map((content) => (
                   <ContentCard
                     key={content.id}

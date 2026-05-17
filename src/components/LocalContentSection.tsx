@@ -248,7 +248,7 @@ export const LocalContentSection = ({ fullPage = false }: LocalContentSectionPro
           <>
             <button 
               onClick={() => scrollRow('left')}
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-20 h-[160px] w-12 flex items-center justify-center bg-gradient-to-r from-background to-transparent opacity-0 group-hover/row:opacity-100 transition-opacity cursor-pointer text-white"
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-20 h-[240px] w-12 flex items-center justify-center bg-gradient-to-r from-background to-transparent opacity-0 group-hover/row:opacity-100 transition-opacity cursor-pointer text-white"
             >
               <div className={`bg-black/50 p-2 rounded-full hover:bg-black/80 transition-colors ${FOCUSABLE_CLASS}`} tabIndex={0}>
                 <ChevronLeft className="w-6 h-6" />
@@ -256,7 +256,7 @@ export const LocalContentSection = ({ fullPage = false }: LocalContentSectionPro
             </button>
             <button 
               onClick={() => scrollRow('right')}
-              className="absolute right-0 top-1/2 -translate-y-1/2 z-20 h-[160px] w-12 flex items-center justify-center bg-gradient-to-l from-background to-transparent opacity-0 group-hover/row:opacity-100 transition-opacity cursor-pointer text-white"
+              className="absolute right-0 top-1/2 -translate-y-1/2 z-20 h-[240px] w-12 flex items-center justify-center bg-gradient-to-l from-background to-transparent opacity-0 group-hover/row:opacity-100 transition-opacity cursor-pointer text-white"
             >
               <div className={`bg-black/50 p-2 rounded-full hover:bg-black/80 transition-colors ${FOCUSABLE_CLASS}`} tabIndex={0}>
                 <ChevronRight className="w-6 h-6" />
@@ -270,7 +270,7 @@ export const LocalContentSection = ({ fullPage = false }: LocalContentSectionPro
           className={`flex gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-8 pb-4 scroll-smooth ${fullPage ? 'flex-wrap justify-center sm:justify-start' : ''}`}
         >
           {groups.map((group) => (
-            <div key={group.id} className="relative group/card flex-shrink-0 w-[200px] xs:w-[240px] sm:w-[260px] md:w-[280px]">
+            <div key={group.id} className="relative group/card">
               <ContentCard
                 title={group.title}
                 thumbnail={group.posterPath ? getImageUrl(group.posterPath) : '/placeholder.svg'}
@@ -301,7 +301,7 @@ export const LocalContentSection = ({ fullPage = false }: LocalContentSectionPro
             </div>
           ))}
           {isScanning && (
-             <div className="flex-shrink-0 w-[200px] xs:w-[240px] sm:w-[260px] md:w-[280px] aspect-video rounded-lg bg-zinc-900/50 animate-pulse flex items-center justify-center border border-dashed border-zinc-800">
+             <div className="flex-shrink-0 w-[140px] sm:w-[160px] h-[200px] sm:h-[240px] rounded-lg bg-zinc-900/50 animate-pulse flex items-center justify-center border border-dashed border-zinc-800">
                <RefreshCw className="w-8 h-8 text-zinc-700 animate-spin" />
              </div>
           )}

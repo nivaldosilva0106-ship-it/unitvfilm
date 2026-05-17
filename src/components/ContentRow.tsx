@@ -112,7 +112,7 @@ export const ContentRow = memo(({ title, contents, onPlayContent, onInfoContent,
           className="flex gap-3 overflow-x-auto scrollbar-hide px-4 sm:px-8 py-2"
         >
           {contents.map((content) => (
-            <div key={content.id} className="content-card-item flex-shrink-0 w-[200px] xs:w-[240px] sm:w-[260px] md:w-[280px]">
+            <div key={content.id} className="content-card-item">
               <ContentCard
                 title={content.title}
                 thumbnail={content.thumbnail_url}
