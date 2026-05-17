@@ -1407,6 +1407,61 @@ export const assignPlanToUser = async (userId: string, planId: string) => {
 };
 
 export const validatePin = async (userId: string, profileId: string, inputPin: string): Promise<{ success: boolean; locked?: boolean; remainingTime?: number }> => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { data: p, error } = await supabase
+        .from('account_profiles')
+        .select('*')
+        .eq('userId', userId)
+        .eq('id', profileId)
+        .maybeSingle();
+
+      if (error || !p) return { success: false };
+
+      // Check Lockout
+      if (p.lockoutUntil && new Date(p.lockoutUntil) > new Date()) {
+        const remaining = Math.ceil((new Date(p.lockoutUntil).getTime() - new Date().getTime()) / 60000);
+        return { success: false, locked: true, remainingTime: remaining };
+      }
+
+      if (p.pin === inputPin) {
+        // Reset attempts on success
+        if (p.pinAttempts && p.pinAttempts > 0) {
+          await supabase
+            .from('account_profiles')
+            .update({ pinAttempts: 0, lockoutUntil: null })
+            .eq('userId', userId)
+            .eq('id', profileId);
+        }
+        return { success: true };
+      } else {
+        // Increment attempts
+        const attempts = (p.pinAttempts || 0) + 1;
+        const updates: any = { pinAttempts: attempts };
+
+        if (attempts >= 3) {
+          const lockout = new Date();
+          lockout.setMinutes(lockout.getMinutes() + 15);
+          updates.lockoutUntil = lockout.toISOString();
+          await supabase
+            .from('account_profiles')
+            .update(updates)
+            .eq('userId', userId)
+            .eq('id', profileId);
+          return { success: false, locked: true, remainingTime: 15 };
+        } else {
+          await supabase
+            .from('account_profiles')
+            .update(updates)
+            .eq('userId', userId)
+            .eq('id', profileId);
+          return { success: false };
+        }
+      }
+    }
+  }
+
   const profileRef = ref(database, `accountProfiles/${userId}/${profileId}`);
   const snapshot = await get(profileRef);
 
@@ -1461,6 +1516,33 @@ export const checkPlanExpiration = async (userId: string) => {
 };
 
 export const verifyRecoveryCode = async (code: string, userId: string) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { data: c, error } = await supabase
+        .from('verification_codes')
+        .select('*')
+        .eq('code', code)
+        .eq('type', 'pin_reset')
+        .eq('isUsed', false)
+        .maybeSingle();
+
+      if (!error && c && new Date(c.expiresAt) > new Date()) {
+        await supabase
+          .from('verification_codes')
+          .update({
+            isUsed: true,
+            usedAt: new Date().toISOString(),
+            usedBy: userId
+          })
+          .eq('id', c.id);
+
+        return { success: true };
+      }
+      return { success: false };
+    }
+  }
+
   const codesRef = ref(database, 'verification_codes');
   const snapshot = await get(codesRef);
 
@@ -1491,12 +1573,28 @@ export const verifyRecoveryCode = async (code: string, userId: string) => {
 };
 
 export const createRecoveryCode = async (userId: string) => {
-  // Admin function usually, but helper here for Admin Plans page
   const code = Math.random().toString(36).substring(2, 8).toUpperCase();
-  const newCodeRef = push(ref(database, 'verification_codes'));
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
 
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const id = `vc_${Date.now()}`;
+      await supabase.from('verification_codes').insert({
+        id,
+        code,
+        type: 'pin_reset',
+        createdAt: new Date().toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        isUsed: false,
+        usedBy: userId
+      });
+      return code;
+    }
+  }
+
+  const newCodeRef = push(ref(database, 'verification_codes'));
   await set(newCodeRef, {
     id: newCodeRef.key,
     code,
