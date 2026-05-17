@@ -114,16 +114,14 @@ const Signup = () => {
 
       const { user } = await signUp(email, password, subscriptionTier, selectedPlan.id, status);
 
-      // Update additional profile info
-      const { ref, update, getDatabase } = await import('firebase/database');
-      const db = getDatabase();
-      
       const expirationDate = new Date();
       if (isTrial) {
         expirationDate.setDate(expirationDate.getDate() + 30);
       }
 
-      await update(ref(db, `profiles/${user.uid}`), {
+      // Update additional profile info using the centralized driver
+      const { updateUserProfile } = await import('@/lib/firebase');
+      await updateUserProfile(user.uid, {
         planId: selectedPlan.id,
         phone: phone || '', // Add phone to profile
         displayName: name || '', // Add name

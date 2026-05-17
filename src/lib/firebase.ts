@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, set, get, remove, update, push, onValue, off, enableLogging } from 'firebase/database';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, signInAnonymously as firebaseSignInAnonymously, User } from 'firebase/auth';
+import { getSupabaseClient, isSupabaseEnabled } from './supabase';
 
 import type { Content } from '@/types/content';
 import type { UserProfile, MyListItem, SubscriptionTier, Plan, VerificationCode, UserContentProgress } from '@/types/user';
@@ -38,6 +39,17 @@ function removeUndefinedDeep<T>(obj: T): T {
 }
 
 export const addContent = async (content: Omit<Content, 'id'>) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const id = `c_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const cleaned = removeUndefinedDeep({ ...content, id });
+      const { error } = await supabase.from('contents').insert(cleaned);
+      if (error) throw error;
+      return cleaned as Content;
+    }
+  }
+
   const contentRef = ref(database, 'contents');
   const newContentRef = push(contentRef);
   const base = removeUndefinedDeep(content);
@@ -56,6 +68,24 @@ export const getAllContents = async (): Promise<Content[]> => {
       cachedData = JSON.parse(cached);
     }
   } catch (e) {}
+
+  if (isSupabaseEnabled()) {
+    try {
+      const supabase = getSupabaseClient();
+      if (supabase) {
+        const { data, error } = await supabase.from('contents').select('*');
+        if (error) throw error;
+        const contents = (data || []) as Content[];
+        try {
+          localStorage.setItem('cached_contents', JSON.stringify(contents));
+        } catch (e) {}
+        return contents;
+      }
+    } catch (error) {
+      console.warn("Supabase error fetching contents, using cache...", error);
+      return cachedData || [];
+    }
+  }
 
   try {
     const contentRef = ref(database, 'contents');
@@ -82,12 +112,31 @@ export const getContentsByCategory = async (category: string): Promise<Content[]
 };
 
 export const updateContent = async (id: string, updates: Partial<Content>) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const cleaned = removeUndefinedDeep(updates);
+      const { error } = await supabase.from('contents').update(cleaned).eq('id', id);
+      if (error) throw error;
+      return;
+    }
+  }
+
   const contentRef = ref(database, `contents/${id}`);
   const cleaned = removeUndefinedDeep(updates);
   await update(contentRef, cleaned);
 };
 
 export const deleteContent = async (id: string) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { error } = await supabase.from('contents').delete().eq('id', id);
+      if (error) throw error;
+      return;
+    }
+  }
+
   const contentRef = ref(database, `contents/${id}`);
   await remove(contentRef);
 };
@@ -109,7 +158,15 @@ export const signUp = async (email: string, password: string, subscriptionTier: 
     createdAt: new Date().toISOString(),
   };
 
-  await set(ref(database, `profiles/${user.uid}`), profile);
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { error } = await supabase.from('profiles').upsert(removeUndefinedDeep(profile));
+      if (error) throw error;
+    }
+  } else {
+    await set(ref(database, `profiles/${user.uid}`), profile);
+  }
   return userCredential;
 };
 
@@ -132,6 +189,15 @@ export const onAuthChange = (callback: (user: User | null) => void) => {
 
 // User Profile functions
 export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
+      if (error && error.code !== 'PGRST116') throw error;
+      return data as UserProfile | null;
+    }
+  }
+
   const profileRef = ref(database, `profiles/${userId}`);
   const snapshot = await get(profileRef);
   if (snapshot.exists()) {
@@ -141,6 +207,26 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
 };
 
 export const subscribeToUserProfile = (userId: string, callback: (profile: UserProfile | null) => void) => {
+  if (isSupabaseEnabled()) {
+    getUserProfile(userId).then(callback).catch(console.error);
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const channel = supabase
+        .channel(`public:profiles:id=eq.${userId}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
+          (payload: any) => {
+            callback(payload.new as UserProfile);
+          }
+        )
+        .subscribe();
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }
+
   const profileRef = ref(database, `profiles/${userId}`);
   return onValue(profileRef, (snapshot) => {
     if (snapshot.exists()) {
@@ -152,6 +238,16 @@ export const subscribeToUserProfile = (userId: string, callback: (profile: UserP
 };
 
 export const updateUserProfile = async (userId: string, updates: Partial<UserProfile>) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const cleaned = removeUndefinedDeep(updates);
+      const { error } = await supabase.from('profiles').upsert({ id: userId, ...cleaned });
+      if (error) throw error;
+      return;
+    }
+  }
+
   const profileRef = ref(database, `profiles/${userId}`);
   const cleaned = removeUndefinedDeep(updates);
   await update(profileRef, cleaned);
@@ -159,6 +255,28 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
 
 // My List functions
 export const addToMyList = async (userId: string, content: Content) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const id = `ml_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const item: MyListItem = {
+        id,
+        contentId: content.id,
+        content: removeUndefinedDeep(content),
+        addedAt: new Date().toISOString(),
+      };
+      const { error } = await supabase.from('my_list').insert({
+        id,
+        userId,
+        contentId: content.id,
+        content: item.content,
+        addedAt: item.addedAt
+      });
+      if (error) throw error;
+      return item;
+    }
+  }
+
   const myListRef = ref(database, `myList/${userId}`);
   const newItemRef = push(myListRef);
   const item: MyListItem = {
@@ -173,17 +291,50 @@ export const addToMyList = async (userId: string, content: Content) => {
 
 // ...
 export const removeFromMyList = async (userId: string, itemId: string) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { error } = await supabase.from('my_list').delete().eq('id', itemId);
+      if (error) throw error;
+      return;
+    }
+  }
+
   const itemRef = ref(database, `myList/${userId}/${itemId}`);
   await remove(itemRef);
 };
 
 export const deleteUserProfile = async (userId: string) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      await supabase.from('profiles').delete().eq('id', userId);
+      await supabase.from('account_profiles').delete().eq('userId', userId);
+      await supabase.from('my_list').delete().eq('userId', userId);
+      return;
+    }
+  }
+
   await remove(ref(database, `profiles/${userId}`));
   await remove(ref(database, `accountProfiles/${userId}`));
   await remove(ref(database, `myList/${userId}`));
 };
 
 export const getMyList = async (userId: string): Promise<MyListItem[]> => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('my_list').select('*').eq('userId', userId);
+      if (error) throw error;
+      return (data || []).map((row: any) => ({
+        id: row.id,
+        contentId: row.contentId,
+        content: row.content,
+        addedAt: row.addedAt
+      })) as MyListItem[];
+    }
+  }
+
   const myListRef = ref(database, `myList/${userId}`);
   const snapshot = await get(myListRef);
   if (snapshot.exists()) {
@@ -194,6 +345,19 @@ export const getMyList = async (userId: string): Promise<MyListItem[]> => {
 };
 
 export const isInMyList = async (userId: string, contentId: string): Promise<boolean> => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { data, error } = await supabase
+        .from('my_list')
+        .select('id')
+        .eq('userId', userId)
+        .eq('contentId', contentId);
+      if (error) throw error;
+      return (data || []).length > 0;
+    }
+  }
+
   const myListRef = ref(database, `myList/${userId}`);
   const snapshot = await get(myListRef);
   if (snapshot.exists()) {
@@ -428,6 +592,22 @@ export const getSiteSettings = async (): Promise<SiteSettings> => {
     if (cached) cachedSettings = JSON.parse(cached);
   } catch (e) {}
 
+  if (isSupabaseEnabled()) {
+    try {
+      const supabase = getSupabaseClient();
+      if (supabase) {
+        const { data, error } = await supabase.from('settings').select('value').eq('key', 'site').single();
+        if (error && error.code !== 'PGRST116') throw error;
+        const settings = data?.value || {};
+        try { localStorage.setItem('cached_settings', JSON.stringify(settings)); } catch (e) { }
+        return settings;
+      }
+    } catch (error) {
+      console.warn("Supabase error fetching settings:", error);
+      return cachedSettings || {};
+    }
+  }
+
   try {
     const settingsRef = ref(database, 'settings');
     const snapshot = await get(settingsRef);
@@ -443,6 +623,17 @@ export const getSiteSettings = async (): Promise<SiteSettings> => {
 };
 
 export const updateSiteSettings = async (updates: Partial<SiteSettings>) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const current = await getSiteSettings();
+      const merged = removeUndefinedDeep({ ...current, ...updates });
+      const { error } = await supabase.from('settings').upsert({ key: 'site', value: merged });
+      if (error) throw error;
+      return;
+    }
+  }
+
   const settingsRef = ref(database, 'settings');
   const cleaned = removeUndefinedDeep(updates);
   await update(settingsRef, cleaned);
@@ -455,6 +646,24 @@ export interface SliderSettings {
 }
 
 export const getSliderSettings = async (): Promise<SliderSettings> => {
+  if (isSupabaseEnabled()) {
+    try {
+      const supabase = getSupabaseClient();
+      if (supabase) {
+        const { data, error } = await supabase.from('settings').select('value').eq('key', 'slider').single();
+        if (error && error.code !== 'PGRST116') throw error;
+        const val = data?.value || {};
+        return {
+          mode: val.mode || 'random',
+          selectedContentIds: val.selectedContentIds || []
+        };
+      }
+    } catch (error) {
+      console.warn("Supabase error fetching slider settings:", error);
+      return { mode: 'random', selectedContentIds: [] };
+    }
+  }
+
   const sliderRef = ref(database, 'sliderSettings');
   const snapshot = await get(sliderRef);
   if (snapshot.exists()) {
@@ -468,6 +677,16 @@ export const getSliderSettings = async (): Promise<SliderSettings> => {
 };
 
 export const updateSliderSettings = async (settings: SliderSettings) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const cleaned = removeUndefinedDeep(settings);
+      const { error } = await supabase.from('settings').upsert({ key: 'slider', value: cleaned });
+      if (error) throw error;
+      return;
+    }
+  }
+
   const sliderRef = ref(database, 'sliderSettings');
   const cleaned = removeUndefinedDeep(settings);
   await set(sliderRef, cleaned);
@@ -480,6 +699,15 @@ export const updateSliderSettings = async (settings: SliderSettings) => {
 import type { Profile, Avatar } from '@/types/user';
 
 export const getAccountProfiles = async (userId: string): Promise<Profile[]> => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('account_profiles').select('*').eq('userId', userId);
+      if (error) throw error;
+      return (data || []) as Profile[];
+    }
+  }
+
   const profilesRef = ref(database, `accountProfiles/${userId}`);
   const snapshot = await get(profilesRef);
   if (snapshot.exists()) {
@@ -489,6 +717,22 @@ export const getAccountProfiles = async (userId: string): Promise<Profile[]> => 
 };
 
 export const createAccountProfile = async (userId: string, data: Omit<Profile, 'id' | 'userId' | 'createdAt'>) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const id = `ap_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const profile: Profile = {
+        ...data,
+        id,
+        userId,
+        createdAt: new Date().toISOString(),
+      };
+      const { error } = await supabase.from('account_profiles').insert(removeUndefinedDeep(profile));
+      if (error) throw error;
+      return profile;
+    }
+  }
+
   const profilesRef = ref(database, `accountProfiles/${userId}`);
   const newProfileRef = push(profilesRef);
   const profile: Profile = {
@@ -502,12 +746,31 @@ export const createAccountProfile = async (userId: string, data: Omit<Profile, '
 };
 
 export const updateAccountProfile = async (userId: string, profileId: string, updates: Partial<Profile>) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const cleaned = removeUndefinedDeep(updates);
+      const { error } = await supabase.from('account_profiles').update(cleaned).eq('userId', userId).eq('id', profileId);
+      if (error) throw error;
+      return;
+    }
+  }
+
   const profileRef = ref(database, `accountProfiles/${userId}/${profileId}`);
   const cleaned = removeUndefinedDeep(updates);
   await update(profileRef, cleaned);
 };
 
 export const deleteAccountProfile = async (userId: string, profileId: string) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { error } = await supabase.from('account_profiles').delete().eq('userId', userId).eq('id', profileId);
+      if (error) throw error;
+      return;
+    }
+  }
+
   const profileRef = ref(database, `accountProfiles/${userId}/${profileId}`);
   await remove(profileRef);
 };
@@ -627,6 +890,32 @@ export const subscribeToOnlineUsers = (callback: (users: UserProfile[]) => void)
 // ==========================================
 
 export const saveUserProgress = async (progress: Omit<UserContentProgress, 'updatedAt'>) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { userId, profileId, contentId, season, episode } = progress;
+      const key = `${contentId}_${season || 0}_${episode || 0}`;
+      const id = `${profileId}_${key}`;
+      const fullProgress: UserContentProgress = {
+        ...progress,
+        updatedAt: new Date().toISOString()
+      };
+      const { error } = await supabase.from('user_progress').upsert({
+        id,
+        userId: userId || null,
+        profileId,
+        contentId,
+        season: season || 0,
+        episode: episode || 0,
+        lastPositionSeconds: progress.lastPositionSeconds,
+        durationSeconds: progress.durationSeconds || null,
+        updatedAt: fullProgress.updatedAt
+      });
+      if (error) throw error;
+      return;
+    }
+  }
+
   const { profileId, contentId, season, episode } = progress;
   // Unique path for progress: progress/{profileId}/{contentId}_{season || 0}_{episode || 0}
   const key = `${contentId}_${season || 0}_${episode || 0}`;
@@ -642,6 +931,27 @@ export const saveUserProgress = async (progress: Omit<UserContentProgress, 'upda
 };
 
 export const getUserProgress = async (profileId: string, contentId: string, season?: number, episode?: number): Promise<UserContentProgress | null> => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const key = `${contentId}_${season || 0}_${episode || 0}`;
+      const id = `${profileId}_${key}`;
+      const { data, error } = await supabase.from('user_progress').select('*').eq('id', id).single();
+      if (error && error.code !== 'PGRST116') throw error;
+      if (!data) return null;
+      return {
+        userId: data.userId,
+        profileId: data.profileId,
+        contentId: data.contentId,
+        season: data.season,
+        episode: data.episode,
+        lastPositionSeconds: Number(data.lastPositionSeconds),
+        durationSeconds: data.durationSeconds ? Number(data.durationSeconds) : undefined,
+        updatedAt: data.updatedAt
+      } as UserContentProgress;
+    }
+  }
+
   const key = `${contentId}_${season || 0}_${episode || 0}`;
   const progressRef = ref(database, `userProgress/${profileId}/${key}`);
   const snapshot = await get(progressRef);
@@ -653,6 +963,24 @@ export const getUserProgress = async (profileId: string, contentId: string, seas
 };
 
 export const getUserAllProgress = async (profileId: string): Promise<UserContentProgress[]> => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('user_progress').select('*').eq('profileId', profileId);
+      if (error) throw error;
+      return (data || []).map((row: any) => ({
+        userId: row.userId,
+        profileId: row.profileId,
+        contentId: row.contentId,
+        season: row.season,
+        episode: row.episode,
+        lastPositionSeconds: Number(row.lastPositionSeconds),
+        durationSeconds: row.durationSeconds ? Number(row.durationSeconds) : undefined,
+        updatedAt: row.updatedAt
+      })) as UserContentProgress[];
+    }
+  }
+
   const progressRef = ref(database, `userProgress/${profileId}`);
   const snapshot = await get(progressRef);
 
