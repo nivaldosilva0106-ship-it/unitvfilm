@@ -234,25 +234,67 @@ html, body, #root {
     animation: play-flash 1.2s cubic-bezier(0.4, 0, 0.6, 1) forwards;
   }
 
+  @keyframes focus-pulsate {
+    0% {
+      box-shadow: 0 0 0 3px hsl(var(--primary) / 0.8), 0 0 8px hsl(var(--primary) / 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 5px hsl(var(--primary) / 1), 0 0 20px hsl(var(--primary) / 0.8);
+    }
+    100% {
+      box-shadow: 0 0 0 3px hsl(var(--primary) / 0.8), 0 0 8px hsl(var(--primary) / 0.4);
+    }
+  }
+
+  @keyframes click-ripple-fade {
+    0% {
+      box-shadow: 0 0 0 2px hsl(var(--primary) / 0.8), 0 0 4px hsl(var(--primary) / 0.4);
+      transform: scale(1);
+    }
+    30% {
+      box-shadow: 0 0 0 6px hsl(var(--primary) / 1), 0 0 22px hsl(var(--primary) / 0.9);
+      transform: scale(1.06);
+    }
+    60% {
+      box-shadow: 0 0 0 4px hsl(var(--primary) / 0.5), 0 0 12px hsl(var(--primary) / 0.3);
+      transform: scale(1.02);
+    }
+    100% {
+      box-shadow: 0 0 0 0px transparent, 0 0 0px transparent;
+      transform: scale(1);
+    }
+  }
+
   /* ===== Custom TV Spatial Navigation Styles ===== */
   .tv-focusable {
     outline: none !important; /* Disable native outline to use custom ring */
   }
 
-  /* When an element is focused via D-Pad (has focus) */
-  .tv-focusable:focus,
+  /* When focused via mouse / touch or default fallback (temporary premium glowing ripple that fades out) */
+  .tv-focusable:focus {
+    position: relative;
+    z-index: 50;
+    animation: click-ripple-fade 0.8s forwards cubic-bezier(0.25, 1, 0.5, 1);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  /* When focused via D-Pad/Keyboard (persistent breathing indicator) - overrides the temporary one */
   .tv-focusable:focus-visible {
     position: relative;
     z-index: 50;
-    box-shadow: 0 0 0 4px hsl(var(--primary)), 0 0 15px hsl(var(--primary) / 0.6) !important;
+    animation: focus-pulsate 2s infinite ease-in-out !important;
     transform: scale(1.05);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border-radius: inherit;
   }
 
   /* Specific adjustment for buttons inside menus to not pop out too aggressively */
-  .tv-focusable:focus.menu-item {
+  .tv-focusable:focus.menu-item,
+  .tv-focusable:focus-visible.menu-item {
     transform: scale(1.02);
+  }
+
+  .tv-focusable:active {
+    transform: scale(0.95);
   }
 
   /* Holiday Decorations Styles */
