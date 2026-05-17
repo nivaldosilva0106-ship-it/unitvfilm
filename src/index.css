@@ -194,38 +194,6 @@ html, body, #root {
     animation: marquee 60s linear infinite;
   }
 
-  /* Hover/Focus Marquee System: Truncates with ... by default, scrolls when card is hovered or focused */
-  .hover-marquee {
-    display: block;
-    width: 100%;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: transform 0.3s ease;
-  }
-
-  /* Trigger scrolling marquee when the parent card (group) is hovered or focused */
-  .group:hover .hover-marquee,
-  .group:focus-within .hover-marquee,
-  .tv-focusable:focus .hover-marquee,
-  .hover-marquee:hover,
-  .hover-marquee:focus {
-    overflow: visible;
-    text-overflow: clip;
-    display: inline-block;
-    width: auto;
-    animation: marquee-scroll 16s linear infinite;
-  }
-
-  @keyframes marquee-scroll {
-    0%, 15% {
-      transform: translateX(0);
-    }
-    85%, 100% {
-      transform: translateX(-50%);
-    }
-  }
-
   .hover\:pause-animation:hover {
     animation-play-state: paused;
   }
