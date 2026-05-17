@@ -6,7 +6,7 @@ import type { Content } from '@/types/content';
 import { useAppConfig } from '@/hooks/useAppConfig';
 
 interface AuthContextType {
-  user: User | null;
+  user: any;
   profile: UserProfile | null;
   currentProfile: Profile | null;
   plan: Plan | null;
@@ -21,7 +21,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);

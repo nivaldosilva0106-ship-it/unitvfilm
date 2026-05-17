@@ -263,6 +263,55 @@ export default function AdminSystem() {
                 addLog(`✓ ${profilesList.length} usuários migrados com sucesso!`);
             }
 
+            // 4.5. Process Sub-Profiles (accountProfiles)
+            if (parsedData.accountProfiles) {
+                addLog("Importando Perfis de Contas (Sub-perfis)...");
+                const subProfilesList: any[] = [];
+                Object.entries(parsedData.accountProfiles).forEach(([userId, profilesObj]: [string, any]) => {
+                    if (profilesObj && typeof profilesObj === 'object') {
+                        Object.entries(profilesObj).forEach(([subProfileId, p]: [string, any]) => {
+                            if (p && typeof p === 'object') {
+                                subProfilesList.push({
+                                    id: subProfileId,
+                                    userId: userId,
+                                    name: p.name || "Perfil",
+                                    avatar: p.avatar || "",
+                                    avatarUrl: p.avatar || "",
+                                    isKids: p.isKids || false,
+                                    pin: p.pin || null,
+                                    pinAttempts: p.pinAttempts || 0,
+                                    lockoutUntil: p.lockoutUntil || null,
+                                    createdAt: p.createdAt || new Date().toISOString(),
+                                    showLocalLibrary: p.showLocalLibrary || false
+                                });
+                            }
+                        });
+                    }
+                });
+
+                if (subProfilesList.length > 0) {
+                    const { error } = await supabase.from("account_profiles").upsert(subProfilesList);
+                    if (error) throw error;
+                    addLog(`✓ ${subProfilesList.length} sub-perfis de contas importados!`);
+                }
+            }
+
+            // 4.6. Process Admins
+            if (parsedData.admins) {
+                addLog("Importando Perfis Administrativos...");
+                const adminsList = Object.entries(parsedData.admins).map(([id, a]: [string, any]) => ({
+                    id,
+                    email: a.email || "",
+                    createdAt: a.createdAt || new Date().toISOString()
+                }));
+
+                if (adminsList.length > 0) {
+                    const { error } = await supabase.from("admins").upsert(adminsList);
+                    if (error) throw error;
+                    addLog(`✓ ${adminsList.length} administradores migrados!`);
+                }
+            }
+
             setImportProgress(50);
 
             // 5. Process Contents (The Catalog)
@@ -760,6 +809,7 @@ create table if not exists account_profiles (
     "userId" text not null,
     name text not null,
     avatar text,
+    "avatarUrl" text,
     "isKids" boolean default false,
     pin text,
     "pinAttempts" integer default 0,
@@ -850,4 +900,15 @@ create table if not exists user_progress (
 alter table user_progress enable row level security;
 create policy "Allow public read user_progress" on user_progress for select to public using (true);
 create policy "Allow all user_progress access" on user_progress for all using (true) with check (true);
+
+-- 10. ADMINS TABLE
+create table if not exists admins (
+    id text primary key,
+    email text not null,
+    "createdAt" text
+);
+
+alter table admins enable row level security;
+create policy "Allow public read admins" on admins for select to public using (true);
+create policy "Allow all admins access" on admins for all using (true) with check (true);
 `;

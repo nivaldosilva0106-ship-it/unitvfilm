@@ -33,7 +33,7 @@ export const getSupabaseClient = () => {
   try {
     supabaseInstance = createClient(url, key, {
       auth: {
-        persistSession: false
+        persistSession: true
       }
     });
     lastUsedUrl = url;

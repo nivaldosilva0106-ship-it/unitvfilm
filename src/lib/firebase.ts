@@ -141,8 +141,55 @@ export const deleteContent = async (id: string) => {
   await remove(contentRef);
 };
 
+// Helper to sanitize profile updates against allowed PostgreSQL columns
+const sanitizeProfilePayload = (updates: any) => {
+  const allowedKeys = [
+    'email', 'isPremium', 'subscriptionTier', 'planId', 'status',
+    'subscriptionExpiresAt', 'createdAt', 'credits', 'currentLimits',
+    'lastSeen', 'currentProfileName', 'currentProfileAvatar',
+    'lastExpiryNotification', 'lastIPTVGeneratedAt', 'phone',
+    'displayName', 'trialSignup'
+  ];
+  const cleaned: any = {};
+  for (const key of allowedKeys) {
+    if (updates[key] !== undefined) {
+      cleaned[key] = updates[key];
+    }
+  }
+  return cleaned;
+};
+
 // Authentication functions
 export const signUp = async (email: string, password: string, subscriptionTier: SubscriptionTier = 'free', planId = 'free', status: 'active' | 'pending_payment' = 'active') => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      if (error) throw error;
+      const user = data.user;
+      if (!user) throw new Error("Falha ao criar conta no Supabase");
+
+      const profile: UserProfile = {
+        id: user.id,
+        email: user.email || email,
+        isPremium: subscriptionTier !== 'free',
+        subscriptionTier,
+        planId,
+        status,
+        subscriptionExpiresAt: null,
+        createdAt: new Date().toISOString(),
+      };
+      
+      const { error: profileError } = await supabase.from('profiles').upsert(removeUndefinedDeep(profile));
+      if (profileError) throw profileError;
+
+      return { user: { uid: user.id, email: user.email } };
+    }
+  }
+
   const userCredential = await createUserWithEmailAndPassword(auth, email, password);
   const user = userCredential.user;
 
@@ -158,32 +205,142 @@ export const signUp = async (email: string, password: string, subscriptionTier: 
     createdAt: new Date().toISOString(),
   };
 
-  if (isSupabaseEnabled()) {
-    const supabase = getSupabaseClient();
-    if (supabase) {
-      const { error } = await supabase.from('profiles').upsert(removeUndefinedDeep(profile));
-      if (error) throw error;
-    }
-  } else {
-    await set(ref(database, `profiles/${user.uid}`), profile);
-  }
+  await set(ref(database, `profiles/${user.uid}`), profile);
   return userCredential;
 };
 
 export const signIn = async (email: string, password: string) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      // 1. Try to log in via Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        // If credentials failed, check if this is an existing migrated profile from Firebase RTDB backup
+        const { data: profile, error: dbError } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('email', email)
+          .maybeSingle();
+
+        if (!dbError && profile) {
+          // Yes! This email exists in profiles table but has no Supabase Auth account.
+          // Let's dynamically register them on-the-fly using the credentials they typed!
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+          });
+
+          if (!signUpError && signUpData?.user) {
+            const newUser = signUpData.user;
+            const oldId = profile.id;
+            const newId = newUser.id;
+
+            // Transition all old ID records to the new Supabase UUID
+            if (oldId !== newId) {
+              const updatedProfile = {
+                ...profile,
+                id: newId,
+                email: newUser.email || email,
+              };
+              
+              // Clean payload for profiles upsert
+              const sanitizedProfile = sanitizeProfilePayload(updatedProfile);
+              await supabase.from('profiles').upsert({ id: newId, ...sanitizedProfile });
+              
+              // Delete old profile
+              await supabase.from('profiles').delete().eq('id', oldId);
+
+              // Update sub-profiles (account_profiles)
+              await supabase.from('account_profiles').update({ userId: newId }).eq('userId', oldId);
+
+              // Update my_list
+              await supabase.from('my_list').update({ userId: newId }).eq('userId', oldId);
+
+              // Update user_progress
+              await supabase.from('user_progress').update({ userId: newId }).eq('userId', oldId);
+            }
+
+            return { user: { uid: newId, email: newUser.email } };
+          }
+        }
+        throw error;
+      }
+
+      const user = data.user;
+      if (!user) throw new Error("Usuário não encontrado");
+      return { user: { uid: user.id, email: user.email } };
+    }
+  }
+
   return signInWithEmailAndPassword(auth, email, password);
 };
 
 export const logOut = async () => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      return;
+    }
+  }
   return signOut(auth);
 };
 
 export const resetPassword = async (email: string) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      if (error) throw error;
+      return;
+    }
+  }
   const { sendPasswordResetEmail } = await import('firebase/auth');
   return sendPasswordResetEmail(auth, email);
 };
 
-export const onAuthChange = (callback: (user: User | null) => void) => {
+export const onAuthChange = (callback: (user: any) => void) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      // 1. Initial check
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user) {
+          callback({
+            uid: session.user.id,
+            email: session.user.email,
+            isAnonymous: false
+          });
+        } else {
+          callback(null);
+        }
+      });
+
+      // 2. State listener
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, session: any) => {
+        if (session?.user) {
+          callback({
+            uid: session.user.id,
+            email: session.user.email,
+            isAnonymous: false
+          });
+        } else {
+          callback(null);
+        }
+      });
+
+      return () => {
+        subscription.unsubscribe();
+      };
+    }
+  }
+
   return onAuthStateChanged(auth, callback);
 };
 
@@ -241,8 +398,8 @@ export const updateUserProfile = async (userId: string, updates: Partial<UserPro
   if (isSupabaseEnabled()) {
     const supabase = getSupabaseClient();
     if (supabase) {
-      const cleaned = removeUndefinedDeep(updates);
-      const { error } = await supabase.from('profiles').upsert({ id: userId, ...cleaned });
+      const sanitized = sanitizeProfilePayload(updates);
+      const { error } = await supabase.from('profiles').upsert({ id: userId, ...sanitized });
       if (error) throw error;
       return;
     }
@@ -513,7 +670,25 @@ export const checkSubscriptionExpired = async (userId: string): Promise<boolean>
 // Admin role functions
 export const isUserAdmin = async (userId: string): Promise<boolean> => {
   try {
-    // Check in admins table
+    if (isSupabaseEnabled()) {
+      const supabase = getSupabaseClient();
+      if (supabase) {
+        // Fallback: check if user exists and email is www.nivaldo.com.ao@gmail.com
+        const profile = await getUserProfile(userId);
+        if (profile?.email === 'www.nivaldo.com.ao@gmail.com') {
+          return true;
+        }
+
+        // Query admins table in Supabase
+        const { data, error } = await supabase.from('admins').select('id').eq('id', userId).maybeSingle();
+        if (!error && data) {
+          return true;
+        }
+        return false;
+      }
+    }
+
+    // Check in admins table in Firebase
     const adminRef = ref(database, `admins/${userId}`);
     const snapshot = await get(adminRef);
     if (snapshot.exists()) {
@@ -529,6 +704,17 @@ export const isUserAdmin = async (userId: string): Promise<boolean> => {
 };
 
 export const getAllAdmins = async (): Promise<string[]> => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('admins').select('id');
+      if (!error && data) {
+        return data.map((d: any) => d.id);
+      }
+      return [];
+    }
+  }
+
   const adminsRef = ref(database, 'admins');
   const snapshot = await get(adminsRef);
   if (snapshot.exists()) {
@@ -538,6 +724,18 @@ export const getAllAdmins = async (): Promise<string[]> => {
 };
 
 export const setUserAsAdmin = async (userId: string, email: string) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      await supabase.from('admins').upsert({
+        id: userId,
+        email,
+        createdAt: new Date().toISOString()
+      });
+      return;
+    }
+  }
+
   const adminRef = ref(database, `admins/${userId}`);
   await set(adminRef, {
     email,
@@ -546,12 +744,38 @@ export const setUserAsAdmin = async (userId: string, email: string) => {
 };
 
 export const removeUserAdmin = async (userId: string) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      await supabase.from('admins').delete().eq('id', userId);
+      return;
+    }
+  }
+
   const adminRef = ref(database, `admins/${userId}`);
   await remove(adminRef);
 };
 
 // Initialize the original admin (www.nivaldo.com.ao@gmail.com)
 export const initializeOriginalAdmin = async () => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { data: profile } = await supabase.from('profiles').select('*').eq('email', 'www.nivaldo.com.ao@gmail.com').maybeSingle();
+      if (profile) {
+        const { data: adminExists } = await supabase.from('admins').select('id').eq('id', profile.id).maybeSingle();
+        if (!adminExists) {
+          await supabase.from('admins').insert({
+            id: profile.id,
+            email: 'www.nivaldo.com.ao@gmail.com',
+            createdAt: new Date().toISOString()
+          });
+        }
+      }
+      return;
+    }
+  }
+
   const users = await getAllUsers();
   const originalAdmin = users.find(u => u.email === 'www.nivaldo.com.ao@gmail.com');
   if (originalAdmin) {
@@ -721,15 +945,26 @@ export const createAccountProfile = async (userId: string, data: Omit<Profile, '
     const supabase = getSupabaseClient();
     if (supabase) {
       const id = `ap_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const profile: Profile = {
+      const profilePayload = {
+        id,
+        userId,
+        name: data.name,
+        avatar: data.avatar,
+        avatarUrl: data.avatar || '',
+        isKids: data.isKids || false,
+        pin: data.pin || null,
+        pinAttempts: data.pinAttempts || 0,
+        lockoutUntil: data.lockoutUntil || null,
+        createdAt: new Date().toISOString(),
+      };
+      const { error } = await supabase.from('account_profiles').insert(removeUndefinedDeep(profilePayload));
+      if (error) throw error;
+      return {
         ...data,
         id,
         userId,
-        createdAt: new Date().toISOString(),
-      };
-      const { error } = await supabase.from('account_profiles').insert(removeUndefinedDeep(profile));
-      if (error) throw error;
-      return profile;
+        createdAt: profilePayload.createdAt
+      } as Profile;
     }
   }
 
@@ -749,8 +984,17 @@ export const updateAccountProfile = async (userId: string, profileId: string, up
   if (isSupabaseEnabled()) {
     const supabase = getSupabaseClient();
     if (supabase) {
-      const cleaned = removeUndefinedDeep(updates);
-      const { error } = await supabase.from('account_profiles').update(cleaned).eq('userId', userId).eq('id', profileId);
+      const cleanUpdates: any = {};
+      if (updates.name !== undefined) cleanUpdates.name = updates.name;
+      if (updates.avatar !== undefined) cleanUpdates.avatar = updates.avatar;
+      if (updates.isKids !== undefined) cleanUpdates.isKids = updates.isKids;
+      if (updates.pin !== undefined) cleanUpdates.pin = updates.pin;
+      if (updates.pinAttempts !== undefined) cleanUpdates.pinAttempts = updates.pinAttempts;
+      if (updates.lockoutUntil !== undefined) cleanUpdates.lockoutUntil = updates.lockoutUntil;
+      // also include avatarUrl if it was updated or matches avatar
+      if (updates.avatar !== undefined) cleanUpdates.avatarUrl = updates.avatar;
+
+      const { error } = await supabase.from('account_profiles').update(cleanUpdates).eq('userId', userId).eq('id', profileId);
       if (error) throw error;
       return;
     }
