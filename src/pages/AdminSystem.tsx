@@ -729,7 +729,7 @@ create table if not exists contents (
     likes integer default 0,
     dislikes integer default 0,
     classification text,
-    cast text,
+    "cast" text,
     duration text,
     year integer,
     genre jsonb default '[]'::jsonb,
