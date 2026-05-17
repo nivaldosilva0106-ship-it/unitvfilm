@@ -144,6 +144,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const isLikelyManifest = 
       urlLower.endsWith('.m3u8') ||
       urlLower.endsWith('.m3u') ||
+      urlLower.endsWith('.txt') ||
       extHint === '.m3u8' ||
       contentType.includes('mpegurl') ||
       contentType.includes('x-mpegurl');
@@ -171,6 +172,59 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         res.status(206);
       } else {
         res.status(200);
+      }
+
+      // Special handling for .txt files that contain a redirect URL (not a manifest)
+      if (isTxtUrl && detectedType !== 'application/vnd.apple.mpegurl' && detectedType !== 'audio/mpegurl') {
+        const text = new TextDecoder().decode(uint8).trim();
+        const lines = text.split('\n').filter(l => l.trim() && !l.trim().startsWith('#'));
+        if (lines.length >= 1) {
+          const firstLine = lines[0].trim();
+          if (firstLine.startsWith('http://') || firstLine.startsWith('https://')) {
+            // This .txt is a redirect — follow the URL and proxy the actual content
+            try {
+              const redirectController = new AbortController();
+              const redirectTimeout = setTimeout(() => redirectController.abort(), 25000);
+
+              const redirectResponse = await fetch(firstLine, {
+                headers: {
+                  'User-Agent': headers['User-Agent'],
+                  'Accept': '*/*',
+                  'Referer': new URL(firstLine).origin + '/',
+                },
+                redirect: 'follow',
+                signal: redirectController.signal,
+              });
+
+              clearTimeout(redirectTimeout);
+
+              if (redirectResponse.ok) {
+                const redirectBody = await redirectResponse.arrayBuffer();
+                const redirectUint8 = new Uint8Array(redirectBody);
+                const redirectType = detectMediaType(redirectUint8, firstLine, redirectResponse.headers.get('content-type') || '');
+
+                res.setHeader('Content-Type', redirectType);
+                if (redirectResponse.headers.get('content-length')) {
+                  res.setHeader('Content-Length', redirectResponse.headers.get('content-length')!);
+                }
+
+                // If the redirected content is a manifest, rewrite its URLs
+                if (redirectType === 'application/vnd.apple.mpegurl' || redirectType === 'audio/mpegurl') {
+                  const manifestText = new TextDecoder().decode(redirectUint8);
+                  const protocol = req.headers['x-forwarded-proto'] || 'https';
+                  const host = req.headers.host;
+                  const proxyBase = `${protocol}://${host}/api/stream-proxy`;
+                  const rewritten = rewriteM3U8Urls(manifestText, firstLine, proxyBase);
+                  return res.send(rewritten);
+                }
+
+                return res.send(Buffer.from(redirectBody));
+              }
+            } catch (redirectErr: any) {
+              console.warn('.txt redirect follow failed:', redirectErr.message);
+            }
+          }
+        }
       }
 
       // If it's an HLS manifest, rewrite relative URLs

@@ -108,6 +108,10 @@ const formatTime = (seconds: number): string => {
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   const [isAmplified, setIsAmplified] = useState(true); // Enabled by default to boost low volume content like TikToks
 
+  // State for resolved URL (for .txt files that contain redirect URLs)
+  const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+  const [isTxtResolving, setIsTxtResolving] = useState(false);
+
   // Safeguard: Check if url exists before calling includes or other string methods
   if (!url) {
     return (
@@ -126,20 +130,94 @@ const formatTime = (seconds: number): string => {
     return isProtectedUrl(u);
   };
 
+  // Use resolved URL if .txt was pre-fetched, otherwise use original
+  const effectiveUrl = resolvedUrl || url;
+
   // Detect stream type — use path-only check to avoid query param false positives
-  const urlPath = url?.toLowerCase().split('?')[0] || '';
-  const isHLS = urlPath.endsWith('.m3u8') || urlPath.endsWith('.m3u') || 
-    urlPath.endsWith('.txt') || url?.includes('typezero.top');
-  const isGoogleDrive = url?.includes('googleapis.com/drive') || url?.includes('drive.google.com');
+  const effectivePath = effectiveUrl?.toLowerCase().split('?')[0] || '';
+  const originalPath = url?.toLowerCase().split('?')[0] || '';
+  const isTxtUrl = originalPath.endsWith('.txt');
+  const isHLS = effectivePath.endsWith('.m3u8') || effectivePath.endsWith('.m3u') || 
+    effectivePath.endsWith('.txt') || effectiveUrl?.includes('typezero.top');
+  const isGoogleDrive = effectiveUrl?.includes('googleapis.com/drive') || effectiveUrl?.includes('drive.google.com');
+
+  // Pre-fetch .txt URLs to detect if they contain a redirect URL or are actual manifests
+  useEffect(() => {
+    if (!isTxtUrl || resolvedUrl) return;
+
+    const resolveTxtUrl = async () => {
+      setIsTxtResolving(true);
+      try {
+        // Fetch through proxy to check the .txt content
+        const proxyUrl = createSecurePlaybackUrl(url);
+        const response = await fetch(proxyUrl, {
+          headers: { 'Accept': '*/*' },
+        });
+
+        if (!response.ok) {
+          console.warn('.txt pre-fetch failed, will try HLS directly:', response.status);
+          setIsTxtResolving(false);
+          return;
+        }
+
+        const contentType = response.headers.get('content-type') || '';
+        
+        // If the proxy already identified it as HLS manifest, use the original URL
+        if (contentType.includes('mpegurl') || contentType.includes('application/vnd.apple')) {
+          console.log('.txt is HLS manifest, proceeding normally');
+          setIsTxtResolving(false);
+          return;
+        }
+
+        // Read a small portion to check content
+        const text = await response.text();
+        const trimmed = text.trim();
+
+        // If starts with #EXTM3U, it's a manifest — use as-is
+        if (trimmed.startsWith('#EXTM3U') || trimmed.startsWith('#EXT-X-')) {
+          console.log('.txt is HLS manifest content');
+          setIsTxtResolving(false);
+          return;
+        }
+
+        // If the .txt contains a single URL (redirect), use that URL instead
+        const lines = trimmed.split('\n').filter(l => l.trim() && !l.trim().startsWith('#'));
+        if (lines.length >= 1) {
+          const firstLine = lines[0].trim();
+          if (firstLine.startsWith('http://') || firstLine.startsWith('https://')) {
+            const resolvedPath = firstLine.toLowerCase().split('?')[0];
+            // If the redirect URL is a direct stream, use it
+            if (resolvedPath.endsWith('.m3u8') || resolvedPath.endsWith('.m3u') ||
+                resolvedPath.endsWith('.mp4') || resolvedPath.endsWith('.ts') ||
+                resolvedPath.endsWith('.mkv')) {
+              console.log('.txt resolved to redirect URL:', firstLine.substring(0, 60) + '...');
+              setResolvedUrl(firstLine);
+              setIsTxtResolving(false);
+              return;
+            }
+          }
+        }
+
+        // Default: treat as HLS manifest (most IPTV .txt files are disguised m3u8)
+        console.log('.txt content could not be classified, treating as HLS');
+      } catch (err) {
+        console.warn('.txt pre-fetch error, will try HLS directly:', err);
+      }
+      setIsTxtResolving(false);
+    };
+
+    resolveTxtUrl();
+  }, [url, isTxtUrl, resolvedUrl]);
 
   // Transform and SECURE video URL — the real URL is NEVER exposed
   const getVideoUrl = useCallback(() => {
+    const targetUrl = resolvedUrl || url;
     if (isGoogleDrive) {
       // Extract file ID
-      const match = url.match(/files\/([a-zA-Z0-9_-]+)/);
+      const match = targetUrl.match(/files\/([a-zA-Z0-9_-]+)/);
       if (match) {
         try {
-          const urlObj = new URL(url);
+          const urlObj = new URL(targetUrl);
           const params = new URLSearchParams(urlObj.search);
           if (!params.has('alt')) {
             params.set('alt', 'media');
@@ -154,16 +232,19 @@ const formatTime = (seconds: number): string => {
       }
     }
     // Route ALL protected URLs through encrypted proxy
-    if (needsSecureProxy(url)) {
-      return createSecurePlaybackUrl(url);
+    if (needsSecureProxy(targetUrl)) {
+      return createSecurePlaybackUrl(targetUrl);
     }
-    return url;
-  }, [url, isGoogleDrive]);
+    return targetUrl;
+  }, [url, resolvedUrl, isGoogleDrive]);
 
   // Initialize HLS or native video
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+
+    // Don't initialize while .txt URL is still being resolved
+    if (isTxtUrl && isTxtResolving) return;
 
     const videoUrl = getVideoUrl();
 
@@ -193,16 +274,21 @@ const formatTime = (seconds: number): string => {
 
     if (isHLS && Hls.isSupported()) {
       let networkRetries = 0;
-      const MAX_NETWORK_RETRIES = 3;
+      const MAX_NETWORK_RETRIES = 5;
+      let mediaErrorRetries = 0;
+      const MAX_MEDIA_RETRIES = 3;
 
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
-        // Increase timeouts for slow .txt streams
-        manifestLoadingTimeOut: 15000,
-        manifestLoadingMaxRetry: 3,
-        levelLoadingTimeOut: 15000,
+        // Increase timeouts for .txt streams which may be slow
+        manifestLoadingTimeOut: 30000,
+        manifestLoadingMaxRetry: 5,
+        manifestLoadingRetryDelay: 1000,
+        levelLoadingTimeOut: 20000,
+        levelLoadingMaxRetry: 4,
         fragLoadingTimeOut: 30000,
+        fragLoadingMaxRetry: 6,
         // Allow loading from any origin (proxied URLs)
         xhrSetup: (xhr: XMLHttpRequest) => {
           xhr.withCredentials = false;
@@ -228,25 +314,57 @@ const formatTime = (seconds: number): string => {
         setCurrentQuality(data.level);
       });
 
-      // Smart fallback: if HLS fails on a proxied URL, try direct native playback
+      // Smart fallback: if HLS fails, try multiple recovery strategies
       hls.on(Hls.Events.ERROR, (_, data) => {
         if (data.fatal) {
-          console.warn('HLS fatal error, attempting fallback...', data.type, data.details);
+          console.warn('HLS fatal error:', data.type, data.details);
           
           if (data.type === Hls.ErrorTypes.NETWORK_ERROR && networkRetries < MAX_NETWORK_RETRIES) {
             networkRetries++;
             console.log(`HLS network retry ${networkRetries}/${MAX_NETWORK_RETRIES}`);
-            hls.startLoad();
-          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            setTimeout(() => hls.startLoad(), 1000 * networkRetries);
+          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR && mediaErrorRetries < MAX_MEDIA_RETRIES) {
+            mediaErrorRetries++;
+            console.log(`HLS media error recovery ${mediaErrorRetries}/${MAX_MEDIA_RETRIES}`);
             hls.recoverMediaError();
           } else {
-            // If not HLS content or retries exhausted, fallback to direct native playback
-            console.log('HLS completely failed. Falling back to native video for:', url);
+            // All retries exhausted — try fallback strategies
+            console.log('HLS completely failed. Attempting fallback for:', effectiveUrl);
             hls.destroy();
             hlsRef.current = null;
-            
-            // Fallback still uses secure URL to protect the source
-            video.src = needsSecureProxy(url) ? createSecurePlaybackUrl(url) : url;
+
+            const targetUrl = resolvedUrl || url;
+            const fallbackUrl = needsSecureProxy(targetUrl) ? createSecurePlaybackUrl(targetUrl) : targetUrl;
+
+            // Strategy 1: Try loading as direct video source
+            video.src = fallbackUrl;
+            video.load();
+
+            const onCanPlay = () => {
+              video.removeEventListener('canplay', onCanPlay);
+              video.removeEventListener('error', onFallbackError);
+              if (autoPlay && active) attemptPlay();
+            };
+
+            const onFallbackError = () => {
+              video.removeEventListener('canplay', onCanPlay);
+              video.removeEventListener('error', onFallbackError);
+              console.warn('Direct fallback also failed. Trying original URL without proxy...');
+
+              // Strategy 2: Try the original URL directly (without proxy)
+              // This works when the proxy is the problem (CORS, timeout, etc.)
+              video.src = targetUrl;
+              video.load();
+              if (autoPlay && active) {
+                video.play().catch(() => {
+                  console.error('All playback strategies exhausted for:', targetUrl);
+                });
+              }
+            };
+
+            video.addEventListener('canplay', onCanPlay);
+            video.addEventListener('error', onFallbackError);
+
             if (autoPlay && active) {
               attemptPlay();
             }
@@ -273,7 +391,7 @@ const formatTime = (seconds: number): string => {
         attemptPlay();
       }
     }
-  }, [url, isHLS, autoPlay, getVideoUrl]);
+  }, [url, resolvedUrl, isHLS, isTxtResolving, autoPlay, getVideoUrl, effectiveUrl, active]);
 
   const hasSeekedRef = useRef<string | null>(null);
 
@@ -643,7 +761,7 @@ const formatTime = (seconds: number): string => {
         ref={videoRef}
         className={aspectClasses[videoAspect] || aspectClasses['cover']}
         playsInline
-        crossOrigin="anonymous"
+        {...(isHLS || isGoogleDrive || needsSecureProxy(effectiveUrl) ? {} : { crossOrigin: 'anonymous' })}
         muted={isMuted}
         onContextMenu={(e) => e.preventDefault()}
       >
