@@ -66,12 +66,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const savedProfileId = localStorage.getItem('unitv_current_profile_id');
         if (savedProfileId) {
+          // Restore from cache immediately to prevent blocking UI
+          const cachedProfileStr = localStorage.getItem('unitv_current_profile');
+          if (cachedProfileStr) {
+            try {
+              const cachedProfile = JSON.parse(cachedProfileStr);
+              if (cachedProfile && cachedProfile.id === savedProfileId) {
+                setCurrentProfile(cachedProfile);
+              }
+            } catch (e) {
+              console.error("Error parsing cached profile", e);
+            }
+          }
+
+          // Fetch fresh profile in background with a timeout so it never blocks startup
           try {
-            const profiles = await getAccountProfiles(firebaseUser.uid);
-            const matched = profiles.find(p => p.id === savedProfileId);
-            if (matched) setCurrentProfile(matched);
+            const profilesPromise = getAccountProfiles(firebaseUser.uid);
+            const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500));
+            const profiles = await Promise.race([profilesPromise, timeoutPromise]);
+            
+            if (profiles) {
+              const matched = profiles.find(p => p.id === savedProfileId);
+              if (matched) {
+                setCurrentProfile(matched);
+                localStorage.setItem('unitv_current_profile', JSON.stringify(matched));
+              }
+            }
           } catch (e) {
-            console.error("Error restoring profile", e);
+            console.error("Error restoring profile in background", e);
           }
         }
 
@@ -126,11 +148,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setCurrentProfile(null);
     setIsAdmin(false);
     localStorage.removeItem('unitv_current_profile_id');
+    localStorage.removeItem('unitv_current_profile');
   };
 
   const selectProfile = (profile: Profile) => {
     setCurrentProfile(profile);
     localStorage.setItem('unitv_current_profile_id', profile.id);
+    localStorage.setItem('unitv_current_profile', JSON.stringify(profile));
   };
 
   const refreshUser = async () => {
