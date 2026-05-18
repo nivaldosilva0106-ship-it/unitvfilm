@@ -5,6 +5,7 @@ import type { Content } from '@/types/content';
 import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { getProviderConfig } from '@/lib/providers';
+import { getBaseUrl } from '@/lib/api';
 
 // Utility helper to extract 11-character YouTube video IDs
 const getYouTubeId = (url: string | undefined | null) => {
@@ -107,7 +108,7 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
                     rel: 0,
                     showinfo: 0,
                     iv_load_policy: 3,
-                    origin: window.location.origin,
+                    origin: getBaseUrl(),
                     playsinline: 1,
                     playlist: ytId // For proper loop / playback
                 },

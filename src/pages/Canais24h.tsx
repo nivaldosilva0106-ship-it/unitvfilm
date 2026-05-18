@@ -200,11 +200,10 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                     showinfo: 0,
                     iv_load_policy: 3,
                     start: Math.floor(startTime),
-                    origin: window.location.origin,
+                    origin: getBaseUrl(),
                     playsinline: 1,
                     enablejsapi: 1,
-                    widget_referrer: window.location.href,
-                    host: 'https://www.youtube-nocookie.com',
+                    widget_referrer: getBaseUrl(),
                 },
                 events: {
                     onReady: (e: any) => {

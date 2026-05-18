@@ -7,6 +7,7 @@ import { useAppConfig } from "@/hooks/useAppConfig";
 import { getOptimizedImageUrl } from "@/lib/utils";
 import { getTmdbLogoUrl } from "@/lib/tmdb";
 import { FOCUSABLE_CLASS } from "@/hooks/useSpatialNavigation";
+import { getBaseUrl } from "@/lib/api";
 
 declare global {
     interface Window {
@@ -109,7 +110,7 @@ export const IndexHero = memo(({
                      rel: 0,
                      showinfo: 0,
                      iv_load_policy: 3,
-                     origin: window.location.origin,
+                     origin: getBaseUrl(),
                      playsinline: 1,
                      playlist: ytId // For proper looping
                  },

@@ -462,7 +462,7 @@ export default function NostalgiaTube(): JSX.Element {
                 disablekb: 0,
                 cc_load_policy: 0,
                 playsinline: 1,
-                origin: window.location.origin
+                origin: getBaseUrl()
             },
             events: {
                 onReady: (event: any) => {
