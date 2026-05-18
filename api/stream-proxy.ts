@@ -80,7 +80,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  const { t: token, url: directUrl, ext } = req.query;
+  const { t: token, url: directUrl, ext, ref } = req.query;
   let videoUrl: string;
 
   // 1. Encrypted token (secure, preferred)
@@ -102,12 +102,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).json({ error: 'Missing token (t) or url parameter' });
   }
 
+  // Original source URL origin — used as Referer for hotlink-protected segments
+  // If caller passes &ref=https://source.com/, use that; otherwise derive from videoUrl
+  const originalReferer = (typeof ref === 'string' && ref)
+    ? ref
+    : (new URL(videoUrl).origin + '/');
+
   try {
     // Forward Range header for partial content requests (seeking)
     const headers: Record<string, string> = {
       'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
       'Accept': '*/*',
-      'Referer': new URL(videoUrl).origin + '/',
+      'Referer': originalReferer,
     };
 
     if (req.headers.range) {
@@ -214,7 +220,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                   const protocol = req.headers['x-forwarded-proto'] || 'https';
                   const host = req.headers.host;
                   const proxyBase = `${protocol}://${host}/api/stream-proxy`;
-                  const rewritten = rewriteM3U8Urls(manifestText, firstLine, proxyBase);
+                  // Pass originalReferer (the source domain) so segments bypass hotlink protection
+                  const rewritten = rewriteM3U8Urls(manifestText, firstLine, proxyBase, originalReferer);
                   return res.send(rewritten);
                 }
 
@@ -233,7 +240,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const protocol = req.headers['x-forwarded-proto'] || 'https';
         const host = req.headers.host;
         const proxyBase = `${protocol}://${host}/api/stream-proxy`;
-        const rewritten = rewriteM3U8Urls(text, finalVideoUrl, proxyBase);
+        // Pass originalReferer so segment URLs include &ref= for hotlink protection bypass
+        const rewritten = rewriteM3U8Urls(text, finalVideoUrl, proxyBase, originalReferer);
         return res.send(rewritten);
       }
 
@@ -301,7 +309,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const protocol = req.headers['x-forwarded-proto'] || 'https';
       const host = req.headers.host;
       const proxyBase = `${protocol}://${host}/api/stream-proxy`;
-      const rewritten = rewriteM3U8Urls(text, finalVideoUrl, proxyBase);
+      const rewritten = rewriteM3U8Urls(text, finalVideoUrl, proxyBase, originalReferer);
       res.setHeader('Content-Type', detectedType);
       res.setHeader('Cache-Control', 'public, max-age=300');
       return res.status(200).send(rewritten);
@@ -420,8 +428,11 @@ function detectMediaType(data: Uint8Array, url: string, serverContentType: strin
 /**
  * Rewrite relative URLs in M3U8 manifests to absolute URLs proxied through this endpoint
  */
-function rewriteM3U8Urls(manifest: string, originalUrl: string, proxyBase: string): string {
+function rewriteM3U8Urls(manifest: string, originalUrl: string, proxyBase: string, refererHint?: string): string {
   const baseUrl = originalUrl.substring(0, originalUrl.lastIndexOf('/') + 1);
+  // The original source referer to pass to segment requests for hotlink protection bypass
+  // e.g. if manifest came from typezero.top, segments at zapcore.icu need Referer: typezero.top
+  const refParam = refererHint ? `&ref=${encodeURIComponent(refererHint)}` : '';
 
   return manifest.split('\n').map(line => {
     const trimmed = line.trim();
@@ -441,9 +452,9 @@ function rewriteM3U8Urls(manifest: string, originalUrl: string, proxyBase: strin
           else if (uriLower.endsWith('.ts')) extHint = '&ext=.ts';
           else if (uriLower.endsWith('.mp4')) extHint = '&ext=.mp4';
           else if (uriLower.endsWith('.aac')) extHint = '&ext=.aac';
-          else extHint = '&ext=.ts'; // Default to .ts for unknown segment extensions
+          else extHint = '&ext=.ts';
           
-          return `URI="${proxyBase}?url=${encodeURIComponent(absoluteUri)}${extHint}"`;
+          return `URI="${proxyBase}?url=${encodeURIComponent(absoluteUri)}${extHint}${refParam}"`;
         });
       }
       return line;
@@ -465,9 +476,9 @@ function rewriteM3U8Urls(manifest: string, originalUrl: string, proxyBase: strin
     else if (finalLower.endsWith('.ts')) extHint = '&ext=.ts';
     else if (finalLower.endsWith('.mp4')) extHint = '&ext=.mp4';
     else if (finalLower.endsWith('.aac')) extHint = '&ext=.aac';
-    else extHint = '&ext=.ts'; // Default to .ts for unknown segment extensions
+    else extHint = '&ext=.ts';
 
-    // Return the proxied URL using the absolute proxyBase with extension hint
-    return `${proxyBase}?url=${encodeURIComponent(finalUrl)}${extHint}`;
+    // Return the proxied URL using the absolute proxyBase with extension hint and referer hint
+    return `${proxyBase}?url=${encodeURIComponent(finalUrl)}${extHint}${refParam}`;
   }).join('\n');
 }
