@@ -193,7 +193,7 @@ export function createSecurePlaybackUrl(url: string): string {
       
       // Fallback if settings not found - use the production Vercel domain
       if (!baseUrl) {
-        baseUrl = 'https://unitvfilm.vercel.app'; // Default fallback
+        baseUrl = 'https://unitvfilms.vercel.app'; // Default fallback
       }
     }
   }
@@ -229,7 +229,7 @@ export function createSecureDownloadUrl(url: string, filename?: string): string 
           }
         }
       } catch (e) {}
-      if (!baseUrl) baseUrl = 'https://unitvfilm.vercel.app';
+      if (!baseUrl) baseUrl = 'https://unitvfilms.vercel.app';
     }
   }
   
