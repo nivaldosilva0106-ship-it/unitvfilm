@@ -152,11 +152,10 @@ export function createSecurePlaybackUrl(url: string): string {
   
   // Don't double-encrypt already proxied URLs
   if (url.startsWith('/api/')) return url;
+  if (url.includes('stream-proxy?')) return url;
   
   // Only protect certain URL types
   if (!isProtectedUrl(url)) return url;
-  
-  const token = encryptUrl(url);
   
   // HLS.js strongly relies on extensions in the URL to determine the parser type
   // Since we obfuscate the URL, we need to provide a fake extension hint
@@ -198,7 +197,8 @@ export function createSecurePlaybackUrl(url: string): string {
     }
   }
   
-  return `${baseUrl}/api/stream-proxy?t=${token}${ext}`;
+  // Direct proxy URL without encrypted token to prevent any decryption or clock-sync/expiration errors
+  return `${baseUrl}/api/stream-proxy?url=${encodeURIComponent(url)}${ext}`;
 }
 
 /**
