@@ -252,7 +252,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const body = await response.arrayBuffer();
       const uint8 = new Uint8Array(body);
       const detectedType = detectMediaType(uint8, finalVideoUrl, contentType);
-      res.setHeader('Content-Type', detectedType);
+      let finalContentType = contentType;
+      if (extHint === '.ts' || urlLower.endsWith('.ts')) {
+        finalContentType = 'video/mp2t';
+      } else if (extHint === '.mp4' || urlLower.endsWith('.mp4')) {
+        finalContentType = 'video/mp4';
+      }
+      
+      res.setHeader('Content-Type', finalContentType);
       res.setHeader('Cache-Control', 'public, max-age=300');
       if (contentLength) res.setHeader('Content-Length', contentLength);
       if (contentRange) {
@@ -434,6 +441,7 @@ function rewriteM3U8Urls(manifest: string, originalUrl: string, proxyBase: strin
           else if (uriLower.endsWith('.ts')) extHint = '&ext=.ts';
           else if (uriLower.endsWith('.mp4')) extHint = '&ext=.mp4';
           else if (uriLower.endsWith('.aac')) extHint = '&ext=.aac';
+          else extHint = '&ext=.ts'; // Default to .ts for unknown segment extensions
           
           return `URI="${proxyBase}?url=${encodeURIComponent(absoluteUri)}${extHint}"`;
         });
@@ -457,6 +465,7 @@ function rewriteM3U8Urls(manifest: string, originalUrl: string, proxyBase: strin
     else if (finalLower.endsWith('.ts')) extHint = '&ext=.ts';
     else if (finalLower.endsWith('.mp4')) extHint = '&ext=.mp4';
     else if (finalLower.endsWith('.aac')) extHint = '&ext=.aac';
+    else extHint = '&ext=.ts'; // Default to .ts for unknown segment extensions
 
     // Return the proxied URL using the absolute proxyBase with extension hint
     return `${proxyBase}?url=${encodeURIComponent(finalUrl)}${extHint}`;

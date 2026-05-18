@@ -293,8 +293,13 @@ const formatTime = (seconds: number): string => {
     );
 
     if (isNativeAPK && resolvedUrl && isTxtUrl) {
-      // The .txt was already resolved to a real stream URL — use directly
-      return resolvedUrl;
+      // If the .txt was resolved to an actual manifest URL (e.g. .m3u8), we can play it directly in APK.
+      // BUT if it resolved back to itself (still .txt), we MUST proxy it because the internal
+      // segments might be disguised (e.g. .html) and need the proxy to append &ext=.ts
+      // to prevent CapacitorHttp from corrupting the binary data.
+      if (!resolvedUrl.toLowerCase().split('?')[0].endsWith('.txt')) {
+        return resolvedUrl;
+      }
     }
 
     if (isGoogleDrive) {
