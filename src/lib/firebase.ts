@@ -1236,14 +1236,33 @@ export const adminUpdateUser = async (userId: string, updates: Partial<UserProfi
 };
 
 export const updateLastSeen = async (userId: string, profileName?: string, profileAvatar?: string) => {
-  const profileRef = ref(database, `profiles/${userId}`);
   const updates: any = { lastSeen: new Date().toISOString() };
   if (profileName) updates.currentProfileName = profileName;
   if (profileAvatar) updates.currentProfileAvatar = profileAvatar;
+
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { error } = await supabase.from('profiles').update(updates).eq('id', userId);
+      if (error) console.error("Error updating lastSeen in Supabase:", error);
+      return;
+    }
+  }
+
+  const profileRef = ref(database, `profiles/${userId}`);
   await update(profileRef, updates);
 };
 
 export const updateLastIPTVGeneration = async (userId: string) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { error } = await supabase.from('profiles').update({ lastIPTVGeneratedAt: new Date().toISOString() }).eq('id', userId);
+      if (error) console.error("Error updating lastIPTVGeneratedAt in Supabase:", error);
+      return;
+    }
+  }
+
   const profileRef = ref(database, `profiles/${userId}`);
   await update(profileRef, { lastIPTVGeneratedAt: new Date().toISOString() });
 };
