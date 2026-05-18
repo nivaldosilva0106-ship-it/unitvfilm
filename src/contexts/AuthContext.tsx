@@ -83,19 +83,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('unitv_cached_user', JSON.stringify(simplifiedUser));
 
         unsubscribeProfile = subscribeToUserProfile(firebaseUser.uid, async (userProfile) => {
-          if (!userProfile && !firebaseUser.isAnonymous) {
-            // Profile was deleted from the database. Force logout.
-            console.warn("User profile not found in database. Forcing logout.");
-            await logOut();
-            localStorage.removeItem('unitv_cached_user');
-            localStorage.removeItem('unitv_cached_user_profile');
-            localStorage.removeItem('unitv_current_profile');
-            localStorage.removeItem('unitv_current_profile_id');
-            setUser(null);
-            setProfile(null);
-            setCurrentProfile(null);
-            return;
-          }
 
           if (userProfile && userProfile.subscriptionExpiresAt) {
             const isExpired = await checkSubscriptionExpired(firebaseUser.uid);
