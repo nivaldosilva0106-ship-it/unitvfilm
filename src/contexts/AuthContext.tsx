@@ -21,11 +21,41 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<any>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [currentProfile, setCurrentProfile] = useState<Profile | null>(null);
-  const [plan, setPlan] = useState<Plan | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [user, setUser] = useState<any>(() => {
+    try {
+      const cached = localStorage.getItem('unitv_cached_user');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [profile, setProfile] = useState<UserProfile | null>(() => {
+    try {
+      const cached = localStorage.getItem('unitv_cached_user_profile');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [currentProfile, setCurrentProfile] = useState<Profile | null>(() => {
+    try {
+      const cached = localStorage.getItem('unitv_current_profile');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [plan, setPlan] = useState<Plan | null>(() => {
+    try {
+      const cached = localStorage.getItem('unitv_cached_plan');
+      return cached ? JSON.parse(cached) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [isAdmin, setIsAdmin] = useState(() => {
+    return localStorage.getItem('unitv_cached_is_admin') === 'true';
+  });
   const [loading, setLoading] = useState(true);
   const { isLiteMode } = useAppConfig();
 
@@ -38,14 +68,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let unsubscribeProfile: (() => void) | undefined;
 
     const unsubscribeAuth = onAuthChange(async (firebaseUser) => {
-      setUser(firebaseUser);
-
       if (unsubscribeProfile) {
         unsubscribeProfile();
         unsubscribeProfile = undefined;
       }
 
       if (firebaseUser) {
+        const simplifiedUser = {
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          isAnonymous: firebaseUser.isAnonymous
+        };
+        setUser(simplifiedUser);
+        localStorage.setItem('unitv_cached_user', JSON.stringify(simplifiedUser));
+
         unsubscribeProfile = subscribeToUserProfile(firebaseUser.uid, async (userProfile) => {
           if (userProfile && userProfile.subscriptionExpiresAt) {
             const isExpired = await checkSubscriptionExpired(firebaseUser.uid);
@@ -54,13 +90,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setProfile(userProfile);
 
           if (userProfile) {
+            localStorage.setItem('unitv_cached_user_profile', JSON.stringify(userProfile));
+
             const adminStatus = await isUserAdmin(firebaseUser.uid);
             setIsAdmin(adminStatus);
+            localStorage.setItem('unitv_cached_is_admin', adminStatus ? 'true' : 'false');
 
             const plans = await getPlans();
             const currentPlanId = userProfile.planId || 'free';
             const activePlan = plans.find(p => p.id === currentPlanId) || plans.find(p => p.id === 'free') || null;
             setPlan(activePlan);
+            if (activePlan) {
+              localStorage.setItem('unitv_cached_plan', JSON.stringify(activePlan));
+            }
           }
         });
 
@@ -110,11 +152,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setCurrentProfile(guestProfile);
         }
       } else {
+        // Passive auth drops must NEVER destructively purge cached profile selection keys!
+        setUser(null);
         setProfile(null);
         setPlan(null);
         setCurrentProfile(null);
         setIsAdmin(false);
-        localStorage.removeItem('unitv_current_profile_id');
       }
       setLoading(false);
     });
@@ -149,6 +192,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsAdmin(false);
     localStorage.removeItem('unitv_current_profile_id');
     localStorage.removeItem('unitv_current_profile');
+    localStorage.removeItem('unitv_cached_user');
+    localStorage.removeItem('unitv_cached_user_profile');
+    localStorage.removeItem('unitv_cached_plan');
+    localStorage.removeItem('unitv_cached_is_admin');
   };
 
   const selectProfile = (profile: Profile) => {

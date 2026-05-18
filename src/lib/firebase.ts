@@ -365,6 +365,19 @@ export const onAuthChange = (callback: (user: any) => void) => {
   if (isSupabaseEnabled()) {
     const supabase = getSupabaseClient();
     if (supabase) {
+      // Helper to check if a token exists in localStorage for Supabase
+      const hasPersistedToken = () => {
+        try {
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+              return true;
+            }
+          }
+        } catch {}
+        return false;
+      };
+
       // 1. Initial check
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user) {
@@ -374,20 +387,29 @@ export const onAuthChange = (callback: (user: any) => void) => {
             isAnonymous: false
           });
         } else {
-          callback(null);
+          if (!hasPersistedToken()) {
+            callback(null);
+          }
         }
       });
 
       // 2. State listener
-      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event: string, session: any) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
         if (session?.user) {
           callback({
             uid: session.user.id,
             email: session.user.email,
             isAnonymous: false
           });
-        } else {
+        } else if (event === 'SIGNED_OUT') {
           callback(null);
+        } else {
+          // If session is null, but we still have a persisted token in localStorage,
+          // do NOT report as logged out yet unless it was a definitive SIGNED_OUT event.
+          // This avoids logging the user out during temporary refresh failures or when offline.
+          if (!hasPersistedToken()) {
+            callback(null);
+          }
         }
       });
 
