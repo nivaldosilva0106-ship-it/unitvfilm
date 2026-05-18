@@ -429,7 +429,13 @@ export default function Categories() {
                     trailerUrl={selectedSeries.trailer_url}
                     thumbnail={selectedSeries.thumbnail_url}
                     onPlayEpisode={(ep) => {
-                        navigate(`/watch/${selectedSeries.id}?season=${ep.season}&episode=${ep.episode}`);
+                        const watchUrl = `/watch/${selectedSeries.id}?season=${ep.season}&episode=${ep.episode}`;
+                        if (selectedSeries.is_cinema_mode) {
+                            setPendingPlayerState({ contentId: selectedSeries.id, season: ep.season, episode: ep.episode });
+                            setShowCinemaModal(true);
+                        } else {
+                            navigate(watchUrl);
+                        }
                     }}
                 />
             )}

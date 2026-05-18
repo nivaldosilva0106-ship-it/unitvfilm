@@ -189,11 +189,8 @@ const ProviderView = () => {
                         title={selectedSeries.title}
                         trailerUrl={selectedSeries.trailer_url}
                         thumbnail={selectedSeries.thumbnail_url}
-                        onPlayEpisode={(url, episodeTitle) => {
-                            const foundEp = selectedSeries.episodes?.find(e => e.url === url);
-                            if (foundEp) {
-                                navigate(`/watch/${selectedSeries.id}?season=${foundEp.season}&episode=${foundEp.episode}`);
-                            }
+                        onPlayEpisode={(ep) => {
+                            navigate(`/watch/${selectedSeries.id}?season=${ep.season}&episode=${ep.episode}`);
                         }}
                     />
                 )}
