@@ -339,7 +339,7 @@ const formatTime = (seconds: number): string => {
         attemptPlay();
       }
     }
-  }, [url, resolvedUrl, isHLS, isTxtResolving, autoPlay, getVideoUrl, effectiveUrl, active]);
+  }, [url, resolvedUrl, isHLS, autoPlay, getVideoUrl, effectiveUrl, active]);
 
   const hasSeekedRef = useRef<string | null>(null);
 
