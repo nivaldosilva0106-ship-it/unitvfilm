@@ -86,9 +86,14 @@ function apiProxyPlugin() {
   };
 }
 
-export default defineConfig(({ mode }) => ({
-  base: './',
-  plugins: [
+export default defineConfig(({ mode }) => {
+  const isVercel = !!process.env.VERCEL;
+  const isDev = mode === "development";
+  const base = (isVercel || isDev) ? "/" : "./";
+
+  return {
+    base,
+    plugins: [
     react(),
     mode === "development" && componentTagger(),
     apiProxyPlugin(),
@@ -141,4 +146,4 @@ export default defineConfig(({ mode }) => ({
     ],
     force: true,
   },
-}));
+}; });

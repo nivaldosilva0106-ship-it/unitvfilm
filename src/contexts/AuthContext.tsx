@@ -153,11 +153,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } else {
         // Passive auth drops must NEVER destructively purge cached profile selection keys!
-        setUser(null);
-        setProfile(null);
-        setPlan(null);
-        setCurrentProfile(null);
-        setIsAdmin(false);
+        // We only clear state if there is no persisted Supabase token found in localStorage.
+        // This avoids logging the user out during temporary refresh failures, background throttling or when offline.
+        const hasPersistedToken = () => {
+          try {
+            for (let i = 0; i < localStorage.length; i++) {
+              const key = localStorage.key(i);
+              if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
+                return true;
+              }
+            }
+          } catch {}
+          return false;
+        };
+
+        if (!hasPersistedToken()) {
+          setUser(null);
+          setProfile(null);
+          setPlan(null);
+          setCurrentProfile(null);
+          setIsAdmin(false);
+        }
       }
       setLoading(false);
     });
