@@ -145,37 +145,97 @@ const formatTime = (seconds: number): string => {
   useEffect(() => {
     if (!isTxtUrl || resolvedUrl) return;
 
+    // Detect native APK environment
+    const isNativeAPK = typeof window !== 'undefined' && (
+      (window as any).Capacitor?.isNative ||
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1'
+    );
+
     const resolveTxtUrl = async () => {
       setIsTxtResolving(true);
       try {
-        // Fetch through proxy to check the .txt content
-        const proxyUrl = createSecurePlaybackUrl(url);
-        const response = await fetch(proxyUrl, {
-          headers: { 'Accept': '*/*' },
-        });
+        let text = '';
+        let contentType = '';
 
-        if (!response.ok) {
-          console.warn('.txt pre-fetch failed, will try HLS directly:', response.status);
-          setIsTxtResolving(false);
-          return;
+        if (isNativeAPK) {
+          // APK FIX: Fetch .txt directly without going through the Vercel proxy.
+          // The proxy is a serverless function that doesn't exist in the APK bundle,
+          // and routing through the remote proxy adds latency and timeout risk.
+          try {
+            const directResponse = await fetch(url, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (Linux; Android 13) AppleWebKit/537.36 Chrome/120.0.0.0 Mobile Safari/537.36',
+                'Accept': '*/*',
+              },
+            });
+
+            if (directResponse.ok) {
+              contentType = directResponse.headers.get('content-type') || '';
+              text = await directResponse.text();
+            } else {
+              console.warn('.txt direct fetch failed in APK, falling back to proxy:', directResponse.status);
+              // Fall through to proxy-based approach
+              const proxyUrl = createSecurePlaybackUrl(url);
+              const proxyResponse = await fetch(proxyUrl, { headers: { 'Accept': '*/*' } });
+              if (proxyResponse.ok) {
+                contentType = proxyResponse.headers.get('content-type') || '';
+                text = await proxyResponse.text();
+              } else {
+                setIsTxtResolving(false);
+                return;
+              }
+            }
+          } catch (directErr) {
+            console.warn('.txt direct fetch error in APK:', directErr);
+            // Try proxy as fallback
+            try {
+              const proxyUrl = createSecurePlaybackUrl(url);
+              const proxyResponse = await fetch(proxyUrl, { headers: { 'Accept': '*/*' } });
+              if (proxyResponse.ok) {
+                contentType = proxyResponse.headers.get('content-type') || '';
+                text = await proxyResponse.text();
+              }
+            } catch (proxyErr) {
+              console.warn('.txt proxy fallback also failed:', proxyErr);
+              setIsTxtResolving(false);
+              return;
+            }
+          }
+        } else {
+          // Web: Fetch through proxy to check the .txt content (keeps URL hidden)
+          const proxyUrl = createSecurePlaybackUrl(url);
+          const response = await fetch(proxyUrl, {
+            headers: { 'Accept': '*/*' },
+          });
+
+          if (!response.ok) {
+            console.warn('.txt pre-fetch failed, will try HLS directly:', response.status);
+            setIsTxtResolving(false);
+            return;
+          }
+
+          contentType = response.headers.get('content-type') || '';
+          text = await response.text();
         }
-
-        const contentType = response.headers.get('content-type') || '';
         
-        // If the proxy already identified it as HLS manifest, use the original URL
+        // If the proxy/direct fetch already identified it as HLS manifest
         if (contentType.includes('mpegurl') || contentType.includes('application/vnd.apple')) {
           console.log('.txt is HLS manifest, proceeding normally');
           setIsTxtResolving(false);
           return;
         }
 
-        // Read a small portion to check content
-        const text = await response.text();
         const trimmed = text.trim();
 
         // If starts with #EXTM3U, it's a manifest — use as-is
         if (trimmed.startsWith('#EXTM3U') || trimmed.startsWith('#EXT-X-')) {
           console.log('.txt is HLS manifest content');
+          // In APK native mode, set the resolved URL to the original .txt URL
+          // so HLS.js loads it directly instead of through the proxy
+          if (isNativeAPK) {
+            setResolvedUrl(url);
+          }
           setIsTxtResolving(false);
           return;
         }
@@ -195,11 +255,22 @@ const formatTime = (seconds: number): string => {
               setIsTxtResolving(false);
               return;
             }
+            // APK: Even if the extension is unknown, try using the redirect URL directly
+            if (isNativeAPK) {
+              console.log('.txt resolved to URL (APK direct):', firstLine.substring(0, 60) + '...');
+              setResolvedUrl(firstLine);
+              setIsTxtResolving(false);
+              return;
+            }
           }
         }
 
         // Default: treat as HLS manifest (most IPTV .txt files are disguised m3u8)
         console.log('.txt content could not be classified, treating as HLS');
+        // In APK native mode, set resolved URL to original so it loads directly
+        if (isNativeAPK) {
+          setResolvedUrl(url);
+        }
       } catch (err) {
         console.warn('.txt pre-fetch error, will try HLS directly:', err);
       }
@@ -212,6 +283,20 @@ const formatTime = (seconds: number): string => {
   // Transform and SECURE video URL — the real URL is NEVER exposed
   const getVideoUrl = useCallback(() => {
     const targetUrl = resolvedUrl || url;
+
+    // APK FIX: In native APK mode, if a .txt URL was resolved to a direct stream,
+    // skip proxy encryption and return the URL directly so HLS.js/video can load it.
+    const isNativeAPK = typeof window !== 'undefined' && (
+      (window as any).Capacitor?.isNative ||
+      window.location.hostname === 'localhost' ||
+      window.location.hostname === '127.0.0.1'
+    );
+
+    if (isNativeAPK && resolvedUrl && isTxtUrl) {
+      // The .txt was already resolved to a real stream URL — use directly
+      return resolvedUrl;
+    }
+
     if (isGoogleDrive) {
       // Extract file ID
       const match = targetUrl.match(/files\/([a-zA-Z0-9_-]+)/);
@@ -236,7 +321,7 @@ const formatTime = (seconds: number): string => {
       return createSecurePlaybackUrl(targetUrl);
     }
     return targetUrl;
-  }, [url, resolvedUrl, isGoogleDrive]);
+  }, [url, resolvedUrl, isGoogleDrive, isTxtUrl]);
 
   // Initialize HLS or native video
   useEffect(() => {
