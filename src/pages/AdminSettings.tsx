@@ -29,6 +29,7 @@ export const AdminSettings = () => {
     const [appUpdateNotes, setAppUpdateNotes] = useState("");
     const [enableApkDownload, setEnableApkDownload] = useState(false);
     const [enablePwaInstall, setEnablePwaInstall] = useState(false);
+    const [maintenanceModeEnabled, setMaintenanceModeEnabled] = useState(false);
     const [loading, setLoading] = useState(true);
     const [isCopied, setIsCopied] = useState(false);
 
@@ -80,6 +81,7 @@ export const AdminSettings = () => {
             setAppUpdateNotes(settings.appUpdateNotes || "");
             setEnableApkDownload(settings.enableApkDownload || false);
             setEnablePwaInstall(settings.enablePwaInstall || false);
+            setMaintenanceModeEnabled(settings.maintenanceModeEnabled || false);
             setIptvApiKey(settings.iptvApiKey || "");
             setIptvApiBaseUrl(settings.iptvApiBaseUrl || "");
         } catch (error) {
@@ -109,7 +111,8 @@ export const AdminSettings = () => {
                 enableApkDownload,
                 iptvApiKey,
                 iptvApiBaseUrl,
-                enablePwaInstall
+                enablePwaInstall,
+                maintenanceModeEnabled
             });
             toast.success("Configurações salvas com sucesso!");
         } catch (error) {
@@ -327,6 +330,37 @@ export const AdminSettings = () => {
                                         {holidayDecorationsType === 'christmas' && 'As decorações de Natal incluem neve a cair, luzes piscantes e elementos festivos.'}
                                         {holidayDecorationsType === 'newyear' && 'As decorações de Ano Novo incluem fogos de artifício, brilhos e elementos festivos.'}
                                         {holidayDecorationsType === 'both' && 'Todas as decorações de Natal e Ano Novo estão ativas!'}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Maintenance Mode Settings */}
+                    <div className="bg-card border border-border rounded-lg p-6 border-amber-500/20">
+                        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-amber-500">
+                            🛠️ Modo de Manutenção do Site
+                        </h2>
+                        <div className="space-y-6">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-0.5">
+                                    <Label htmlFor="maintenance-toggle">Ativar Manutenção</Label>
+                                    <p className="text-sm text-muted-foreground">
+                                        Bloqueia o acesso de usuários normais ao site exibindo uma tela de manutenção
+                                    </p>
+                                </div>
+                                <Switch
+                                    id="maintenance-toggle"
+                                    checked={maintenanceModeEnabled}
+                                    onCheckedChange={setMaintenanceModeEnabled}
+                                />
+                            </div>
+
+                            {maintenanceModeEnabled && (
+                                <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                                    <h4 className="font-medium text-amber-500 text-sm mb-2">⚠️ Manutenção Ativa</h4>
+                                    <p className="text-xs text-muted-foreground">
+                                        O site está bloqueado para todos os usuários que não forem administradores. Você ainda tem acesso total ao painel para poder gerenciar as configurações.
                                     </p>
                                 </div>
                             )}

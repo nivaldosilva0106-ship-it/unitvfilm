@@ -914,34 +914,39 @@ export interface SiteSettings {
   appUpdateNotes?: string;
   iptvApiKey?: string;
   iptvApiBaseUrl?: string;
+  maintenanceModeEnabled?: boolean;
 }
 
-export const getSiteSettings = async (): Promise<SiteSettings> => {
+export const getSiteSettings = async (bypassCache?: boolean): Promise<SiteSettings> => {
   const now = Date.now();
-  // If in-memory cache is valid, return immediately
-  if (inMemorySettings && (now - lastSettingsFetchTime < SETTINGS_CACHE_TTL)) {
-    return inMemorySettings;
-  }
+  if (!bypassCache) {
+    // If in-memory cache is valid, return immediately
+    if (inMemorySettings && (now - lastSettingsFetchTime < SETTINGS_CACHE_TTL)) {
+      return inMemorySettings;
+    }
 
-  // If a fetch is currently in-flight, return the existing promise (deduplication)
-  if (inMemorySettingsPromise) {
-    return inMemorySettingsPromise;
+    // If a fetch is currently in-flight, return the existing promise (deduplication)
+    if (inMemorySettingsPromise) {
+      return inMemorySettingsPromise;
+    }
   }
 
   // Load from local storage cache immediately so UI renders in < 5ms (SWR pattern)
   let cachedSettings: SiteSettings | null = null;
-  try {
-    const cached = localStorage.getItem('cached_settings');
-    if (cached) {
-      cachedSettings = JSON.parse(cached);
-      if (!inMemorySettings) {
-        inMemorySettings = cachedSettings;
+  if (!bypassCache) {
+    try {
+      const cached = localStorage.getItem('cached_settings');
+      if (cached) {
+        cachedSettings = JSON.parse(cached);
+        if (!inMemorySettings) {
+          inMemorySettings = cachedSettings;
+        }
       }
-    }
-  } catch (e) {}
+    } catch (e) {}
+  }
 
   // Spawn the background fetch
-  inMemorySettingsPromise = (async () => {
+  const fetchPromise = (async () => {
     try {
       if (isSupabaseEnabled()) {
         const supabase = getSupabaseClient();
@@ -950,9 +955,11 @@ export const getSiteSettings = async (): Promise<SiteSettings> => {
           if (error && error.code !== 'PGRST116') throw error;
           const settings = data?.value || {};
           
-          inMemorySettings = settings;
-          lastSettingsFetchTime = Date.now();
-          try { localStorage.setItem('cached_settings', JSON.stringify(settings)); } catch (e) { }
+          if (!bypassCache) {
+            inMemorySettings = settings;
+            lastSettingsFetchTime = Date.now();
+            try { localStorage.setItem('cached_settings', JSON.stringify(settings)); } catch (e) { }
+          }
           return settings;
         }
       }
@@ -962,19 +969,27 @@ export const getSiteSettings = async (): Promise<SiteSettings> => {
       if (snapshot.exists()) {
         const settings = snapshot.val();
         
-        inMemorySettings = settings;
-        lastSettingsFetchTime = Date.now();
-        try { localStorage.setItem('cached_settings', JSON.stringify(settings)); } catch (e) { }
+        if (!bypassCache) {
+          inMemorySettings = settings;
+          lastSettingsFetchTime = Date.now();
+          try { localStorage.setItem('cached_settings', JSON.stringify(settings)); } catch (e) { }
+        }
         return settings;
       }
       return cachedSettings || {};
     } catch (error) {
       console.warn("Error fetching site settings:", error);
       return cachedSettings || {};
-    } finally {
-      inMemorySettingsPromise = null;
     }
   })();
+
+  if (bypassCache) {
+    return fetchPromise;
+  }
+
+  inMemorySettingsPromise = fetchPromise.finally(() => {
+    inMemorySettingsPromise = null;
+  });
 
   // Return cached data immediately if available, allowing the promise to resolve in the background
   if (cachedSettings) {

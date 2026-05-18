@@ -10,6 +10,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AuthGuard } from "@/components/AuthGuard";
+import { MaintenanceGuard } from "@/components/MaintenanceGuard";
 import { GuestSessionManager } from "@/components/GuestSessionManager";
 import { HolidayDecorations } from "@/components/HolidayDecorations";
 import FocusNavigator from "@/components/FocusNavigator";
@@ -199,10 +200,11 @@ const App = () => {
             <MobileBottomNav />
             <TVSidebar />
             <AuthGuard>
-              <GuestSessionManager />
-              <ErrorBoundary>
-                <Suspense fallback={<LoadingScreen />}>
-                <Routes>
+              <MaintenanceGuard>
+                <GuestSessionManager />
+                <ErrorBoundary>
+                  <Suspense fallback={<LoadingScreen />}>
+                  <Routes>
                   <Route path="/" element={<HomeWrapper />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
@@ -251,6 +253,7 @@ const App = () => {
                 </Routes>
               </Suspense>
               </ErrorBoundary>
+              </MaintenanceGuard>
             </AuthGuard>
           </Router>
         </TooltipProvider>
