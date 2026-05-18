@@ -314,11 +314,11 @@ export default function NostalgiaTube(): JSX.Element {
 
             setIsLoadingVideo(true);
             try {
-                const baseUrl = getBaseUrl();
-                const res = await fetch(`${baseUrl}/api/tiktok?url=${encodeURIComponent(tiktokUrl)}`);
+                // Use direct TikWM API since it supports CORS, bypassing Vercel IP blocking
+                const res = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(tiktokUrl)}`);
                 const data = await res.json();
-                if (data.url) {
-                    setTiktokVideoUrl(data.url);
+                if (data.code === 0 && data.data && data.data.play) {
+                    setTiktokVideoUrl(data.data.play);
                 } else {
                     console.error("TikTok API Error:", data.error);
                     toast.error("Erro ao carregar vídeo do TikTok.");
