@@ -20,6 +20,32 @@ const app = initializeApp(firebaseConfig);
 const database = getDatabase(app);
 const auth = getAuth(app);
 
+// --- IN-MEMORY CACHE FOR HIGH-PERFORMANCE SUPABASE AND DATABASE OPERATIONS ---
+let inMemoryContents: Content[] | null = null;
+let inMemoryContentsPromise: Promise<Content[]> | null = null;
+let lastContentsFetchTime = 0;
+
+let inMemorySettings: any = null;
+let inMemorySettingsPromise: Promise<any> | null = null;
+let lastSettingsFetchTime = 0;
+
+// Cache TTL (Time-To-Live) in milliseconds: 5 minutes for general content, 3 minutes for settings
+const CONTENTS_CACHE_TTL = 5 * 60 * 1000;
+const SETTINGS_CACHE_TTL = 3 * 60 * 1000;
+
+// Invalidates the in-memory cache to force a fresh fetch
+export const invalidateContentsCache = () => {
+  inMemoryContents = null;
+  inMemoryContentsPromise = null;
+  lastContentsFetchTime = 0;
+};
+
+export const invalidateSettingsCache = () => {
+  inMemorySettings = null;
+  inMemorySettingsPromise = null;
+  lastSettingsFetchTime = 0;
+};
+
 // Helper to remove undefined values deeply (Firebase RTDB doesn't accept undefined)
 function removeUndefinedDeep<T>(obj: T): T {
   if (Array.isArray(obj)) {
@@ -39,6 +65,7 @@ function removeUndefinedDeep<T>(obj: T): T {
 }
 
 export const addContent = async (content: Omit<Content, 'id'>) => {
+  invalidateContentsCache();
   if (isSupabaseEnabled()) {
     const supabase = getSupabaseClient();
     if (supabase) {
@@ -60,50 +87,77 @@ export const addContent = async (content: Omit<Content, 'id'>) => {
 };
 
 export const getAllContents = async (): Promise<Content[]> => {
-  // First, try to return cached contents immediately for speed
+  const now = Date.now();
+  // If in-memory cache is valid, return immediately (ultra-fast RAM response)
+  if (inMemoryContents && (now - lastContentsFetchTime < CONTENTS_CACHE_TTL)) {
+    return inMemoryContents;
+  }
+
+  // If a fetch is currently in-flight, return the existing promise (deduplication)
+  if (inMemoryContentsPromise) {
+    return inMemoryContentsPromise;
+  }
+
+  // Load from local storage cache immediately so UI renders in < 5ms (SWR pattern)
   let cachedData: Content[] | null = null;
   try {
     const cached = localStorage.getItem('cached_contents');
     if (cached) {
       cachedData = JSON.parse(cached);
+      if (!inMemoryContents) {
+        inMemoryContents = cachedData;
+      }
     }
   } catch (e) {}
 
-  if (isSupabaseEnabled()) {
+  // Spawn the background fetch
+  inMemoryContentsPromise = (async () => {
     try {
-      const supabase = getSupabaseClient();
-      if (supabase) {
-        const { data, error } = await supabase.from('contents').select('*');
-        if (error) throw error;
-        const contents = (data || []) as Content[];
+      if (isSupabaseEnabled()) {
+        const supabase = getSupabaseClient();
+        if (supabase) {
+          const { data, error } = await supabase.from('contents').select('*');
+          if (error) throw error;
+          const contents = (data || []) as Content[];
+          
+          inMemoryContents = contents;
+          lastContentsFetchTime = Date.now();
+          try {
+            localStorage.setItem('cached_contents', JSON.stringify(contents));
+          } catch (e) {}
+          return contents;
+        }
+      }
+
+      const contentRef = ref(database, 'contents');
+      const snapshot = await get(contentRef);
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const contents = Object.values(data) as Content[];
+        
+        inMemoryContents = contents;
+        lastContentsFetchTime = Date.now();
         try {
           localStorage.setItem('cached_contents', JSON.stringify(contents));
         } catch (e) {}
         return contents;
       }
-    } catch (error) {
-      console.warn("Supabase error fetching contents, using cache...", error);
       return cachedData || [];
+    } catch (error) {
+      console.warn("Error fetching contents, using cache fallback...", error);
+      return cachedData || [];
+    } finally {
+      inMemoryContentsPromise = null;
     }
+  })();
+
+  // Return cached data immediately if available, allowing the promise to resolve in the background
+  if (cachedData && cachedData.length > 0) {
+    return cachedData;
   }
 
-  try {
-    const contentRef = ref(database, 'contents');
-    // Use a shorter timeout for the network check if we have cache
-    const snapshot = await get(contentRef);
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      const contents = Object.values(data) as Content[];
-      try {
-        localStorage.setItem('cached_contents', JSON.stringify(contents));
-      } catch (e) {}
-      return contents;
-    }
-    return cachedData || [];
-  } catch (error) {
-    console.warn("Network error fetching contents, using cache...", error);
-    return cachedData || [];
-  }
+  // If no cached data, await the active request
+  return inMemoryContentsPromise;
 };
 
 export const getContentsByCategory = async (category: string): Promise<Content[]> => {
@@ -112,6 +166,7 @@ export const getContentsByCategory = async (category: string): Promise<Content[]
 };
 
 export const updateContent = async (id: string, updates: Partial<Content>) => {
+  invalidateContentsCache();
   if (isSupabaseEnabled()) {
     const supabase = getSupabaseClient();
     if (supabase) {
@@ -128,6 +183,7 @@ export const updateContent = async (id: string, updates: Partial<Content>) => {
 };
 
 export const deleteContent = async (id: string) => {
+  invalidateContentsCache();
   if (isSupabaseEnabled()) {
     const supabase = getSupabaseClient();
     if (supabase) {
@@ -346,21 +402,53 @@ export const onAuthChange = (callback: (user: any) => void) => {
 
 // User Profile functions
 export const getUserProfile = async (userId: string): Promise<UserProfile | null> => {
+  // Load from local storage cache immediately
+  let cachedProfile: UserProfile | null = null;
+  try {
+    const cached = localStorage.getItem(`cached_profile_${userId}`);
+    if (cached) cachedProfile = JSON.parse(cached);
+  } catch (e) {}
+
   if (isSupabaseEnabled()) {
-    const supabase = getSupabaseClient();
-    if (supabase) {
-      const { data, error } = await supabase.from('profiles').select('*').eq('id', userId).single();
-      if (error && error.code !== 'PGRST116') throw error;
-      return data as UserProfile | null;
+    try {
+      const supabase = getSupabaseClient();
+      if (supabase) {
+        // Enforce a 5-second timeout on the Supabase network request
+        const fetchPromise = supabase.from('profiles').select('*').eq('id', userId).single();
+        const timeoutPromise = new Promise<never>((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000));
+        
+        const { data, error } = await Promise.race([fetchPromise, timeoutPromise]) as any;
+        if (error && error.code !== 'PGRST116') throw error;
+        
+        const profile = data as UserProfile | null;
+        if (profile) {
+          try {
+            localStorage.setItem(`cached_profile_${userId}`, JSON.stringify(profile));
+          } catch (e) {}
+        }
+        return profile || cachedProfile;
+      }
+    } catch (error) {
+      console.warn("Supabase error fetching user profile, using cache fallback...", error);
+      return cachedProfile;
     }
   }
 
-  const profileRef = ref(database, `profiles/${userId}`);
-  const snapshot = await get(profileRef);
-  if (snapshot.exists()) {
-    return snapshot.val();
+  try {
+    const profileRef = ref(database, `profiles/${userId}`);
+    const snapshot = await get(profileRef);
+    if (snapshot.exists()) {
+      const profile = snapshot.val() as UserProfile;
+      try {
+        localStorage.setItem(`cached_profile_${userId}`, JSON.stringify(profile));
+      } catch (e) {}
+      return profile;
+    }
+    return cachedProfile;
+  } catch (error) {
+    console.warn("RTDB error fetching user profile, using cache fallback...", error);
+    return cachedProfile;
   }
-  return null;
 };
 
 export const subscribeToUserProfile = (userId: string, callback: (profile: UserProfile | null) => void) => {
@@ -374,7 +462,13 @@ export const subscribeToUserProfile = (userId: string, callback: (profile: UserP
           'postgres_changes',
           { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
           (payload: any) => {
-            callback(payload.new as UserProfile);
+            const updatedProfile = payload.new as UserProfile;
+            if (updatedProfile) {
+              try {
+                localStorage.setItem(`cached_profile_${userId}`, JSON.stringify(updatedProfile));
+              } catch (e) {}
+            }
+            callback(updatedProfile);
           }
         )
         .subscribe();
@@ -387,7 +481,11 @@ export const subscribeToUserProfile = (userId: string, callback: (profile: UserP
   const profileRef = ref(database, `profiles/${userId}`);
   return onValue(profileRef, (snapshot) => {
     if (snapshot.exists()) {
-      callback(snapshot.val());
+      const profile = snapshot.val() as UserProfile;
+      try {
+        localStorage.setItem(`cached_profile_${userId}`, JSON.stringify(profile));
+      } catch (e) {}
+      callback(profile);
     } else {
       callback(null);
     }
@@ -395,6 +493,15 @@ export const subscribeToUserProfile = (userId: string, callback: (profile: UserP
 };
 
 export const updateUserProfile = async (userId: string, updates: Partial<UserProfile>) => {
+  // Speculatively update local storage cache first
+  try {
+    const cached = localStorage.getItem(`cached_profile_${userId}`);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      localStorage.setItem(`cached_profile_${userId}`, JSON.stringify({ ...parsed, ...updates }));
+    }
+  } catch (e) {}
+
   if (isSupabaseEnabled()) {
     const supabase = getSupabaseClient();
     if (supabase) {
@@ -810,43 +917,76 @@ export interface SiteSettings {
 }
 
 export const getSiteSettings = async (): Promise<SiteSettings> => {
+  const now = Date.now();
+  // If in-memory cache is valid, return immediately
+  if (inMemorySettings && (now - lastSettingsFetchTime < SETTINGS_CACHE_TTL)) {
+    return inMemorySettings;
+  }
+
+  // If a fetch is currently in-flight, return the existing promise (deduplication)
+  if (inMemorySettingsPromise) {
+    return inMemorySettingsPromise;
+  }
+
+  // Load from local storage cache immediately so UI renders in < 5ms (SWR pattern)
   let cachedSettings: SiteSettings | null = null;
   try {
     const cached = localStorage.getItem('cached_settings');
-    if (cached) cachedSettings = JSON.parse(cached);
+    if (cached) {
+      cachedSettings = JSON.parse(cached);
+      if (!inMemorySettings) {
+        inMemorySettings = cachedSettings;
+      }
+    }
   } catch (e) {}
 
-  if (isSupabaseEnabled()) {
+  // Spawn the background fetch
+  inMemorySettingsPromise = (async () => {
     try {
-      const supabase = getSupabaseClient();
-      if (supabase) {
-        const { data, error } = await supabase.from('settings').select('value').eq('key', 'site').single();
-        if (error && error.code !== 'PGRST116') throw error;
-        const settings = data?.value || {};
+      if (isSupabaseEnabled()) {
+        const supabase = getSupabaseClient();
+        if (supabase) {
+          const { data, error } = await supabase.from('settings').select('value').eq('key', 'site').single();
+          if (error && error.code !== 'PGRST116') throw error;
+          const settings = data?.value || {};
+          
+          inMemorySettings = settings;
+          lastSettingsFetchTime = Date.now();
+          try { localStorage.setItem('cached_settings', JSON.stringify(settings)); } catch (e) { }
+          return settings;
+        }
+      }
+
+      const settingsRef = ref(database, 'settings');
+      const snapshot = await get(settingsRef);
+      if (snapshot.exists()) {
+        const settings = snapshot.val();
+        
+        inMemorySettings = settings;
+        lastSettingsFetchTime = Date.now();
         try { localStorage.setItem('cached_settings', JSON.stringify(settings)); } catch (e) { }
         return settings;
       }
-    } catch (error) {
-      console.warn("Supabase error fetching settings:", error);
       return cachedSettings || {};
+    } catch (error) {
+      console.warn("Error fetching site settings:", error);
+      return cachedSettings || {};
+    } finally {
+      inMemorySettingsPromise = null;
     }
+  })();
+
+  // Return cached data immediately if available, allowing the promise to resolve in the background
+  if (cachedSettings) {
+    return cachedSettings;
   }
 
-  try {
-    const settingsRef = ref(database, 'settings');
-    const snapshot = await get(settingsRef);
-    if (snapshot.exists()) {
-      const settings = snapshot.val();
-      try { localStorage.setItem('cached_settings', JSON.stringify(settings)); } catch (e) { }
-      return settings;
-    }
-    return cachedSettings || {};
-  } catch (error) {
-    return cachedSettings || {};
-  }
+  // If no cached data, await the active request
+  return inMemorySettingsPromise;
 };
 
 export const updateSiteSettings = async (updates: Partial<SiteSettings>) => {
+  invalidateSettingsCache();
   if (isSupabaseEnabled()) {
     const supabase = getSupabaseClient();
     if (supabase) {
