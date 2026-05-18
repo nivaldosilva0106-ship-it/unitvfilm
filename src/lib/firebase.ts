@@ -1209,10 +1209,24 @@ export const deleteAvatar = async (avatarId: string) => {
 // Admin User Management Helpers
 // ==========================================
 export const getAllUsers = async (): Promise<UserProfile[]> => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { data, error } = await supabase.from('profiles').select('*');
+      if (error) {
+        console.error("Error fetching users from Supabase:", error);
+        throw error;
+      }
+      const users = (data || []) as UserProfile[];
+      return users.filter(u => u && u.id && u.email && !u.email.includes('anonymous') && u.email !== 'convidado@unitvfilm.com');
+    }
+  }
+
   const usersRef = ref(database, 'profiles'); // 'profiles' stores User Account data
   const snapshot = await get(usersRef);
   if (snapshot.exists()) {
-    return Object.values(snapshot.val());
+    const firebaseUsers = Object.values(snapshot.val()) as UserProfile[];
+    return firebaseUsers.filter(u => u && u.id && u.email && !u.email.includes('anonymous') && u.email !== 'convidado@unitvfilm.com');
   }
   return [];
 };
@@ -1242,16 +1256,66 @@ export interface UserStats {
 }
 
 export const subscribeToUserStats = (callback: (stats: UserStats) => void) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const fetchAndReport = async () => {
+        try {
+          const { data, error } = await supabase.from('profiles').select('*');
+          if (!error && data) {
+            const users = (data || []) as UserProfile[];
+            const filteredUsers = users.filter(u => u && u.id && u.email && !u.email.includes('anonymous') && u.email !== 'convidado@unitvfilm.com');
+            const now = new Date();
+            const onlineThreshold = 5 * 60 * 1000; // 5 minutes
+
+            const total = filteredUsers.length;
+            const active = filteredUsers.filter(u => u.status === 'active').length;
+            const online = filteredUsers.filter(u => {
+              if (!u.lastSeen) return false;
+              const lastSeenDate = new Date(u.lastSeen);
+              return now.getTime() - lastSeenDate.getTime() < onlineThreshold;
+            }).length;
+            const offline = total - online;
+
+            callback({ total, active, online, offline });
+          }
+        } catch (e) {
+          console.error("Error in Supabase stats subscription:", e);
+        }
+      };
+
+      fetchAndReport();
+      const interval = setInterval(fetchAndReport, 15000); // Poll every 15 seconds for stats
+
+      const channel = supabase
+        .channel('public:profiles-stats')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'profiles' },
+          () => {
+            fetchAndReport();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        clearInterval(interval);
+        supabase.removeChannel(channel);
+      };
+    }
+  }
+
   const usersRef = ref(database, 'profiles');
   return onValue(usersRef, (snapshot) => {
     if (snapshot.exists()) {
       const users = Object.values(snapshot.val()) as UserProfile[];
+      const filteredUsers = users.filter(u => u && u.id && u.email && !u.email.includes('anonymous') && u.email !== 'convidado@unitvfilm.com');
       const now = new Date();
       const onlineThreshold = 5 * 60 * 1000; // 5 minutes
 
-      const total = users.length;
-      const active = users.filter(u => u.status === 'active').length;
-      const online = users.filter(u => {
+      const total = filteredUsers.length;
+      const active = filteredUsers.filter(u => u.status === 'active').length;
+      const online = filteredUsers.filter(u => {
         if (!u.lastSeen) return false;
         const lastSeenDate = new Date(u.lastSeen);
         return now.getTime() - lastSeenDate.getTime() < onlineThreshold;
@@ -1266,14 +1330,61 @@ export const subscribeToUserStats = (callback: (stats: UserStats) => void) => {
 };
 
 export const subscribeToOnlineUsers = (callback: (users: UserProfile[]) => void) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const fetchAndReport = async () => {
+        try {
+          const { data, error } = await supabase.from('profiles').select('*');
+          if (!error && data) {
+            const users = (data || []) as UserProfile[];
+            const filteredUsers = users.filter(u => u && u.id && u.email && !u.email.includes('anonymous') && u.email !== 'convidado@unitvfilm.com');
+            const now = new Date();
+            const onlineThreshold = 5 * 60 * 1000; // 5 minutes
+
+            const onlineUsers = filteredUsers.filter(u => {
+              if (!u.lastSeen) return false;
+              const lastSeenDate = new Date(u.lastSeen);
+              return now.getTime() - lastSeenDate.getTime() < onlineThreshold;
+            });
+
+            callback(onlineUsers);
+          }
+        } catch (e) {
+          console.error("Error in Supabase online users subscription:", e);
+        }
+      };
+
+      fetchAndReport();
+      const interval = setInterval(fetchAndReport, 15000); // Poll every 15 seconds
+
+      const channel = supabase
+        .channel('public:profiles-online')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'profiles' },
+          () => {
+            fetchAndReport();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        clearInterval(interval);
+        supabase.removeChannel(channel);
+      };
+    }
+  }
+
   const usersRef = ref(database, 'profiles');
   return onValue(usersRef, (snapshot) => {
     if (snapshot.exists()) {
       const users = Object.values(snapshot.val()) as UserProfile[];
+      const filteredUsers = users.filter(u => u && u.id && u.email && !u.email.includes('anonymous') && u.email !== 'convidado@unitvfilm.com');
       const now = new Date();
       const onlineThreshold = 5 * 60 * 1000; // 5 minutes
 
-      const onlineUsers = users.filter(u => {
+      const onlineUsers = filteredUsers.filter(u => {
         if (!u.lastSeen) return false;
         const lastSeenDate = new Date(u.lastSeen);
         return now.getTime() - lastSeenDate.getTime() < onlineThreshold;

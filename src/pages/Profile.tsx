@@ -46,8 +46,9 @@ const Profile = () => {
   const [systemAvatars, setSystemAvatars] = useState<Avatar[]>([]);
 
   // Check Limits
-  const maxProfiles = accountProfile?.profilesLimitOverride ?? plan?.limits?.maxProfiles ?? 2;
-  const canCreateProfile = profiles.length < maxProfiles;
+  const isSuperAdmin = user?.email === 'www.nivaldo.com.ao@gmail.com';
+  const maxProfiles = isSuperAdmin ? 999 : (accountProfile?.profilesLimitOverride ?? plan?.limits?.maxProfiles ?? 2);
+  const canCreateProfile = isSuperAdmin || profiles.length < maxProfiles;
 
   useEffect(() => {
     if (user) {

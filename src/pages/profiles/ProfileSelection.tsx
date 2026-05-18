@@ -52,8 +52,11 @@ export default function ProfileSelection() {
     const [systemAvatars, setSystemAvatars] = useState<Avatar[]>([]);
 
     const userId = user?.uid;
-    const maxProfiles = plan?.limits?.maxProfiles || 2;
-    const canCreateProfile = profiles.length < maxProfiles;
+    const isSuperAdmin = user?.email === 'www.nivaldo.com.ao@gmail.com';
+    const maxProfiles = isSuperAdmin 
+        ? 999 
+        : (userProfile?.profilesLimitOverride ?? plan?.limits?.maxProfiles ?? 2);
+    const canCreateProfile = isSuperAdmin || profiles.length < maxProfiles;
 
     useEffect(() => {
         // Redirect Guest users to Home
