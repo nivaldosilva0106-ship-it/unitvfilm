@@ -6,6 +6,14 @@ import { cn } from '@/lib/utils';
 import { useNavigate } from 'react-router-dom';
 import { getProviderConfig } from '@/lib/providers';
 
+// Utility helper to extract 11-character YouTube video IDs
+const getYouTubeId = (url: string | undefined | null) => {
+    if (!url) return null;
+    const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+    const match = url.match(regExp);
+    return (match && match[2].length === 11) ? match[2] : null;
+};
+
 interface QuickViewModalProps {
     content: Content | null;
     open: boolean;
@@ -16,33 +24,159 @@ interface QuickViewModalProps {
 export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModalProps) => {
     const navigate = useNavigate();
     const videoRef = useRef<HTMLVideoElement>(null);
+    const playerRef = useRef<any>(null);
     const [muted, setMuted] = useState(true);
     const [showTrailer, setShowTrailer] = useState(false);
-    const [videoOpacity, setVideoOpacity] = useState(1); // For fade-out effect
+    const [videoOpacity, setVideoOpacity] = useState(0); // For smooth cross-fade effect
+    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
 
-    // Trailer auto-play after 3 seconds with smooth transition
+    // 3-Stage transition timer orchestrator
     useEffect(() => {
+        let startTimer: NodeJS.Timeout;
+        let stopTimer: NodeJS.Timeout;
+        let fadeOutTimer: NodeJS.Timeout;
+
         if (open && content?.trailer_url) {
             setShowTrailer(false);
-            setVideoOpacity(0); // Start invisible
+            setVideoOpacity(0);
+            setIsVideoPlaying(false);
 
-            const timer = setTimeout(() => {
+            // Phase 1: Wait 5 seconds, then transition to video
+            startTimer = setTimeout(() => {
                 setShowTrailer(true);
-                // Fade in video smoothly
+                // Slowly fade in video opacity
                 setTimeout(() => setVideoOpacity(1), 100);
-            }, 3000);
 
-            return () => clearTimeout(timer);
+                // Phase 2: Play for 60 seconds, then fade back to backdrop image
+                stopTimer = setTimeout(() => {
+                    setVideoOpacity(0); // Fade out video opacity
+                    
+                    // Phase 3: Wait for 1s fade-out transition, then unmount video
+                    fadeOutTimer = setTimeout(() => {
+                        setShowTrailer(false);
+                        setIsVideoPlaying(false);
+                    }, 1000); // matches CSS transition duration
+                }, 60000); // 60 seconds duration
+            }, 5000); // 5 seconds initial delay
         } else {
             setShowTrailer(false);
             setVideoOpacity(0);
+            setIsVideoPlaying(false);
         }
+
+        return () => {
+            clearTimeout(startTimer);
+            clearTimeout(stopTimer);
+            clearTimeout(fadeOutTimer);
+        };
     }, [open, content]);
 
-    // Handle video end - show backdrop image
+    // YouTube Player stealth background system
+    useEffect(() => {
+        if (!open || !content?.trailer_url || !showTrailer) {
+            setIsVideoPlaying(false);
+            if (playerRef.current) {
+                try { playerRef.current.pauseVideo(); } catch {}
+            }
+            return;
+        }
+
+        const ytId = getYouTubeId(content.trailer_url);
+        if (!ytId) return; // Fallback to standard HTML video element if not YouTube
+
+        let destroyed = false;
+
+        const initPlayer = () => {
+            if (destroyed) return;
+            if (!window.YT?.Player) return;
+
+            const el = document.getElementById('quickview-yt-player');
+            if (!el) return;
+
+            try { playerRef.current?.destroy(); } catch {}
+            playerRef.current = null;
+
+            playerRef.current = new window.YT.Player('quickview-yt-player', {
+                videoId: ytId,
+                playerVars: {
+                    autoplay: 1,
+                    controls: 0,
+                    disablekb: 1,
+                    fs: 0,
+                    modestbranding: 1,
+                    rel: 0,
+                    showinfo: 0,
+                    iv_load_policy: 3,
+                    origin: window.location.origin,
+                    playsinline: 1,
+                    playlist: ytId // For proper loop / playback
+                },
+                events: {
+                    onReady: (e: any) => {
+                        if (destroyed) return;
+                        e.target.mute(); // Autoplay requires mute initially
+                        e.target.playVideo();
+                        if (!muted) {
+                            setTimeout(() => {
+                                try { e.target.unMute(); } catch {}
+                            }, 500);
+                        }
+                    },
+                    onStateChange: (e: any) => {
+                        if (destroyed) return;
+                        if (e.data === window.YT.PlayerState.PLAYING) {
+                            setIsVideoPlaying(true);
+                        } else {
+                            setIsVideoPlaying(false);
+                        }
+                    }
+                }
+            });
+        };
+
+        if (!window.YT) {
+            if (!document.querySelector('script[src*="youtube.com/iframe_api"]')) {
+                const tag = document.createElement("script");
+                tag.src = "https://www.youtube.com/iframe_api";
+                document.body.appendChild(tag);
+            }
+            const prevReady = window.onYouTubeIframeAPIReady;
+            window.onYouTubeIframeAPIReady = () => {
+                if (prevReady) prevReady();
+                initPlayer();
+            };
+        } else {
+            setTimeout(initPlayer, 100);
+        }
+
+        return () => {
+            destroyed = true;
+            try { playerRef.current?.destroy(); } catch {}
+            playerRef.current = null;
+            setIsVideoPlaying(false);
+        };
+    }, [open, content, showTrailer]);
+
+    // Handle volume state changes for YouTube player
+    useEffect(() => {
+        if (playerRef.current && playerRef.current.unMute && playerRef.current.mute) {
+            try {
+                if (muted) {
+                    playerRef.current.mute();
+                } else {
+                    playerRef.current.unMute();
+                }
+            } catch {}
+        }
+    }, [muted]);
+
+    // Handle direct video end - smoothly fade back to backdrop image
     const handleVideoEnd = () => {
-        setShowTrailer(false);
         setVideoOpacity(0);
+        setTimeout(() => {
+            setShowTrailer(false);
+            setIsVideoPlaying(false);
+        }, 1000); // match transition duration
     };
 
     const handlePlay = () => {
@@ -75,6 +209,8 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
         }
     };
 
+    const isYouTubeTrailer = !!getYouTubeId(content.trailer_url);
+
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200" onClick={onClose}>
             <div
@@ -89,7 +225,7 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
                     <X className="w-5 h-5" />
                 </button>
 
-                <div className="relative h-[400px] w-full bg-black">
+                <div className="relative h-[400px] w-full bg-black overflow-hidden">
                     {/* Always show backdrop image as base */}
                     <img
                         src={content.backdrop_url || content.thumbnail_url}
@@ -97,8 +233,23 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
                         className="w-full h-full object-cover"
                     />
 
-                    {/* Video overlay with fade transition */}
-                    {showTrailer && content.trailer_url && (
+                    {/* YouTube Trailer container with stealth crop & fade transition */}
+                    {showTrailer && content.trailer_url && isYouTubeTrailer && (
+                        <div 
+                            className="absolute inset-0 w-full h-full transition-opacity duration-1000 bg-black"
+                            style={{ opacity: videoOpacity }}
+                        >
+                            <div className="relative w-full h-full overflow-hidden pointer-events-none">
+                                <div 
+                                    id="quickview-yt-player" 
+                                    className="absolute top-1/2 left-1/2 w-[300%] h-[300%] md:w-[150%] md:h-[150%] lg:w-[130%] lg:h-[130%] -translate-x-1/2 -translate-y-1/2 pointer-events-none" 
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Fallback Direct Video Overlay with fade transition */}
+                    {showTrailer && content.trailer_url && !isYouTubeTrailer && (
                         <video
                             ref={videoRef}
                             src={content.trailer_url}
@@ -111,10 +262,10 @@ export const QuickViewModal = ({ content, open, onClose, onPlay }: QuickViewModa
                         />
                     )}
 
-                    <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-transparent to-transparent pointer-events-none" />
 
                     {/* Content Info Overlay */}
-                    <div className="absolute bottom-0 left-0 p-8 w-full">
+                    <div className="absolute bottom-0 left-0 p-8 w-full z-10">
                         <h2 className="text-4xl font-bold text-white mb-4 drop-shadow-lg">{content.title}</h2>
 
                         <div className="flex items-center gap-3 mb-6">
