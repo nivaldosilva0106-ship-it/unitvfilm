@@ -427,8 +427,14 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
           try {
             localStorage.setItem(`cached_profile_${userId}`, JSON.stringify(profile));
           } catch (e) {}
+          return profile;
+        } else {
+          // Profile definitively does not exist in the database.
+          try {
+            localStorage.removeItem(`cached_profile_${userId}`);
+          } catch (e) {}
+          return null;
         }
-        return profile || cachedProfile;
       }
     } catch (error) {
       console.warn("Supabase error fetching user profile, using cache fallback...", error);
@@ -445,8 +451,12 @@ export const getUserProfile = async (userId: string): Promise<UserProfile | null
         localStorage.setItem(`cached_profile_${userId}`, JSON.stringify(profile));
       } catch (e) {}
       return profile;
+    } else {
+      try {
+        localStorage.removeItem(`cached_profile_${userId}`);
+      } catch (e) {}
+      return null;
     }
-    return cachedProfile;
   } catch (error) {
     console.warn("RTDB error fetching user profile, using cache fallback...", error);
     return cachedProfile;
