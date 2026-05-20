@@ -30,7 +30,7 @@ export const getSupabaseClient = () => {
     supabaseInstance = createClient(url, key, {
       auth: {
         persistSession: true,
-        autoRefreshToken: false,
+        autoRefreshToken: true,
         detectSessionInUrl: true
       }
     });
