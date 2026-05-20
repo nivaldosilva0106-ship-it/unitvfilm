@@ -318,10 +318,14 @@ const Index = () => {
   };
 
   const categorizedContent = useMemo(() => {
-    const shuffle = <T,>(arr: T[]): T[] => [...arr].sort(() => Math.random() - 0.5);
+    const homeConfig = siteSettings?.homePageConfig;
+    const itemsPerSection = homeConfig?.itemsPerSection || 20;
+    const shouldShuffle = homeConfig?.enableRandomOrder !== false;
+
+    const shuffle = <T,>(arr: T[]): T[] => shouldShuffle ? [...arr].sort(() => Math.random() - 0.5) : [...arr];
 
     const featuredPool = shuffle(allContentData.filter(c => c.is_new || (c.rating && c.rating >= 7)));
-    const featured = featuredPool.slice(0, 20);
+    const featured = featuredPool.slice(0, itemsPerSection);
     const topRated = shuffle(allContentData.filter(c => c.rating && c.rating >= 8));
     const movies = shuffle(allContentData.filter(c => c.category === 'movie' || (c.category as string) === 'Filme'));
     const series = shuffle(allContentData.filter(c => {
@@ -365,78 +369,146 @@ const Index = () => {
       }
     }
 
+    const getSectionLimit = (sectionId: string) => {
+      const sectionConfig = homeConfig?.sections?.find(s => s.id === sectionId);
+      return sectionConfig?.maxItems || itemsPerSection;
+    };
+
     return {
-      featured: featured.slice(0, 20),
-      topRated: topRated.slice(0, 20),
-      movies: movies.slice(0, 20),
-      series: series.slice(0, 20),
-      tvChannels: tvChannels.slice(0, 20),
-      nostalgia: nostalgia.slice(0, 20),
-      canais24h: canais24h.slice(0, 20),
-      actionAdventure: actionAdventure.slice(0, 20),
-      comedyHorror: comedyHorror.slice(0, 20),
-      recentReleases: recentReleases.slice(0, 20),
-      dramaCrime: dramaCrime.slice(0, 20),
-      comedyRomance: comedyRomance.slice(0, 20),
-      singleRow: singleRow?.slice(0, 20) || null,
+      featured: featured.slice(0, getSectionLimit('featured')),
+      topRated: topRated.slice(0, getSectionLimit('topRated')),
+      movies: movies.slice(0, getSectionLimit('movies')),
+      series: series.slice(0, getSectionLimit('series')),
+      tvChannels: tvChannels.slice(0, getSectionLimit('canais24h')),
+      nostalgia: nostalgia.slice(0, getSectionLimit('nostalgia')),
+      canais24h: canais24h.slice(0, getSectionLimit('canais24h')),
+      actionAdventure: actionAdventure.slice(0, getSectionLimit('action')),
+      comedyHorror: comedyHorror.slice(0, getSectionLimit('comedy')),
+      recentReleases: recentReleases.slice(0, getSectionLimit('recent')),
+      dramaCrime: dramaCrime.slice(0, getSectionLimit('dramaCrime')),
+      comedyRomance: comedyRomance.slice(0, getSectionLimit('comedyRomance')),
+      singleRow: singleRow?.slice(0, itemsPerSection) || null,
       singleRowTitle
     };
-  }, [allContentData, selectedCategory]);
+  }, [allContentData, selectedCategory, siteSettings]);
 
   const randomSections = useMemo(() => {
     if (selectedCategory !== 'Todos') return [];
 
-    const featuredSection = {
-      id: 'featured',
-      type: 'marquee',
-      title: 'Em Destaque',
-      data: categorizedContent.featured,
-      showNumbers: true,
-      category: 'Lançamentos'
+    const homeConfig = siteSettings?.homePageConfig;
+    const enabledSections = homeConfig?.sections?.filter(s => s.enabled) || [];
+    const enabledIds = new Set(enabledSections.map(s => s.id));
+    const maxVisible = homeConfig?.maxSectionsVisible || (isLiteMode ? maxSectionsPerPage : 20);
+    const showRecent = homeConfig?.enableRecentSection !== false;
+
+    const sectionMap: Record<string, { id: string; type: string; title: string; data: Content[]; showNumbers: boolean; category: string }> = {
+      featured: {
+        id: 'featured',
+        type: 'marquee',
+        title: 'Em Destaque',
+        data: categorizedContent.featured,
+        showNumbers: true,
+        category: 'Lançamentos'
+      },
+      recent: {
+        id: 'recent',
+        type: 'row',
+        title: 'Lançamentos Recentes',
+        data: categorizedContent.recentReleases,
+        showNumbers: false,
+        category: 'Lançamentos'
+      },
+      topRated: {
+        id: 'topRated',
+        type: 'row',
+        title: 'Mais Assistidos',
+        data: categorizedContent.topRated,
+        showNumbers: false,
+        category: 'Todos'
+      },
+      movies: {
+        id: 'movies',
+        type: 'row',
+        title: 'Filmes',
+        data: categorizedContent.movies,
+        showNumbers: false,
+        category: 'Filmes'
+      },
+      series: {
+        id: 'series',
+        type: 'row',
+        title: 'Séries',
+        data: categorizedContent.series,
+        showNumbers: false,
+        category: 'Séries'
+      },
+      nostalgia: {
+        id: 'nostalgia',
+        type: 'row',
+        title: 'Nostalgia',
+        data: categorizedContent.nostalgia,
+        showNumbers: false,
+        category: 'Nostalgia'
+      },
+      action: {
+        id: 'action',
+        type: 'row',
+        title: 'Ação e Aventura',
+        data: categorizedContent.actionAdventure,
+        showNumbers: false,
+        category: 'Ação'
+      },
+      dramaCrime: {
+        id: 'dramaCrime',
+        type: 'row',
+        title: 'Drama & Crime',
+        data: categorizedContent.dramaCrime,
+        showNumbers: false,
+        category: 'Drama'
+      },
+      comedyRomance: {
+        id: 'comedyRomance',
+        type: 'row',
+        title: 'Comédia & Romance',
+        data: categorizedContent.comedyRomance,
+        showNumbers: false,
+        category: 'Romance'
+      },
+      comedy: {
+        id: 'comedy',
+        type: 'row',
+        title: 'Comédia e Terror',
+        data: categorizedContent.comedyHorror,
+        showNumbers: false,
+        category: 'Terror'
+      },
+      canais24h: {
+        id: 'canais24h',
+        type: 'channels',
+        title: 'Transmissão 24 Horas',
+        data: categorizedContent.canais24h,
+        showNumbers: false,
+        category: 'Canais 24h'
+      }
     };
 
-    const recentSection = { id: 'recent', type: 'row', title: 'Lançamentos Recentes', data: categorizedContent.recentReleases, showNumbers: false, category: 'Lançamentos' };
+    const orderedSections = enabledSections
+      .map(s => sectionMap[s.id])
+      .filter(s => s && s.data.length > 0);
 
-    const otherSections = [
-      { id: 'topRated', type: 'row', title: 'Mais Assistidos', data: categorizedContent.topRated, showNumbers: false, category: 'Todos' },
-      { id: 'movies', type: 'row', title: 'Filmes', data: categorizedContent.movies, showNumbers: false, category: 'Filmes' },
-      { id: 'series', type: 'row', title: 'Séries', data: categorizedContent.series, showNumbers: false, category: 'Séries' },
-      { id: 'nostalgia', type: 'row', title: 'Nostalgia', data: categorizedContent.nostalgia, showNumbers: false, category: 'Nostalgia' },
-      { id: 'action', type: 'row', title: 'Ação e Aventura', data: categorizedContent.actionAdventure, showNumbers: false, category: 'Ação' },
-      { id: 'dramaCrime', type: 'row', title: 'Drama & Crime', data: categorizedContent.dramaCrime, showNumbers: false, category: 'Drama' },
-      { id: 'comedyRomance', type: 'row', title: 'Comédia & Romance', data: categorizedContent.comedyRomance, showNumbers: false, category: 'Romance' },
-      { id: 'comedy', type: 'row', title: 'Comédia e Terror', data: categorizedContent.comedyHorror, showNumbers: false, category: 'Terror' }
-    ].filter(s => s.data.length > 0);
+    let finalSections = orderedSections;
 
-    const canais24hSection = {
-      id: 'canais24h',
-      type: 'channels',
-      title: 'Transmissão 24 Horas',
-      data: categorizedContent.canais24h,
-      showNumbers: false,
-      category: 'Canais 24h'
-    };
-
-    const shuffledOthers = [...otherSections].sort(() => Math.random() - 0.5);
-
-    let finalSections = [featuredSection];
-    
-    if (recentSection.data.length > 0) {
-      finalSections.push(recentSection);
-    }
-    
-    finalSections.push(...shuffledOthers);
-    
-    if (isLiteMode) {
-      finalSections = finalSections.slice(0, maxSectionsPerPage);
+    if (showRecent && sectionMap.recent.data.length > 0) {
+      const recentIdx = finalSections.findIndex(s => s.id === 'recent');
+      if (recentIdx === -1) {
+        finalSections = [finalSections[0], sectionMap.recent, ...finalSections.slice(1)].filter(Boolean);
+      }
     }
 
-    if (canais24hSection.data.length > 0) {
-      finalSections.push(canais24hSection);
-    }
+    finalSections = finalSections.slice(0, maxVisible);
 
     return finalSections;
-  }, [categorizedContent, selectedCategory, isLiteMode, maxSectionsPerPage]);
+  }, [categorizedContent, selectedCategory, siteSettings, isLiteMode, maxSectionsPerPage]);
 
   const currentTrailer = trailerContents[currentTrailerIndex] || null;
 

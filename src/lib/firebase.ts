@@ -947,6 +947,22 @@ export const initializeOriginalAdmin = async () => {
 };
 
 // Site Settings functions
+export interface HomePageSectionConfig {
+  id: string;
+  title: string;
+  enabled: boolean;
+  order: number;
+  maxItems?: number;
+}
+
+export interface HomePageConfig {
+  sections: HomePageSectionConfig[];
+  itemsPerSection: number;
+  enableRandomOrder: boolean;
+  enableRecentSection: boolean;
+  maxSectionsVisible: number;
+}
+
 export interface SiteSettings {
   loginBackgroundUrl?: string;
   holidayDecorationsEnabled?: boolean;
@@ -967,6 +983,7 @@ export interface SiteSettings {
   iptvApiKey?: string;
   iptvApiBaseUrl?: string;
   maintenanceModeEnabled?: boolean;
+  homePageConfig?: HomePageConfig;
 }
 
 export const getSiteSettings = async (bypassCache?: boolean): Promise<SiteSettings> => {

@@ -46,6 +46,7 @@ const AdminAds = lazyWithRetry(() => import("./pages/AdminAds"));
 const AdminPayments = lazyWithRetry(() => import("./pages/AdminPayments"));
 const AdminSettings = lazyWithRetry(() => import("./pages/AdminSettings").then(module => ({ default: module.AdminSettings })));
 const AdminSlider = lazyWithRetry(() => import("./pages/AdminSlider"));
+const AdminHomePageManager = lazyWithRetry(() => import("./pages/AdminHomePageManager"));
 const AdminPlans = lazyWithRetry(() => import("./pages/AdminPlans"));
 const AdminSystem = lazyWithRetry(() => import("./pages/AdminSystem"));
 const AdminNotifications = lazyWithRetry(() => import("./pages/AdminNotifications"));
@@ -215,6 +216,7 @@ const App = () => {
                   <Route path="/admin/payments" element={<AdminPayments />} />
                   <Route path="/admin/settings" element={<AdminSettings />} />
                   <Route path="/admin/slider" element={<AdminSlider />} />
+                  <Route path="/admin/home-page" element={<AdminHomePageManager />} />
                   <Route path="/admin/plans" element={<AdminPlans />} />
                   <Route path="/admin/system" element={<AdminSystem />} />
                   <Route path="/admin/notifications" element={<AdminNotifications />} />
