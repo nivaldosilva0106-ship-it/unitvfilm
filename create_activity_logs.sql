@@ -1,7 +1,7 @@
 -- Tabela para guardar os logs históricos de atividade dos utilizadores
 CREATE TABLE IF NOT EXISTS public.activity_logs (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-    user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
+    user_id TEXT REFERENCES public.profiles(id) ON DELETE CASCADE,
     page_name TEXT NOT NULL,
     device_type TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
@@ -15,7 +15,7 @@ ALTER TABLE public.activity_logs ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Enable insert for authenticated users only"
 ON public.activity_logs
 FOR INSERT TO authenticated
-WITH CHECK (auth.uid() = user_id);
+WITH CHECK (auth.uid()::text = user_id);
 
 CREATE POLICY "Enable select for everyone"
 ON public.activity_logs
