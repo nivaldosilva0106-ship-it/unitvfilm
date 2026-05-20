@@ -31,27 +31,6 @@ const AdManager = React.lazy(() => import("@/components/AdManager").then(module 
 
 const ALL_CATEGORIES = ['Todos', 'Filmes', 'Séries', 'TV ao Vivo', 'Lançamentos', 'Ação', 'Terror'];
 
-// Seed-based pseudo-random number generator for deterministic sorting
-const seededRandom = (seed: number) => {
-  const x = Math.sin(seed) * 10000;
-  return x - Math.floor(x);
-};
-
-// Seeded Fisher-Yates shuffle
-const seededShuffle = <T,>(array: T[], seed: number): T[] => {
-  const shuffled = [...array];
-  let currentSeed = seed;
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const r = seededRandom(currentSeed);
-    currentSeed += 1;
-    const j = Math.floor(r * (i + 1));
-    const temp = shuffled[i];
-    shuffled[i] = shuffled[j];
-    shuffled[j] = temp;
-  }
-  return shuffled;
-};
-
 const getYouTubeId = (url: string | undefined | null) => {
   if (!url) return null;
   const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
@@ -195,11 +174,6 @@ const Index = () => {
   const loadContent = async () => {
     let hasCache = false;
     try {
-      // Daily Random Seed for consistent/seeded shuffles
-      const today = new Date().toISOString().slice(0, 10);
-      let seed = 0;
-      for (let i = 0; i < today.length; i++) seed += today.charCodeAt(i);
-
       // 1. Instant Cache Load
       const cached = localStorage.getItem('cached_contents');
       if (cached) {
@@ -211,7 +185,7 @@ const Index = () => {
 
             // Instantly load slider from cache to avoid flicker on initial render
             const featuredCandidates = cachedData.filter((c: any) => c.backdrop_url && c.category !== 'tv');
-            const shuffledFeatured = seededShuffle(featuredCandidates, seed);
+            const shuffledFeatured = [...featuredCandidates].sort(() => Math.random() - 0.5);
             setTrailerContents(shuffledFeatured.slice(0, 5));
           }
         } catch (e) {}
@@ -257,16 +231,20 @@ const Index = () => {
       let activeTrailers: Content[] = [];
       if (settings.mode === 'manual' && settings.selectedContentIds?.length > 0) {
         const selected = activeContents.filter((c: any) => settings.selectedContentIds.includes(c.id));
-        const shuffledManual = seededShuffle(selected, seed);
-        activeTrailers = shuffledManual.length > 0 ? shuffledManual : activeContents.slice(0, 5);
+        if (selected.length > 0) {
+          const shuffledManual = [...selected].sort(() => Math.random() - 0.5);
+          activeTrailers = shuffledManual;
+        } else {
+          const featuredCandidates = activeContents.filter((c: any) => c.backdrop_url && c.category !== 'tv');
+          activeTrailers = [...featuredCandidates].sort(() => Math.random() - 0.5).slice(0, 5);
+        }
       } else {
         const featuredCandidates = activeContents.filter((c: any) => c.backdrop_url && c.category !== 'tv');
-        const shuffledFeatured = seededShuffle(featuredCandidates, seed);
-        activeTrailers = shuffledFeatured.slice(0, 5);
+        activeTrailers = [...featuredCandidates].sort(() => Math.random() - 0.5).slice(0, 5);
       }
       setTrailerContents(activeTrailers);
 
-      setRandomContent(seededShuffle(activeContents, seed));
+      setRandomContent([...activeContents.filter(c => c.status === 'active')].sort(() => Math.random() - 0.5));
       setNetworkFailed(false);
       setRetryCount(0); // Success, reset retries
 
@@ -329,14 +307,9 @@ const Index = () => {
   };
 
   const categorizedContent = useMemo(() => {
-    // Daily Random Seed for consistent/seeded shuffles
-    const today = new Date().toISOString().slice(0, 10);
-    let seed = 0;
-    for (let i = 0; i < today.length; i++) seed += today.charCodeAt(i);
-
     // Featured section shows random mix of new or high rated content for variety
     const featuredPool = allContentData.filter(c => c.is_new || (c.rating && c.rating >= 7));
-    const featured = seededShuffle(featuredPool, seed).slice(0, 10);
+    const featured = [...featuredPool].sort(() => Math.random() - 0.5).slice(0, 10);
     const topRated = allContentData.filter(c => c.rating && c.rating >= 8).sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 10);
     const movies = allContentData.filter(c => c.category === 'movie' || (c.category as string) === 'Filme');
     const series = allContentData.filter(c => {
@@ -385,10 +358,6 @@ const Index = () => {
   const randomSections = useMemo(() => {
     if (selectedCategory !== 'Todos') return [];
 
-    const today = new Date().toISOString().slice(0, 10);
-    let seed = 0;
-    for (let i = 0; i < today.length; i++) seed += today.charCodeAt(i);
-
     const featuredSection = {
       id: 'featured',
       type: 'marquee',
@@ -398,26 +367,25 @@ const Index = () => {
     };
 
     const shufflableSections = [
-      { id: 'recent', type: 'row', title: 'Lançamentos Recentes', data: seededShuffle(categorizedContent.recentReleases, seed + 1), showNumbers: false },
-      { id: 'trending', type: 'row', title: 'Em Alta', data: [...categorizedContent.topRated].sort((a, b) => (b.rating || 0) - (a.rating || 0)), showNumbers: false },
-      { id: 'topRated', type: 'row', title: 'Mais Assistidos', data: seededShuffle(categorizedContent.topRated, seed + 2), showNumbers: false },
-      { id: 'movies', type: 'row', title: 'Filmes', data: seededShuffle(categorizedContent.movies, seed + 3), showNumbers: false },
-      { id: 'series', type: 'row', title: 'Séries', data: seededShuffle(categorizedContent.series, seed + 4), showNumbers: false },
-      { id: 'nostalgia', type: 'row', title: 'Nostalgia', data: seededShuffle(categorizedContent.nostalgia, seed + 5), showNumbers: false },
-      { id: 'action', type: 'row', title: 'Ação e Aventura', data: seededShuffle(categorizedContent.actionAdventure, seed + 6), showNumbers: false },
-      { id: 'dramaCrime', type: 'row', title: 'Drama & Crime', data: seededShuffle(categorizedContent.dramaCrime, seed + 7), showNumbers: false },
-      { id: 'comedyRomance', type: 'row', title: 'Comédia & Romance', data: seededShuffle(categorizedContent.comedyRomance, seed + 8), showNumbers: false },
-      { id: 'comedy', type: 'row', title: 'Comédia e Terror', data: seededShuffle(categorizedContent.comedyHorror, seed + 9), showNumbers: false },
+      { id: 'recent', type: 'row', title: 'Lançamentos Recentes', data: [...categorizedContent.recentReleases].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'topRated', type: 'row', title: 'Mais Assistidos', data: [...categorizedContent.topRated].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'movies', type: 'row', title: 'Filmes', data: [...categorizedContent.movies].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'series', type: 'row', title: 'Séries', data: [...categorizedContent.series].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'nostalgia', type: 'row', title: 'Nostalgia', data: [...categorizedContent.nostalgia].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'action', type: 'row', title: 'Ação e Aventura', data: [...categorizedContent.actionAdventure].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'dramaCrime', type: 'row', title: 'Drama & Crime', data: [...categorizedContent.dramaCrime].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'comedyRomance', type: 'row', title: 'Comédia & Romance', data: [...categorizedContent.comedyRomance].sort(() => Math.random() - 0.5), showNumbers: false },
+      { id: 'comedy', type: 'row', title: 'Comédia e Terror', data: [...categorizedContent.comedyHorror].sort(() => Math.random() - 0.5), showNumbers: false }
     ].filter(s => s.data.length > 0);
 
-    // Shuffle only the non-featured sections using seed
-    const shuffled = seededShuffle(shufflableSections, seed + 10);
+    // Shuffle the sections themselves so they appear in a different order
+    const shuffled = [...shufflableSections].sort(() => Math.random() - 0.5);
 
     const canais24hSection = {
       id: 'canais24h',
       type: 'channels',
       title: 'Transmissão 24 Horas',
-      data: seededShuffle(categorizedContent.canais24h, seed + 11),
+      data: [...categorizedContent.canais24h].sort(() => Math.random() - 0.5),
       showNumbers: false
     };
 
