@@ -4,6 +4,7 @@ import { useRef, useState, useEffect, useCallback, memo } from "react";
 import { Button } from "./ui/button";
 
 import { Content } from "@/types/content";
+import { FOCUSABLE_CLASS } from "@/hooks/useSpatialNavigation";
 
 interface ContentRowProps {
   title: string;
