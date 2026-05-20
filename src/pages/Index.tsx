@@ -602,7 +602,7 @@ const Index = () => {
   // If we are strictly offline, ignore authLoading and show what we can
   const shouldWaitAuth = authLoading && !isEffectivelyOffline;
 
-  if ((loading || !heroReady || shouldWaitAuth) && !isEffectivelyOffline) return <LoadingScreen />;
+    if (loading && !isEffectivelyOffline) return <LoadingScreen />;
 
   const showAllRows = selectedCategory === 'Todos';
   // Ensure we have a single row content OR we are in a selected state (which might be empty, but we'll handle the UI)
