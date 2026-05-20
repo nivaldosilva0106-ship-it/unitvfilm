@@ -759,7 +759,8 @@ export const rejectPayment = async (paymentId: string, reason: string) => {
 
 export const checkSubscriptionExpired = async (userId: string): Promise<boolean> => {
   const profile = await getUserProfile(userId);
-  if (!profile || !profile.subscriptionExpiresAt) return true;
+  if (!profile) return true;
+  if (!profile.subscriptionExpiresAt) return false;
 
   const expiresAt = new Date(profile.subscriptionExpiresAt);
   const now = new Date();
@@ -769,6 +770,7 @@ export const checkSubscriptionExpired = async (userId: string): Promise<boolean>
     await updateUserProfile(userId, {
       isPremium: false,
       subscriptionTier: 'free',
+      planId: 'free',
       subscriptionExpiresAt: null,
     });
     return true;

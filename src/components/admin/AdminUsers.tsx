@@ -207,25 +207,42 @@ export const AdminUsers = () => {
         if (!selectedUserForPlan || !newPlanId) return;
 
         try {
-            const selectedPlan = plans.find(p => p.id === newPlanId);
+            let selectedPlan = plans.find(p => p.id === newPlanId);
+
+            if (!selectedPlan && newPlanId === 'trial_30d') {
+                selectedPlan = {
+                    id: 'trial_30d',
+                    name: '30 Dias Grátis',
+                    description: 'Acesso Premium Ilimitado por 30 dias',
+                    price: 0,
+                    limits: { moviesPerDay: -1, episodesPerDay: -1, maxProfiles: 4, canDownload: true },
+                    isActive: true,
+                    requiresVerification: false,
+                    durationDays: 30
+                } as any;
+            }
+
             const updates: any = {
                 planId: newPlanId,
-                isPremium: newPlanId !== 'free' && (selectedPlan?.price || 0) > 0,
-                // Update limits based on plan, or keep existing override if present? 
-                // Usually changing plan resets limits to that plan's defaults, unless manually overridden later.
-                // We'll reset override to null so new plan limits apply, unless admin deliberately sets override again.
+                isPremium: newPlanId !== 'free',
+                subscriptionTier: newPlanId === 'free' ? 'free' : 'premium',
                 profilesLimitOverride: null
             };
 
-            // Calculate expiration if needed (optional, logic depends on plan duration)
-            if (selectedPlan && selectedPlan.durationDays) {
+            if (newPlanId === 'free') {
+                updates.subscriptionExpiresAt = null;
+            } else if (selectedPlan && selectedPlan.durationDays) {
                 const date = new Date();
                 date.setDate(date.getDate() + selectedPlan.durationDays);
+                updates.subscriptionExpiresAt = date.toISOString();
+            } else {
+                const date = new Date();
+                date.setDate(date.getDate() + 30);
                 updates.subscriptionExpiresAt = date.toISOString();
             }
 
             await updateUserProfile(selectedUserForPlan.id, updates);
-            toast.success(`Plano de ${selectedUserForPlan.email} atualizado para ${selectedPlan?.name}`);
+            toast.success(`Plano de ${selectedUserForPlan.email} atualizado para ${selectedPlan?.name || newPlanId}`);
             setIsPlanModalOpen(false);
             loadUsers();
 
@@ -703,7 +720,8 @@ export const AdminUsers = () => {
                                     </SelectTrigger>
                                     <SelectContent className="bg-zinc-900 border-white/10">
                                         <SelectItem value="free">Grátis (Free)</SelectItem>
-                                        {plans.filter(p => p.id !== 'free').map(plan => (
+                                        <SelectItem value="trial_30d">30 Dias Grátis (Campanha)</SelectItem>
+                                        {plans.filter(p => p.id !== 'free' && p.id !== 'trial_30d').map(plan => (
                                             <SelectItem key={plan.id} value={plan.id}>
                                                 {plan.name} ({plan.price > 0 ? `${plan.price} KZ` : 'Grátis'})
                                             </SelectItem>

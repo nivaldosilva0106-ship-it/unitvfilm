@@ -99,7 +99,24 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
             const plans = await getPlans();
             const currentPlanId = userProfile.planId || 'free';
-            const activePlan = plans.find(p => p.id === currentPlanId) || plans.find(p => p.id === 'free') || null;
+            let activePlan = plans.find(p => p.id === currentPlanId);
+
+            if (!activePlan && currentPlanId === 'trial_30d') {
+              activePlan = {
+                id: 'trial_30d',
+                name: '30 Dias Grátis',
+                description: 'Acesso Premium Ilimitado por 30 dias',
+                price: 0,
+                limits: { moviesPerDay: -1, episodesPerDay: -1, maxProfiles: 4, canDownload: true },
+                isActive: true,
+                requiresVerification: false
+              };
+            }
+
+            if (!activePlan) {
+              activePlan = plans.find(p => p.id === 'free') || null;
+            }
+
             setPlan(activePlan);
             if (activePlan) {
               localStorage.setItem('unitv_cached_plan', JSON.stringify(activePlan));
