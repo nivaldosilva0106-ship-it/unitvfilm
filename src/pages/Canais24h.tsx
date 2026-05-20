@@ -874,17 +874,17 @@ export default function Canais24h() {
     const [loading, setLoading] = useState(true);
     const [showApkWarning, setShowApkWarning] = useState(false);
 
-    const { user } = useAuth();
+    const { user, currentProfile } = useAuth();
     const [myListId, setMyListId] = useState<string | null>(null);
     const [isInMyList, setIsInMyList] = useState(false);
 
     useEffect(() => {
-        if (!user || !currentChannel) return;
+        if (!currentProfile || !currentChannel) return;
         
         let isMounted = true;
         const checkMyList = async () => {
             try {
-                const list = await getMyList(user.uid);
+                const list = await getMyList(currentProfile.id);
                 if (!isMounted) return;
                 
                 const listItem = list.find(item => item.contentId === currentChannel.id);
@@ -902,10 +902,10 @@ export default function Canais24h() {
         
         checkMyList();
         return () => { isMounted = false; };
-    }, [user, currentChannel]);
+    }, [currentProfile, currentChannel]);
 
     const handleFavorite = async () => {
-        if (!user) {
+        if (!currentProfile) {
             toast.error("Precisas iniciar sessão para adicionar aos favoritos");
             return;
         }
@@ -913,12 +913,12 @@ export default function Canais24h() {
         
         try {
             if (isInMyList && myListId) {
-                await removeFromMyList(user.uid, myListId);
+                await removeFromMyList(currentProfile.id, myListId);
                 setIsInMyList(false);
                 setMyListId(null);
                 toast.success("Canal removido da tua lista");
             } else {
-                const newItem = await addToMyList(user.uid, currentChannel);
+                const newItem = await addToMyList(currentProfile.id, currentChannel);
                 setIsInMyList(true);
                 setMyListId(newItem.id);
                 toast.success("Canal adicionado à tua lista");

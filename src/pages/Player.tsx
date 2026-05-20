@@ -116,9 +116,9 @@ const Player = () => {
     // Check My List Status
     useEffect(() => {
         const checkMyList = async () => {
-            if (user?.uid && content) {
+            if (currentProfile?.id && content) {
                 try {
-                    const list = await getMyList(user.uid);
+                    const list = await getMyList(currentProfile.id);
                     const found = list.find(item => item.contentId === content.id);
                     if (found) {
                         setIsInMyList(true);
@@ -133,19 +133,19 @@ const Player = () => {
             }
         };
         checkMyList();
-    }, [user, content]);
+    }, [currentProfile, content]);
 
     const handleToggleMyList = async () => {
-        if (!user || !content) return;
+        if (!currentProfile || !content) return;
 
         try {
             if (isInMyList && myListId) {
-                await removeFromMyList(user.uid, myListId);
+                await removeFromMyList(currentProfile.id, myListId);
                 setIsInMyList(false);
                 setMyListId(null);
                 toast.success("Removido da Minha Lista");
             } else {
-                const newItem = await addToMyList(user.uid, content);
+                const newItem = await addToMyList(currentProfile.id, content);
                 setIsInMyList(true);
                 setMyListId(newItem.id);
                 toast.success("Adicionado à Minha Lista");

@@ -29,7 +29,7 @@ const MAIN_CATEGORIES = [
 
 export default function Categories() {
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, currentProfile } = useAuth();
 
     // Data State
     const [allContent, setAllContent] = useState<Content[]>([]);
@@ -73,15 +73,15 @@ export default function Categories() {
 
     useEffect(() => {
         loadData();
-    }, [user]);
+    }, [user, currentProfile]);
 
     const loadData = async () => {
         try {
             const contents = await getAllContents();
             setAllContent(contents);
 
-            if (user) {
-                const list = await getMyList(user.uid);
+            if (currentProfile) {
+                const list = await getMyList(currentProfile.id);
                 setMyList(list.map(l => l.contentId));
             }
         } catch (e) {
@@ -221,16 +221,16 @@ export default function Categories() {
     };
 
     const handleToggleMyList = async (content: Content) => {
-        if (!user) { toast.error("Faça login para salvar na lista"); return; }
+        if (!currentProfile) { toast.error("Faça login para salvar na lista"); return; }
         const isSaved = myList.includes(content.id);
 
         try {
             if (isSaved) {
-                await removeFromMyList(user.uid, content.id);
+                await removeFromMyList(currentProfile.id, content.id);
                 setMyList(prev => prev.filter(id => id !== content.id));
                 toast.success("Removido da lista");
             } else {
-                await addToMyList(user.uid, content);
+                await addToMyList(currentProfile.id, content);
                 setMyList(prev => [...prev, content.id]);
                 toast.success("Adicionado à lista");
             }

@@ -214,10 +214,10 @@ const ContentDetails = () => {
   };
 
   const checkMyList = async () => {
-    if (!user || !content) return;
+    if (!currentProfile || !content) return;
 
     try {
-      const myList = await getMyList(user.uid);
+      const myList = await getMyList(currentProfile.id);
       const item = myList.find(i => i.contentId === content.id);
       if (item) {
         setInMyList(true);
@@ -232,7 +232,7 @@ const ContentDetails = () => {
   };
 
   const handleToggleMyList = async () => {
-    if (!user) {
+    if (!currentProfile) {
       toast.error("Faça login para adicionar à sua lista");
       navigate("/login");
       return;
@@ -242,12 +242,12 @@ const ContentDetails = () => {
 
     try {
       if (inMyList && myListItemId) {
-        await removeFromMyList(user.uid, myListItemId);
+        await removeFromMyList(currentProfile.id, myListItemId);
         setInMyList(false);
         setMyListItemId(null);
         toast.success("Removido da sua lista");
       } else {
-        const item = await addToMyList(user.uid, content);
+        const item = await addToMyList(currentProfile.id, content);
         setInMyList(true);
         setMyListItemId(item.id);
         toast.success("Adicionado à sua lista");
@@ -258,13 +258,13 @@ const ContentDetails = () => {
   };
 
   const handleAddSuggestionToList = async (c: Content) => {
-    if (!user) {
+    if (!currentProfile) {
       toast.error("Faça login para adicionar à lista");
       return;
     }
 
     try {
-      await addToMyList(user.uid, c);
+      await addToMyList(currentProfile.id, c);
       toast.success("Adicionado à sua lista");
     } catch (error) {
       toast.info("Já está na sua lista ou ocorreu um erro");

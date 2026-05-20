@@ -16,7 +16,7 @@ import { useSpatialNavigation, FOCUSABLE_CLASS } from '@/hooks/useSpatialNavigat
 
 const MyList = () => {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
+  const { user, currentProfile, loading: authLoading } = useAuth();
   const [myList, setMyList] = useState<MyListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [playerModal, setPlayerModal] = useState<{ open: boolean, url: string, urls?: string[], title: string, isPremium?: boolean, image?: string, description?: string, rating?: number, internalUrl?: string }>({ open: false, url: '', title: '', isPremium: false });
@@ -48,20 +48,20 @@ const MyList = () => {
 
   useEffect(() => {
     if (!authLoading) {
-      if (!user) {
+      if (!user || !currentProfile) {
         navigate('/login');
       } else {
         loadMyList();
       }
     }
-  }, [user, authLoading, navigate]);
+  }, [user, currentProfile, authLoading, navigate]);
 
   const loadMyList = async () => {
-    if (!user) return;
+    if (!currentProfile) return;
 
     try {
       const [items, settings, allContent] = await Promise.all([
-        getMyList(user.uid),
+        getMyList(currentProfile.id),
         getSiteSettings(),
         getAllContents()
       ]);
@@ -81,9 +81,9 @@ const MyList = () => {
   };
 
   const handleAddSuggestionToList = async (c: Content) => {
-    if (!user) return;
+    if (!currentProfile) return;
     try {
-      const newItem = await addToMyList(user.uid, c); // Add to DB
+      const newItem = await addToMyList(currentProfile.id, c); // Add to DB
       // Update local list state
       setMyList(prev => [...prev, newItem]);
       toast.success('Adicionado à sua lista');
@@ -95,10 +95,10 @@ const MyList = () => {
   };
 
   const handleRemove = async (itemId: string) => {
-    if (!user) return;
+    if (!currentProfile) return;
 
     try {
-      await removeFromMyList(user.uid, itemId);
+      await removeFromMyList(currentProfile.id, itemId);
       setMyList(myList.filter(item => item.id !== itemId));
       toast.success('Removido da sua lista');
     } catch (error) {
