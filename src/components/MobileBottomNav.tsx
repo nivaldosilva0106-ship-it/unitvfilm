@@ -166,7 +166,19 @@ export const MobileBottomNav = () => {
             <h3 className="text-xl font-bold text-white mb-6 text-center">O que você deseja assistir?</h3>
             
             <div className="flex flex-col gap-3">
-
+              <button 
+                onClick={() => {
+                  setShowLiveModal(false);
+                  navigate('/tv');
+                }}
+                className="flex items-center justify-between bg-primary p-4 rounded-2xl hover:bg-primary/90 transition-all active:scale-95"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="bg-black/20 p-2 rounded-full"><Tv className="w-6 h-6 text-white" /></div>
+                  <span className="text-white font-bold text-lg">TV Online</span>
+                </div>
+                <span className="text-white/60 text-xs font-semibold uppercase tracking-wider bg-black/20 px-2 py-1 rounded">IPTV</span>
+              </button>
               
               <button 
                 onClick={() => {

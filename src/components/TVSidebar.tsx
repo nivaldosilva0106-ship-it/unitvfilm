@@ -21,6 +21,7 @@ const sidebarItems = [
   { id: "notifications", icon: Bell, label: "Notificações", path: "/notifications" },
   { id: "list", icon: List, label: "Minha Lista", path: "/my-list" },
   { id: "nostalgia", icon: Clapperboard, label: "Nostalgia", path: "/nostalgia" },
+  { id: "live", icon: Tv, label: "TV Online", path: "/tv" },
   { id: "canais24h", icon: Clock, label: "Canais 24h", path: "/canais24h" },
   { id: "iptv", icon: MonitorPlay, label: "Gerar IPTV", path: "/iptv" },
   { id: "profile", icon: User, label: "Perfil", path: "/profile" },
@@ -150,22 +151,24 @@ export const TVSidebar = () => {
       try {
         const allContent = await getAllContents();
         const now = new Date();
-        const counts: Record<string, number> = { home: 0, nostalgia: 0, canais24h: 0 };
+        const counts: Record<string, number> = { home: 0, nostalgia: 0, live: 0, canais24h: 0 };
         
         allContent.forEach(content => {
           if (content.new_since) {
-             const addedDate = new Date(content.new_since);
-             const diffHours = (now.getTime() - addedDate.getTime()) / (1000 * 60 * 60);
+            const addedDate = new Date(content.new_since);
+            const diffHours = (now.getTime() - addedDate.getTime()) / (1000 * 60 * 60);
             
-             if (diffHours <= 24) {
-               counts.home++;
-               if (content.category === 'nostalgia') counts.nostalgia++;
-               if (content.category === 'canais24h') counts.canais24h++;
-             }
-          } else if (content.is_new) {
+            if (diffHours <= 24) {
               counts.home++;
               if (content.category === 'nostalgia') counts.nostalgia++;
+              if (content.category === 'tv') counts.live++;
               if (content.category === 'canais24h') counts.canais24h++;
+            }
+          } else if (content.is_new) {
+             counts.home++;
+             if (content.category === 'nostalgia') counts.nostalgia++;
+             if (content.category === 'tv') counts.live++;
+             if (content.category === 'canais24h') counts.canais24h++;
           }
         });
         setNewContentCount(counts);
@@ -203,6 +206,7 @@ export const TVSidebar = () => {
     if (item.id === "list") badge = myListCount;
     if (item.id === "home") badge = newContentCount.home || 0;
     if (item.id === "nostalgia") badge = newContentCount.nostalgia || 0;
+    if (item.id === "live") badge = newContentCount.live || 0;
     if (item.id === "canais24h") badge = newContentCount.canais24h || 0;
 
     return { ...item, badge };
