@@ -2217,3 +2217,57 @@ export const updateUserActivity = async (
   const profileRef = ref(database, `profiles/${userId}`);
   await update(profileRef, updates);
 };
+
+export const logActivityHistory = async (userId: string, pageName: string, deviceType: string) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { error } = await supabase.from('activity_logs').insert([
+        { user_id: userId, page_name: pageName, device_type: deviceType }
+      ]);
+      if (error && error.code !== '42P01') {
+        // 42P01 means table does not exist yet. We ignore it if not created.
+        console.error("Error inserting activity log:", error);
+      }
+    }
+  } else {
+    // Fallback to Firebase if Supabase not used
+    const logRef = push(ref(database, 'activity_logs'));
+    await set(logRef, {
+      userId,
+      pageName,
+      deviceType,
+      createdAt: getSyncedDate().toISOString()
+    });
+  }
+};
+
+export const getActivityLogs = async (): Promise<any[]> => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      // Fetch the last 1000 logs for performance, or fetch all if needed
+      const { data, error } = await supabase
+        .from('activity_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5000);
+      if (error) {
+        if (error.code !== '42P01') console.error("Error fetching activity logs:", error);
+        return [];
+      }
+      return data || [];
+    }
+  } else {
+    const logsRef = ref(database, 'activity_logs');
+    const snapshot = await get(logsRef);
+    if (!snapshot.exists()) return [];
+    
+    const logs: any[] = [];
+    snapshot.forEach((child) => {
+      logs.push({ id: child.key, ...child.val() });
+    });
+    return logs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  }
+  return [];
+};

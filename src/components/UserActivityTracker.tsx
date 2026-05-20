@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from "react";
 import { useLocation, useParams, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { updateUserActivity, getAllContents } from "@/lib/firebase";
+import { updateUserActivity, logActivityHistory, getAllContents } from "@/lib/firebase";
 
 export const UserActivityTracker = () => {
   const location = useLocation();
@@ -10,6 +10,9 @@ export const UserActivityTracker = () => {
   
   // Track session start time locally for this visitor session
   const sessionStartRef = useRef<string>(new Date().toISOString());
+  
+  // Track last logged page to avoid duplicate historical logs on heartbeat
+  const lastLoggedPageRef = useRef<string | null>(null);
 
   // Determine device type
   const getDeviceType = (): string => {
@@ -143,6 +146,12 @@ export const UserActivityTracker = () => {
           sessionStartAt: sessionStartRef.current,
           deviceType: getDeviceType()
         });
+
+        // Log to historical table only if the page has changed
+        if (lastLoggedPageRef.current !== friendlyPage) {
+          lastLoggedPageRef.current = friendlyPage;
+          await logActivityHistory(user.uid, friendlyPage, getDeviceType());
+        }
       } catch (err) {
         console.warn("[UniTvFilm] Error updating user activity:", err);
       }

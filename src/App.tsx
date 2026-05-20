@@ -74,6 +74,7 @@ const IPTV = lazyWithRetry(() => import("./pages/IPTV"));
 const Search = lazyWithRetry(() => import("./pages/Search"));
 const AdminUsers = lazyWithRetry(() => import("@/components/admin/AdminUsers").then(module => ({ default: module.AdminUsers })));
 const AdminAvatars = lazyWithRetry(() => import("@/components/admin/AdminAvatars").then(module => ({ default: module.AdminAvatars })));
+const AdminActivity = lazyWithRetry(() => import("@/components/admin/AdminActivity").then(module => ({ default: module.AdminActivity })));
 
 import { LoadingScreen } from "@/components/LoadingScreen";
 import { NetworkStatus } from "@/components/NetworkStatus";
@@ -241,6 +242,12 @@ const App = () => {
                   <Route path="/admin/users" element={
                     <AdminLayout title="Gerenciar Usuários">
                       <AdminUsers />
+                    </AdminLayout>
+                  } />
+
+                  <Route path="/admin/activity" element={
+                    <AdminLayout title="Painel de Atividades">
+                      <AdminActivity />
                     </AdminLayout>
                   } />
 
