@@ -35,6 +35,7 @@ interface IndexHeroProps {
     handleInfoContent: (content: Content) => void;
     handleToggleMyList: (content: Content) => void;
     providerLogos?: Record<string, string>;
+    onReady?: () => void;
 }
 
 export const IndexHero = memo(({
@@ -55,7 +56,8 @@ export const IndexHero = memo(({
     handlePlayContent,
     handleInfoContent,
     handleToggleMyList,
-    providerLogos
+    providerLogos,
+    onReady
 }: IndexHeroProps) => {
     const { isLiteMode, imageQuality } = useAppConfig();
     const playerRef = useRef<any>(null);
@@ -129,6 +131,7 @@ export const IndexHero = memo(({
                          if (destroyed) return;
                          if (e.data === window.YT.PlayerState.PLAYING) {
                              setIsVideoPlaying(true);
+                             if (onReady) onReady();
                          } else {
                              setIsVideoPlaying(false);
                          }
@@ -161,6 +164,13 @@ export const IndexHero = memo(({
             setIsVideoPlaying(false);
         };
     }, [currentTrailer, showVideo, getYouTubeId, playerModalOpen, quickViewContentOpen, selectedSeriesOpen]);
+
+    // Signal ready immediately if video is disabled or there is no video trailer to load
+    useEffect(() => {
+        if (!currentTrailer || !currentTrailer.trailer_url || !showVideo) {
+            if (onReady) onReady();
+        }
+    }, [currentTrailer, showVideo, onReady]);
 
     // Handle Mute from UI toggle
     useEffect(() => {
