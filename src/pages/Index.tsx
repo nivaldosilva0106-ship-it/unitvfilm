@@ -534,7 +534,7 @@ const Index = () => {
           setIsTransitioning(false);
         }, 1000);
       }, 1500);
-    }, 15000);
+    }, 60000);
     return () => clearInterval(interval);
   }, [playerModal.open, isLiteMode]);
 
