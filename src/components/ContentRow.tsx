@@ -15,9 +15,10 @@ interface ContentRowProps {
   onDownloadContent?: (content: Content) => void;
   hideDownloadIcon?: boolean;
   providerLogos?: Record<string, string>;
+  onViewMore?: () => void;
 }
 
-export const ContentRow = memo(({ title, contents, onPlayContent, onInfoContent, onDetailsContent, onTrailerContent, onDownloadContent, hideDownloadIcon, providerLogos }: ContentRowProps) => {
+export const ContentRow = memo(({ title, contents, onPlayContent, onInfoContent, onDetailsContent, onTrailerContent, onDownloadContent, hideDownloadIcon, providerLogos, onViewMore }: ContentRowProps) => {
   const scrollRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [showLeftArrow, setShowLeftArrow] = useState(false);
@@ -89,7 +90,18 @@ export const ContentRow = memo(({ title, contents, onPlayContent, onInfoContent,
 
   return (
     <div className="mb-8" ref={containerRef}>
-      <h2 className="text-2xl font-bold text-foreground mb-4 px-4 sm:px-8">{title}</h2>
+      <div className="flex items-center justify-between mb-4 px-4 sm:px-8">
+        <h2 className="text-2xl font-bold text-foreground">{title}</h2>
+        {onViewMore && (
+          <button
+            onClick={onViewMore}
+            className={`text-sm text-primary hover:text-primary/80 font-semibold transition-colors ${FOCUSABLE_CLASS}`}
+            tabIndex={0}
+          >
+            Ver mais
+          </button>
+        )}
+      </div>
       {!isVisible ? (
         // Lightweight placeholder while off-screen
         <div className="h-[260px] px-4 sm:px-8" />

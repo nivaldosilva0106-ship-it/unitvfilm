@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { ContentCard } from './ContentCard';
 import { Content } from '@/types/content';
 import { useAppConfig } from '@/hooks/useAppConfig';
+import { FOCUSABLE_CLASS } from '@/hooks/useSpatialNavigation';
 
 interface MarqueeContentRowProps {
     title: string;
@@ -15,6 +16,7 @@ interface MarqueeContentRowProps {
     showNumbers?: boolean;
     hideDownloadIcon?: boolean;
     providerLogos?: Record<string, string>;
+    onViewMore?: () => void;
 }
 export const MarqueeContentRow = memo(({
     title,
@@ -27,6 +29,7 @@ export const MarqueeContentRow = memo(({
     showNumbers = false,
     hideDownloadIcon = false,
     providerLogos = {},
+    onViewMore,
 }: MarqueeContentRowProps) => {
     const [scrollPosition, setScrollPosition] = useState(0);
     const { isLiteMode } = useAppConfig();
@@ -64,7 +67,18 @@ export const MarqueeContentRow = memo(({
 
     return (
         <div className="mb-6 sm:mb-8 group/row">
-            <h2 className="text-xl sm:text-2xl font-bold mb-3 sm:mb-4 px-4 md:px-8 tracking-tight">{title}</h2>
+            <div className="flex items-center justify-between mb-3 sm:mb-4 px-4 md:px-8">
+                <h2 className="text-xl sm:text-2xl font-bold tracking-tight">{title}</h2>
+                {onViewMore && (
+                    <button
+                        onClick={onViewMore}
+                        className={`text-sm text-primary hover:text-primary/80 font-semibold transition-colors ${FOCUSABLE_CLASS}`}
+                        tabIndex={0}
+                    >
+                        Ver mais
+                    </button>
+                )}
+            </div>
             <div className="relative px-4 md:px-8 lg:px-12">
                 {/* Desktop Left Arrow */}
                 {scrollPosition > 0 && (

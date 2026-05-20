@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { ContentPlayerModal } from "@/components/ContentPlayerModal";
 import { EpisodeSelector } from "@/components/EpisodeSelector";
@@ -29,7 +29,10 @@ const MAIN_CATEGORIES = [
 
 export default function Categories() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
     const { user, currentProfile } = useAuth();
+
+    const initialFilter = searchParams.get('filter') || 'Tudo';
 
     // Data State
     const [allContent, setAllContent] = useState<Content[]>([]);
@@ -37,7 +40,7 @@ export default function Categories() {
     const [myList, setMyList] = useState<string[]>([]);
 
     // Navigation/Filter State
-    const [selectedCategory, setSelectedCategory] = useState<string>('Tudo');
+    const [selectedCategory, setSelectedCategory] = useState<string>(initialFilter);
     const [typeFilter, setTypeFilter] = useState<'all' | 'movie' | 'series' | 'tv' | 'nostalgia'>('all');
     const [accessFilter, setAccessFilter] = useState<'all' | 'free' | 'premium'>('all');
 
@@ -74,6 +77,13 @@ export default function Categories() {
     useEffect(() => {
         loadData();
     }, [user, currentProfile]);
+
+    useEffect(() => {
+        const filter = searchParams.get('filter');
+        if (filter) {
+            setSelectedCategory(filter);
+        }
+    }, [searchParams]);
 
     const loadData = async () => {
         try {

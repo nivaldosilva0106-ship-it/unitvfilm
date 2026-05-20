@@ -318,31 +318,29 @@ const Index = () => {
   };
 
   const categorizedContent = useMemo(() => {
-    // Featured section shows random mix of new or high rated content for variety
     const featuredPool = allContentData.filter(c => c.is_new || (c.rating && c.rating >= 7));
-    const featured = [...featuredPool].sort(() => Math.random() - 0.5).slice(0, 10);
+    const featured = featuredPool.slice(0, 10);
     const topRated = allContentData.filter(c => c.rating && c.rating >= 8).sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 10);
-    const movies = allContentData.filter(c => c.category === 'movie' || (c.category as string) === 'Filme');
+    const movies = allContentData.filter(c => c.category === 'movie' || (c.category as string) === 'Filme').slice(0, 10);
     const series = allContentData.filter(c => {
       const cat = c.category?.toLowerCase();
       return cat === 'series' || cat === 'série' || cat === 'serie' || (c.episodes && c.episodes.length > 0 && c.category !== 'canais24h' && c.category !== 'nostalgia');
-    });
-    const tvChannels = allContentData.filter(c => c.category === 'tv');
-    const nostalgia = allContentData.filter(c => c.category === 'nostalgia');
-    const canais24h = allContentData.filter(c => c.category === 'canais24h');
+    }).slice(0, 10);
+    const tvChannels = allContentData.filter(c => c.category === 'tv').slice(0, 10);
+    const nostalgia = allContentData.filter(c => c.category === 'nostalgia').slice(0, 10);
+    const canais24h = allContentData.filter(c => c.category === 'canais24h').slice(0, 10);
 
-    // Additional filtered categories for the UI
-    const actionAdventure = allContentData.filter(c => c.genre?.some(g => g.toLowerCase().includes('ação') || g.toLowerCase().includes('aventura')));
-    const comedyHorror = allContentData.filter(c => c.genre?.some(g => g.toLowerCase().includes('comédia') || g.toLowerCase().includes('terror')));
+    const actionAdventure = allContentData.filter(c => c.genre?.some(g => g.toLowerCase().includes('ação') || g.toLowerCase().includes('aventura'))).slice(0, 10);
+    const comedyHorror = allContentData.filter(c => c.genre?.some(g => g.toLowerCase().includes('comédia') || g.toLowerCase().includes('terror'))).slice(0, 10);
 
     const recentReleases = allContentData.filter(c => {
       const releaseYear = c.year || (c.release_date ? new Date(c.release_date).getFullYear() : 0);
       const currentYear = new Date().getFullYear();
       return releaseYear === currentYear;
-    });
+    }).slice(0, 10);
 
-    const dramaCrime = allContentData.filter(c => c.genre?.some(g => ['drama', 'crime'].includes(g.toLowerCase())));
-    const comedyRomance = allContentData.filter(c => c.genre?.some(g => ['comédia', 'romance'].includes(g.toLowerCase())));
+    const dramaCrime = allContentData.filter(c => c.genre?.some(g => ['drama', 'crime'].includes(g.toLowerCase()))).slice(0, 10);
+    const comedyRomance = allContentData.filter(c => c.genre?.some(g => ['comédia', 'romance'].includes(g.toLowerCase()))).slice(0, 10);
 
     let singleRow: Content[] | null = null;
     let singleRowTitle = '';
@@ -358,59 +356,63 @@ const Index = () => {
         singleRow = tvChannels;
         singleRowTitle = 'TV ao Vivo';
       } else {
-        singleRow = allContentData.filter(c => c.genre?.includes(selectedCategory) || c.category === selectedCategory);
+        singleRow = allContentData.filter(c => c.genre?.includes(selectedCategory) || c.category === selectedCategory).slice(0, 10);
         singleRowTitle = selectedCategory;
       }
     }
 
     return { featured, topRated, movies, series, tvChannels, nostalgia, canais24h, actionAdventure, comedyHorror, recentReleases, dramaCrime, comedyRomance, singleRow, singleRowTitle };
-  }, [allContentData, selectedCategory, siteSettings]);
+  }, [allContentData, selectedCategory]);
 
   const randomSections = useMemo(() => {
     if (selectedCategory !== 'Todos') return [];
+
+    const sectionCategoryMap: Record<string, string> = {
+      recent: 'Lançamentos',
+      topRated: 'Todos',
+      movies: 'Filmes',
+      series: 'Séries',
+      nostalgia: 'Nostalgia',
+      action: 'Ação',
+      dramaCrime: 'Drama',
+      comedyRomance: 'Romance',
+      comedy: 'Terror',
+      canais24h: 'Canais 24h'
+    };
 
     const featuredSection = {
       id: 'featured',
       type: 'marquee',
       title: 'Em Destaque',
       data: categorizedContent.featured,
-      showNumbers: true
+      showNumbers: true,
+      category: 'Lançamentos'
     };
 
-    const shufflableSections = [
-      { id: 'recent', type: 'row', title: 'Lançamentos Recentes', data: [...categorizedContent.recentReleases].sort(() => Math.random() - 0.5), showNumbers: false },
-      { id: 'topRated', type: 'row', title: 'Mais Assistidos', data: [...categorizedContent.topRated].sort(() => Math.random() - 0.5), showNumbers: false },
-      { id: 'movies', type: 'row', title: 'Filmes', data: [...categorizedContent.movies].sort(() => Math.random() - 0.5), showNumbers: false },
-      { id: 'series', type: 'row', title: 'Séries', data: [...categorizedContent.series].sort(() => Math.random() - 0.5), showNumbers: false },
-      { id: 'nostalgia', type: 'row', title: 'Nostalgia', data: [...categorizedContent.nostalgia].sort(() => Math.random() - 0.5), showNumbers: false },
-      { id: 'action', type: 'row', title: 'Ação e Aventura', data: [...categorizedContent.actionAdventure].sort(() => Math.random() - 0.5), showNumbers: false },
-      { id: 'dramaCrime', type: 'row', title: 'Drama & Crime', data: [...categorizedContent.dramaCrime].sort(() => Math.random() - 0.5), showNumbers: false },
-      { id: 'comedyRomance', type: 'row', title: 'Comédia & Romance', data: [...categorizedContent.comedyRomance].sort(() => Math.random() - 0.5), showNumbers: false },
-      { id: 'comedy', type: 'row', title: 'Comédia e Terror', data: [...categorizedContent.comedyHorror].sort(() => Math.random() - 0.5), showNumbers: false }
+    const fixedSections = [
+      { id: 'recent', type: 'row', title: 'Lançamentos Recentes', data: categorizedContent.recentReleases, showNumbers: false, category: 'Lançamentos' },
+      { id: 'topRated', type: 'row', title: 'Mais Assistidos', data: categorizedContent.topRated, showNumbers: false, category: 'Todos' },
+      { id: 'movies', type: 'row', title: 'Filmes', data: categorizedContent.movies, showNumbers: false, category: 'Filmes' },
+      { id: 'series', type: 'row', title: 'Séries', data: categorizedContent.series, showNumbers: false, category: 'Séries' },
+      { id: 'nostalgia', type: 'row', title: 'Nostalgia', data: categorizedContent.nostalgia, showNumbers: false, category: 'Nostalgia' },
+      { id: 'action', type: 'row', title: 'Ação e Aventura', data: categorizedContent.actionAdventure, showNumbers: false, category: 'Ação' },
+      { id: 'dramaCrime', type: 'row', title: 'Drama & Crime', data: categorizedContent.dramaCrime, showNumbers: false, category: 'Drama' },
+      { id: 'comedyRomance', type: 'row', title: 'Comédia & Romance', data: categorizedContent.comedyRomance, showNumbers: false, category: 'Romance' },
+      { id: 'comedy', type: 'row', title: 'Comédia e Terror', data: categorizedContent.comedyHorror, showNumbers: false, category: 'Terror' }
     ].filter(s => s.data.length > 0);
-
-    // Shuffle the sections themselves so they appear in a different order
-    const shuffled = [...shufflableSections].sort(() => Math.random() - 0.5);
 
     const canais24hSection = {
       id: 'canais24h',
       type: 'channels',
       title: 'Transmissão 24 Horas',
-      data: [...categorizedContent.canais24h].sort(() => Math.random() - 0.5),
-      showNumbers: false
+      data: categorizedContent.canais24h,
+      showNumbers: false,
+      category: 'Canais 24h'
     };
 
-    // Return Featured first + Shuffled sections + Canais 24h
-    let finalSections = [featuredSection, ...shuffled];
+    let finalSections = [featuredSection, ...fixedSections];
     
-    // Apply item limits and section limits for Lite mode
     if (isLiteMode) {
-      finalSections.forEach(s => {
-        if (s.data.length > maxCardsInRow) {
-          s.data = s.data.slice(0, maxCardsInRow);
-        }
-      });
-      // Limit sections to save RAM
       finalSections = finalSections.slice(0, maxSectionsPerPage);
     }
 
@@ -419,7 +421,7 @@ const Index = () => {
     }
 
     return finalSections;
-  }, [categorizedContent, selectedCategory]);
+  }, [categorizedContent, selectedCategory, isLiteMode, maxSectionsPerPage]);
 
   const currentTrailer = trailerContents[currentTrailerIndex] || null;
 
@@ -686,12 +688,22 @@ const Index = () => {
                     showNumbers={section.showNumbers}
                     hideDownloadIcon={true}
                     providerLogos={siteSettings?.providerLogos}
+                    onViewMore={() => navigate(`/categories?filter=${encodeURIComponent(section.category || '')}`)}
                   />
                 ) : section.type === 'channels' ? (
                   <div className="mb-12">
-                    <div className="flex items-center gap-3 mb-6 px-4 sm:px-8">
-                      <Tv className="w-6 h-6 text-primary" />
-                      <h2 className="text-2xl font-bold text-foreground uppercase tracking-tighter italic">{section.title}</h2>
+                    <div className="flex items-center justify-between mb-6 px-4 sm:px-8">
+                      <div className="flex items-center gap-3">
+                        <Tv className="w-6 h-6 text-primary" />
+                        <h2 className="text-2xl font-bold text-foreground uppercase tracking-tighter italic">{section.title}</h2>
+                      </div>
+                      <button
+                        onClick={() => navigate(`/categories?filter=${encodeURIComponent(section.category || '')}`)}
+                        className={`text-sm text-primary hover:text-primary/80 font-semibold transition-colors ${FOCUSABLE_CLASS}`}
+                        tabIndex={0}
+                      >
+                        Ver mais
+                      </button>
                     </div>
                     <div className="relative group/row">
                       <div className="flex gap-4 overflow-x-auto scrollbar-hide px-4 sm:px-8 py-2">
@@ -729,9 +741,9 @@ const Index = () => {
                     onDownloadContent={handleDownloadContent}
                     hideDownloadIcon={true}
                     providerLogos={siteSettings?.providerLogos}
+                    onViewMore={() => navigate(`/categories?filter=${encodeURIComponent(section.category || '')}`)}
                   />
                 )}
-                {/* Insert Ad after the 2nd item (index 1) */}
                 {index === 1 && (
                   <AdManager placement="between-content" className="container mx-auto px-4" />
                 )}
