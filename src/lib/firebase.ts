@@ -157,9 +157,15 @@ export const getAllContents = async (): Promise<Content[]> => {
           if (error) throw error;
           const contents = (data || []) as Content[];
           
-          if (contents.length === 0 && cachedData && cachedData.length > 0) {
-            console.warn("Supabase returned empty content list, falling back to cache");
-            return cachedData;
+          if (contents.length === 0) {
+            if (cachedData && cachedData.length > 0) {
+              console.warn("Supabase returned empty content list, falling back to cache");
+              return cachedData;
+            }
+            if (inMemoryContents && inMemoryContents.length > 0) {
+              console.warn("Supabase returned empty, preserving existing in-memory cache");
+              return inMemoryContents;
+            }
           }
 
           inMemoryContents = contents;
@@ -177,9 +183,15 @@ export const getAllContents = async (): Promise<Content[]> => {
         const data = snapshot.val();
         const contents = Object.values(data) as Content[];
         
-        if (contents.length === 0 && cachedData && cachedData.length > 0) {
-          console.warn("Firebase returned empty content list, falling back to cache");
-          return cachedData;
+        if (contents.length === 0) {
+          if (cachedData && cachedData.length > 0) {
+            console.warn("Firebase returned empty content list, falling back to cache");
+            return cachedData;
+          }
+          if (inMemoryContents && inMemoryContents.length > 0) {
+            console.warn("Firebase returned empty, preserving existing in-memory cache");
+            return inMemoryContents;
+          }
         }
 
         inMemoryContents = contents;
@@ -189,10 +201,13 @@ export const getAllContents = async (): Promise<Content[]> => {
         } catch (e) {}
         return contents;
       }
-      return cachedData || [];
+      
+      if (cachedData && cachedData.length > 0) return cachedData;
+      if (inMemoryContents && inMemoryContents.length > 0) return inMemoryContents;
+      return [];
     } catch (error) {
       console.warn("Error fetching contents, using cache fallback...", error);
-      return cachedData || [];
+      return cachedData || inMemoryContents || [];
     } finally {
       inMemoryContentsPromise = null;
     }
@@ -412,31 +427,54 @@ export const onAuthChange = (callback: (user: any) => void) => {
   if (isSupabaseEnabled()) {
     const supabase = getSupabaseClient();
     if (supabase) {
-      // 1. Initial check
-      supabase.auth.getSession().then(({ data: { session } }) => {
+      let lastUid: string | null = null;
+
+      const emitUser = (session: any) => {
         if (session?.user) {
+          lastUid = session.user.id;
           callback({
             uid: session.user.id,
             email: session.user.email,
             isAnonymous: false
           });
+        } else if (lastUid) {
+          console.warn('[Auth] Supabase session lost but lastUid exists, attempting refresh...');
+          supabase.auth.getSession().then(({ data: { session: refreshedSession } }) => {
+            if (refreshedSession?.user) {
+              lastUid = refreshedSession.user.id;
+              callback({
+                uid: refreshedSession.user.id,
+                email: refreshedSession.user.email,
+                isAnonymous: false
+              });
+            }
+          }).catch(() => {});
         } else {
           callback(null);
         }
+      };
+
+      // 1. Initial check
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        emitUser(session);
       }).catch(() => {
         callback(null);
       });
 
-      // 2. State listener
+      // 2. State listener with token refresh handling
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string, session: any) => {
-        if (session?.user) {
+        if (event === 'TOKEN_REFRESHED' && session?.user) {
+          lastUid = session.user.id;
           callback({
             uid: session.user.id,
             email: session.user.email,
             isAnonymous: false
           });
-        } else {
+        } else if (event === 'SIGNED_OUT') {
+          lastUid = null;
           callback(null);
+        } else {
+          emitUser(session);
         }
       });
 
@@ -510,15 +548,15 @@ export const subscribeToUserProfile = (userId: string, callback: (profile: UserP
         .channel(`public:profiles:id=eq.${userId}`)
         .on(
           'postgres_changes',
-          { event: '*', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
+          { event: 'UPDATE', schema: 'public', table: 'profiles', filter: `id=eq.${userId}` },
           (payload: any) => {
             const updatedProfile = payload.new as UserProfile;
             if (updatedProfile) {
               try {
                 localStorage.setItem(`cached_profile_${userId}`, JSON.stringify(updatedProfile));
               } catch (e) {}
+              callback(updatedProfile);
             }
-            callback(updatedProfile);
           }
         )
         .subscribe();
@@ -1033,6 +1071,11 @@ export const getSiteSettings = async (bypassCache?: boolean): Promise<SiteSettin
           if (error && error.code !== 'PGRST116') throw error;
           const settings = data?.value || {};
           
+          if (Object.keys(settings).length === 0 && cachedSettings && Object.keys(cachedSettings).length > 0) {
+            console.warn("Supabase returned empty settings, preserving cache");
+            return cachedSettings;
+          }
+          
           if (!bypassCache) {
             inMemorySettings = settings;
             lastSettingsFetchTime = Date.now();
@@ -1047,6 +1090,13 @@ export const getSiteSettings = async (bypassCache?: boolean): Promise<SiteSettin
       if (snapshot.exists()) {
         const settings = snapshot.val();
         
+        if (!settings || Object.keys(settings).length === 0) {
+          if (cachedSettings && Object.keys(cachedSettings).length > 0) {
+            console.warn("Firebase returned empty settings, preserving cache");
+            return cachedSettings;
+          }
+        }
+        
         if (!bypassCache) {
           inMemorySettings = settings;
           lastSettingsFetchTime = Date.now();
@@ -1057,7 +1107,7 @@ export const getSiteSettings = async (bypassCache?: boolean): Promise<SiteSettin
       return cachedSettings || {};
     } catch (error) {
       console.warn("Error fetching site settings:", error);
-      return cachedSettings || {};
+      return cachedSettings || inMemorySettings || {};
     }
   })();
 

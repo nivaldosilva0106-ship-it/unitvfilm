@@ -66,14 +66,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let unsubscribeProfile: (() => void) | undefined;
+    let lastAuthState: any = null;
+    let authFlickerTimer: ReturnType<typeof setTimeout> | null = null;
 
     const unsubscribeAuth = onAuthChange(async (firebaseUser) => {
-      if (unsubscribeProfile) {
-        unsubscribeProfile();
-        unsubscribeProfile = undefined;
-      }
-
       if (firebaseUser) {
+        if (authFlickerTimer) {
+          clearTimeout(authFlickerTimer);
+          authFlickerTimer = null;
+        }
+        lastAuthState = firebaseUser;
+
+        if (unsubscribeProfile) {
+          unsubscribeProfile();
+          unsubscribeProfile = undefined;
+        }
+
         const simplifiedUser = {
           uid: firebaseUser.uid,
           email: firebaseUser.email,
@@ -86,7 +94,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
           if (userProfile && userProfile.subscriptionExpiresAt) {
             const isExpired = await checkSubscriptionExpired(firebaseUser.uid);
-            if (isExpired) return; // The DB update will trigger a new onValue tick
+            if (isExpired) return;
           }
           setProfile(userProfile);
 
@@ -126,7 +134,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const savedProfileId = localStorage.getItem('unitv_current_profile_id');
         if (savedProfileId) {
-          // Restore from cache immediately to prevent blocking UI
           const cachedProfileStr = localStorage.getItem('unitv_current_profile');
           if (cachedProfileStr) {
             try {
@@ -139,7 +146,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             }
           }
 
-          // Fetch fresh profile in background with a timeout so it never blocks startup
           try {
             const profilesPromise = getAccountProfiles(firebaseUser.uid);
             const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 2500));
@@ -157,7 +163,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           }
         }
 
-        // Auto-select dummy profile for Guest users
         if (firebaseUser.isAnonymous) {
           const guestProfile: Profile = {
             id: 'guest',
@@ -170,22 +175,38 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setCurrentProfile(guestProfile);
         }
       } else {
-        // We NEVER clear the user session on passive auth drops (e.g. token expiration, network errors).
-        // The user is only logged out if they explicitly clicked logout (which clears 'unitv_cached_user' from localStorage).
         const hasCachedUser = !!localStorage.getItem('unitv_cached_user');
         
         if (!hasCachedUser) {
+          if (lastAuthState) {
+            console.warn('[Auth] Received null auth state but cached user exists, waiting for recovery...');
+            authFlickerTimer = setTimeout(() => {
+              const cached = localStorage.getItem('unitv_cached_user');
+              if (cached) {
+                try {
+                  const parsed = JSON.parse(cached);
+                  setUser(parsed);
+                } catch {}
+              }
+              authFlickerTimer = null;
+            }, 3000);
+            return;
+          }
+
           setUser(null);
           setProfile(null);
           setPlan(null);
           setCurrentProfile(null);
           setIsAdmin(false);
+        } else {
+          console.warn('[Auth] Received null auth state but cached user exists, preserving session');
         }
       }
       setLoading(false);
     });
 
     return () => {
+      if (authFlickerTimer) clearTimeout(authFlickerTimer);
       unsubscribeAuth();
       if (unsubscribeProfile) unsubscribeProfile();
     };

@@ -35,8 +35,19 @@ export const getSupabaseClient = () => {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: true
-      }
+        detectSessionInUrl: true,
+        flowType: 'pkce',
+        storage: {
+          getItem: (name: string) => localStorage.getItem(name),
+          setItem: (name: string, value: string) => localStorage.setItem(name, value),
+          removeItem: (name: string) => localStorage.removeItem(name),
+        },
+      },
+      global: {
+        headers: {
+          'x-client-info': 'unitv-film',
+        },
+      },
     });
     lastUsedUrl = url;
     lastUsedKey = key;
