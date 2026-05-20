@@ -38,26 +38,6 @@ const getYouTubeId = (url: string | undefined | null) => {
   return (match && match[2].length === 11) ? match[2] : null;
 };
 
-// Seed-based pseudo-random number generator for deterministic sorting
-const seededRandom = (seed: number) => {
-  const x = Math.sin(seed) * 10000;
-  return x - Math.floor(x);
-};
-
-// Seeded Fisher-Yates shuffle
-const seededShuffle = <T,>(array: T[], seed: number): T[] => {
-  const shuffled = [...array];
-  let currentSeed = seed;
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const r = seededRandom(currentSeed);
-    currentSeed += 1;
-    const j = Math.floor(r * (i + 1));
-    const temp = shuffled[i];
-    shuffled[i] = shuffled[j];
-    shuffled[j] = temp;
-  }
-  return shuffled;
-};
 
 import { useSpatialNavigation, FOCUSABLE_CLASS } from "@/hooks/useSpatialNavigation";
 
@@ -183,10 +163,6 @@ const Index = () => {
   const loadContent = async () => {
     let hasCache = false;
     try {
-      // Daily Random Seed for consistent/seeded shuffles
-      const today = new Date().toISOString().slice(0, 10);
-      let seed = 0;
-      for (let i = 0; i < today.length; i++) seed += today.charCodeAt(i);
 
       // 1. Instant Cache Load
       const cached = localStorage.getItem('cached_contents');
@@ -198,9 +174,8 @@ const Index = () => {
             hasCache = true;
 
             // Instantly load slider from cache to avoid flicker on initial render
-            const featuredCandidates = cachedData.filter(c => c.backdrop_url && c.category !== 'tv');
-            const shuffledFeatured = seededShuffle(featuredCandidates, seed);
-            setTrailerContents(shuffledFeatured.slice(0, 5));
+            const featuredCandidates = cachedData.filter((c: any) => c.backdrop_url && c.category !== 'tv');
+            setTrailerContents([...featuredCandidates].sort(() => 0.5 - Math.random()).slice(0, 5));
           }
         } catch (e) {}
       }
@@ -220,7 +195,6 @@ const Index = () => {
         } catch (storageError) {
           console.warn("[UniTvFilm] Failed to save contents to localStorage:", storageError);
         }
-        setLoading(false);
       } else {
         // 3. Fallback/Retry logic if no data (network failed and no cache)
         if (allContentData.length === 0) {
@@ -244,13 +218,12 @@ const Index = () => {
       const settings = await withTimeout(getSliderSettings(), 5000, { mode: 'random' as const, selectedContentIds: [] });
 
       if (settings.mode === 'manual' && settings.selectedContentIds?.length > 0) {
-        const selected = activeContents.filter(c => settings.selectedContentIds.includes(c.id));
-        const shuffledManual = seededShuffle(selected, seed);
+        const selected = activeContents.filter((c: any) => settings.selectedContentIds.includes(c.id));
+        const shuffledManual = [...selected].sort(() => 0.5 - Math.random());
         setTrailerContents(shuffledManual.length > 0 ? shuffledManual : activeContents.slice(0, 5));
       } else {
-        const featuredCandidates = activeContents.filter(c => c.backdrop_url && c.category !== 'tv');
-        const shuffledFeatured = seededShuffle(featuredCandidates, seed);
-        setTrailerContents(shuffledFeatured.slice(0, 5));
+        const featuredCandidates = activeContents.filter((c: any) => c.backdrop_url && c.category !== 'tv');
+        setTrailerContents([...featuredCandidates].sort(() => 0.5 - Math.random()).slice(0, 5));
       }
 
       setRandomContent([...activeContents].sort(() => 0.5 - Math.random()));
