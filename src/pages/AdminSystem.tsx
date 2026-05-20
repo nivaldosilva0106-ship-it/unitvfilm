@@ -796,8 +796,20 @@ create table if not exists profiles (
     "lastIPTVGeneratedAt" text,
     phone text,
     "displayName" text,
-    "trialSignup" boolean default false
+    "trialSignup" boolean default false,
+    "currentPage" text,
+    "currentWatchingId" text,
+    "currentWatchingTitle" text,
+    "sessionStartAt" text,
+    "deviceType" text
 );
+
+-- ALTER TABLE FOR USER ACTIVITY (RUN THIS ON SUPABASE SQL EDITOR IF YOUR TABLE ALREADY EXISTS)
+-- alter table profiles add column if not exists "currentPage" text;
+-- alter table profiles add column if not exists "currentWatchingId" text;
+-- alter table profiles add column if not exists "currentWatchingTitle" text;
+-- alter table profiles add column if not exists "sessionStartAt" text;
+-- alter table profiles add column if not exists "deviceType" text;
 
 alter table profiles enable row level security;
 create policy "Allow public read profiles" on profiles for select to public using (true);

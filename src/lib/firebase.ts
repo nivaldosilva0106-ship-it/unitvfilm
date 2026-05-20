@@ -2189,3 +2189,31 @@ export const getUserVote = async (userId: string, contentId: string): Promise<'l
   const snapshot = await get(voteRef);
   return snapshot.exists() ? snapshot.val() : null;
 };
+
+export const updateUserActivity = async (
+  userId: string,
+  activity: {
+    currentPage?: string;
+    currentWatchingId?: string | null;
+    currentWatchingTitle?: string | null;
+    sessionStartAt?: string | null;
+    deviceType?: string;
+  }
+) => {
+  const updates: any = {
+    lastSeen: getSyncedDate().toISOString(),
+    ...activity
+  };
+
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { error } = await supabase.from('profiles').update(updates).eq('id', userId);
+      if (error) console.error("Error updating user activity in Supabase:", error);
+      return;
+    }
+  }
+
+  const profileRef = ref(database, `profiles/${userId}`);
+  await update(profileRef, updates);
+};

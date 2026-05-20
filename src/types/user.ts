@@ -25,6 +25,11 @@ export interface UserProfile {
   lastIPTVGeneratedAt?: string;
   currentProfileName?: string;
   currentProfileAvatar?: string;
+  currentPage?: string;
+  currentWatchingId?: string | null;
+  currentWatchingTitle?: string | null;
+  sessionStartAt?: string | null;
+  deviceType?: string;
 }
 
 export interface Plan {

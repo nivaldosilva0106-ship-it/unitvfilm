@@ -29,7 +29,7 @@ const CinemaWarningModal = React.lazy(() => import("@/components/CinemaWarningMo
 const QuickViewModal = React.lazy(() => import("@/components/QuickViewModal").then(module => ({ default: module.QuickViewModal })));
 const AdManager = React.lazy(() => import("@/components/AdManager").then(module => ({ default: module.AdManager })));
 
-const ALL_CATEGORIES = ['Todos', 'Filmes', 'Séries', 'TV ao Vivo', 'Lançamentos', 'Ação', 'Terror'];
+const ALL_CATEGORIES = ['Todos', 'Filmes', 'Séries', 'Lançamentos', 'Ação', 'Terror'];
 
 const getYouTubeId = (url: string | undefined | null) => {
   if (!url) return null;
@@ -318,9 +318,6 @@ const Index = () => {
       } else if (selectedCategory === 'Séries') {
         singleRow = series;
         singleRowTitle = 'Séries';
-      } else if (selectedCategory === 'TV ao Vivo') {
-        singleRow = tvChannels;
-        singleRowTitle = 'Canais de TV';
       } else {
         singleRow = allContentData.filter(c => c.genre?.includes(selectedCategory) || c.category === selectedCategory);
         singleRowTitle = selectedCategory;
@@ -357,14 +354,6 @@ const Index = () => {
     // Shuffle only the non-featured sections
     const shuffled = shufflableSections.sort(() => Math.random() - 0.5);
 
-    const tvSection = {
-      id: 'tv',
-      type: 'row',
-      title: 'TV ao Vivo',
-      data: [...categorizedContent.tvChannels].sort(() => Math.random() - 0.5),
-      showNumbers: false
-    };
-
     const canais24hSection = {
       id: 'canais24h',
       type: 'channels',
@@ -373,7 +362,7 @@ const Index = () => {
       showNumbers: false
     };
 
-    // Return Featured first + Shuffled sections + Canais 24h + TV ALWAYS LAST
+    // Return Featured first + Shuffled sections + Canais 24h
     let finalSections = [featuredSection, ...shuffled];
     
     // Apply item limits and section limits for Lite mode
@@ -389,9 +378,6 @@ const Index = () => {
 
     if (canais24hSection.data.length > 0) {
       finalSections.push(canais24hSection);
-    }
-    if (tvSection.data.length > 0) {
-      finalSections.push(tvSection);
     }
 
     return finalSections;

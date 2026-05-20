@@ -22,6 +22,7 @@ import { useAppConfig } from "@/hooks/useAppConfig";
 
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ReminderAlert } from "./components/ReminderAlert";
+import { UserActivityTracker } from "./components/UserActivityTracker";
 
 const queryClient = new QueryClient();
 
@@ -183,6 +184,7 @@ const App = () => {
           <Toaster />
           <Sonner />
           <Router>
+            <UserActivityTracker />
             <SidebarPaddingManager />
             <AppUpdater />
             <PWAInstallBanner />

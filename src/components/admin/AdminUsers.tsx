@@ -447,7 +447,26 @@ export const AdminUsers = () => {
                                                             <span className="text-[10px] bg-amber-500/20 text-amber-400 px-1.5 py-0.5 rounded border border-amber-500/20 font-semibold">ADMIN</span>
                                                         )}
                                                     </div>
-                                                    <span className="text-[10px] text-muted-foreground">{user.name || 'Sem nome'}</span>
+                                                    <span className="text-[10px] text-zinc-400 font-medium">{user.name || 'Sem nome'}</span>
+                                                    {(() => {
+                                                        const isOnline = user.lastSeen && (new Date().getTime() - new Date(user.lastSeen).getTime() < 5 * 60 * 1000);
+                                                        if (isOnline) {
+                                                            return (
+                                                                <div className="flex items-center gap-1.5 mt-1 text-[10px] text-green-400 font-semibold">
+                                                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 shadow-[0_0_6px_rgba(34,197,94,0.5)] animate-pulse" />
+                                                                    <span className="truncate max-w-[150px] sm:max-w-xs">{user.currentPage || "Online no site"}</span>
+                                                                </div>
+                                                            );
+                                                        }
+                                                        if (user.lastSeen) {
+                                                            return (
+                                                                <span className="text-[9px] text-zinc-500 mt-1">
+                                                                    Acesso: {new Date(user.lastSeen).toLocaleString()}
+                                                                </span>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    })()}
                                                 </div>
                                             </div>
                                         </td>

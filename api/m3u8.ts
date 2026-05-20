@@ -1,19 +1,14 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { initializeApp, getApps } from 'firebase/app';
-import { getDatabase, ref, get } from 'firebase/database';
+import { createClient } from '@supabase/supabase-js';
 
-const firebaseConfig = {
-  apiKey: "AIzaSyAWr4do1UXOBd5Hd08OxNv-yztUOlH6wQM",
-  databaseURL: "https://unitvfilm-678d5-default-rtdb.firebaseio.com/",
-  projectId: "unitvfilm-678d5",
-  appId: "1:989230761933:android:4ac80dd1790f962c996684"
-};
+const supabaseUrl = process.env.VITE_SUPABASE_URL || process.env.SUPABASE_URL || '';
+const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
 
-if (!getApps().length) {
-  initializeApp(firebaseConfig);
-}
-
-const database = getDatabase();
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: false
+  }
+});
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     const { channelId, format } = req.query;
@@ -23,12 +18,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-        const snapshot = await get(ref(database, `contents/${channelId}`));
-        if (!snapshot.exists()) {
+        const { data: channel, error } = await supabase
+            .from('contents')
+            .select('*')
+            .eq('id', channelId)
+            .maybeSingle();
+
+        if (error || !channel) {
+            console.error("Supabase error or channel not found:", error);
             return res.status(404).send('Channel not found');
         }
 
-        const channel = snapshot.val();
         const programs = channel.episodes || [];
 
         if (programs.length === 0) {
@@ -66,8 +66,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 break;
             }
             if (timeInCycle >= slot.cycleEnd && timeInCycle < slot.cycleEnd + GAP_DURATION) {
-                const intervalUrls = channel.interval_urls || [];
-                const adUrls = channel.ad_urls || [];
+                const intervalUrls = channel.interval_urls || channel.interval_list || [];
+                const adUrls = channel.ad_urls || channel.ad_list || [];
                 const gapOffset = timeInCycle - slot.cycleEnd;
                 const slotIdx = Math.floor(gapOffset / 60);
                 const isInterval = (slotIdx % 2 === 0) || adUrls.length === 0;
