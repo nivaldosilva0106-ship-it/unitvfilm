@@ -171,21 +171,37 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
       } else {
         // Passive auth drops must NEVER destructively purge cached profile selection keys!
-        // We only clear state if there is no persisted Supabase token found in localStorage.
+        // We only clear state if there is no persisted Supabase token found in localStorage or if it is expired while online.
         // This avoids logging the user out during temporary refresh failures, background throttling or when offline.
-        const hasPersistedToken = () => {
+        const getPersistedTokenData = () => {
           try {
             for (let i = 0; i < localStorage.length; i++) {
               const key = localStorage.key(i);
               if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
-                return true;
+                const val = localStorage.getItem(key);
+                if (val) {
+                  return JSON.parse(val);
+                }
               }
             }
           } catch {}
-          return false;
+          return null;
         };
 
-        if (!hasPersistedToken()) {
+        const tokenData = getPersistedTokenData();
+        const hasToken = !!tokenData;
+        const isTokenExpired = (() => {
+          if (!tokenData || typeof tokenData.expires_at !== 'number') return true;
+          const now = Math.floor(Date.now() / 1000);
+          return tokenData.expires_at <= now;
+        })();
+
+        // We clear the state if:
+        // 1. There is no token in localStorage (user is logged out).
+        // 2. Or, the token is expired and the client is online (refresh failed or session is dead).
+        const shouldClearState = !hasToken || (isTokenExpired && navigator.onLine);
+
+        if (shouldClearState) {
           setUser(null);
           setProfile(null);
           setPlan(null);

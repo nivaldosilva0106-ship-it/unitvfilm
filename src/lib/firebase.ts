@@ -157,6 +157,11 @@ export const getAllContents = async (): Promise<Content[]> => {
           if (error) throw error;
           const contents = (data || []) as Content[];
           
+          if (contents.length === 0 && cachedData && cachedData.length > 0) {
+            console.warn("Supabase returned empty content list, falling back to cache");
+            return cachedData;
+          }
+
           inMemoryContents = contents;
           lastContentsFetchTime = Date.now();
           try {
@@ -172,6 +177,11 @@ export const getAllContents = async (): Promise<Content[]> => {
         const data = snapshot.val();
         const contents = Object.values(data) as Content[];
         
+        if (contents.length === 0 && cachedData && cachedData.length > 0) {
+          console.warn("Firebase returned empty content list, falling back to cache");
+          return cachedData;
+        }
+
         inMemoryContents = contents;
         lastContentsFetchTime = Date.now();
         try {

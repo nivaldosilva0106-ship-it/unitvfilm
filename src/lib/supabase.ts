@@ -1,5 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 
+let supabaseInstance: any = null;
+let lastUsedUrl = '';
+let lastUsedKey = '';
+
 export const getSupabaseConfig = () => {
   const localUrl = localStorage.getItem('supabase_url');
   const localKey = localStorage.getItem('supabase_anon_key');
