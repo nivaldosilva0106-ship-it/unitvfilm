@@ -318,29 +318,33 @@ const Index = () => {
   };
 
   const categorizedContent = useMemo(() => {
-    const featuredPool = allContentData.filter(c => c.is_new || (c.rating && c.rating >= 7));
-    const featured = featuredPool.slice(0, 10);
-    const topRated = allContentData.filter(c => c.rating && c.rating >= 8).sort((a, b) => (b.rating || 0) - (a.rating || 0)).slice(0, 10);
-    const movies = allContentData.filter(c => c.category === 'movie' || (c.category as string) === 'Filme').slice(0, 10);
-    const series = allContentData.filter(c => {
+    const shuffle = <T,>(arr: T[]): T[] => [...arr].sort(() => Math.random() - 0.5);
+
+    const featuredPool = shuffle(allContentData.filter(c => c.is_new || (c.rating && c.rating >= 7)));
+    const featured = featuredPool.slice(0, 20);
+    const topRated = shuffle(allContentData.filter(c => c.rating && c.rating >= 8));
+    const movies = shuffle(allContentData.filter(c => c.category === 'movie' || (c.category as string) === 'Filme'));
+    const series = shuffle(allContentData.filter(c => {
       const cat = c.category?.toLowerCase();
       return cat === 'series' || cat === 'série' || cat === 'serie' || (c.episodes && c.episodes.length > 0 && c.category !== 'canais24h' && c.category !== 'nostalgia');
-    }).slice(0, 10);
-    const tvChannels = allContentData.filter(c => c.category === 'tv').slice(0, 10);
-    const nostalgia = allContentData.filter(c => c.category === 'nostalgia').slice(0, 10);
-    const canais24h = allContentData.filter(c => c.category === 'canais24h').slice(0, 10);
+    }));
+    const tvChannels = shuffle(allContentData.filter(c => c.category === 'tv'));
+    const nostalgia = shuffle(allContentData.filter(c => c.category === 'nostalgia'));
+    const canais24h = shuffle(allContentData.filter(c => c.category === 'canais24h'));
 
-    const actionAdventure = allContentData.filter(c => c.genre?.some(g => g.toLowerCase().includes('ação') || g.toLowerCase().includes('aventura'))).slice(0, 10);
-    const comedyHorror = allContentData.filter(c => c.genre?.some(g => g.toLowerCase().includes('comédia') || g.toLowerCase().includes('terror'))).slice(0, 10);
+    const actionAdventure = shuffle(allContentData.filter(c => c.genre?.some(g => g.toLowerCase().includes('ação') || g.toLowerCase().includes('aventura'))));
+    const comedyHorror = shuffle(allContentData.filter(c => c.genre?.some(g => g.toLowerCase().includes('comédia') || g.toLowerCase().includes('terror'))));
 
-    const recentReleases = allContentData.filter(c => {
-      const releaseYear = c.year || (c.release_date ? new Date(c.release_date).getFullYear() : 0);
-      const currentYear = new Date().getFullYear();
-      return releaseYear === currentYear;
-    }).slice(0, 10);
+    const recentReleases = allContentData
+      .filter(c => {
+        const releaseYear = c.year || (c.release_date ? new Date(c.release_date).getFullYear() : 0);
+        const currentYear = new Date().getFullYear();
+        return releaseYear === currentYear;
+      })
+      .sort((a, b) => new Date(b.release_date || b.created_at || 0).getTime() - new Date(a.release_date || a.created_at || 0).getTime());
 
-    const dramaCrime = allContentData.filter(c => c.genre?.some(g => ['drama', 'crime'].includes(g.toLowerCase()))).slice(0, 10);
-    const comedyRomance = allContentData.filter(c => c.genre?.some(g => ['comédia', 'romance'].includes(g.toLowerCase()))).slice(0, 10);
+    const dramaCrime = shuffle(allContentData.filter(c => c.genre?.some(g => ['drama', 'crime'].includes(g.toLowerCase()))));
+    const comedyRomance = shuffle(allContentData.filter(c => c.genre?.some(g => ['comédia', 'romance'].includes(g.toLowerCase()))));
 
     let singleRow: Content[] | null = null;
     let singleRowTitle = '';
@@ -356,29 +360,31 @@ const Index = () => {
         singleRow = tvChannels;
         singleRowTitle = 'TV ao Vivo';
       } else {
-        singleRow = allContentData.filter(c => c.genre?.includes(selectedCategory) || c.category === selectedCategory).slice(0, 10);
+        singleRow = shuffle(allContentData.filter(c => c.genre?.includes(selectedCategory) || c.category === selectedCategory));
         singleRowTitle = selectedCategory;
       }
     }
 
-    return { featured, topRated, movies, series, tvChannels, nostalgia, canais24h, actionAdventure, comedyHorror, recentReleases, dramaCrime, comedyRomance, singleRow, singleRowTitle };
+    return {
+      featured: featured.slice(0, 20),
+      topRated: topRated.slice(0, 20),
+      movies: movies.slice(0, 20),
+      series: series.slice(0, 20),
+      tvChannels: tvChannels.slice(0, 20),
+      nostalgia: nostalgia.slice(0, 20),
+      canais24h: canais24h.slice(0, 20),
+      actionAdventure: actionAdventure.slice(0, 20),
+      comedyHorror: comedyHorror.slice(0, 20),
+      recentReleases: recentReleases.slice(0, 20),
+      dramaCrime: dramaCrime.slice(0, 20),
+      comedyRomance: comedyRomance.slice(0, 20),
+      singleRow: singleRow?.slice(0, 20) || null,
+      singleRowTitle
+    };
   }, [allContentData, selectedCategory]);
 
   const randomSections = useMemo(() => {
     if (selectedCategory !== 'Todos') return [];
-
-    const sectionCategoryMap: Record<string, string> = {
-      recent: 'Lançamentos',
-      topRated: 'Todos',
-      movies: 'Filmes',
-      series: 'Séries',
-      nostalgia: 'Nostalgia',
-      action: 'Ação',
-      dramaCrime: 'Drama',
-      comedyRomance: 'Romance',
-      comedy: 'Terror',
-      canais24h: 'Canais 24h'
-    };
 
     const featuredSection = {
       id: 'featured',
@@ -389,8 +395,9 @@ const Index = () => {
       category: 'Lançamentos'
     };
 
-    const fixedSections = [
-      { id: 'recent', type: 'row', title: 'Lançamentos Recentes', data: categorizedContent.recentReleases, showNumbers: false, category: 'Lançamentos' },
+    const recentSection = { id: 'recent', type: 'row', title: 'Lançamentos Recentes', data: categorizedContent.recentReleases, showNumbers: false, category: 'Lançamentos' };
+
+    const otherSections = [
       { id: 'topRated', type: 'row', title: 'Mais Assistidos', data: categorizedContent.topRated, showNumbers: false, category: 'Todos' },
       { id: 'movies', type: 'row', title: 'Filmes', data: categorizedContent.movies, showNumbers: false, category: 'Filmes' },
       { id: 'series', type: 'row', title: 'Séries', data: categorizedContent.series, showNumbers: false, category: 'Séries' },
@@ -410,7 +417,15 @@ const Index = () => {
       category: 'Canais 24h'
     };
 
-    let finalSections = [featuredSection, ...fixedSections];
+    const shuffledOthers = [...otherSections].sort(() => Math.random() - 0.5);
+
+    let finalSections = [featuredSection];
+    
+    if (recentSection.data.length > 0) {
+      finalSections.push(recentSection);
+    }
+    
+    finalSections.push(...shuffledOthers);
     
     if (isLiteMode) {
       finalSections = finalSections.slice(0, maxSectionsPerPage);
