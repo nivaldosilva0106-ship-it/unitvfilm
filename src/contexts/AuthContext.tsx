@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { type User } from 'firebase/auth';
-import { onAuthChange, logOut, isUserAdmin, getAccountProfiles, getPlans, subscribeToUserProfile, initializeOriginalAdmin, checkSubscriptionExpired, updateLastSeen } from '@/lib/firebase';
+import { onAuthChange, logOut, isUserAdmin, getAccountProfiles, getPlans, subscribeToUserProfile, initializeOriginalAdmin, checkSubscriptionExpired, updateLastSeen, clearLastSeen } from '@/lib/firebase';
 import type { UserProfile, Profile, Plan } from '@/types/user';
 import type { Content } from '@/types/content';
 import { useAppConfig } from '@/hooks/useAppConfig';
@@ -205,19 +205,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Presença/Heartbeat
   useEffect(() => {
     if (user?.uid) {
+      const pName = currentProfile?.name;
+      const pAvatar = currentProfile?.avatar;
+
+      const update = () => {
+        if (document.visibilityState === 'visible') {
+          updateLastSeen(user.uid, pName, pAvatar).catch(console.error);
+        }
+      };
+
       // Atualizar imediatamente ao entrar
-      updateLastSeen(user.uid, currentProfile?.name, currentProfile?.avatar).catch(console.error);
+      updateLastSeen(user.uid, pName, pAvatar).catch(console.error);
   
       // Atualizar a cada 2 minutos
-      const interval = setInterval(() => {
-        updateLastSeen(user.uid, currentProfile?.name, currentProfile?.avatar).catch(console.error);
-      }, 2 * 60 * 1000);
+      const interval = setInterval(update, 2 * 60 * 1000);
+
+      // Listen for visibility changes
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === 'visible') {
+          updateLastSeen(user.uid, pName, pAvatar).catch(console.error);
+        }
+      };
+      document.addEventListener('visibilitychange', handleVisibilityChange);
+
+      // Clean up on unload (best effort)
+      const handleUnload = () => {
+        clearLastSeen(user.uid).catch(() => {});
+      };
+      window.addEventListener('beforeunload', handleUnload);
   
-      return () => clearInterval(interval);
+      return () => {
+        clearInterval(interval);
+        document.removeEventListener('visibilitychange', handleVisibilityChange);
+        window.removeEventListener('beforeunload', handleUnload);
+      };
     }
   }, [user, currentProfile]);
 
   const logout = async () => {
+    if (user?.uid) {
+      try {
+        await clearLastSeen(user.uid);
+      } catch (e) {
+        console.error("Error clearing status on logout:", e);
+      }
+    }
     await logOut();
     setUser(null);
     setProfile(null);

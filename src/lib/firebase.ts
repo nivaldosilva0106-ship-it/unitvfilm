@@ -33,6 +33,43 @@ let lastSettingsFetchTime = 0;
 const CONTENTS_CACHE_TTL = 5 * 60 * 1000;
 const SETTINGS_CACHE_TTL = 3 * 60 * 1000;
 
+// Global server time offset in milliseconds
+let serverTimeOffset = 0;
+let timeSynced = false;
+
+// Sync clock with the server (using same-origin request)
+export const syncServerTime = async () => {
+  if (timeSynced) return serverTimeOffset;
+  if (typeof window === 'undefined') return 0;
+  try {
+    const start = Date.now();
+    // Fetch same-origin (HEAD request) to get the server's Date header (bypasses CORS restrictions)
+    const res = await fetch(window.location.origin, { method: 'HEAD' });
+    const serverDateStr = res.headers.get('date');
+    if (serverDateStr) {
+      const serverTime = new Date(serverDateStr).getTime();
+      const rtt = Date.now() - start; // Round-trip time
+      const clientTime = start + rtt / 2; // Estimate client time when server responded
+      serverTimeOffset = serverTime - clientTime;
+      timeSynced = true;
+      console.log(`[TimeSync] Server offset synced: ${serverTimeOffset}ms (RTT: ${rtt}ms)`);
+    }
+  } catch (e) {
+    console.warn('[TimeSync] Failed to sync server time:', e);
+  }
+  return serverTimeOffset;
+};
+
+// Start the sync in the background
+if (typeof window !== 'undefined') {
+  syncServerTime().catch(console.error);
+}
+
+// Get the synchronized current Date object
+export const getSyncedDate = () => {
+  return new Date(Date.now() + serverTimeOffset);
+};
+
 // Invalidates the in-memory cache to force a fresh fetch
 export const invalidateContentsCache = () => {
   inMemoryContents = null;
@@ -1239,7 +1276,7 @@ export const adminUpdateUser = async (userId: string, updates: Partial<UserProfi
 };
 
 export const updateLastSeen = async (userId: string, profileName?: string, profileAvatar?: string) => {
-  const updates: any = { lastSeen: new Date().toISOString() };
+  const updates: any = { lastSeen: getSyncedDate().toISOString() };
   if (profileName) updates.currentProfileName = profileName;
   if (profileAvatar) updates.currentProfileAvatar = profileAvatar;
 
@@ -1254,6 +1291,20 @@ export const updateLastSeen = async (userId: string, profileName?: string, profi
 
   const profileRef = ref(database, `profiles/${userId}`);
   await update(profileRef, updates);
+};
+
+export const clearLastSeen = async (userId: string) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { error } = await supabase.from('profiles').update({ lastSeen: null }).eq('id', userId);
+      if (error) console.error("Error clearing lastSeen in Supabase:", error);
+      return;
+    }
+  }
+
+  const profileRef = ref(database, `profiles/${userId}`);
+  await update(profileRef, { lastSeen: null });
 };
 
 export const updateLastIPTVGeneration = async (userId: string) => {
@@ -1287,7 +1338,7 @@ export const subscribeToUserStats = (callback: (stats: UserStats) => void) => {
           if (!error && data) {
             const users = (data || []) as UserProfile[];
             const filteredUsers = users.filter(u => u && u.id && u.email && !u.email.includes('anonymous') && u.email !== 'convidado@unitvfilm.com');
-            const now = new Date();
+            const now = getSyncedDate();
             const onlineThreshold = 5 * 60 * 1000; // 5 minutes
 
             const total = filteredUsers.length;
@@ -1295,7 +1346,8 @@ export const subscribeToUserStats = (callback: (stats: UserStats) => void) => {
             const online = filteredUsers.filter(u => {
               if (!u.lastSeen) return false;
               const lastSeenDate = new Date(u.lastSeen);
-              return now.getTime() - lastSeenDate.getTime() < onlineThreshold;
+              const diff = now.getTime() - lastSeenDate.getTime();
+              return diff >= -10000 && diff < onlineThreshold;
             }).length;
             const offline = total - online;
 
@@ -1332,7 +1384,7 @@ export const subscribeToUserStats = (callback: (stats: UserStats) => void) => {
     if (snapshot.exists()) {
       const users = Object.values(snapshot.val()) as UserProfile[];
       const filteredUsers = users.filter(u => u && u.id && u.email && !u.email.includes('anonymous') && u.email !== 'convidado@unitvfilm.com');
-      const now = new Date();
+      const now = getSyncedDate();
       const onlineThreshold = 5 * 60 * 1000; // 5 minutes
 
       const total = filteredUsers.length;
@@ -1340,7 +1392,8 @@ export const subscribeToUserStats = (callback: (stats: UserStats) => void) => {
       const online = filteredUsers.filter(u => {
         if (!u.lastSeen) return false;
         const lastSeenDate = new Date(u.lastSeen);
-        return now.getTime() - lastSeenDate.getTime() < onlineThreshold;
+        const diff = now.getTime() - lastSeenDate.getTime();
+        return diff >= -10000 && diff < onlineThreshold;
       }).length;
       const offline = total - online;
 
@@ -1361,13 +1414,14 @@ export const subscribeToOnlineUsers = (callback: (users: UserProfile[]) => void)
           if (!error && data) {
             const users = (data || []) as UserProfile[];
             const filteredUsers = users.filter(u => u && u.id && u.email && !u.email.includes('anonymous') && u.email !== 'convidado@unitvfilm.com');
-            const now = new Date();
+            const now = getSyncedDate();
             const onlineThreshold = 5 * 60 * 1000; // 5 minutes
 
             const onlineUsers = filteredUsers.filter(u => {
               if (!u.lastSeen) return false;
               const lastSeenDate = new Date(u.lastSeen);
-              return now.getTime() - lastSeenDate.getTime() < onlineThreshold;
+              const diff = now.getTime() - lastSeenDate.getTime();
+              return diff >= -10000 && diff < onlineThreshold;
             });
 
             callback(onlineUsers);
@@ -1403,13 +1457,14 @@ export const subscribeToOnlineUsers = (callback: (users: UserProfile[]) => void)
     if (snapshot.exists()) {
       const users = Object.values(snapshot.val()) as UserProfile[];
       const filteredUsers = users.filter(u => u && u.id && u.email && !u.email.includes('anonymous') && u.email !== 'convidado@unitvfilm.com');
-      const now = new Date();
+      const now = getSyncedDate();
       const onlineThreshold = 5 * 60 * 1000; // 5 minutes
 
       const onlineUsers = filteredUsers.filter(u => {
         if (!u.lastSeen) return false;
         const lastSeenDate = new Date(u.lastSeen);
-        return now.getTime() - lastSeenDate.getTime() < onlineThreshold;
+        const diff = now.getTime() - lastSeenDate.getTime();
+        return diff >= -10000 && diff < onlineThreshold;
       });
 
       callback(onlineUsers);
