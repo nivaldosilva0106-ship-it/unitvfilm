@@ -1,10 +1,18 @@
 import { useEffect, useState } from "react";
-import { getSiteSettings, updateSiteSettings, type SiteSettings, type HomePageSectionConfig, type HomePageConfig } from "@/lib/firebase";
+import { getSiteSettings, updateSiteSettings, type SiteSettings, type HomePageSectionConfig, type HomePageConfig, type HeroSliderConfig } from "@/lib/firebase";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { GripVertical, Eye, EyeOff, ArrowUp, ArrowDown, Save, RotateCcw, Zap, LayoutGrid } from "lucide-react";
+import { GripVertical, Eye, EyeOff, ArrowUp, ArrowDown, Save, RotateCcw, Zap, LayoutGrid, Video, Clock } from "lucide-react";
+
+const DEFAULT_HERO_SLIDER: HeroSliderConfig = {
+  enabled: true,
+  rotationInterval: 15,
+  transitionDuration: 1.5,
+  showTextTitle: false,
+  showLogo: true,
+};
 
 const DEFAULT_SECTIONS: HomePageSectionConfig[] = [
   { id: "featured", title: "Em Destaque", enabled: true, order: 0, maxItems: 20 },
@@ -26,6 +34,7 @@ const DEFAULT_HOME_CONFIG: HomePageConfig = {
   enableRandomOrder: true,
   enableRecentSection: true,
   maxSectionsVisible: 20,
+  heroSlider: DEFAULT_HERO_SLIDER,
 };
 
 export default function AdminHomePageManager() {
@@ -33,6 +42,7 @@ export default function AdminHomePageManager() {
   const [saving, setSaving] = useState(false);
   const [config, setConfig] = useState<HomePageConfig>(DEFAULT_HOME_CONFIG);
   const [sections, setSections] = useState<HomePageSectionConfig[]>(DEFAULT_SECTIONS);
+  const [heroSlider, setHeroSlider] = useState<HeroSliderConfig>(DEFAULT_HERO_SLIDER);
 
   useEffect(() => {
     loadSettings();
@@ -44,9 +54,11 @@ export default function AdminHomePageManager() {
       if (settings.homePageConfig) {
         setConfig(settings.homePageConfig);
         setSections(settings.homePageConfig.sections || DEFAULT_SECTIONS);
+        setHeroSlider(settings.homePageConfig.heroSlider || DEFAULT_HERO_SLIDER);
       } else {
         setConfig(DEFAULT_HOME_CONFIG);
         setSections(DEFAULT_SECTIONS);
+        setHeroSlider(DEFAULT_HERO_SLIDER);
       }
     } catch (error) {
       console.error("Erro ao carregar configurações:", error);
@@ -62,6 +74,7 @@ export default function AdminHomePageManager() {
       const updatedConfig: HomePageConfig = {
         ...config,
         sections,
+        heroSlider,
       };
       await updateSiteSettings({ homePageConfig: updatedConfig });
       toast.success("Configurações da página inicial salvas com sucesso!");
@@ -76,6 +89,7 @@ export default function AdminHomePageManager() {
   const handleReset = () => {
     setConfig(DEFAULT_HOME_CONFIG);
     setSections(DEFAULT_SECTIONS);
+    setHeroSlider(DEFAULT_HERO_SLIDER);
     toast.info("Configurações restauradas ao padrão");
   };
 
@@ -131,6 +145,74 @@ export default function AdminHomePageManager() {
             <Save className="w-4 h-4 mr-2" />
             {saving ? "Salvando..." : "Salvar Configurações"}
           </Button>
+        </div>
+      </div>
+
+      {/* Hero Slider Settings */}
+      <div className="bg-card border border-border rounded-lg p-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Video className="w-5 h-5 text-primary" />
+          <h2 className="text-lg font-semibold text-white">Slider do Hero (Página Inicial)</h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="flex items-center justify-between p-3 bg-background rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-white">Slider Ativado</p>
+              <p className="text-xs text-muted-foreground">Rotação automática de posters no hero</p>
+            </div>
+            <Switch
+              checked={heroSlider.enabled}
+              onCheckedChange={(checked) => setHeroSlider(prev => ({ ...prev, enabled: checked }))}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-white flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Intervalo de Rotação (segundos)
+            </label>
+            <Input
+              type="number"
+              min={5}
+              max={120}
+              value={heroSlider.rotationInterval}
+              onChange={(e) => setHeroSlider(prev => ({ ...prev, rotationInterval: parseInt(e.target.value) || 15 }))}
+              className="bg-background border-border"
+            />
+            <p className="text-xs text-muted-foreground">Tempo entre cada troca de poster (5-120s)</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-white">Duração da Transição (segundos)</label>
+            <Input
+              type="number"
+              min={0.5}
+              max={5}
+              step={0.5}
+              value={heroSlider.transitionDuration}
+              onChange={(e) => setHeroSlider(prev => ({ ...prev, transitionDuration: parseFloat(e.target.value) || 1.5 }))}
+              className="bg-background border-border"
+            />
+            <p className="text-xs text-muted-foreground">Tempo da animação de transição</p>
+          </div>
+          <div className="flex items-center justify-between p-3 bg-background rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-white">Mostrar Logo do Título</p>
+              <p className="text-xs text-muted-foreground">Exibir logo do título (TMDB) quando disponível</p>
+            </div>
+            <Switch
+              checked={heroSlider.showLogo}
+              onCheckedChange={(checked) => setHeroSlider(prev => ({ ...prev, showLogo: checked }))}
+            />
+          </div>
+          <div className="flex items-center justify-between p-3 bg-background rounded-lg">
+            <div>
+              <p className="text-sm font-medium text-white">Mostrar Texto como Fallback</p>
+              <p className="text-xs text-muted-foreground">Exibir título em texto quando não houver logo</p>
+            </div>
+            <Switch
+              checked={heroSlider.showTextTitle}
+              onCheckedChange={(checked) => setHeroSlider(prev => ({ ...prev, showTextTitle: checked }))}
+            />
+          </div>
         </div>
       </div>
 

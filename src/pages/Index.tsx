@@ -512,26 +512,31 @@ const Index = () => {
 
   const currentTrailer = trailerContents[currentTrailerIndex] || null;
 
+  const trailerContentsRef = useRef(trailerContents);
+  useEffect(() => {
+    trailerContentsRef.current = trailerContents;
+  }, [trailerContents]);
+
   /* AGGRESSIVE UNMUTE Logic */
   useEffect(() => {
     setIsMuted(false);
   }, [currentTrailerIndex, playerModal.open]);
 
   useEffect(() => {
-    if (trailerContents.length > 0 && !playerModal.open) {
-      const interval = setInterval(() => {
-        if (isLiteMode) return; // Don't auto-transition hero in Lite mode
-        setIsTransitioning(true);
+    if (isLiteMode) return;
+    
+    const interval = setInterval(() => {
+      if (trailerContentsRef.current.length === 0 || playerModal.open) return;
+      setIsTransitioning(true);
+      setTimeout(() => {
+        setCurrentTrailerIndex((prev) => (prev + 1) % trailerContentsRef.current.length);
         setTimeout(() => {
-          setCurrentTrailerIndex((prev) => (prev + 1) % trailerContents.length);
-          setTimeout(() => {
-            setIsTransitioning(false);
-          }, 500);
+          setIsTransitioning(false);
         }, 1000);
-      }, 90000);
-      return () => clearInterval(interval);
-    }
-  }, [trailerContents, playerModal.open]);
+      }, 1500);
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [playerModal.open, isLiteMode]);
 
   const toggleAudio = () => setIsMuted(!isMuted);
 

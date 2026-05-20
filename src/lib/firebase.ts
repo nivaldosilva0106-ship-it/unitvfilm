@@ -955,12 +955,21 @@ export interface HomePageSectionConfig {
   maxItems?: number;
 }
 
+export interface HeroSliderConfig {
+  enabled: boolean;
+  rotationInterval: number;
+  transitionDuration: number;
+  showTextTitle: boolean;
+  showLogo: boolean;
+}
+
 export interface HomePageConfig {
   sections: HomePageSectionConfig[];
   itemsPerSection: number;
   enableRandomOrder: boolean;
   enableRecentSection: boolean;
   maxSectionsVisible: number;
+  heroSlider?: HeroSliderConfig;
 }
 
 export interface SiteSettings {
