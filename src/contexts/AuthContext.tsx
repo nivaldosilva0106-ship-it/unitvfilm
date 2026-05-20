@@ -170,38 +170,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setCurrentProfile(guestProfile);
         }
       } else {
-        // Passive auth drops must NEVER destructively purge cached profile selection keys!
-        // We only clear state if there is no persisted Supabase token found in localStorage or if it is expired while online.
-        // This avoids logging the user out during temporary refresh failures, background throttling or when offline.
-        const getPersistedTokenData = () => {
-          try {
-            for (let i = 0; i < localStorage.length; i++) {
-              const key = localStorage.key(i);
-              if (key && key.startsWith('sb-') && key.endsWith('-auth-token')) {
-                const val = localStorage.getItem(key);
-                if (val) {
-                  return JSON.parse(val);
-                }
-              }
-            }
-          } catch {}
-          return null;
-        };
-
-        const tokenData = getPersistedTokenData();
-        const hasToken = !!tokenData;
-        const isTokenExpired = (() => {
-          if (!tokenData || typeof tokenData.expires_at !== 'number') return true;
-          const now = Math.floor(Date.now() / 1000);
-          return tokenData.expires_at <= now;
-        })();
-
-        // We clear the state if:
-        // 1. There is no token in localStorage (user is logged out).
-        // 2. Or, the token is expired and the client is online (refresh failed or session is dead).
-        const shouldClearState = !hasToken || (isTokenExpired && navigator.onLine);
-
-        if (shouldClearState) {
+        // We NEVER clear the user session on passive auth drops (e.g. token expiration, network errors).
+        // The user is only logged out if they explicitly clicked logout (which clears 'unitv_cached_user' from localStorage).
+        const hasCachedUser = !!localStorage.getItem('unitv_cached_user');
+        
+        if (!hasCachedUser) {
           setUser(null);
           setProfile(null);
           setPlan(null);
