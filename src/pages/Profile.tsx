@@ -8,16 +8,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Camera, Check, MessageCircle, Lock, AlertTriangle, Library
+  Camera, Check, MessageCircle, Lock, AlertTriangle, Library, Globe
 } from "lucide-react";
 import { toast } from "sonner";
 import { getAccountProfiles, getAvatars, createAccountProfile, updateAccountProfile, deleteAccountProfile, verifyRecoveryCode, validatePin } from "@/lib/firebase";
 import { Profile as UserProfileType, Avatar } from "@/types/user";
 import { cn } from "@/lib/utils";
+import { useAppConfig } from "@/hooks/useAppConfig";
 
 const Profile = () => {
   const navigate = useNavigate();
   const { user, profile: accountProfile, currentProfile, logout, selectProfile, plan } = useAuth();
+  const { performanceMode, setPerformanceMode, isLiteMode } = useAppConfig();
 
   // State
   const [profiles, setProfiles] = useState<UserProfileType[]>([]);
@@ -366,6 +368,48 @@ const Profile = () => {
                 <p className="text-sm text-gray-500">Limite de perfis atingido ({maxProfiles})</p>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* Preferências do Aplicativo */}
+        <div className="mt-16 bg-zinc-900/30 border border-zinc-800/80 p-6 rounded-2xl max-w-2xl mx-auto space-y-6">
+          <h2 className="text-2xl font-bold flex items-center gap-2 text-white">
+            <Globe className="w-6 h-6 text-primary" /> Preferências de Desempenho
+          </h2>
+          <p className="text-sm text-zinc-400">
+            Ajuste a qualidade visual do aplicativo. Se o seu dispositivo (como uma TV Box ou Smart TV) estiver lento, selecione o <strong>Modo TV Box / Lite</strong> para desativar efeitos pesados e melhorar a velocidade.
+          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {[
+              { id: 'auto', name: 'Automático', desc: 'Detecta Smart TV/TV Box' },
+              { id: 'standard', name: 'Padrão', desc: 'Efeitos visuais completos' },
+              { id: 'lite', name: 'TV Box / Lite', desc: 'Máximo desempenho' }
+            ].map((opt) => (
+              <button
+                key={opt.id}
+                onClick={() => setPerformanceMode(opt.id as any)}
+                className={cn(
+                  "p-4 rounded-xl border text-left transition-all flex flex-col justify-between h-24 hover:bg-zinc-800",
+                  performanceMode === opt.id
+                    ? "border-primary bg-primary/10 text-white"
+                    : "border-zinc-800 bg-black/20 text-zinc-400"
+                )}
+              >
+                <div className="flex items-center justify-between w-full">
+                  <span className="font-bold text-sm">{opt.name}</span>
+                  {performanceMode === opt.id && <Check className="w-4 h-4 text-primary" />}
+                </div>
+                <span className="text-[11px] text-zinc-500">{opt.desc}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="text-[11px] text-zinc-500 flex items-center justify-between bg-black/20 p-3 rounded-lg border border-zinc-800/40">
+            <span>Modo Ativo no Momento:</span>
+            <span className="font-bold uppercase text-primary">
+              {isLiteMode ? "TV Box / Lite (Efeitos Reduzidos)" : "Padrão (Efeitos Completos)"}
+            </span>
           </div>
         </div>
 

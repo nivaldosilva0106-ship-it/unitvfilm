@@ -82,19 +82,17 @@ import { AppUpdater } from "@/components/AppUpdater";
 
 // Small component to apply lite-mode body class
 const LiteModeBodyClass = () => {
-  const mode = (import.meta.env.VITE_APP_MODE as string) || 'standard';
+  const { isLiteMode } = useAppConfig();
   
   React.useEffect(() => {
-    if (typeof window !== 'undefined' && mode === 'lite') {
-      const isMobilePhone = /iPhone|Android|Mobile/i.test(navigator.userAgent) && !/TV|SmartTV|GoogleTV|AppleTV|HbbTV|STB/i.test(navigator.userAgent);
-      
-      if (!isMobilePhone) {
+    if (typeof window !== 'undefined') {
+      if (isLiteMode) {
         document.body.classList.add('lite-mode');
       } else {
         document.body.classList.remove('lite-mode');
       }
     }
-  }, [mode]);
+  }, [isLiteMode]);
   
   return null;
 };

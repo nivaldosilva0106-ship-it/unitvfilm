@@ -757,11 +757,12 @@ html, body, #root {
   .lite-mode *, 
   .lite-mode *::before, 
   .lite-mode *::after {
-    /* backdrop-filter: none !important; */ /* Allow glassmorphism */
-    /* -webkit-backdrop-filter: none !important; */
+    backdrop-filter: none !important; /* Disable heavy glassmorphism blurs on TV Box */
+    -webkit-backdrop-filter: none !important;
     text-shadow: none !important;
     /* box-shadow: none !important; */ /* Allow premium shadows */
-    transition-duration: 0.15s !important; /* Slightly faster than standard but not jarring */
+    transition-duration: 0.1s !important; /* Extremely fast transitions for TV Box responsiveness */
+    animation-duration: 0.1s !important; /* Disable slow loading animations */
   }
 
   .lite-mode .glow-effect,

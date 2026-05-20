@@ -17,10 +17,10 @@ export function getOptimizedImageUrl(url: string | undefined | null, type: 'post
   if (!url.includes('tmdb.org/t/p/')) return url;
 
   if (quality === 'low') {
-    if (type === 'poster') return url.replace(/\/t\/p\/(original|w500)\//, '/t/p/w342/');
-    if (type === 'backdrop') return url.replace(/\/t\/p\/original\//, '/t/p/w780/');
+    if (type === 'poster') return url.replace(/\/t\/p\/(original|w500|w342)\//, '/t/p/w185/');
+    if (type === 'backdrop') return url.replace(/\/t\/p\/(original|w780)\//, '/t/p/w300/');
   } else {
-    if (type === 'poster') return url.replace(/\/t\/p\/original\//, '/t/p/w500/');
+    if (type === 'poster') return url.replace(/\/t\/p\/(original|w342)\//, '/t/p/w500/');
   }
 
   return url;
