@@ -132,7 +132,7 @@ export const IndexHero = memo(({
                          if (e.data === window.YT.PlayerState.PLAYING) {
                              setIsVideoPlaying(true);
                              if (onReady) onReady();
-                         } else {
+                         } else if (e.data === window.YT.PlayerState.ENDED || e.data === window.YT.PlayerState.CUED) {
                              setIsVideoPlaying(false);
                          }
                      }

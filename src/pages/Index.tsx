@@ -200,7 +200,10 @@ const Index = () => {
       const data = await withTimeout(getAllContents(), 5000, [] as Content[]);
 
       if (data.length > 0) {
-        setAllContentData(data);
+        setAllContentData(prev => {
+          if (prev.length === data.length) return prev;
+          return data;
+        });
         try {
           localStorage.setItem('cached_contents', JSON.stringify(data));
         } catch (storageError) {
@@ -242,9 +245,17 @@ const Index = () => {
         const featuredCandidates = activeContents.filter((c: any) => c.backdrop_url && c.category !== 'tv');
         activeTrailers = [...featuredCandidates].sort(() => Math.random() - 0.5).slice(0, 5);
       }
-      setTrailerContents(activeTrailers);
+      
+      setTrailerContents(prev => {
+        if (settings.mode === 'manual') return activeTrailers;
+        if (prev.length > 0) return prev;
+        return activeTrailers;
+      });
 
-      setRandomContent([...activeContents.filter(c => c.status === 'active')].sort(() => Math.random() - 0.5));
+      setRandomContent(prev => {
+        if (prev.length > 0) return prev;
+        return [...activeContents.filter(c => c.status === 'active')].sort(() => Math.random() - 0.5);
+      });
       setNetworkFailed(false);
       setRetryCount(0); // Success, reset retries
 
