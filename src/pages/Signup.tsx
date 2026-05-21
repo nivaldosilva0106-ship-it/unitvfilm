@@ -289,6 +289,14 @@ const Signup = () => {
                 onClick={async () => {
                   try {
                     setLoading(true);
+                    if (selectedPlan) {
+                      localStorage.setItem('pending_oauth_plan', JSON.stringify({
+                        id: selectedPlan.id,
+                        isTrial: selectedPlan.id === 'trial_30d',
+                        price: selectedPlan.price,
+                        requiresVerification: selectedPlan.requiresVerification
+                      }));
+                    }
                     const { signInWithGoogle } = await import('@/lib/firebase');
                     await signInWithGoogle();
                     // The page will redirect to Google

@@ -96,17 +96,62 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           if (!userProfile && !firebaseUser.isAnonymous && firebaseUser.email) {
             try {
               const { updateUserProfile } = await import('@/lib/firebase');
+              
+              let planId = 'free';
+              let isPremium = false;
+              let subscriptionTier: 'free' | 'premium' = 'free';
+              let status: 'active' | 'pending_payment' = 'active';
+              let subscriptionExpiresAt = null;
+
+              try {
+                const pendingPlanStr = localStorage.getItem('pending_oauth_plan');
+                if (pendingPlanStr) {
+                  const pendingPlan = JSON.parse(pendingPlanStr);
+                  planId = pendingPlan.id;
+                  if (pendingPlan.isTrial) {
+                    isPremium = true;
+                    subscriptionTier = 'premium';
+                    const expirationDate = new Date();
+                    expirationDate.setDate(expirationDate.getDate() + 30);
+                    subscriptionExpiresAt = expirationDate.toISOString();
+                  } else if (pendingPlan.price > 0) {
+                    subscriptionTier = 'premium';
+                    if (pendingPlan.requiresVerification) {
+                      status = 'pending_payment';
+                    }
+                  }
+                  localStorage.removeItem('pending_oauth_plan'); // clean up
+                }
+              } catch (err) {
+                console.error("Error reading pending plan", err);
+              }
+
               const newProfile = {
                 email: firebaseUser.email,
-                isPremium: false,
-                subscriptionTier: 'free' as const,
-                planId: 'free',
-                status: 'active' as const,
-                subscriptionExpiresAt: null,
+                isPremium,
+                subscriptionTier,
+                planId,
+                status,
+                subscriptionExpiresAt,
                 createdAt: new Date().toISOString(),
                 displayName: firebaseUser.user_metadata?.full_name || firebaseUser.email?.split('@')[0] || '',
+                avatarUrl: firebaseUser.user_metadata?.avatar_url || '',
+                trialSignup: planId === 'trial_30d',
+                credits: { date: new Date().toISOString().split('T')[0], moviesWatched: 0, episodesWatched: 0 }
               };
               await updateUserProfile(firebaseUser.uid, newProfile);
+              
+              // Create the default account profile (sub-profile) with Google info and no PIN
+              const { createAccountProfile } = await import('@/lib/firebase');
+              await createAccountProfile(firebaseUser.uid, {
+                name: firebaseUser.user_metadata?.full_name || firebaseUser.email?.split('@')[0] || 'Perfil 1',
+                avatar: firebaseUser.user_metadata?.avatar_url || '/avatars/1.png',
+                isKids: false,
+                pin: '', // Perfil sem senha
+                pinAttempts: 0,
+                lockoutUntil: null,
+              });
+
               return;
             } catch (e) {
               console.error('Error auto-creating profile for OAuth user:', e);
