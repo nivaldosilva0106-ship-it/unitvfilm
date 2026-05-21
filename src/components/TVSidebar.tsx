@@ -58,6 +58,8 @@ export const TVSidebar = () => {
     location.pathname.startsWith("/admin") ||
     location.pathname === "/login" ||
     location.pathname === "/signup" ||
+    location.pathname === "/update-password" ||
+    location.pathname === "/confirm-email" ||
     location.pathname.startsWith("/watch/") ||
     location.pathname.startsWith("/watch-local/") ||
     location.pathname === "/profiles" ||

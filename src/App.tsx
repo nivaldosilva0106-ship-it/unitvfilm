@@ -107,7 +107,7 @@ const SidebarPaddingManager = () => {
   const { user } = useAuth();
   
   React.useEffect(() => {
-    const hiddenPaths = ["/watch/", "/watch-local/", "/login", "/signup", "/profiles", "/nostalgia"];
+    const hiddenPaths = ["/watch/", "/watch-local/", "/login", "/signup", "/profiles", "/nostalgia", "/update-password", "/confirm-email"];
     let shouldHideSidebar = hiddenPaths.some(path => location.pathname.startsWith(path));
     
     // Also hide if on root path and NOT logged in (Landing page)
