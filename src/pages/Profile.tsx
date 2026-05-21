@@ -8,10 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Camera, Check, MessageCircle, Lock, AlertTriangle, Library, Globe
+  Camera, Check, MessageCircle, Lock, AlertTriangle, Library, Globe, Key, Eye, EyeOff
 } from "lucide-react";
 import { toast } from "sonner";
-import { getAccountProfiles, getAvatars, createAccountProfile, updateAccountProfile, deleteAccountProfile, verifyRecoveryCode, validatePin } from "@/lib/firebase";
+import { getAccountProfiles, getAvatars, createAccountProfile, updateAccountProfile, deleteAccountProfile, verifyRecoveryCode, validatePin, changePassword } from "@/lib/firebase";
 import { Profile as UserProfileType, Avatar } from "@/types/user";
 import { cn } from "@/lib/utils";
 import { useAppConfig } from "@/hooks/useAppConfig";
@@ -34,6 +34,16 @@ const Profile = () => {
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
   const [recoveryCode, setRecoveryCode] = useState("");
   const [recoveryStep, setRecoveryStep] = useState<'code' | 'new_pin'>('code');
+
+  // Password Change Modal
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   // Form State
   const [formName, setFormName] = useState("");
@@ -238,8 +248,6 @@ const Profile = () => {
 
     setFormLoading(true);
     try {
-      // Reset PIN for the profile that was being edited when "Forgot PIN" was clicked
-      // We saved 'editingProfile' state.
       await updateAccountProfile(user.uid, editingProfile.id, { pin: formPin });
       toast.success("PIN redefinido com sucesso!");
       setShowRecoveryModal(false);
@@ -248,6 +256,43 @@ const Profile = () => {
       toast.error("Erro ao redefinir PIN");
     } finally {
       setFormLoading(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      toast.error("Preencha todos os campos");
+      return;
+    }
+    if (newPassword.length < 6) {
+      toast.error("A senha deve ter pelo menos 6 caracteres");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("As senhas não coincidem");
+      return;
+    }
+
+    setPasswordLoading(true);
+    try {
+      await changePassword(newPassword);
+      toast.success("Senha alterada com sucesso!");
+      setShowPasswordModal(false);
+      setTimeout(() => {
+        logout();
+        navigate("/login");
+      }, 1500);
+    } catch (e: any) {
+      const message = e?.message || "Erro ao alterar senha";
+      if (message.includes("Invalid password") || message.includes("password")) {
+        toast.error("A senha deve ter pelo menos 6 caracteres");
+      } else if (message.includes("auth/requires-recent-login") || message.includes("reauthenticate")) {
+        toast.error("Por segurança, faça login novamente e tente alterar a senha");
+      } else {
+        toast.error(message);
+      }
+    } finally {
+      setPasswordLoading(false);
     }
   };
 
@@ -411,6 +456,29 @@ const Profile = () => {
               {isLiteMode ? "TV Box / Lite (Efeitos Reduzidos)" : "Padrão (Efeitos Completos)"}
             </span>
           </div>
+        </div>
+
+        {/* Segurança da Conta */}
+        <div className="mt-8 bg-zinc-900/30 border border-zinc-800/80 p-6 rounded-2xl max-w-2xl mx-auto space-y-6">
+          <h2 className="text-2xl font-bold flex items-center gap-2 text-white">
+            <Key className="w-6 h-6 text-primary" /> Segurança da Conta
+          </h2>
+          <p className="text-sm text-zinc-400">
+            Altere a senha da sua conta. Após a alteração, você será deslogado de todos os dispositivos por segurança.
+          </p>
+
+          <Button
+            onClick={() => {
+              setShowPasswordModal(true);
+              setCurrentPassword("");
+              setNewPassword("");
+              setConfirmPassword("");
+            }}
+            variant="outline"
+            className="border-primary/30 hover:bg-primary/10 text-primary gap-2"
+          >
+            <Key className="w-4 h-4" /> Alterar Senha
+          </Button>
         </div>
 
       </div>
@@ -635,6 +703,75 @@ const Profile = () => {
                 </Button>
               </>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Alterar Senha */}
+      <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
+        <DialogContent className="bg-[#1a1a1a] border-[#333] text-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="w-5 h-5 text-primary" /> Alterar Senha
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4 space-y-5">
+            <p className="text-zinc-400 text-sm">
+              Após alterar a senha, você será deslogado de todos os dispositivos por segurança.
+            </p>
+
+            <div className="space-y-2">
+              <Label className="text-zinc-400">Nova Senha</Label>
+              <div className="relative">
+                <Input
+                  type={showNewPassword ? "text" : "password"}
+                  placeholder="Mínimo 6 caracteres"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  className="bg-[#0a0a0a] border-zinc-800 pr-10"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowNewPassword(!showNewPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                >
+                  {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-zinc-400">Confirmar Nova Senha</Label>
+              <div className="relative">
+                <Input
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Repita a nova senha"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  className="bg-[#0a0a0a] border-zinc-800 pr-10"
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-2">
+              <Button
+                onClick={handleChangePassword}
+                disabled={passwordLoading}
+                className="w-full bg-primary hover:bg-primary/90"
+              >
+                {passwordLoading ? "Alterando..." : "Alterar Senha"}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

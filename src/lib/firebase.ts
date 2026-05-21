@@ -423,6 +423,23 @@ export const resetPassword = async (email: string) => {
   return sendPasswordResetEmail(auth, email);
 };
 
+export const changePassword = async (newPassword: string) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      await supabase.auth.signOut({ scope: 'global' });
+      return;
+    }
+  }
+  const { updatePassword, signOut, getAuth } = await import('firebase/auth');
+  const currentUser = getAuth().currentUser;
+  if (!currentUser) throw new Error('Usuário não autenticado');
+  await updatePassword(currentUser, newPassword);
+  await signOut(auth);
+};
+
 export const onAuthChange = (callback: (user: any) => void) => {
   if (isSupabaseEnabled()) {
     const supabase = getSupabaseClient();

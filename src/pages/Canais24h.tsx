@@ -33,7 +33,7 @@ const getWatermarkClasses = (position?: string) => {
     }
 };
 
-const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEnded, playbackSpeed, onToggleFullscreen, isFullscreen, title, watermarkUrl, watermarkPosition, watermarkSize }: {
+const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEnded, playbackSpeed, onToggleFullscreen, isFullscreen, title, watermarkUrl, watermarkPosition, watermarkSize, mobileWatermarkPosition, mobileWatermarkSize }: {
     videoId: string;
     id: string;
     startTime: number;
@@ -421,8 +421,8 @@ const YouTubePlayer = memo(({ videoId, id, startTime, active, onTimeUpdate, onEn
                 </div>
             )}
             
-            {(!isPlaying && !hasError) && (
-                <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
+            {(!isPlaying && !hasError && !showInitialOverlay) && (
+                <div className="absolute inset-0 flex items-center justify-center z-20 bg-black pointer-events-none">
                     <button 
                         className="w-14 h-14 md:w-20 md:h-20 bg-primary/90 hover:bg-primary rounded-full flex items-center justify-center transition-all duration-300 shadow-2xl scale-110 opacity-0 group-hover:opacity-100"
                     >
@@ -484,7 +484,7 @@ YouTubePlayer.displayName = "YouTubePlayer";
 import ReactPlayerComponent from 'react-player';
 const ReactPlayer = ReactPlayerComponent as any;
 
-const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscreen, isFullscreen, title, watermarkUrl, watermarkPosition, watermarkSize }: {
+const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscreen, isFullscreen, title, watermarkUrl, watermarkPosition, watermarkSize, mobileWatermarkPosition, mobileWatermarkSize }: {
     url: string;
     active: boolean;
     onTimeUpdate: (time: number) => void;
@@ -501,6 +501,7 @@ const SocialPlayer = memo(({ url, active, onTimeUpdate, onEnded, onToggleFullscr
     const containerRef = useRef<HTMLDivElement>(null);
     const [isPlaying, setIsPlaying] = useState(active);
     const [isMuted, setIsMuted] = useState(true);
+    const [isMobile] = useState(() => /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768);
     const [volume, setVolume] = useState(() => {
         if (typeof window !== 'undefined') {
             const saved = localStorage.getItem('unitv-player-volume');
@@ -1798,12 +1799,12 @@ export default function Canais24h() {
                         className={`relative w-full bg-black overflow-hidden shadow-2xl group/container ${isFullscreen ? 'fixed inset-0 z-[100] rounded-none !max-w-none h-screen w-screen flex flex-col justify-center' : 'rounded-lg aspect-video'}`}
                     >
                         {loading ? (
-                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900/80">
+                            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black">
                                 <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
                                 <span>A carregar canal...</span>
                             </div>
                         ) : !currentChannel ? (
-                            <div className="absolute inset-0 flex items-center justify-center bg-zinc-900/80">
+                            <div className="absolute inset-0 flex items-center justify-center bg-black">
                                 <Film className="w-16 h-16 text-primary mx-auto mb-4" />
                                 <h2 className="text-2xl font-bold">Nenhum canal disponível</h2>
                             </div>
