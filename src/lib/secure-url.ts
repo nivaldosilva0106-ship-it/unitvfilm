@@ -197,8 +197,8 @@ export function createSecurePlaybackUrl(url: string): string {
     }
   }
   
-  // Encrypted URL with 2 hours validity to prevent live streams from stopping and long movies from stalling
-  const token = encryptUrl(url, 2 * 60 * 60 * 1000);
+  // Encrypted URL with 1 hour validity to prevent live streams from stopping and long movies from stalling
+  const token = encryptUrl(url, 1 * 60 * 60 * 1000);
   return `${baseUrl}/api/stream-proxy?t=${token}${ext}`;
 }
 
