@@ -91,6 +91,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         localStorage.setItem('unitv_cached_user', JSON.stringify(simplifiedUser));
 
         unsubscribeProfile = subscribeToUserProfile(firebaseUser.uid, async (userProfile) => {
+          
+          // Auto-create profile for OAuth users (Google) who don't have one yet
+          if (!userProfile && !firebaseUser.isAnonymous && firebaseUser.email) {
+            try {
+              const { updateUserProfile } = await import('@/lib/firebase');
+              const newProfile = {
+                email: firebaseUser.email,
+                isPremium: false,
+                subscriptionTier: 'free' as const,
+                planId: 'free',
+                status: 'active' as const,
+                subscriptionExpiresAt: null,
+                createdAt: new Date().toISOString(),
+                displayName: firebaseUser.user_metadata?.full_name || firebaseUser.email?.split('@')[0] || '',
+              };
+              await updateUserProfile(firebaseUser.uid, newProfile);
+              return;
+            } catch (e) {
+              console.error('Error auto-creating profile for OAuth user:', e);
+            }
+          }
 
           if (userProfile && userProfile.subscriptionExpiresAt) {
             const isExpired = await checkSubscriptionExpired(firebaseUser.uid);

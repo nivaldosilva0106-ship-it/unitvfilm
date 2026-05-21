@@ -410,6 +410,23 @@ export const logOut = async () => {
   return signOut(auth);
 };
 
+export const signInWithGoogle = async () => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin,
+        },
+      });
+      if (error) throw error;
+      return data;
+    }
+  }
+  throw new Error('Google sign-in requires Supabase');
+};
+
 export const resetPassword = async (email: string) => {
   if (isSupabaseEnabled()) {
     const supabase = getSupabaseClient();
