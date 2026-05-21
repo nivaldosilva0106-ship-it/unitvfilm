@@ -235,3 +235,39 @@ export function createSecureDownloadUrl(url: string, filename?: string): string 
   
   return `${baseUrl}/api/secure-download?${params.toString()}`;
 }
+
+/**
+ * Create an Xtream-compatible playback URL for Android APKs
+ * Returns /movie/user/pass/ID.mp4 or /series/user/pass/ID.mkv
+ * where ID is the securely encrypted token.
+ */
+export function createXtreamPlaybackUrl(url: string, type: 'movie' | 'series', username = 'user', password = 'password'): string {
+  if (!url) return url;
+  
+  // Encrypt the real URL into a secure token to use as the ID
+  const token = encryptUrl(url);
+  
+  // APK FIX: Absolute URL for native environment
+  let baseUrl = '';
+  if (typeof window !== 'undefined') {
+    const isNative = (window as any).Capacitor?.isNative || 
+                    window.location.hostname === 'localhost' || 
+                    window.location.hostname === '127.0.0.1';
+
+    if (isNative) {
+      try {
+        const cached = localStorage.getItem('cached_settings');
+        if (cached) {
+          const settings = JSON.parse(cached);
+          if (settings.officialSiteUrl) {
+            baseUrl = settings.officialSiteUrl.replace(/\/$/, '');
+          }
+        }
+      } catch (e) {}
+      if (!baseUrl) baseUrl = 'https://unitvfilms.vercel.app';
+    }
+  }
+  
+  const ext = type === 'movie' ? '.mp4' : '.mkv';
+  return `${baseUrl}/${type}/${encodeURIComponent(username)}/${encodeURIComponent(password)}/${token}${ext}`;
+}

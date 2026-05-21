@@ -2,6 +2,14 @@
     "installCommand": "pnpm install --no-frozen-lockfile",
     "rewrites": [
         {
+            "source": "/movie/:username/:password/:id",
+            "destination": "/api/play?type=movie&username=:username&password=:password&id=:id"
+        },
+        {
+            "source": "/series/:username/:password/:id",
+            "destination": "/api/play?type=series&username=:username&password=:password&id=:id"
+        },
+        {
             "source": "/((?!api/).*)",
             "destination": "/index.html"
         }
