@@ -285,6 +285,9 @@ export const signUp = async (email: string, password: string, subscriptionTier: 
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
+        options: {
+          emailRedirectTo: window.location.origin + '/confirm-email'
+        }
       });
       if (error) throw error;
       const user = data.user;
@@ -351,6 +354,9 @@ export const signIn = async (email: string, password: string) => {
           const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
             email,
             password,
+            options: {
+              emailRedirectTo: window.location.origin + '/confirm-email'
+            }
           });
 
           if (!signUpError && signUpData?.user) {
@@ -431,7 +437,9 @@ export const resetPassword = async (email: string) => {
   if (isSupabaseEnabled()) {
     const supabase = getSupabaseClient();
     if (supabase) {
-      const { error } = await supabase.auth.resetPasswordForEmail(email);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/update-password'
+      });
       if (error) throw error;
       return;
     }
