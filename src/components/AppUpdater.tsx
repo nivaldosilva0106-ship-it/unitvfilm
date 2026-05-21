@@ -30,14 +30,40 @@ export function AppUpdater() {
                 const { App: CapacitorApp } = await import('@capacitor/app');
                 
                 const settings = await getSiteSettings();
-                const requiredVersion = isLiteMode 
-                    ? (settings.requiredLiteAppVersion || 1) 
-                    : (settings.requiredAppVersion || 1);
+                const requiredVersionRaw = isLiteMode 
+                    ? (settings.requiredLiteAppVersion || '1.0.0') 
+                    : (settings.requiredAppVersion || '1.0.0');
+                const requiredVersion = requiredVersionRaw.toString();
                 
                 const info = await CapacitorApp.getInfo();
-                const currentBuild = parseInt(info.build || '1');
+                const currentVersion = info.version || '1.0.0';
 
-                if (currentBuild < requiredVersion) {
+                // Helper to compare semantic versions (e.g. 1.0.1 > 1.0.0)
+                const isOutdated = (current: string, required: string) => {
+                    const cParts = current.split('.').map(Number);
+                    const rParts = required.split('.').map(Number);
+                    for (let i = 0; i < Math.max(cParts.length, rParts.length); i++) {
+                        const c = cParts[i] || 0;
+                        const r = rParts[i] || 0;
+                        if (c < r) return true;
+                        if (c > r) return false;
+                    }
+                    return false;
+                };
+
+                // Fallback for old number builds
+                const currentBuild = parseInt(info.build || '1');
+                const reqBuild = parseInt(requiredVersion);
+                
+                let needsUpdate = false;
+                if (!isNaN(reqBuild) && !requiredVersion.includes('.')) {
+                    // Legacy check
+                    needsUpdate = currentBuild < reqBuild;
+                } else {
+                    needsUpdate = isOutdated(currentVersion, requiredVersion);
+                }
+
+                if (needsUpdate) {
                     setUpdateRequired(true);
                     setUpdateNotes(settings.appUpdateNotes || "Resolvemos alguns problemas e melhoramos a performance.");
                     setApkUrl(isLiteMode 

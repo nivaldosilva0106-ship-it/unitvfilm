@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { Copy, Check, AlertTriangle, Globe, Info, Smartphone, MonitorPlay, Loader2, Wifi, WifiOff, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSiteSettings, updateSiteSettings } from "@/lib/firebase";
+import { uploadApkToSupabase, deleteApkFromSupabase } from "@/lib/supabase";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,14 +25,18 @@ export const AdminSettings = () => {
     const [pwaIconUrl, setPwaIconUrl] = useState("");
     const [apkDownloadUrl, setApkDownloadUrl] = useState("");
     const [apkLiteDownloadUrl, setApkLiteDownloadUrl] = useState("");
-    const [requiredAppVersion, setRequiredAppVersion] = useState<number>(1);
-    const [requiredLiteAppVersion, setRequiredLiteAppVersion] = useState<number>(1);
+    const [requiredAppVersion, setRequiredAppVersion] = useState<number | string>(1);
+    const [requiredLiteAppVersion, setRequiredLiteAppVersion] = useState<number | string>(1);
     const [appUpdateNotes, setAppUpdateNotes] = useState("");
     const [enableApkDownload, setEnableApkDownload] = useState(false);
     const [enablePwaInstall, setEnablePwaInstall] = useState(false);
     const [maintenanceModeEnabled, setMaintenanceModeEnabled] = useState(false);
     const [loading, setLoading] = useState(true);
     const [isCopied, setIsCopied] = useState(false);
+
+    // APK Upload state
+    const [isUploadingApkNormal, setIsUploadingApkNormal] = useState(false);
+    const [isUploadingApkLite, setIsUploadingApkLite] = useState(false);
 
     // UniTvIPTV Integration
     const [iptvApiKey, setIptvApiKey] = useState("");
@@ -61,6 +66,47 @@ export const AdminSettings = () => {
     useEffect(() => {
         loadSettings();
     }, []);
+
+    const handleApkUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'normal' | 'lite') => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        
+        if (!file.name.endsWith('.apk')) {
+            toast.error("O arquivo deve ser um .apk");
+            return;
+        }
+
+        const setUploading = type === 'normal' ? setIsUploadingApkNormal : setIsUploadingApkLite;
+        const setUrl = type === 'normal' ? setApkDownloadUrl : setApkLiteDownloadUrl;
+        
+        try {
+            setUploading(true);
+            const publicUrl = await uploadApkToSupabase(file, type);
+            setUrl(publicUrl);
+            toast.success("APK enviado com sucesso! Não se esqueça de salvar as configurações.");
+        } catch (error) {
+            toast.error("Falha ao enviar APK");
+        } finally {
+            setUploading(false);
+        }
+    };
+
+    const handleDeleteApk = async (type: 'normal' | 'lite') => {
+        if (!confirm("Tem certeza que deseja remover este APK do servidor?")) return;
+        
+        const url = type === 'normal' ? apkDownloadUrl : apkLiteDownloadUrl;
+        const setUrl = type === 'normal' ? setApkDownloadUrl : setApkLiteDownloadUrl;
+        
+        try {
+            if (url && url.includes('supabase.co')) {
+                await deleteApkFromSupabase(url);
+            }
+            setUrl("");
+            toast.success("APK removido com sucesso!");
+        } catch (error) {
+            toast.error("Erro ao remover APK");
+        }
+    };
 
     const loadSettings = async () => {
         try {
@@ -501,34 +547,82 @@ export const AdminSettings = () => {
                                         />
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="apkUrl">Link APK Normal</Label>
-                                        <Input
-                                            id="apkUrl"
-                                            placeholder="https://exemplo.com/app.apk"
-                                            value={apkDownloadUrl}
-                                            onChange={(e) => setApkDownloadUrl(e.target.value)}
-                                            className="bg-background/50"
-                                        />
+                                        <Label>APK Normal (Arquivo)</Label>
+                                        <div className="flex gap-2 items-center">
+                                            {apkDownloadUrl ? (
+                                                <div className="flex-1 flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 rounded-md p-2">
+                                                    <span className="text-xs text-emerald-500 truncate mr-2" title={apkDownloadUrl}>APK Carregado</span>
+                                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-red-500 hover:text-red-400 hover:bg-red-500/10" onClick={() => handleDeleteApk('normal')}>
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex-1">
+                                                    <Input
+                                                        id="apkUrl"
+                                                        type="file"
+                                                        accept=".apk"
+                                                        onChange={(e) => handleApkUpload(e, 'normal')}
+                                                        disabled={isUploadingApkNormal}
+                                                        className="bg-background/50 text-xs cursor-pointer"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                        {isUploadingApkNormal && <p className="text-xs text-emerald-500 animate-pulse">Fazendo upload...</p>}
+                                        {!apkDownloadUrl && <p className="text-[10px] text-muted-foreground">Ou insira uma URL externa abaixo (opcional)</p>}
+                                        {!apkDownloadUrl && (
+                                            <Input
+                                                placeholder="https://exemplo.com/app.apk"
+                                                value={apkDownloadUrl}
+                                                onChange={(e) => setApkDownloadUrl(e.target.value)}
+                                                className="bg-background/50 text-xs mt-1"
+                                            />
+                                        )}
                                     </div>
                                     <div className="space-y-2">
-                                        <Label htmlFor="apkLiteUrl">Link APK Lite (TV Box)</Label>
-                                        <Input
-                                            id="apkLiteUrl"
-                                            placeholder="https://exemplo.com/app-lite.apk"
-                                            value={apkLiteDownloadUrl}
-                                            onChange={(e) => setApkLiteDownloadUrl(e.target.value)}
-                                            className="bg-background/50"
-                                        />
+                                        <Label>APK Lite / TV Box (Arquivo)</Label>
+                                        <div className="flex gap-2 items-center">
+                                            {apkLiteDownloadUrl ? (
+                                                <div className="flex-1 flex items-center justify-between bg-emerald-500/10 border border-emerald-500/20 rounded-md p-2">
+                                                    <span className="text-xs text-emerald-500 truncate mr-2" title={apkLiteDownloadUrl}>APK Lite Carregado</span>
+                                                    <Button type="button" variant="ghost" size="icon" className="h-6 w-6 text-red-500 hover:text-red-400 hover:bg-red-500/10" onClick={() => handleDeleteApk('lite')}>
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div className="flex-1">
+                                                    <Input
+                                                        id="apkLiteUrl"
+                                                        type="file"
+                                                        accept=".apk"
+                                                        onChange={(e) => handleApkUpload(e, 'lite')}
+                                                        disabled={isUploadingApkLite}
+                                                        className="bg-background/50 text-xs cursor-pointer"
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                        {isUploadingApkLite && <p className="text-xs text-emerald-500 animate-pulse">Fazendo upload...</p>}
+                                        {!apkLiteDownloadUrl && <p className="text-[10px] text-muted-foreground">Ou insira uma URL externa abaixo (opcional)</p>}
+                                        {!apkLiteDownloadUrl && (
+                                            <Input
+                                                placeholder="https://exemplo.com/app-lite.apk"
+                                                value={apkLiteDownloadUrl}
+                                                onChange={(e) => setApkLiteDownloadUrl(e.target.value)}
+                                                className="bg-background/50 text-xs mt-1"
+                                            />
+                                        )}
                                     </div>
                                     <div className="grid grid-cols-2 gap-4 pt-2">
                                         <div className="space-y-2">
                                             <Label htmlFor="requiredAppVersion">Versão Normal</Label>
                                             <Input
                                                 id="requiredAppVersion"
-                                                type="number"
-                                                min="1"
+                                                type="text"
+                                                placeholder="Ex: 1.0.0"
                                                 value={requiredAppVersion}
-                                                onChange={(e) => setRequiredAppVersion(parseInt(e.target.value) || 1)}
+                                                onChange={(e) => setRequiredAppVersion(e.target.value)}
                                                 className="bg-background/50"
                                             />
                                         </div>
@@ -536,10 +630,10 @@ export const AdminSettings = () => {
                                             <Label htmlFor="requiredLiteAppVersion">Versão Lite</Label>
                                             <Input
                                                 id="requiredLiteAppVersion"
-                                                type="number"
-                                                min="1"
+                                                type="text"
+                                                placeholder="Ex: 1.0.0"
                                                 value={requiredLiteAppVersion}
-                                                onChange={(e) => setRequiredLiteAppVersion(parseInt(e.target.value) || 1)}
+                                                onChange={(e) => setRequiredLiteAppVersion(e.target.value)}
                                                 className="bg-background/50"
                                             />
                                             </div>

@@ -1058,8 +1058,8 @@ export interface SiteSettings {
   apkLiteDownloadUrl?: string;
   enableApkDownload?: boolean;
   enablePwaInstall?: boolean;
-  requiredAppVersion?: number;
-  requiredLiteAppVersion?: number;
+  requiredAppVersion?: string | number;
+  requiredLiteAppVersion?: string | number;
   appUpdateNotes?: string;
   iptvApiKey?: string;
   iptvApiBaseUrl?: string;

@@ -58,3 +58,57 @@ export const getSupabaseClient = () => {
     return null;
   }
 };
+
+export const uploadApkToSupabase = async (file: File, type: 'normal' | 'lite'): Promise<string> => {
+  const client = getSupabaseClient();
+  if (!client) throw new Error("Supabase client not configured");
+
+  const fileExt = file.name.split('.').pop();
+  const fileName = `unitvfilm_${type}_${Date.now()}.${fileExt}`;
+  
+  const { data, error } = await client.storage
+    .from('apks')
+    .upload(fileName, file, {
+      cacheControl: '3600',
+      upsert: true
+    });
+
+  if (error) {
+    console.error("Erro no upload do APK:", error);
+    throw error;
+  }
+
+  const { data: publicUrlData } = client.storage
+    .from('apks')
+    .getPublicUrl(fileName);
+
+  return publicUrlData.publicUrl;
+};
+
+export const deleteApkFromSupabase = async (fileUrl: string): Promise<boolean> => {
+  const client = getSupabaseClient();
+  if (!client) return false;
+
+  try {
+    // Extract the path from the URL
+    // e.g. https://xxx.supabase.co/storage/v1/object/public/apks/filename.apk
+    const urlObj = new URL(fileUrl);
+    const pathParts = urlObj.pathname.split('/apks/');
+    if (pathParts.length > 1) {
+      const fileName = pathParts[1];
+      const { error } = await client.storage
+        .from('apks')
+        .remove([fileName]);
+        
+      if (error) {
+        console.error("Erro ao apagar APK antigo:", error);
+        return false;
+      }
+      return true;
+    }
+    return false;
+  } catch (e) {
+    console.error("Failed to parse URL for deletion:", e);
+    return false;
+  }
+};
