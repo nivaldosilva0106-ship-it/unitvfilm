@@ -42,11 +42,7 @@ const Login = () => {
       navigate('/');
     } catch (error: any) {
       console.error('Erro no login:', error);
-      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-        toast.error('Credenciais inválidas');
-      } else {
-        toast.error('Erro ao fazer login. Tente novamente.');
-      }
+      toast.error('O seu e-mail ou senha está incorreto, tente novamente.');
     } finally {
       setLoading(false);
     }

@@ -23,6 +23,7 @@ import { useAppConfig } from "@/hooks/useAppConfig";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ReminderAlert } from "./components/ReminderAlert";
 import { UserActivityTracker } from "./components/UserActivityTracker";
+import { UpdatePasswordDialog } from "./components/UpdatePasswordDialog";
 
 const queryClient = new QueryClient();
 
@@ -187,6 +188,7 @@ const App = () => {
           <Sonner />
           <Router>
             <UserActivityTracker />
+            <UpdatePasswordDialog />
             <SidebarPaddingManager />
             <AppUpdater />
             <PWAInstallBanner />
