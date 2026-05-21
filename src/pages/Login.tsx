@@ -23,6 +23,12 @@ const Login = () => {
   const [recoveryLoading, setRecoveryLoading] = useState(false);
 
   useEffect(() => {
+    // Check for password recovery hash from Supabase
+    if (window.location.hash.includes('type=recovery')) {
+      navigate('/update-password' + window.location.hash);
+      return;
+    }
+
     import('@/lib/firebase').then(({ getSiteSettings }) => {
       getSiteSettings().then(settings => {
         if (settings.loginBackgroundUrl) {
@@ -42,7 +48,12 @@ const Login = () => {
       navigate('/');
     } catch (error: any) {
       console.error('Erro no login:', error);
-      toast.error('O seu e-mail ou senha está incorreto, tente novamente.');
+      // Catch Supabase specific email not confirmed error
+      if (error.message && error.message.includes('Email not confirmed')) {
+        toast.error('O seu e-mail ainda não foi confirmado. Por favor verifique a sua caixa de entrada e ative a conta antes de iniciar sessão.');
+      } else {
+        toast.error('O seu e-mail ou senha está incorreto, tente novamente.');
+      }
     } finally {
       setLoading(false);
     }

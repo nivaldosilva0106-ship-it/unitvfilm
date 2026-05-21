@@ -23,7 +23,6 @@ import { useAppConfig } from "@/hooks/useAppConfig";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ReminderAlert } from "./components/ReminderAlert";
 import { UserActivityTracker } from "./components/UserActivityTracker";
-import { UpdatePasswordDialog } from "./components/UpdatePasswordDialog";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +64,8 @@ const Canais24h = lazyWithRetry(() => import("./pages/Canais24h"));
 const ProviderView = lazyWithRetry(() => import("./pages/ProviderView"));
 const VerifyCode = lazyWithRetry(() => import("./pages/VerifyCode"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
+const UpdatePassword = lazyWithRetry(() => import("./pages/UpdatePassword"));
+const ConfirmEmail = lazyWithRetry(() => import("./pages/ConfirmEmail"));
 const About = lazyWithRetry(() => import("./pages/About"));
 const TermsOfUse = lazyWithRetry(() => import("./pages/TermsOfUse"));
 const PrivacyPolicy = lazyWithRetry(() => import("./pages/PrivacyPolicy"));
@@ -188,7 +189,6 @@ const App = () => {
           <Sonner />
           <Router>
             <UserActivityTracker />
-            <UpdatePasswordDialog />
             <SidebarPaddingManager />
             <AppUpdater />
             <PWAInstallBanner />
@@ -212,6 +212,8 @@ const App = () => {
                   <Route path="/" element={<HomeWrapper />} />
                   <Route path="/login" element={<Login />} />
                   <Route path="/signup" element={<Signup />} />
+                  <Route path="/update-password" element={<UpdatePassword />} />
+                  <Route path="/confirm-email" element={<ConfirmEmail />} />
                   <Route path="/search" element={<Search />} />
                   <Route path="/admin" element={<Admin />} />
                   <Route path="/admin/ads" element={<AdminAds />} />

@@ -138,12 +138,12 @@ const Signup = () => {
         const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
 
         window.open(url, '_blank');
-        toast.success("Conta criada! Envie a mensagem no WhatsApp e insira o código.");
-        navigate('/verify-code');
+        toast.success("Conta criada! Verifique o seu e-mail e envie a mensagem no WhatsApp.");
+        navigate('/confirm-email');
       } else {
         // Free Plan Flow
-        toast.success('Conta criada com sucesso!');
-        navigate('/');
+        toast.success('Conta criada! Verifique o seu e-mail para ativar a conta.');
+        navigate('/confirm-email');
       }
 
     } catch (error: any) {
