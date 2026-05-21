@@ -472,7 +472,7 @@ function rewriteM3U8Urls(manifest: string, originalUrl: string, proxyBase: strin
           else if (uriLower.endsWith('.mp4')) extHint = '&ext=.mp4';
           else if (uriLower.endsWith('.aac')) extHint = '&ext=.aac';
           else extHint = '&ext=.ts';
-          const token = encryptUrl(absoluteUri, 24 * 60 * 60 * 1000);
+          const token = encryptUrl(absoluteUri, 2 * 60 * 60 * 1000);
           return `URI="${proxyBase}?t=${token}${extHint}${refParam}"`;
         });
       }
@@ -498,7 +498,7 @@ function rewriteM3U8Urls(manifest: string, originalUrl: string, proxyBase: strin
     else extHint = '&ext=.ts';
 
     // Return the proxied URL using the encrypted token with extension hint and referer hint
-    const token = encryptUrl(finalUrl, 24 * 60 * 60 * 1000);
+    const token = encryptUrl(finalUrl, 2 * 60 * 60 * 1000);
     return `${proxyBase}?t=${token}${extHint}${refParam}`;
   }).join('\n');
 }
