@@ -33,9 +33,9 @@ function xorCipher(input: string, salt: number): string {
 /**
  * Encrypt a URL into a time-limited token
  */
-export function encryptUrl(url: string): string {
+export function encryptUrl(url: string, customValidityMs: number = TOKEN_VALIDITY_MS): string {
   const now = Date.now();
-  const expiry = now + TOKEN_VALIDITY_MS;
+  const expiry = now + customValidityMs;
   const nonce = Math.random().toString(36).substring(2, 8);
   
   // Payload: nonce|expiry|url
@@ -197,8 +197,9 @@ export function createSecurePlaybackUrl(url: string): string {
     }
   }
   
-  // Direct proxy URL without encrypted token to prevent any decryption or clock-sync/expiration errors
-  return `${baseUrl}/api/stream-proxy?url=${encodeURIComponent(url)}${ext}`;
+  // Encrypted URL with 24 hours validity to prevent live streams from stopping and long movies from stalling
+  const token = encryptUrl(url, 24 * 60 * 60 * 1000);
+  return `${baseUrl}/api/stream-proxy?t=${token}${ext}`;
 }
 
 /**

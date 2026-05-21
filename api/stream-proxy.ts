@@ -27,6 +27,25 @@ function xorCipher(input: string, salt: number): string {
   return result;
 }
 
+function encryptUrl(url: string, customValidityMs: number = 15 * 60 * 1000): string {
+  const now = Date.now();
+  const expiry = now + customValidityMs;
+  const nonce = Math.random().toString(36).substring(2, 8);
+  
+  const payload = `${nonce}|${expiry}|${url}`;
+  const salt = Math.floor(now / (5 * 60 * 1000)) & 0xFFFF;
+  const encrypted = xorCipher(payload, salt);
+  
+  const b64 = Buffer.from(encrypted, 'binary').toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+  
+  const saltHex = salt.toString(16).padStart(4, '0');
+  
+  return saltHex + b64;
+}
+
 function decryptToken(token: string): { url: string; expired: boolean } | null {
   try {
     if (token.length < 5) return null;
@@ -453,8 +472,8 @@ function rewriteM3U8Urls(manifest: string, originalUrl: string, proxyBase: strin
           else if (uriLower.endsWith('.mp4')) extHint = '&ext=.mp4';
           else if (uriLower.endsWith('.aac')) extHint = '&ext=.aac';
           else extHint = '&ext=.ts';
-          
-          return `URI="${proxyBase}?url=${encodeURIComponent(absoluteUri)}${extHint}${refParam}"`;
+          const token = encryptUrl(absoluteUri, 24 * 60 * 60 * 1000);
+          return `URI="${proxyBase}?t=${token}${extHint}${refParam}"`;
         });
       }
       return line;
@@ -478,7 +497,8 @@ function rewriteM3U8Urls(manifest: string, originalUrl: string, proxyBase: strin
     else if (finalLower.endsWith('.aac')) extHint = '&ext=.aac';
     else extHint = '&ext=.ts';
 
-    // Return the proxied URL using the absolute proxyBase with extension hint and referer hint
-    return `${proxyBase}?url=${encodeURIComponent(finalUrl)}${extHint}${refParam}`;
+    // Return the proxied URL using the encrypted token with extension hint and referer hint
+    const token = encryptUrl(finalUrl, 24 * 60 * 60 * 1000);
+    return `${proxyBase}?t=${token}${extHint}${refParam}`;
   }).join('\n');
 }
