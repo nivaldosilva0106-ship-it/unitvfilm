@@ -68,6 +68,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     let unsubscribeProfile: (() => void) | undefined;
     let lastAuthState: any = null;
     let authFlickerTimer: ReturnType<typeof setTimeout> | null = null;
+    let isCreatingProfile = false;
 
     const unsubscribeAuth = onAuthChange(async (firebaseUser) => {
       if (firebaseUser) {
@@ -94,8 +95,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           
           // Auto-create profile for OAuth users (Google) who don't have one yet
           if (!userProfile && !firebaseUser.isAnonymous && firebaseUser.email) {
+            if (isCreatingProfile) return;
+            isCreatingProfile = true;
             try {
-              const { updateUserProfile } = await import('@/lib/firebase');
+              const { updateUserProfile, getAccountProfiles, createAccountProfile, getSupabaseClient } = await import('@/lib/firebase');
               
               let planId = 'free';
               let isPremium = false;
@@ -140,21 +143,54 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 credits: { date: new Date().toISOString().split('T')[0], moviesWatched: 0, episodesWatched: 0 }
               };
               await updateUserProfile(firebaseUser.uid, newProfile);
+              // Check if any sub-profile already exists before creating
+              const existingProfiles = await getAccountProfiles(firebaseUser.uid);
               
-              // Create the default account profile (sub-profile) with Google info and no PIN
-              const { createAccountProfile } = await import('@/lib/firebase');
-              await createAccountProfile(firebaseUser.uid, {
-                name: firebaseUser.user_metadata?.full_name || firebaseUser.email?.split('@')[0] || 'Perfil 1',
-                avatar: firebaseUser.user_metadata?.avatar_url || '/avatars/1.png',
-                isKids: false,
-                pin: '', // Perfil sem senha
-                pinAttempts: 0,
-                lockoutUntil: null,
-              });
+              if (existingProfiles.length === 0) {
+                let avatarUrl = firebaseUser.user_metadata?.avatar_url || '/avatars/1.png';
+                
+                // Save Google Avatar to Supabase Storage if possible
+                if (avatarUrl.startsWith('http')) {
+                  try {
+                    const supabase = getSupabaseClient();
+                    if (supabase) {
+                      const response = await fetch(avatarUrl);
+                      if (response.ok) {
+                        const blob = await response.blob();
+                        const ext = blob.type.split('/')[1] || 'png';
+                        const fileName = `google_${firebaseUser.uid}_${Date.now()}.${ext}`;
+                        const { error: uploadError } = await supabase.storage.from('avatars').upload(fileName, blob, {
+                          cacheControl: '3600',
+                          upsert: true
+                        });
+                        
+                        if (!uploadError) {
+                          const { data: publicUrlData } = supabase.storage.from('avatars').getPublicUrl(fileName);
+                          avatarUrl = publicUrlData.publicUrl;
+                        }
+                      }
+                    }
+                  } catch (imgErr) {
+                    console.error('Failed to upload Google avatar:', imgErr);
+                  }
+                }
+
+                // Create the default account profile (sub-profile) with Google info and no PIN
+                await createAccountProfile(firebaseUser.uid, {
+                  name: firebaseUser.user_metadata?.full_name || firebaseUser.email?.split('@')[0] || 'Perfil 1',
+                  avatar: avatarUrl,
+                  isKids: false,
+                  pin: '', // Perfil sem senha
+                  pinAttempts: 0,
+                  lockoutUntil: null,
+                });
+              }
 
               return;
             } catch (e) {
               console.error('Error auto-creating profile for OAuth user:', e);
+            } finally {
+              isCreatingProfile = false;
             }
           }
 
