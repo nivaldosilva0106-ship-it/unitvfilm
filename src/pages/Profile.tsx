@@ -8,10 +8,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Camera, Check, MessageCircle, Lock, AlertTriangle, Library, Globe, Key, Eye, EyeOff
+  Camera, Check, MessageCircle, Lock, AlertTriangle, Library, Globe, Key, Eye, EyeOff, Trash2, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
-import { getAccountProfiles, getAvatars, createAccountProfile, updateAccountProfile, deleteAccountProfile, verifyRecoveryCode, validatePin, changePassword } from "@/lib/firebase";
+import { getAccountProfiles, getAvatars, createAccountProfile, updateAccountProfile, deleteAccountProfile, verifyRecoveryCode, validatePin, changePassword, deleteAccount } from "@/lib/firebase";
 import { Profile as UserProfileType, Avatar } from "@/types/user";
 import { cn } from "@/lib/utils";
 import { useAppConfig } from "@/hooks/useAppConfig";
@@ -44,6 +44,12 @@ const Profile = () => {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
+
+  // Delete Account Modal
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Form State
   const [formName, setFormName] = useState("");
@@ -296,6 +302,37 @@ const Profile = () => {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    if (!user) return;
+    if (deleteConfirmEmail !== user.email) {
+      toast.error("Email não corresponde ao da conta");
+      return;
+    }
+    if (deleteConfirmText !== "DELETAR MINHA CONTA") {
+      toast.error("Digite o texto de confirmação corretamente");
+      return;
+    }
+
+    setDeleteLoading(true);
+    try {
+      await deleteAccount(user.uid, user.email);
+      toast.success("Conta deletada permanentemente");
+      setShowDeleteModal(false);
+      setTimeout(() => {
+        navigate("/login");
+      }, 1500);
+    } catch (e: any) {
+      const message = e?.message || "Erro ao deletar conta";
+      if (message.includes("auth/requires-recent-login") || message.includes("reauthenticate")) {
+        toast.error("Por segurança, faça login novamente e tente deletar a conta");
+      } else {
+        toast.error(message);
+      }
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
   if (!user || !accountProfile) return null;
 
   return (
@@ -480,6 +517,30 @@ const Profile = () => {
             <Key className="w-4 h-4" /> Alterar Senha
           </Button>
         </div>
+
+        {/* Zona de Perigo - Deletar Conta */}
+        {!isSuperAdmin && (
+          <div className="mt-8 bg-red-950/20 border border-red-900/40 p-6 rounded-2xl max-w-2xl mx-auto space-y-6">
+            <h2 className="text-2xl font-bold flex items-center gap-2 text-red-400">
+              <AlertTriangle className="w-6 h-6" /> Zona de Perigo
+            </h2>
+            <p className="text-sm text-zinc-400">
+              Ao deletar sua conta, <strong className="text-red-400">todos os seus dados serão removidos permanentemente</strong>: perfis, lista pessoal, progresso de visualização e configurações. Esta ação é irreversível.
+            </p>
+
+            <Button
+              onClick={() => {
+                setShowDeleteModal(true);
+                setDeleteConfirmEmail("");
+                setDeleteConfirmText("");
+              }}
+              variant="outline"
+              className="border-red-800/50 hover:bg-red-900/30 text-red-400 hover:text-red-300 gap-2"
+            >
+              <Trash2 className="w-4 h-4" /> Deletar Minha Conta
+            </Button>
+          </div>
+        )}
 
       </div>
 
@@ -770,6 +831,74 @@ const Profile = () => {
                 className="w-full bg-primary hover:bg-primary/90"
               >
                 {passwordLoading ? "Alterando..." : "Alterar Senha"}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Deletar Conta */}
+      <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
+        <DialogContent className="bg-[#1a1a1a] border-red-900/50 text-white">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-red-400">
+              <Trash2 className="w-5 h-5" /> Deletar Conta Permanentemente
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="py-4 space-y-5">
+            <div className="bg-red-950/40 border border-red-900/40 p-4 rounded-xl space-y-2">
+              <p className="text-red-300 text-sm font-semibold">Atenção! Esta ação é irreversível.</p>
+              <ul className="text-red-400/80 text-sm space-y-1 list-disc list-inside">
+                <li>Todos os perfis serão removidos</li>
+                <li>Sua lista pessoal será apagada</li>
+                <li>Progresso de visualização será perdido</li>
+                <li>Assinatura e créditos serão cancelados</li>
+              </ul>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-zinc-400">Digite o email da sua conta para confirmar:</Label>
+              <Input
+                type="email"
+                placeholder={user?.email || "seu@email.com"}
+                value={deleteConfirmEmail}
+                onChange={e => setDeleteConfirmEmail(e.target.value)}
+                className="bg-[#0a0a0a] border-red-900/40 focus:border-red-700"
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-zinc-400">Digite <span className="text-red-400 font-bold">DELETAR MINHA CONTA</span> para confirmar:</Label>
+              <Input
+                type="text"
+                placeholder="DELETAR MINHA CONTA"
+                value={deleteConfirmText}
+                onChange={e => setDeleteConfirmText(e.target.value)}
+                className="bg-[#0a0a0a] border-red-900/40 focus:border-red-700"
+                autoComplete="off"
+              />
+            </div>
+
+            <div className="pt-2 flex gap-3">
+              <Button
+                variant="ghost"
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 text-zinc-500 hover:text-zinc-300"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleDeleteAccount}
+                disabled={deleteLoading || deleteConfirmEmail !== user?.email || deleteConfirmText !== "DELETAR MINHA CONTA"}
+                className="flex-1 bg-red-700 hover:bg-red-600 text-white disabled:opacity-30 disabled:cursor-not-allowed"
+              >
+                {deleteLoading ? (
+                  <><Loader2 className="w-4 h-4 animate-spin mr-2" /> Deletando...</>
+                ) : (
+                  <><Trash2 className="w-4 h-4 mr-2" /> Deletar Conta</>
+                )}
               </Button>
             </div>
           </div>

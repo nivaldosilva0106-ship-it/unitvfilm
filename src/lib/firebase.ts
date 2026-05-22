@@ -697,6 +697,7 @@ export const deleteUserProfile = async (userId: string) => {
       await supabase.from('profiles').delete().eq('id', userId);
       await supabase.from('account_profiles').delete().eq('userId', userId);
       await supabase.from('my_list').delete().eq('userId', userId);
+      await supabase.from('user_progress').delete().eq('userId', userId);
       return;
     }
   }
@@ -704,6 +705,32 @@ export const deleteUserProfile = async (userId: string) => {
   await remove(ref(database, `profiles/${userId}`));
   await remove(ref(database, `accountProfiles/${userId}`));
   await remove(ref(database, `myList/${userId}`));
+  await remove(ref(database, `userProgress/${userId}`));
+};
+
+export const deleteAccount = async (userId: string, email: string) => {
+  if (isSupabaseEnabled()) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      await supabase.from('profiles').delete().eq('id', userId);
+      await supabase.from('account_profiles').delete().eq('userId', userId);
+      await supabase.from('my_list').delete().eq('userId', userId);
+      await supabase.from('user_progress').delete().eq('userId', userId);
+      await supabase.from('payments').delete().eq('userId', userId);
+      await supabase.from('transfers').delete().eq('userId', userId);
+
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
+      if (error) throw error;
+      return;
+    }
+  }
+
+  const { deleteUser, signOut, getAuth } = await import('firebase/auth');
+  const currentUser = getAuth().currentUser;
+  if (currentUser && currentUser.uid === userId) {
+    await deleteUser(currentUser);
+  }
+  await signOut(auth);
 };
 
 export const getMyList = async (userId: string): Promise<MyListItem[]> => {
