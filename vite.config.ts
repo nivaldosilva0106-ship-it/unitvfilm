@@ -112,6 +112,18 @@ export default defineConfig(({ mode }) => {
       renderer: {},
     }),
   ].filter(Boolean),
+  build: {
+    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            return 'vendor';
+          }
+        }
+      }
+    }
+  },
   server: {
     host: "::",
     port: 8080,
