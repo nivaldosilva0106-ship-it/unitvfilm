@@ -61,7 +61,7 @@ export const Header = () => {
   const hiddenPaths = ["/watch/", "/watch-local/", "/login", "/signup", "/profiles", "/nostalgia"];
   const isSidebarHiddenOnPage = hiddenPaths.some(path => location.pathname.startsWith(path));
 
-  const hasSidebar = ((isLiteMode && !isMobilePhone) || isDesktop) && !isSidebarHiddenOnPage;
+  const hasSidebar = (isLiteMode || isDesktop) && !isSidebarHiddenOnPage;
 
   // PWA install
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);

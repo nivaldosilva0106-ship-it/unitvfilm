@@ -30,8 +30,14 @@ const queryClient = new QueryClient();
 const lazyWithRetry = (componentImport: () => Promise<any>) =>
   React.lazy(() =>
     componentImport().catch((error) => {
-      console.error("Chunk load error detected, reloading page...", error);
-      window.location.reload();
+      console.error("Chunk load error detected...", error);
+      const hasReloaded = sessionStorage.getItem('chunk_reloaded');
+      if (!hasReloaded) {
+        sessionStorage.setItem('chunk_reloaded', 'true');
+        window.location.reload();
+      } else {
+        console.error("Already reloaded once, not reloading again to prevent infinite loop.");
+      }
       return { default: () => null };
     })
   );
@@ -199,7 +205,10 @@ const App = () => {
               <OfflineIndicator />
               <ReminderAlert />
               <GlobalContentProtection />
-              <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.1),transparent_50%)] pointer-events-none" />
+              {/* Only show the radial background if NOT in lite mode to save memory/GPU */}
+              {!isLiteMode && (
+                <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.1),transparent_50%)] pointer-events-none" />
+              )}
               <LiteModeBodyClass />
               <OrientationManager />
               <MobileBottomNav />

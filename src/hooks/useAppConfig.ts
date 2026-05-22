@@ -65,8 +65,9 @@ export const useAppConfig = (): AppConfig => {
     window.dispatchEvent(new Event('unitv_config_changed'));
   }, []);
 
-  // Determine actual active mode (isLiteMode) based on selection
-  const isLiteMode = perfMode === 'lite' || (perfMode === 'auto' && detectIsTV());
+  // Determine actual active mode (isLiteMode) based on selection or environment
+  const isEnvLite = import.meta.env.VITE_APP_MODE === 'lite';
+  const isLiteMode = isEnvLite || perfMode === 'lite' || (perfMode === 'auto' && detectIsTV());
   const resolvedMode = isLiteMode ? 'lite' : 'standard';
 
   return {
