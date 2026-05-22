@@ -84,8 +84,9 @@ export const AdminSettings = () => {
             const publicUrl = await uploadApkToSupabase(file, type);
             setUrl(publicUrl);
             toast.success("APK enviado com sucesso! Não se esqueça de salvar as configurações.");
-        } catch (error) {
-            toast.error("Falha ao enviar APK");
+        } catch (error: any) {
+            console.error("Upload error details:", error);
+            toast.error(`Falha ao enviar APK: ${error?.message || "Erro desconhecido"}`);
         } finally {
             setUploading(false);
         }
