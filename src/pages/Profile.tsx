@@ -519,28 +519,26 @@ const Profile = () => {
         </div>
 
         {/* Zona de Perigo - Deletar Conta */}
-        {!isSuperAdmin && (
-          <div className="mt-8 bg-red-950/20 border border-red-900/40 p-6 rounded-2xl max-w-2xl mx-auto space-y-6">
-            <h2 className="text-2xl font-bold flex items-center gap-2 text-red-400">
-              <AlertTriangle className="w-6 h-6" /> Zona de Perigo
-            </h2>
-            <p className="text-sm text-zinc-400">
-              Ao deletar sua conta, <strong className="text-red-400">todos os seus dados serão removidos permanentemente</strong>: perfis, lista pessoal, progresso de visualização e configurações. Esta ação é irreversível.
-            </p>
+        <div className="mt-8 bg-red-950/20 border border-red-900/40 p-6 rounded-2xl max-w-2xl mx-auto space-y-6">
+          <h2 className="text-2xl font-bold flex items-center gap-2 text-red-400">
+            <AlertTriangle className="w-6 h-6" /> Zona de Perigo
+          </h2>
+          <p className="text-sm text-zinc-400">
+            Ao deletar sua conta, <strong className="text-red-400">todos os seus dados serão removidos permanentemente</strong>: perfis, lista pessoal, progresso de visualização e configurações. Esta ação é irreversível.
+          </p>
 
-            <Button
-              onClick={() => {
-                setShowDeleteModal(true);
-                setDeleteConfirmEmail("");
-                setDeleteConfirmText("");
-              }}
-              variant="outline"
-              className="border-red-800/50 hover:bg-red-900/30 text-red-400 hover:text-red-300 gap-2"
-            >
-              <Trash2 className="w-4 h-4" /> Deletar Minha Conta
-            </Button>
-          </div>
-        )}
+          <Button
+            onClick={() => {
+              setShowDeleteModal(true);
+              setDeleteConfirmEmail("");
+              setDeleteConfirmText("");
+            }}
+            variant="outline"
+            className="border-red-800/50 hover:bg-red-900/30 text-red-400 hover:text-red-300 gap-2"
+          >
+            <Trash2 className="w-4 h-4" /> Deletar Minha Conta
+          </Button>
+        </div>
 
       </div>
 
