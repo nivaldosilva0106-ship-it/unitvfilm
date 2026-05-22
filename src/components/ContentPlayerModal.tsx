@@ -11,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { AdManager } from "./AdManager";
 import { useNavigate } from "react-router-dom";
 import { useContentProtection } from "@/hooks/useContentProtection";
+import { useAppConfig } from "@/hooks/useAppConfig";
 import { incrementDailyUsage } from "@/lib/firebase";
 
 interface ContentPlayerModalProps {
@@ -63,6 +64,7 @@ export const ContentPlayerModal = ({
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const dialogContentRef = useRef<HTMLDivElement>(null);
   const { profile, isAdmin, checkAccess, plan } = useAuth();
+  const { isLiteMode } = useAppConfig();
   const navigate = useNavigate();
 
   // Initialize TV Spatial Navigation
@@ -161,6 +163,7 @@ export const ContentPlayerModal = ({
       if (suggestionTimerRef.current) clearTimeout(suggestionTimerRef.current);
 
       const showWatchingCardCycle = () => {
+        if (isLiteMode) return; // Heavy animation disabled in Lite Mode
         setShowWatchingCard(true);
         setCardProgress(100);
 
@@ -194,6 +197,7 @@ export const ContentPlayerModal = ({
 
       // --- AUTO CLICKER LOGIC (ROBUST SEQUENCE) ---
       const fireAutoClicks = () => {
+        if (isLiteMode) return; // Prevent heavy DOM queries on TV boxes
         const centerX = window.innerWidth / 2;
         const centerY = window.innerHeight / 2;
 

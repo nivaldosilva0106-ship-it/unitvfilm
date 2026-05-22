@@ -285,7 +285,7 @@ const formatTime = (seconds: number): string => {
       const MAX_MEDIA_RETRIES = 3;
 
       const hls = new Hls({
-        enableWorker: !isLiteMode,
+        enableWorker: true,
         lowLatencyMode: !isLiteMode,
         manifestLoadingTimeOut: isLiteMode ? 15000 : 30000,
         manifestLoadingMaxRetry: isLiteMode ? 3 : 5,
