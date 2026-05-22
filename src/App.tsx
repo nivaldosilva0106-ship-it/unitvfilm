@@ -182,31 +182,31 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <TooltipProvider>
-          <RedirectManager />
-          <Toaster />
-          <Sonner />
-          <Router>
-            <UserActivityTracker />
-            <SidebarPaddingManager />
-            <AppUpdater />
-            <PWAInstallBanner />
-            <FocusNavigator />
-            <HolidayDecorations />
-            <NetworkStatus />
-            <OfflineIndicator />
-            <ReminderAlert />
-            <GlobalContentProtection />
-            <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.1),transparent_50%)] pointer-events-none" />
-            <LiteModeBodyClass />
-            <OrientationManager />
-            <MobileBottomNav />
-            <TVSidebar />
-            <AuthGuard>
-              <MaintenanceGuard>
-                <GuestSessionManager />
-                <ErrorBoundary>
+      <ErrorBoundary>
+        <AuthProvider>
+          <TooltipProvider>
+            <RedirectManager />
+            <Toaster />
+            <Sonner />
+            <Router>
+              <UserActivityTracker />
+              <SidebarPaddingManager />
+              <AppUpdater />
+              <PWAInstallBanner />
+              <FocusNavigator />
+              <HolidayDecorations />
+              <NetworkStatus />
+              <OfflineIndicator />
+              <ReminderAlert />
+              <GlobalContentProtection />
+              <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(16,185,129,0.1),transparent_50%)] pointer-events-none" />
+              <LiteModeBodyClass />
+              <OrientationManager />
+              <MobileBottomNav />
+              <TVSidebar />
+              <AuthGuard>
+                <MaintenanceGuard>
+                  <GuestSessionManager />
                   <Suspense fallback={<LoadingScreen />}>
                   <Routes>
                   <Route path="/" element={<HomeWrapper />} />
@@ -265,12 +265,12 @@ const App = () => {
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
-              </ErrorBoundary>
               </MaintenanceGuard>
             </AuthGuard>
-          </Router>
-        </TooltipProvider>
-      </AuthProvider>
+            </Router>
+          </TooltipProvider>
+        </AuthProvider>
+      </ErrorBoundary>
     </QueryClientProvider>
   );
 };
