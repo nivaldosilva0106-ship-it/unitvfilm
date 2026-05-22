@@ -98,7 +98,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             if (isCreatingProfile) return;
             isCreatingProfile = true;
             try {
-              const { updateUserProfile, getAccountProfiles, createAccountProfile, getSupabaseClient } = await import('@/lib/firebase');
+              const { updateUserProfile, getAccountProfiles, createAccountProfile } = await import('@/lib/firebase');
+              const { getSupabaseClient } = await import('@/lib/supabase');
               
               let planId = 'free';
               let isPremium = false;
