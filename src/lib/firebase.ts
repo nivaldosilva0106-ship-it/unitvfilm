@@ -715,7 +715,7 @@ export const deleteAccount = async (userId: string, email: string) => {
       const errors: string[] = [];
 
       const del = async (table: string, column: string, value: string) => {
-        const { error } = await supabase.from(table).delete().eq(column, value);
+        const { error, data } = await supabase.from(table).delete().eq(column, value).select();
         if (error) {
           console.warn(`Delete from ${table} failed:`, error.message, error.code);
           errors.push(`${table}: ${error.message} (${error.code})`);
