@@ -66,40 +66,7 @@ export const TVSidebar = () => {
     !shouldShow ||
     !user;
 
-  // D-pad keyboard navigation
-  useEffect(() => {
-    if (shouldHide || !expanded) return;
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const key = e.key;
-      const isNavKey = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape'].includes(key);
-      if (!isNavKey) return;
-
-      e.preventDefault();
-      e.stopPropagation();
-
-      switch (key) {
-        case "ArrowUp":
-          setFocusedIndex((prev) => Math.max(0, prev - 1));
-          break;
-        case "ArrowDown":
-          setFocusedIndex((prev) =>
-            Math.min(allItems.length - 1, prev + 1)
-          );
-          break;
-        case "ArrowLeft":
-        case "Escape":
-          setExpanded(false);
-          break;
-        case "Enter":
-          handleItemSelect(focusedIndex);
-          break;
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown, true);
-    return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [shouldHide, expanded, focusedIndex, allItems.length]);
 
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [myListCount, setMyListCount] = useState(0);
@@ -177,24 +144,6 @@ export const TVSidebar = () => {
     loadNewContent();
   }, [location.pathname]);
 
-  const handleItemSelect = (index: number) => {
-    const item = allItems[index];
-    if (!item) return;
-
-    if (item.path) {
-      navigate(item.path);
-      setExpanded(false);
-    } else if (item.id === "admin") {
-      navigate("/admin");
-      setExpanded(false);
-    } else if (item.id === "profile") {
-      navigate("/profile");
-      setExpanded(false);
-    }
-  };
-
-  if (shouldHide) return null;
-
   const isAdminUser = user?.email === "www.nivaldo.com.ao@gmail.com";
 
   const allItems = sidebarItems.filter(item => {
@@ -211,6 +160,59 @@ export const TVSidebar = () => {
 
     return { ...item, badge };
   });
+
+  const handleItemSelect = (index: number) => {
+    const item = allItems[index];
+    if (!item) return;
+
+    if (item.path) {
+      navigate(item.path);
+      setExpanded(false);
+    } else if (item.id === "admin") {
+      navigate("/admin");
+      setExpanded(false);
+    } else if (item.id === "profile") {
+      navigate("/profile");
+      setExpanded(false);
+    }
+  };
+
+  // D-pad keyboard navigation
+  useEffect(() => {
+    if (shouldHide || !expanded) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const key = e.key;
+      const isNavKey = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape'].includes(key);
+      if (!isNavKey) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      switch (key) {
+        case "ArrowUp":
+          setFocusedIndex((prev) => Math.max(0, prev - 1));
+          break;
+        case "ArrowDown":
+          setFocusedIndex((prev) =>
+            Math.min(allItems.length - 1, prev + 1)
+          );
+          break;
+        case "ArrowLeft":
+        case "Escape":
+          setExpanded(false);
+          break;
+        case "Enter":
+          handleItemSelect(focusedIndex);
+          break;
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown, true);
+    return () => window.removeEventListener("keydown", handleKeyDown, true);
+  }, [shouldHide, expanded, focusedIndex, allItems.length]);
+
+  if (shouldHide) return null;
 
   return (
     <>
