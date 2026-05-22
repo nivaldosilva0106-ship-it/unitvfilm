@@ -8,6 +8,7 @@ import Hls from "hls.js";
 import { Slider } from "@/components/ui/slider";
 import { createSecurePlaybackUrl, isProtectedUrl } from "@/lib/secure-url";
 import { FOCUSABLE_CLASS } from "@/hooks/useSpatialNavigation";
+import { useAppConfig } from "@/hooks/useAppConfig";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +16,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSub,
   DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
   DropdownMenuPortal,
 } from "@/components/ui/dropdown-menu";
 import { Gauge } from "lucide-react";
@@ -70,6 +70,7 @@ const formatTime = (seconds: number): string => {
   watermarkSize,
   initialAspect = 'contain'
 }: VideoPlayerProps) => {
+  const { isLiteMode } = useAppConfig();
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const pipWindowRef = useRef<any>(null);
@@ -106,7 +107,7 @@ const formatTime = (seconds: number): string => {
   const audioContextRef = useRef<AudioContext | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
-  const [isAmplified, setIsAmplified] = useState(true); // Enabled by default to boost low volume content like TikToks
+  const [isAmplified, setIsAmplified] = useState(!isLiteMode);
 
   // State for resolved URL (for .txt files that contain redirect URLs)
   const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
@@ -283,17 +284,15 @@ const formatTime = (seconds: number): string => {
       const MAX_MEDIA_RETRIES = 3;
 
       const hls = new Hls({
-        enableWorker: true,
-        lowLatencyMode: true,
-        // Increase timeouts for .txt streams which may be slow
-        manifestLoadingTimeOut: 30000,
-        manifestLoadingMaxRetry: 5,
-        manifestLoadingRetryDelay: 1000,
-        levelLoadingTimeOut: 20000,
-        levelLoadingMaxRetry: 4,
-        fragLoadingTimeOut: 30000,
-        fragLoadingMaxRetry: 6,
-        // Allow loading from any origin (proxied URLs)
+        enableWorker: !isLiteMode,
+        lowLatencyMode: !isLiteMode,
+        manifestLoadingTimeOut: isLiteMode ? 15000 : 30000,
+        manifestLoadingMaxRetry: isLiteMode ? 3 : 5,
+        manifestLoadingRetryDelay: isLiteMode ? 500 : 1000,
+        levelLoadingTimeOut: isLiteMode ? 10000 : 20000,
+        levelLoadingMaxRetry: isLiteMode ? 2 : 4,
+        fragLoadingTimeOut: isLiteMode ? 15000 : 30000,
+        fragLoadingMaxRetry: isLiteMode ? 3 : 6,
         xhrSetup: (xhr: XMLHttpRequest) => {
           xhr.withCredentials = false;
         },
@@ -491,7 +490,9 @@ const formatTime = (seconds: number): string => {
   }, [active, autoPlay]);
 
   // Create AudioContext only ONCE on first play to bypass browser autoplay rules
+  // Disabled in lite mode for performance
   useEffect(() => {
+    if (isLiteMode) return;
     const video = videoRef.current;
     if (!video) return;
 
@@ -505,7 +506,6 @@ const formatTime = (seconds: number): string => {
           sourceNodeRef.current.connect(gainNodeRef.current);
           gainNodeRef.current.connect(audioContextRef.current.destination);
           
-          // Initial sync
           if (gainNodeRef.current) {
             gainNodeRef.current.gain.value = isMuted || volume === 0 ? 0 : (isAmplified ? volume * 4.0 : volume);
           }
@@ -516,26 +516,24 @@ const formatTime = (seconds: number): string => {
     };
 
     video.addEventListener('play', initAudioContext, { once: true });
-  }, []);
+  }, [isLiteMode]);
 
   // Sync volume with native video AND Web Audio API
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     
-    // Fallback: update native element volume
     video.volume = volume;
     video.muted = isMuted;
 
-    // Update Web Audio API if active
-    if (gainNodeRef.current) {
+    if (!isLiteMode && gainNodeRef.current) {
        if (isMuted || volume === 0) {
            gainNodeRef.current.gain.value = 0;
        } else {
            gainNodeRef.current.gain.value = isAmplified ? volume * 4.0 : volume;
        }
     }
-  }, [volume, isMuted, isAmplified]);
+  }, [volume, isMuted, isAmplified, isLiteMode]);
 
   useEffect(() => {
     const handleFSChange = () => {
@@ -573,9 +571,9 @@ const formatTime = (seconds: number): string => {
     if (isPlaying) {
       hideControlsTimer.current = setTimeout(() => {
         setShowControls(false);
-      }, 3000);
+      }, isLiteMode ? 5000 : 3000);
     }
-  }, [isPlaying]);
+  }, [isPlaying, isLiteMode]);
 
   useEffect(() => {
     resetHideTimer();
@@ -814,7 +812,7 @@ const formatTime = (seconds: number): string => {
       )}
 
       {/* Center Play Flash — shows briefly when play starts, then fades */}
-      {showPlayFlash && (
+      {showPlayFlash && !isLiteMode && (
         <div className="absolute inset-0 flex items-center justify-center z-20 pointer-events-none">
           <div className="w-16 h-16 md:w-24 md:h-24 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center animate-ping-once">
             <Play className="w-8 h-8 md:w-12 md:h-12 text-white fill-white ml-1" />
@@ -830,7 +828,7 @@ const formatTime = (seconds: number): string => {
               e.stopPropagation();
               togglePlay();
             }}
-            className={`w-16 h-16 md:w-20 md:h-20 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-xl border border-white/10 pointer-events-auto ${FOCUSABLE_CLASS}`}
+            className={`w-16 h-16 md:w-20 md:h-20 ${isLiteMode ? 'bg-black/70' : 'bg-black/40 hover:bg-black/60 backdrop-blur-md'} rounded-full flex items-center justify-center ${isLiteMode ? '' : 'transition-all duration-300 hover:scale-110'} shadow-xl border border-white/10 pointer-events-auto ${FOCUSABLE_CLASS}`}
             tabIndex={0}
           >
             {isPlaying ? (
@@ -844,7 +842,7 @@ const formatTime = (seconds: number): string => {
 
       {/* Controls Overlay */}
       <div
-        className={`absolute inset-0 flex flex-col justify-end transition-opacity duration-300 z-30 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        className={`absolute inset-0 flex flex-col justify-end ${isLiteMode ? '' : 'transition-opacity duration-300'} z-30 ${showControls ? 'opacity-100' : 'opacity-0 pointer-events-none'
           }`}
       >
 
@@ -949,7 +947,7 @@ const formatTime = (seconds: number): string => {
                 <DropdownMenuContent
                   align="end"
                   container={containerRef.current}
-                  className="bg-black/95 border-white/20 backdrop-blur-xl min-w-[150px] md:min-w-[180px]"
+                  className={`bg-black/95 border-white/20 ${isLiteMode ? '' : 'backdrop-blur-xl'} min-w-[150px] md:min-w-[180px]`}
                 >
                   <div className="px-2 py-1.5 text-[10px] md:text-xs text-gray-400 font-semibold">Proporção da Tela</div>
                   {[
@@ -981,7 +979,7 @@ const formatTime = (seconds: number): string => {
                 <DropdownMenuContent
                   align="end"
                   container={containerRef.current}
-                  className="bg-black/95 border-white/20 backdrop-blur-xl min-w-[150px] md:min-w-[180px]"
+                  className={`bg-black/95 border-white/20 ${isLiteMode ? '' : 'backdrop-blur-xl'} min-w-[150px] md:min-w-[180px]`}
                 >
                   {/* Quality */}
                   {qualities.length > 0 && (
@@ -1007,18 +1005,22 @@ const formatTime = (seconds: number): string => {
                   )}
 
                   {/* Audio Volume Settings */}
-                  <div className="px-2 py-1.5 text-[10px] md:text-xs text-gray-400 font-semibold mt-1">Áudio</div>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                       e.preventDefault(); // keep dropdown open when toggling
-                       setIsAmplified(!isAmplified);
-                    }}
-                    className={`text-white hover:bg-white/10 cursor-pointer text-xs md:text-sm ${isAmplified ? 'bg-primary/20' : ''}`}
-                  >
-                    Amplificador (400%)
-                    {isAmplified && <span className="ml-auto text-primary">✓</span>}
-                  </DropdownMenuItem>
-                  <div className="h-px bg-white/10 my-1" />
+                  {!isLiteMode && (
+                    <>
+                      <div className="px-2 py-1.5 text-[10px] md:text-xs text-gray-400 font-semibold mt-1">Áudio</div>
+                      <DropdownMenuItem
+                        onClick={(e) => {
+                           e.preventDefault();
+                           setIsAmplified(!isAmplified);
+                        }}
+                        className={`text-white hover:bg-white/10 cursor-pointer text-xs md:text-sm ${isAmplified ? 'bg-primary/20' : ''}`}
+                      >
+                        Amplificador (400%)
+                        {isAmplified && <span className="ml-auto text-primary">✓</span>}
+                      </DropdownMenuItem>
+                      <div className="h-px bg-white/10 my-1" />
+                    </>
+                  )}
 
                   <div className="h-px bg-white/10 my-1" />
  
@@ -1030,7 +1032,7 @@ const formatTime = (seconds: number): string => {
                       <span className="ml-auto text-[10px] text-primary bg-primary/10 px-1.5 rounded">{playbackRate === 1 ? 'Normal' : `${playbackRate.toFixed(2)}x`}</span>
                     </DropdownMenuSubTrigger>
                     <DropdownMenuPortal container={containerRef.current}>
-                      <DropdownMenuSubContent className="bg-black/95 border-white/20 backdrop-blur-xl min-w-[120px] max-h-[300px] overflow-y-auto custom-scrollbar">
+                      <DropdownMenuSubContent className={`bg-black/95 border-white/20 ${isLiteMode ? '' : 'backdrop-blur-xl'} min-w-[120px] max-h-[300px] overflow-y-auto custom-scrollbar`}>
                         {[0.25, 0.30, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 1, 1.25, 1.5, 2].map(rate => (
                           <DropdownMenuItem
                             key={rate}

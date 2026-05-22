@@ -736,8 +736,7 @@ const Player = () => {
         return (
             <div className="fixed inset-0 w-screen h-screen flex flex-col items-center justify-center z-[100] bg-[#0a0a0a] overflow-hidden">
                 {isOnline && !isLiteMode && <AdManager placement="player" />}
-                {/* Background Image */}
-                {content && (
+                {content && !isLiteMode && (
                     <div className="absolute inset-0 z-0">
                         <img
                             src={content.backdrop_url || content.thumbnail_url}
@@ -748,19 +747,18 @@ const Player = () => {
                     </div>
                 )}
 
-                {/* Fallback Background */}
                 {!content && <div className="absolute inset-0 bg-[#0a0a0a] z-0" />}
 
-                <div className="relative z-10 flex flex-col items-center animate-pulse">
-                    <div className="bg-primary p-4 rounded-2xl shadow-[0_0_30px_rgba(220,38,38,0.5)] mb-6 transform scale-110">
+                <div className={`relative z-10 flex flex-col items-center ${isLiteMode ? '' : 'animate-pulse'}`}>
+                    <div className={`bg-primary p-4 rounded-2xl ${isLiteMode ? '' : 'shadow-[0_0_30px_rgba(220,38,38,0.5)]'} mb-6 ${isLiteMode ? '' : 'transform scale-110'}`}>
                         <Film className="w-10 h-10 text-white" />
                     </div>
-                    <h1 className="text-4xl sm:text-5xl font-bold text-white mb-2 tracking-tight drop-shadow-xl">
+                    <h1 className={`text-4xl sm:text-5xl font-bold text-white mb-2 tracking-tight ${isLiteMode ? '' : 'drop-shadow-xl'}`}>
                         Uni<span className="text-primary">Tv</span>Film
                     </h1>
-                    <p className="text-gray-200 text-sm tracking-widest uppercase drop-shadow-md">Carregando Player</p>
+                    <p className={`text-gray-200 text-sm tracking-widest uppercase ${isLiteMode ? '' : 'drop-shadow-md'}`}>Carregando Player</p>
                 </div>
-                <div className="relative z-10 mt-12 w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full animate-spin shadow-xl"></div>
+                <div className={`relative z-10 mt-12 w-16 h-16 border-4 border-primary/30 border-t-primary rounded-full ${isLiteMode ? '' : 'animate-spin shadow-xl'}`}></div>
             </div>
         );
     }
@@ -860,11 +858,11 @@ const Player = () => {
                     className="group relative w-full h-screen bg-black overflow-hidden shadow-2xl"
                 >
                     {/* GLOBAL OVERLAY (CONTROLS) */}
-                    <div className={`absolute inset-0 z-[60] flex flex-col justify-between transition-opacity duration-500 ${!isLiteMode ? 'bg-gradient-to-t from-black/60 via-transparent to-black/60' : 'bg-black/80'} ${showControls ? 'opacity-100' : 'opacity-0'} pointer-events-none`}>
+                    <div className={`absolute inset-0 z-[60] flex flex-col justify-between ${isLiteMode ? '' : 'transition-opacity duration-500'} ${!isLiteMode ? 'bg-gradient-to-t from-black/60 via-transparent to-black/60' : 'bg-black/80'} ${showControls ? 'opacity-100' : 'opacity-0'} pointer-events-none`}>
 
                     {/* Resume Playback Prompt */}
                     {showResumePrompt && (
-                        <div className="absolute inset-0 flex items-center justify-center z-[60] bg-black/60 backdrop-blur-sm animate-in fade-in zoom-in duration-300 pointer-events-auto">
+                        <div className={`absolute inset-0 flex items-center justify-center z-[60] ${isLiteMode ? 'bg-black/80' : 'bg-black/60 backdrop-blur-sm'} ${isLiteMode ? '' : 'animate-in fade-in zoom-in duration-300'} pointer-events-auto`}>
                             <div className="bg-zinc-900/90 border border-white/10 p-8 rounded-2xl shadow-2xl max-w-sm w-full text-center space-y-6">
                                 <div className="flex justify-center">
                                     <div className="p-4 bg-primary/20 rounded-full">
@@ -911,19 +909,19 @@ const Player = () => {
                     )}
 
                     {/* Header Controls (Close, Title, etc) */}
-                    <div className="absolute top-0 left-0 right-0 p-2 sm:p-6 flex justify-between items-start z-50 pointer-events-none transition-opacity duration-300 opacity-0 group-hover:opacity-100">
+                    <div className={`absolute top-0 left-0 right-0 p-2 sm:p-6 flex justify-between items-start z-50 pointer-events-none ${isLiteMode ? '' : 'transition-opacity duration-300 opacity-0 group-hover:opacity-100'}`}>
                         <div className="pointer-events-auto flex items-center gap-1.5 sm:gap-4 max-w-[65%] sm:max-w-none">
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => navigate(-1)}
-                                className={`w-8 h-8 sm:w-12 sm:h-12 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 pointer-events-auto ${FOCUSABLE_CLASS}`}
+                                className={`w-8 h-8 sm:w-12 sm:h-12 rounded-full ${isLiteMode ? 'bg-black/70' : 'bg-black/50 backdrop-blur-md'} text-white hover:bg-white/20 border border-white/20 pointer-events-auto ${FOCUSABLE_CLASS}`}
                                 tabIndex={0}
                             >
                                 <ArrowLeft className="w-4 h-4 sm:w-6 sm:h-6" />
                             </Button>
 
-                            <div className="px-2 sm:px-4 py-1 sm:py-2 bg-black/50 backdrop-blur-md rounded-full border border-white/20 flex items-center gap-1.5 sm:gap-3 min-w-0 overflow-hidden">
+                            <div className={`px-2 sm:px-4 py-1 sm:py-2 ${isLiteMode ? 'bg-black/70' : 'bg-black/50 backdrop-blur-md'} rounded-full border border-white/20 flex items-center gap-1.5 sm:gap-3 min-w-0 overflow-hidden`}>
                                 {/* Logo */}
                                 <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
                                     <div className="bg-primary p-0.5 sm:p-1 rounded">
@@ -951,7 +949,7 @@ const Player = () => {
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className={`w-8 h-8 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 ${FOCUSABLE_CLASS}`}
+                                            className={`w-8 h-8 rounded-full ${isLiteMode ? 'bg-black/70' : 'bg-black/50'} text-white hover:bg-white/20 ${isLiteMode ? '' : 'backdrop-blur-md'} border border-white/20 ${FOCUSABLE_CLASS}`}
                                             tabIndex={0}
                                         >
                                             <MoreVertical className="w-4 h-4" />
@@ -959,7 +957,7 @@ const Player = () => {
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent
                                         align="end"
-                                        className="bg-black/95 border-white/20 backdrop-blur-xl w-48 z-[90]"
+                                        className={`bg-black/95 border-white/20 ${isLiteMode ? '' : 'backdrop-blur-xl'} w-48 z-[90]`}
                                     >
                                         {allSources.length > 1 && (
                                             <>
@@ -1020,13 +1018,13 @@ const Player = () => {
                                             variant="ghost"
                                             size="icon"
                                             onClick={() => setShowSourceMenu(!showSourceMenu)}
-                                            className={`w-10 h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 ${FOCUSABLE_CLASS}`}
+                                            className={`w-10 h-10 rounded-full ${isLiteMode ? 'bg-black/70' : 'bg-black/50'} text-white hover:bg-white/20 ${isLiteMode ? '' : 'backdrop-blur-md'} border border-white/20 ${FOCUSABLE_CLASS}`}
                                             tabIndex={0}
                                         >
                                             <List className="w-5 h-5" />
                                         </Button>
                                         {showSourceMenu && (
-                                            <div className="absolute top-12 right-0 bg-black/90 backdrop-blur-md rounded-lg shadow-xl border border-white/20 overflow-hidden min-w-[150px]">
+                                            <div className={`absolute top-12 right-0 ${isLiteMode ? 'bg-black/95' : 'bg-black/90 backdrop-blur-md'} rounded-lg shadow-xl border border-white/20 overflow-hidden min-w-[150px]`}>
                                                 {allSources.map((source, index) => (
                                                     <button
                                                         key={index}
@@ -1051,7 +1049,7 @@ const Player = () => {
                                         variant="ghost"
                                         size="icon"
                                         onClick={handleToggleMyList}
-                                        className={`w-10 h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 ${FOCUSABLE_CLASS}`}
+                                        className={`w-10 h-10 rounded-full ${isLiteMode ? 'bg-black/70' : 'bg-black/50'} text-white hover:bg-white/20 ${isLiteMode ? '' : 'backdrop-blur-md'} border border-white/20 ${FOCUSABLE_CLASS}`}
                                         title={isInMyList ? "Remover da lista" : "Assistir mais tarde"}
                                         tabIndex={0}
                                     >
@@ -1064,7 +1062,7 @@ const Player = () => {
                                         variant="ghost"
                                         size="icon"
                                         onClick={() => setShowEpisodeSelector(true)}
-                                        className={`w-10 h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 ${FOCUSABLE_CLASS}`}
+                                        className={`w-10 h-10 rounded-full ${isLiteMode ? 'bg-black/70' : 'bg-black/50'} text-white hover:bg-white/20 ${isLiteMode ? '' : 'backdrop-blur-md'} border border-white/20 ${FOCUSABLE_CLASS}`}
                                         title="Trocar Temporada"
                                         tabIndex={0}
                                     >
@@ -1077,7 +1075,7 @@ const Player = () => {
                                     variant="ghost"
                                     size="icon"
                                     onClick={handleDownloadClick}
-                                    className={`w-10 h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 ${FOCUSABLE_CLASS}`}
+                                    className={`w-10 h-10 rounded-full ${isLiteMode ? 'bg-black/70' : 'bg-black/50'} text-white hover:bg-white/20 ${isLiteMode ? '' : 'backdrop-blur-md'} border border-white/20 ${FOCUSABLE_CLASS}`}
                                     title="Baixar este conteúdo"
                                     tabIndex={0}
                                 >
@@ -1102,7 +1100,7 @@ const Player = () => {
                                     variant="ghost"
                                     size="icon"
                                     onClick={toggleFullscreen}
-                                    className={`w-10 h-10 rounded-full bg-black/50 text-white hover:bg-white/20 backdrop-blur-md border border-white/20 ${FOCUSABLE_CLASS}`}
+                                    className={`w-10 h-10 rounded-full ${isLiteMode ? 'bg-black/70' : 'bg-black/50'} text-white hover:bg-white/20 ${isLiteMode ? '' : 'backdrop-blur-md'} border border-white/20 ${FOCUSABLE_CLASS}`}
                                     tabIndex={0}
                                 >
                                     {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
@@ -1114,7 +1112,7 @@ const Player = () => {
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => navigate('/')}
-                                className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-black/50 text-white hover:bg-red-600 backdrop-blur-md border border-white/20 ${FOCUSABLE_CLASS}`}
+                                className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full ${isLiteMode ? 'bg-black/70' : 'bg-black/50'} text-white hover:bg-red-600 ${isLiteMode ? '' : 'backdrop-blur-md'} border border-white/20 ${FOCUSABLE_CLASS}`}
                                 tabIndex={0}
                             >
                                 <X className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -1124,7 +1122,7 @@ const Player = () => {
 
                     {/* NEXT EPISODE BUTTON - FAR RIGHT */}
                     {nextEpisode && (
-                        <div className={`absolute top-1/2 right-4 -translate-y-1/2 z-[100] transition-opacity duration-300 flex flex-col items-center gap-2 ${isFullscreen ? 'opacity-0 group-hover:opacity-100' : ''}`}>
+                        <div className={`absolute top-1/2 right-4 -translate-y-1/2 z-[100] ${isLiteMode ? '' : 'transition-opacity duration-300'} ${isFullscreen ? 'opacity-0 group-hover:opacity-100' : ''}`}>
                             <Button
                                 onClick={(e) => {
                                     e.stopPropagation();
@@ -1132,7 +1130,7 @@ const Player = () => {
                                 }}
                                 variant="ghost"
                                 size="icon"
-                                className={`w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-black/60 hover:bg-primary text-white backdrop-blur-md border-2 border-white/20 shadow-[0_0_30px_rgba(0,0,0,0.5)] transition-all duration-300 hover:scale-110 flex items-center justify-center pointer-events-auto group/btn ${FOCUSABLE_CLASS}`}
+                                className={`w-10 h-10 sm:w-14 sm:h-14 rounded-full ${isLiteMode ? 'bg-black/70' : 'bg-black/60'} hover:bg-primary text-white ${isLiteMode ? '' : 'backdrop-blur-md'} border-2 border-white/20 shadow-[0_0_30px_rgba(0,0,0,0.5)] ${isLiteMode ? '' : 'transition-all duration-300 hover:scale-110'} flex items-center justify-center pointer-events-auto group/btn ${FOCUSABLE_CLASS}`}
                                 title={`Próximo: ${nextEpisode.title}`}
                                 tabIndex={0}
                             >

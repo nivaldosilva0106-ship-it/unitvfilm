@@ -50,9 +50,8 @@ export const TVSidebar = () => {
     return () => mq.removeEventListener('change', handler);
   }, []);
 
-  // Detect mobile phone (not tablet or TV)
   const isMobilePhone = /iPhone|Android|Mobile/i.test(navigator.userAgent) && !/TV|SmartTV|GoogleTV|AppleTV|HbbTV|STB/i.test(navigator.userAgent);
-  const shouldShow = (isLiteMode && !isMobilePhone) || isDesktop;
+  const shouldShow = isLiteMode || isDesktop;
 
   const shouldHide =
     location.pathname.startsWith("/admin") ||
@@ -72,36 +71,35 @@ export const TVSidebar = () => {
     if (shouldHide || !expanded) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      switch (e.key) {
+      const key = e.key;
+      const isNavKey = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', 'Escape'].includes(key);
+      if (!isNavKey) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      switch (key) {
         case "ArrowUp":
           setFocusedIndex((prev) => Math.max(0, prev - 1));
-          e.preventDefault();
-          e.stopPropagation();
           break;
         case "ArrowDown":
           setFocusedIndex((prev) =>
             Math.min(allItems.length - 1, prev + 1)
-          ); 
-          e.preventDefault();
-          e.stopPropagation();
+          );
           break;
-        case "ArrowRight":
+        case "ArrowLeft":
         case "Escape":
           setExpanded(false);
-          e.preventDefault();
-          e.stopPropagation();
           break;
         case "Enter":
           handleItemSelect(focusedIndex);
-          e.preventDefault();
-          e.stopPropagation();
           break;
       }
     };
 
     window.addEventListener("keydown", handleKeyDown, true);
     return () => window.removeEventListener("keydown", handleKeyDown, true);
-  }, [shouldHide, expanded, focusedIndex]);
+  }, [shouldHide, expanded, focusedIndex, allItems.length]);
 
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [myListCount, setMyListCount] = useState(0);

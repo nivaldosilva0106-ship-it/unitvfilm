@@ -1,13 +1,12 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useRef } from 'react';
 
-// Classes that indicate an element is focusable via remote control
 export const FOCUSABLE_CLASS = 'tv-focusable';
 
 interface UseSpatialNavigationProps {
   enabled?: boolean;
   onEnter?: (element: HTMLElement) => void;
   onBack?: () => void;
-  onDirectionClick?: (direction: 'up' | 'down' | 'left' | 'right') => boolean | void; // Return true to prevent default focus logic
+  onDirectionClick?: (direction: 'up' | 'down' | 'left' | 'right') => boolean | void;
 }
 
 export function useSpatialNavigation({ 
@@ -16,23 +15,29 @@ export function useSpatialNavigation({
   onBack,
   onDirectionClick
 }: UseSpatialNavigationProps = {}) {
+  const lastKeyTimeRef = useRef(0);
+  const KEY_REPEAT_DELAY = 150;
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!enabled) return;
 
-    // Detect if the key pressed is a D-Pad key, Enter or Back
-    const isUp = e.key === 'ArrowUp';
-    const isDown = e.key === 'ArrowDown';
-    const isLeft = e.key === 'ArrowLeft';
-    const isRight = e.key === 'ArrowRight';
-    const isEnter = e.key === 'Enter';
-    const isBack = e.key === 'Escape' || e.key === 'Backspace' || e.key === 'GoBack';
+    const isUp = e.key === 'ArrowUp' || e.key === 'Up';
+    const isDown = e.key === 'ArrowDown' || e.key === 'Down';
+    const isLeft = e.key === 'ArrowLeft' || e.key === 'Left';
+    const isRight = e.key === 'ArrowRight' || e.key === 'Right';
+    const isEnter = e.key === 'Enter' || e.key === 'MediaPlayPause';
+    const isBack = e.key === 'Escape' || e.key === 'Backspace' || e.key === 'GoBack' || e.key === 'BrowserBack';
 
     if (!isUp && !isDown && !isLeft && !isRight && !isEnter && !isBack) return;
 
-    // Handle Back
+    const now = Date.now();
+    if (now - lastKeyTimeRef.current < KEY_REPEAT_DELAY) {
+      e.preventDefault();
+      return;
+    }
+    lastKeyTimeRef.current = now;
+
     if (isBack) {
-      // Don't prevent default for Backspace if typing in an input/textarea
       const target = e.target as HTMLElement;
       if (e.key === 'Backspace' && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
         return;
@@ -40,26 +45,28 @@ export function useSpatialNavigation({
       
       if (onBack) {
         e.preventDefault();
+        e.stopPropagation();
         onBack();
       }
       return;
     }
 
-    // Handle Enter
     if (isEnter) {
+      e.preventDefault();
+      e.stopPropagation();
       const activeElement = document.activeElement as HTMLElement;
       if (activeElement && activeElement.classList.contains(FOCUSABLE_CLASS)) {
         if (onEnter) {
           onEnter(activeElement);
         } else {
-          activeElement.click(); // trigger default click
+          activeElement.click();
         }
       }
       return;
     }
 
-    // Direction keys
-    e.preventDefault(); // prevent scrolling the page with arrows natively
+    e.preventDefault();
+    e.stopPropagation();
 
     let direction: 'up' | 'down' | 'left' | 'right' | null = null;
     if (isUp) direction = 'up';
@@ -69,13 +76,12 @@ export function useSpatialNavigation({
 
     if (direction && onDirectionClick) {
       const handled = onDirectionClick(direction);
-      if (handled) return; // Custom handler completely bypassed standard navigation
+      if (handled) return;
     }
 
     const focusableElements = Array.from(document.querySelectorAll(`.${FOCUSABLE_CLASS}`)) as HTMLElement[];
     const visibleElements = focusableElements.filter(el => {
       const rect = el.getBoundingClientRect();
-      // Ensure it's not hidden via CSS or completely zero size
       return rect.width > 0 && rect.height > 0 && window.getComputedStyle(el).visibility !== 'hidden';
     });
 
@@ -83,9 +89,7 @@ export function useSpatialNavigation({
 
     let currentFocused = document.activeElement as HTMLElement;
     
-    // If no element is focused, or the currently focused element isn't in our tv-focusable list, focus the first one
     if (!currentFocused || !currentFocused.classList.contains(FOCUSABLE_CLASS) || !visibleElements.includes(currentFocused)) {
-      // Find the element closest to the top-left of the screen
       let bestFirst = visibleElements[0];
       let minDistance = Infinity;
       visibleElements.forEach(el => {
@@ -110,7 +114,6 @@ export function useSpatialNavigation({
       
       const candidateRect = candidate.getBoundingClientRect();
       
-      // Calculate distances based on centers to improve heuristic
       const currentCenterX = currentRect.left + currentRect.width / 2;
       const currentCenterY = currentRect.top + currentRect.height / 2;
       
@@ -120,7 +123,6 @@ export function useSpatialNavigation({
       const dx = candidateCenterX - currentCenterX;
       const dy = candidateCenterY - currentCenterY;
 
-      // Filter candidates that are logically in the pressed direction
       let inDirection = false;
       let primaryAxisDistance = 0;
       let secondaryAxisDistance = 0;
@@ -144,8 +146,7 @@ export function useSpatialNavigation({
       }
 
       if (inDirection) {
-        // Scoring formula: prioritize elements that are aligned on the primary axis and penalize secondary axis divergence
-        const score = primaryAxisDistance + (secondaryAxisDistance * 2); 
+        const score = primaryAxisDistance + (secondaryAxisDistance * 2);
         
         if (score < minScore) {
           minScore = score;
@@ -155,17 +156,16 @@ export function useSpatialNavigation({
     });
 
     if (bestCandidate) {
-      (bestCandidate as HTMLElement).focus();
-      // Scroll into view if needed
-      (bestCandidate as HTMLElement).scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+      bestCandidate.focus();
+      bestCandidate.scrollIntoView({ behavior: 'instant', block: 'nearest', inline: 'nearest' });
     }
 
   }, [enabled, onEnter, onDirectionClick]);
 
   useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, true);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown, true);
     };
   }, [handleKeyDown]);
 }

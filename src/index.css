@@ -757,22 +757,40 @@ html, body, #root {
   .lite-mode *, 
   .lite-mode *::before, 
   .lite-mode *::after {
-    backdrop-filter: none !important; /* Disable heavy glassmorphism blurs on TV Box */
+    backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
     text-shadow: none !important;
-    /* box-shadow: none !important; */ /* Allow premium shadows */
-    transition-duration: 0.1s !important; /* Extremely fast transitions for TV Box responsiveness */
-    animation-duration: 0.1s !important; /* Disable slow loading animations */
+    transition-duration: 0.05s !important;
+    animation-duration: 0.05s !important;
+    will-change: auto !important;
   }
 
   .lite-mode .glow-effect,
   .lite-mode .glow-effect-hover:hover {
-    box-shadow: 0 0 10px hsl(var(--glow) / 0.15) !important; /* Subtle glow instead of none */
+    box-shadow: 0 0 10px hsl(var(--glow) / 0.15) !important;
   }
 
   .lite-mode .card-hover:hover {
-    transform: scale(1.02); /* Reduced scale */
+    transform: scale(1.02);
     box-shadow: 0 4px 12px rgba(0,0,0,0.5) !important;
+  }
+
+  .lite-mode .tv-sidebar {
+    transition: none !important;
+    background: rgba(8, 20, 14, 0.99) !important;
+  }
+
+  .lite-mode .tv-sidebar--expanded {
+    box-shadow: 4px 0 10px rgba(0, 0, 0, 0.5) !important;
+  }
+
+  .lite-mode .tv-sidebar-item {
+    transition: none !important;
+  }
+
+  .lite-mode .tv-sidebar-item:hover,
+  .lite-mode .tv-sidebar-item--focused {
+    background: hsl(var(--primary) / 0.15) !important;
   }
 
   /* Restore body padding for sidebar */
