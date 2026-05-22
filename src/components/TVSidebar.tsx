@@ -51,7 +51,7 @@ export const TVSidebar = () => {
   }, []);
 
   const isMobilePhone = /iPhone|Android|Mobile/i.test(navigator.userAgent) && !/TV|SmartTV|GoogleTV|AppleTV|HbbTV|STB/i.test(navigator.userAgent);
-  const shouldShow = isLiteMode || isDesktop;
+  const shouldShow = (isLiteMode && !isMobilePhone) || isDesktop;
 
   const shouldHide =
     location.pathname.startsWith("/admin") ||

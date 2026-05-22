@@ -30,6 +30,11 @@ export function useSpatialNavigation({
 
     if (!isUp && !isDown && !isLeft && !isRight && !isEnter && !isBack) return;
 
+    const target = e.target as HTMLElement;
+    const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable;
+
+    if (isInput && !isBack && !isEnter) return;
+
     const now = Date.now();
     if (now - lastKeyTimeRef.current < KEY_REPEAT_DELAY) {
       e.preventDefault();
@@ -38,22 +43,20 @@ export function useSpatialNavigation({
     lastKeyTimeRef.current = now;
 
     if (isBack) {
-      const target = e.target as HTMLElement;
-      if (e.key === 'Backspace' && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA')) {
+      if (e.key === 'Backspace' && isInput) {
         return;
       }
       
       if (onBack) {
         e.preventDefault();
-        e.stopPropagation();
         onBack();
       }
       return;
     }
 
     if (isEnter) {
+      if (isInput) return;
       e.preventDefault();
-      e.stopPropagation();
       const activeElement = document.activeElement as HTMLElement;
       if (activeElement && activeElement.classList.contains(FOCUSABLE_CLASS)) {
         if (onEnter) {
@@ -66,7 +69,6 @@ export function useSpatialNavigation({
     }
 
     e.preventDefault();
-    e.stopPropagation();
 
     let direction: 'up' | 'down' | 'left' | 'right' | null = null;
     if (isUp) direction = 'up';
