@@ -318,12 +318,14 @@ const Profile = () => {
       await deleteAccount(user.uid, user.email);
       toast.success("Conta deletada permanentemente");
       setShowDeleteModal(false);
-      setTimeout(() => {
-        navigate("/login");
-      }, 1500);
+      await logout();
+      navigate("/login");
     } catch (e: any) {
       const message = e?.message || "Erro ao deletar conta";
-      if (message.includes("auth/requires-recent-login") || message.includes("reauthenticate")) {
+      console.error('Delete account error:', e);
+      if (message.includes("PGRST") || message.includes("RLS") || message.includes("policy")) {
+        toast.error("Erro de permissão. Contacte o suporte para remover a conta manualmente.");
+      } else if (message.includes("auth/requires-recent-login") || message.includes("reauthenticate")) {
         toast.error("Por segurança, faça login novamente e tente deletar a conta");
       } else {
         toast.error(message);

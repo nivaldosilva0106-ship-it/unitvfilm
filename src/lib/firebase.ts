@@ -712,15 +712,33 @@ export const deleteAccount = async (userId: string, email: string) => {
   if (isSupabaseEnabled()) {
     const supabase = getSupabaseClient();
     if (supabase) {
-      await supabase.from('profiles').delete().eq('id', userId);
-      await supabase.from('account_profiles').delete().eq('userId', userId);
-      await supabase.from('my_list').delete().eq('userId', userId);
-      await supabase.from('user_progress').delete().eq('userId', userId);
-      await supabase.from('payments').delete().eq('userId', userId);
-      await supabase.from('transfers').delete().eq('userId', userId);
+      const errors: string[] = [];
 
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
-      if (error) throw error;
+      const del = async (table: string, column: string, value: string) => {
+        const { error, data } = await supabase.from(table).delete().eq(column, value).select();
+        if (error) {
+          console.warn(`Delete from ${table} failed:`, error.message, error.code);
+          errors.push(`${table}: ${error.message} (${error.code})`);
+        }
+      };
+
+      await del('admins', 'id', userId);
+      await del('account_profiles', 'userId', userId);
+      await del('my_list', 'userId', userId);
+      await del('user_progress', 'userId', userId);
+      await del('payments', 'userId', userId);
+      await del('transfers', 'userId', userId);
+      await del('profiles', 'id', userId);
+
+      const { error: signOutError } = await supabase.auth.signOut({ scope: 'global' });
+      if (signOutError) {
+        console.warn('SignOut failed:', signOutError.message);
+      }
+
+      if (errors.length > 0) {
+        throw new Error(`Erro ao deletar dados: ${errors.join('; ')}`);
+      }
+
       return;
     }
   }
