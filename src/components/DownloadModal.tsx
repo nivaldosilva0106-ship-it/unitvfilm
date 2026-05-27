@@ -1,7 +1,12 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, AlertTriangle, Info, Loader2, Copy } from "lucide-react";
-import { useState, useEffect } from "react";
+import { Download, Loader2, ArrowLeft } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import Hls from "hls.js";
+import { useAuth } from "@/contexts/AuthContext";
+import { addTransfer } from "@/lib/firebase";
+import { createSecureDownloadUrl, createSecurePlaybackUrl, isProtectedUrl } from "@/lib/secure-url";
+import { toast } from "sonner";
 
 interface DownloadModalProps {
     open: boolean;
@@ -14,369 +19,362 @@ interface DownloadModalProps {
     contentId: string;
 }
 
-import { addTransfer } from "@/lib/firebase";
-import { useAuth } from "@/contexts/AuthContext";
-import { createSecureDownloadUrl, createSecurePlaybackUrl, isProtectedUrl } from "@/lib/secure-url";
-
-import { toast } from "sonner";
-
 export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_mode = 'direct', title, thumbnail, contentId }: DownloadModalProps) => {
     const { user } = useAuth();
-    const [pendingUrl, setPendingUrl] = useState<string | null>(null);
+    
+    // Links selection state
+    const [selectedLink, setSelectedLink] = useState<{ label: string; url: string; type?: string } | null>(null);
+    
+    // Resolution state
+    const [resolvedUrl, setResolvedUrl] = useState<string | null>(null);
+    const [playbackUrl, setPlaybackUrl] = useState<string | null>(null);
+    const [isResolving, setIsResolving] = useState(false);
+    const [resolveError, setResolveError] = useState<string | null>(null);
+    
+    // Countdown state
     const [countdown, setCountdown] = useState<number>(10);
-    const [isStreamingLink, setIsStreamingLink] = useState(false);
-    const [originalUrlForCopy, setOriginalUrlForCopy] = useState<string>("");
-    const [showAppSelection, setShowAppSelection] = useState(false);
+    const [isTimerFinished, setIsTimerFinished] = useState(false);
+    
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const hlsRef = useRef<Hls | null>(null);
 
-    // Determine effective links. If no new 'downloads', use legacy 'downloadUrl' as single link.
+    // Raw and effective links
     const rawLinks = (downloads && downloads.length > 0)
         ? downloads
         : (downloadUrl ? [{ label: 'Download Principal', url: downloadUrl, type: download_mode === 'torrent' ? 'torrent' : 'direct' as const }] : []);
 
-    const effectiveLinks = rawLinks.map(link => {
-        // Protect direct downloads
-        if (link.type !== 'torrent' && isProtectedUrl(link.url)) {
-            return {
-                ...link,
-                url: createSecureDownloadUrl(link.url, `${title.replace(/[^a-zA-Z0-9_-]/g, '_')}`),
-                originalUrl: link.url
-            };
-        }
-        return { ...link, originalUrl: link.url };
-    });
+    const effectiveLinks = rawLinks.map(link => ({
+        ...link,
+        originalUrl: link.url
+    }));
 
-    const showTorrentWarning = download_mode === 'torrent' || (download_mode === 'mixed' && effectiveLinks.some(l => l.type === 'torrent'));
-
-    useEffect(() => {
-        let timer: NodeJS.Timeout;
-        if (pendingUrl && countdown > 0 && !isStreamingLink) {
-            timer = setTimeout(() => setCountdown((prev) => prev - 1), 1000);
-        } else if (pendingUrl && countdown === 0 && !isStreamingLink) {
-            window.open(pendingUrl, '_blank');
-            onClose();
-            setPendingUrl(null);
-        }
-        return () => clearTimeout(timer);
-    }, [pendingUrl, countdown, isStreamingLink, onClose]);
-
-    // Reset state when modal closes/opens
+    // Reset state on open/close
     useEffect(() => {
         if (!open) {
-            setPendingUrl(null);
+            setSelectedLink(null);
+            setResolvedUrl(null);
+            setPlaybackUrl(null);
+            setIsResolving(false);
+            setResolveError(null);
             setCountdown(10);
-            setIsStreamingLink(false);
-            setShowAppSelection(false);
+            setIsTimerFinished(false);
+            if (hlsRef.current) {
+                hlsRef.current.destroy();
+                hlsRef.current = null;
+            }
+        } else {
+            // If only one option, automatically select it and start resolving
+            if (effectiveLinks.length === 1) {
+                handleSelectLink(effectiveLinks[0]);
+            }
         }
-    }, [open]);
+    }, [open, downloads, downloadUrl]);
 
-    const handleDownload = async (url: string, originalUrl: string) => {
-        setPendingUrl(url);
-        setOriginalUrlForCopy(originalUrl);
-        
-        // Check if it's an HLS streaming link (m3u8, txt masquerading as m3u8)
-        const lowerOriginal = originalUrl.toLowerCase().split('?')[0];
-        const isHls = lowerOriginal.endsWith('.m3u8') || lowerOriginal.endsWith('.txt') || lowerOriginal.endsWith('.m3u') || originalUrl.includes('typezero.top/pl/');
-        
-        setIsStreamingLink(isHls);
+    // Handle link resolution
+    const handleSelectLink = async (link: { label: string; url: string; type?: string }) => {
+        setSelectedLink(link);
+        setIsResolving(true);
+        setResolveError(null);
+        setResolvedUrl(null);
+        setPlaybackUrl(null);
         setCountdown(10);
-        
-        // Track the download in Firebase
+        setIsTimerFinished(false);
+
+        try {
+            let targetUrl = link.url;
+
+            // 1. TikTok Links
+            if (targetUrl.toLowerCase().includes("tiktok.com")) {
+                const response = await fetch(`/api/tiktok?url=${encodeURIComponent(targetUrl)}`);
+                if (!response.ok) throw new Error("Erro ao obter o link do TikTok.");
+                const data = await response.json();
+                if (data && data.url) {
+                    targetUrl = data.url;
+                } else {
+                    throw new Error("Formato inválido retornado pelo TikTok.");
+                }
+            }
+            // 2. TXT Links
+            else if (targetUrl.toLowerCase().split('?')[0].endsWith('.txt')) {
+                const proxyUrl = createSecurePlaybackUrl(targetUrl);
+                const response = await fetch(proxyUrl);
+                if (!response.ok) throw new Error("Erro ao ler o arquivo de download.");
+                const text = await response.text();
+                const trimmed = text.trim();
+                const lines = trimmed.split('\n').filter(l => l.trim() && !l.trim().startsWith('#'));
+                if (lines.length >= 1) {
+                    const firstLine = lines[0].trim();
+                    if (firstLine.startsWith('http://') || firstLine.startsWith('https://')) {
+                        targetUrl = firstLine;
+                    }
+                }
+            }
+
+            // Apply Secure URL proxy if protected
+            let playUrl = targetUrl;
+            if (isProtectedUrl(targetUrl)) {
+                playUrl = createSecurePlaybackUrl(targetUrl);
+            }
+
+            setResolvedUrl(targetUrl);
+            setPlaybackUrl(playUrl);
+            setCountdown(10);
+        } catch (err: any) {
+            console.error("Error resolving link:", err);
+            setResolveError(err.message || "Erro ao processar o link de download.");
+            // Fallback to original URL
+            setResolvedUrl(link.url);
+            setPlaybackUrl(isProtectedUrl(link.url) ? createSecurePlaybackUrl(link.url) : link.url);
+            setCountdown(10);
+        } finally {
+            setIsResolving(false);
+        }
+    };
+
+    // Video playback effect
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video || !playbackUrl || !open) return;
+
+        // Clean up previous instance
+        video.src = "";
+        if (hlsRef.current) {
+            hlsRef.current.destroy();
+            hlsRef.current = null;
+        }
+
+        const isHls = playbackUrl.toLowerCase().split('?')[0].endsWith('.m3u8') || 
+                      playbackUrl.toLowerCase().split('?')[0].endsWith('.m3u') ||
+                      playbackUrl.includes('typezero.top') ||
+                      playbackUrl.includes('.m3u8');
+
+        video.muted = true;
+        video.playsInline = true;
+
+        const attemptPlay = async () => {
+            try {
+                await video.play();
+            } catch (err) {
+                console.log("Autoplay failed:", err);
+            }
+        };
+
+        if (isHls && Hls.isSupported()) {
+            const hls = new Hls({
+                enableWorker: true,
+                lowLatencyMode: true,
+            });
+            hls.loadSource(playbackUrl);
+            hls.attachMedia(video);
+            hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                attemptPlay();
+            });
+            hlsRef.current = hls;
+        } else {
+            video.src = playbackUrl;
+            video.addEventListener('loadedmetadata', attemptPlay);
+        }
+
+        return () => {
+            if (hlsRef.current) {
+                hlsRef.current.destroy();
+                hlsRef.current = null;
+            }
+        };
+    }, [playbackUrl, open]);
+
+    // Countdown effect
+    useEffect(() => {
+        let timer: NodeJS.Timeout;
+        if (playbackUrl && countdown > 0 && !isResolving) {
+            timer = setTimeout(() => {
+                setCountdown(prev => prev - 1);
+            }, 1000);
+        } else if (playbackUrl && countdown === 0 && !isResolving) {
+            setIsTimerFinished(true);
+            if (videoRef.current) {
+                videoRef.current.pause();
+            }
+        }
+        return () => clearTimeout(timer);
+    }, [playbackUrl, countdown, isResolving]);
+
+    // Handle Download Action
+    const handleDownloadClick = async () => {
+        if (!resolvedUrl) return;
+
+        // Create secure download URL if protected
+        const downloadLink = isProtectedUrl(resolvedUrl)
+            ? createSecureDownloadUrl(resolvedUrl, `${title.replace(/[^a-zA-Z0-9_-]/g, '_')}`)
+            : resolvedUrl;
+
+        // Track in firebase
         if (user) {
             try {
                 await addTransfer(user.uid, {
                     contentId,
                     title,
                     thumbnailUrl: thumbnail,
-                    url
+                    url: downloadLink
                 });
             } catch (error) {
                 console.error("Error tracking transfer:", error);
             }
         }
-    };
-    
-    const copyToClipboard = () => {
-        // If it's a streaming link, give them the direct proxy URL instead of the secure-download redirect
-        // This ensures VLC, 1DM, IDM, etc. can process it directly without struggling with 302 redirects.
-        const pathToCopy = isStreamingLink 
-            ? createSecurePlaybackUrl(originalUrlForCopy) 
-            : pendingUrl;
-            
-        const urlToCopy = window.location.origin + pathToCopy;
-        
-        navigator.clipboard.writeText(urlToCopy).then(() => {
-            toast.success("Link copiado! Cole no seu gestor de downloads (ex: 1DM, ADM).");
-        }).catch(() => {
-            // Fallback for some browsers
-            navigator.clipboard.writeText(originalUrlForCopy).then(() => {
-                toast.success("Link copiado!");
-            });
-        });
+
+        window.open(downloadLink, '_blank');
+        onClose();
+        toast.success("Download iniciado!");
     };
 
     return (
         <Dialog open={open} onOpenChange={onClose}>
-        <DialogContent className="sm:max-w-[400px] max-h-[90vh] overflow-y-auto bg-[#1a1a1a] border-[#333] text-white p-0 gap-0 shadow-2xl flex flex-col scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-                <div className="flex flex-col items-center w-full p-6 pb-2">
-                    <div className="flex items-center justify-center w-12 h-12 mb-4 rounded-full bg-[#22c55e]/10">
-                        <Download className="w-6 h-6 text-[#22c55e]" />
+            <DialogContent className="sm:max-w-[420px] bg-[#121212]/95 border-[#222]/80 backdrop-blur-xl text-white p-6 shadow-2xl rounded-2xl flex flex-col gap-5 border">
+                {/* Header */}
+                <div className="flex flex-col items-center w-full">
+                    <div className="flex items-center justify-center w-12 h-12 mb-3 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                        <Download className="w-6 h-6 text-emerald-400 animate-bounce" />
                     </div>
-
-                    {thumbnail && !pendingUrl && (
-                        <div className="mb-4 relative group">
-                            <div className="absolute inset-0 bg-black/20 rounded-lg" />
-                            <img src={thumbnail} alt={title} className="w-32 h-48 object-cover rounded-lg shadow-xl" />
-                        </div>
-                    )}
-
-                    <h2 className="text-lg font-bold text-center mb-1">
-                        {pendingUrl ? 'Preparando Download' : `Baixar: ${title}`}
+                    <h2 className="text-lg font-bold text-center bg-gradient-to-r from-white via-gray-100 to-gray-400 bg-clip-text text-transparent">
+                        {selectedLink ? `Preparando: ${title}` : "Opções de Download"}
                     </h2>
+                    {selectedLink && selectedLink.label && (
+                        <p className="text-xs text-emerald-400 font-semibold mt-1 uppercase tracking-wider bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/10">
+                            {selectedLink.label}
+                        </p>
+                    )}
                 </div>
 
-                <div className="w-full px-6 space-y-4 pb-6">
-                    {pendingUrl ? (
-                        <div className="flex flex-col flex-1 items-center justify-center py-6 animate-in fade-in zoom-in-95 duration-500">
-                            {isStreamingLink ? (
-                                <>
-                                    <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/20 flex flex-col gap-4 mb-6 w-full">
-                                        <div className="flex gap-3 items-start">
-                                            <Info className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
-                                            <div className="space-y-2 text-left">
-                                                <p className="text-sm text-blue-200 font-bold">Formato de Streaming (Playlist)</p>
-                                                <p className="text-xs text-gray-300">
-                                                    Este link não baixa diretamente no navegador. Para baixar o filme completo, use um gestor de downloads.
-                                                </p>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-2 mt-2">
-                                            <p className="text-[10px] text-gray-500 font-bold uppercase tracking-wider">Apps Recomendados:</p>
-                                            
-                                            <div className="grid grid-cols-1 gap-2">
-                                                {/* 1DM */}
-                                                <a 
-                                                    href="https://play.google.com/store/apps/details?id=idm.internet.download.manager&hl=pt" 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer"
-                                                    className="flex items-center gap-3 p-2 rounded-lg bg-black/40 border border-white/5 hover:bg-black/60 transition-colors group"
-                                                >
-                                                    <img src="/1dm_icon.png" className="w-8 h-8 rounded object-contain" alt="1DM" />
-                                                    <div className="flex-1">
-                                                        <p className="text-[11px] font-bold text-white group-hover:text-blue-400 transition-colors">1DM (Android)</p>
-                                                        <p className="text-[9px] text-gray-500">Ideal para .m3u8 e .ts</p>
-                                                    </div>
-                                                    <Download className="w-3.5 h-3.5 text-gray-600 group-hover:text-blue-400 transition-colors" />
-                                                </a>
-
-                                                {/* ADM */}
-                                                <a 
-                                                    href="https://play.google.com/store/apps/details?id=com.dv.adm&hl=pt" 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer"
-                                                    className="flex items-center gap-3 p-2 rounded-lg bg-black/40 border border-white/5 hover:bg-black/60 transition-colors group"
-                                                >
-                                                    <img src="/adm_icon.png" className="w-8 h-8 rounded object-contain" alt="ADM" />
-                                                    <div className="flex-1">
-                                                        <p className="text-[11px] font-bold text-white group-hover:text-blue-400 transition-colors">ADM (Android)</p>
-                                                        <p className="text-[9px] text-gray-500">Rápido e multitarefa</p>
-                                                    </div>
-                                                    <Download className="w-3.5 h-3.5 text-gray-600 group-hover:text-blue-400 transition-colors" />
-                                                </a>
-
-                                                {/* IDM PC */}
-                                                <a 
-                                                    href="https://www.internetdownloadmanager.com" 
-                                                    target="_blank" 
-                                                    rel="noopener noreferrer"
-                                                    className="flex items-center gap-3 p-2 rounded-lg bg-black/40 border border-white/5 hover:bg-black/60 transition-colors group"
-                                                >
-                                                    <img src="/idm_pc_icon.png" className="w-8 h-8 rounded object-contain" alt="IDM PC" />
-                                                    <div className="flex-1">
-                                                        <p className="text-[11px] font-bold text-white group-hover:text-blue-400 transition-colors">Internet Download Manager (PC)</p>
-                                                        <p className="text-[9px] text-gray-500">Versão para Computador</p>
-                                                    </div>
-                                                    <Download className="w-3.5 h-3.5 text-gray-600 group-hover:text-blue-400 transition-colors" />
-                                                </a>
-                                            </div>
-                                        </div>
+                {/* Main Content Area */}
+                <div className="w-full flex flex-col items-center min-h-[160px] justify-center">
+                    {!selectedLink ? (
+                        /* Link Selection list (shown only if multiple options are available) */
+                        <div className="w-full flex flex-col gap-3">
+                            <p className="text-xs text-gray-400 text-center mb-1">
+                                Selecione uma opção para iniciar o processamento do link:
+                            </p>
+                            {effectiveLinks.map((link, idx) => (
+                                <button
+                                    key={idx}
+                                    onClick={() => handleSelectLink(link)}
+                                    className="w-full bg-[#1c1c1c] hover:bg-[#252525] active:bg-[#181818] border border-white/5 hover:border-emerald-500/30 text-white rounded-xl py-3 px-4 flex items-center justify-between transition-all duration-300 group shadow-md"
+                                >
+                                    <div className="flex flex-col items-start text-left">
+                                        <span className="font-bold text-sm group-hover:text-emerald-400 transition-colors line-clamp-1">
+                                            {link.label || `Download ${idx + 1}`}
+                                        </span>
+                                        <span className="text-[9px] text-gray-500 font-bold uppercase tracking-widest mt-0.5">
+                                            {link.type || (download_mode === 'torrent' ? 'Torrent' : 'Direto')}
+                                        </span>
                                     </div>
-                                    <div className="w-full space-y-2">
-                                        <Button
-                                            onClick={copyToClipboard}
-                                            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-12 flex items-center justify-center gap-2"
-                                        >
-                                            <Copy className="w-5 h-5" />
-                                            COPIAR LINK PARA DOWNLOAD
-                                        </Button>
-
-                                        {/* Intelligent Download Button */}
-                                        <div className="space-y-2">
-                                            <Button
-                                                onClick={() => setShowAppSelection(!showAppSelection)}
-                                                className="w-full bg-[#22c55e] hover:bg-[#22c55e]/90 text-black font-bold h-12 flex items-center justify-center gap-2 animate-pulse shadow-[0_0_15px_rgba(34,197,94,0.3)]"
-                                            >
-                                                <Download className="w-5 h-5" />
-                                                Baixar Agora
-                                            </Button>
-
-                                            {showAppSelection && (
-                                                <div className="grid grid-cols-3 gap-2 animate-in slide-in-from-top-2 duration-300">
-                                                    {/* 1DM */}
-                                                    <Button
-                                                        onClick={() => {
-                                                            const directUrl = window.location.origin + createSecurePlaybackUrl(originalUrlForCopy);
-                                                            const intent = `intent:${directUrl}#Intent;package=idm.internet.download.manager;scheme=1dmdownload;S.title=${title};end`;
-                                                            window.location.href = intent;
-                                                            toast.success("Abrindo no 1DM...");
-                                                        }}
-                                                        className="bg-[#262626] hover:bg-[#333] border border-white/5 h-16 text-[9px] flex-col gap-1 py-2 px-1"
-                                                    >
-                                                        <img src="/1dm_icon.png" className="w-6 h-6 rounded-sm object-contain" alt="1DM" />
-                                                        <span className="font-bold">1DM</span>
-                                                    </Button>
-
-                                                    {/* ADM */}
-                                                    <Button
-                                                        onClick={() => {
-                                                            const directUrl = window.location.origin + createSecurePlaybackUrl(originalUrlForCopy);
-                                                            const intent = `intent:${directUrl}#Intent;action=android.intent.action.VIEW;category=android.intent.category.DEFAULT;category=android.intent.category.BROWSABLE;package=com.dv.adm;end`;
-                                                            window.location.href = intent;
-                                                            toast.success("Abrindo no ADM...");
-                                                        }}
-                                                        className="bg-[#262626] hover:bg-[#333] border border-white/5 h-16 text-[9px] flex-col gap-1 py-2 px-1"
-                                                    >
-                                                        <img src="/adm_icon.png" className="w-6 h-6 rounded-sm object-contain" alt="ADM" />
-                                                        <span className="font-bold">ADM</span>
-                                                    </Button>
-
-                                                    {/* IDM PC */}
-                                                    <Button
-                                                        onClick={() => {
-                                                            const directUrl = window.location.origin + createSecurePlaybackUrl(originalUrlForCopy);
-                                                            window.open(directUrl, '_blank');
-                                                            toast.success("Link enviado ao IDM PC!");
-                                                        }}
-                                                        className="bg-[#262626] hover:bg-[#333] border border-white/5 h-16 text-[9px] flex-col gap-1 py-2 px-1"
-                                                    >
-                                                        <img src="/idm_pc_icon.png" className="w-6 h-6 rounded-sm object-contain" alt="IDM PC" />
-                                                        <span className="font-bold">IDM PC</span>
-                                                    </Button>
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        <Button
-                                            variant="outline"
-                                            onClick={() => {
-                                                setPendingUrl(null);
-                                                setIsStreamingLink(false);
-                                                setShowAppSelection(false);
-                                            }}
-                                            className="w-full text-gray-400 border-gray-700 hover:bg-gray-800 h-10"
-                                        >
-                                            Voltar
-                                        </Button>
+                                    <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-emerald-500/20 transition-all shrink-0 ml-2">
+                                        <Download className="w-4 h-4 text-gray-400 group-hover:text-emerald-400 transition-colors" />
                                     </div>
-                                </>
-                            ) : (
-                                <>
-                                    <div className="relative w-24 h-24 mb-6">
-                                        <svg className="w-full h-full transform -rotate-90">
-                                            <circle
-                                                cx="48"
-                                                cy="48"
-                                                r="45"
-                                                stroke="currentColor"
-                                                strokeWidth="4"
-                                                fill="transparent"
-                                                className="text-gray-800"
-                                            />
-                                            <circle
-                                                cx="48"
-                                                cy="48"
-                                                r="45"
-                                                stroke="currentColor"
-                                                strokeWidth="4"
-                                                fill="transparent"
-                                                strokeDasharray="282.7"
-                                                strokeDashoffset={282.7 - (282.7 * countdown) / 10}
-                                                className="text-[#22c55e] transition-all duration-1000 ease-linear"
-                                            />
-                                        </svg>
-                                        <div className="absolute inset-0 flex items-center justify-center">
-                                            <span className="text-3xl font-black text-white">{countdown}s</span>
-                                        </div>
-                                    </div>
-                                    <h3 className="text-[#22c55e] font-bold text-lg mb-2 text-center animate-pulse">
-                                        Aguarde, vamos redirecionar você...
-                                    </h3>
-                                    <p className="text-gray-400 text-sm text-center">
-                                        O link do download abrirá automaticamente em uma nova aba em {countdown} segundos.
-                                    </p>
-                                    <Button
-                                        onClick={() => {
-                                            window.open(pendingUrl, '_blank');
-                                            onClose();
-                                            setPendingUrl(null);
-                                        }}
-                                        className="mt-6 bg-[#22c55e] hover:bg-[#22c55e]/80 text-black font-bold w-full uppercase"
-                                    >
-                                        Clique aqui se demorar
-                                    </Button>
-                                </>
-                            )}
+                                </button>
+                            ))}
+                        </div>
+                    ) : isResolving ? (
+                        /* Loading state while resolving URL */
+                        <div className="flex flex-col items-center justify-center py-6 gap-3">
+                            <Loader2 className="w-10 h-10 text-emerald-400 animate-spin" />
+                            <p className="text-sm text-gray-300 font-medium animate-pulse">Obtendo link temporário seguro...</p>
+                        </div>
+                    ) : resolveError ? (
+                        /* Error state if resolving fails */
+                        <div className="flex flex-col items-center justify-center py-6 gap-3 text-center">
+                            <p className="text-sm text-red-400 font-medium">{resolveError}</p>
+                            <Button 
+                                onClick={() => handleSelectLink(selectedLink)}
+                                className="mt-2 bg-[#22c55e] hover:bg-[#22c55e]/90 text-black font-bold text-xs px-4 py-2"
+                            >
+                                Tentar Novamente
+                            </Button>
                         </div>
                     ) : (
-                        <div className="flex flex-col gap-4 animate-in fade-in zoom-in-95 duration-300">
-                            {showTorrentWarning && (
-                                <div className="p-3 rounded-lg bg-[#3a3020] border border-yellow-600/30">
-                                    <div className="flex gap-3 items-start mb-2">
-                                        <AlertTriangle className="w-5 h-5 text-yellow-500 shrink-0 mt-0.5" />
-                                        <div className="space-y-1">
-                                            <p className="text-sm text-yellow-500 font-medium">
-                                                {download_mode === 'mixed' ? 'Alguns arquivos requerem cliente Torrent.' : 'Atenção: Arquivo Torrent.'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <p className="text-xs text-gray-400 px-1">
-                                        Para baixar links do tipo Torrent, você precisa de um cliente como uTorrent.
+                        /* Player and Timer Container */
+                        <div className="w-full flex flex-col items-center gap-4">
+                            {/* Tiny Video Player with premium design */}
+                            <div className="relative w-full max-w-[280px] aspect-video rounded-xl overflow-hidden bg-black border border-white/10 shadow-[0_0_20px_rgba(16,185,129,0.1)] group">
+                                <video
+                                    ref={videoRef}
+                                    className="w-full h-full object-cover"
+                                    playsInline
+                                    muted
+                                />
+                                
+                                {/* Overlay gradient */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none" />
+
+                                {/* Monospace Glowing Countdown Timer Overlay */}
+                                <div className="absolute top-2 right-2 px-2 py-1 rounded bg-black/85 border border-white/10 flex items-center gap-1.5 shadow-md">
+                                    <div className={`w-2 h-2 rounded-full ${isTimerFinished ? 'bg-red-500' : 'bg-emerald-500 animate-pulse'}`} />
+                                    <span className="text-xs font-mono font-bold tracking-wider text-white">
+                                        {isTimerFinished ? "00:00" : `00:${countdown.toString().padStart(2, '0')}`}
+                                    </span>
+                                </div>
+
+                                {/* Watermark/Badge */}
+                                <div className="absolute bottom-2 left-2 text-[9px] uppercase font-bold tracking-widest text-white/50">
+                                    Player Temporário
+                                </div>
+                            </div>
+
+                            {/* Status message */}
+                            <div className="text-center px-2">
+                                {isTimerFinished ? (
+                                    <p className="text-xs text-emerald-400 font-bold animate-pulse">
+                                        Link temporário gerado com sucesso! Pronto para download.
                                     </p>
-                                </div>
-                            )}
-
-                            {!showTorrentWarning && download_mode === 'direct' && (
-                                <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 flex gap-3 items-center">
-                                    <Info className="w-5 h-5 text-green-500 shrink-0" />
-                                    <p className="text-sm text-green-200">Escolha uma das opções abaixo para baixar.</p>
-                                </div>
-                            )}
-
-                            <div className="grid gap-3">
-                                {effectiveLinks.map((link, idx) => (
-                                    <Button
-                                        key={idx}
-                                        onClick={() => handleDownload(link.url, link.originalUrl || link.url)}
-                                        className="w-full bg-[#262626] hover:bg-[#333] text-white border border-white/10 h-auto py-3 px-4 flex items-center justify-between group"
-                                    >
-                                        <div className="flex flex-col items-start text-left">
-                                            <span className="font-bold group-hover:text-[#22c55e] transition-colors line-clamp-1">{link.label || 'Download'}</span>
-                                            <span className="text-[10px] text-gray-500 font-medium uppercase tracking-widest mt-1">
-                                                {link.type || (download_mode === 'torrent' ? 'Torrent' : 'Direto')}
-                                            </span>
-                                        </div>
-                                        <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-[#22c55e]/20 transition-colors shrink-0 ml-2">
-                                            <Download className="w-4 h-4 text-gray-400 group-hover:text-[#22c55e]" />
-                                        </div>
-                                    </Button>
-                                ))}
-                                {effectiveLinks.length === 0 && (
-                                    <p className="text-center text-gray-500 py-4">Nenhum link disponível.</p>
+                                ) : (
+                                    <p className="text-xs text-gray-400 animate-pulse">
+                                        Carregando stream no player para gerar o link...
+                                    </p>
                                 )}
                             </div>
                         </div>
                     )}
                 </div>
+
+                {/* Footer Controls */}
+                {selectedLink && (
+                    <div className="w-full space-y-3 pt-2 border-t border-white/5">
+                        {/* Download Trigger Button */}
+                        <Button
+                            disabled={!isTimerFinished || !resolvedUrl}
+                            onClick={handleDownloadClick}
+                            className={`w-full font-bold h-12 flex items-center justify-center gap-2 rounded-xl transition-all duration-300 border ${
+                                isTimerFinished 
+                                    ? "bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-black border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)] cursor-pointer" 
+                                    : "bg-[#1c1c1c] text-gray-500 border-white/5 cursor-not-allowed"
+                            }`}
+                        >
+                            <Download className={`w-5 h-5 ${isTimerFinished ? "text-black" : "text-gray-500"}`} />
+                            {isTimerFinished ? "Baixar Vídeo Agora" : `Aguarde (${countdown}s)`}
+                        </Button>
+
+                        {/* Back Button (Only if there were multiple options) */}
+                        {effectiveLinks.length > 1 && (
+                            <button
+                                onClick={() => {
+                                    setSelectedLink(null);
+                                    setResolvedUrl(null);
+                                    setPlaybackUrl(null);
+                                    setResolveError(null);
+                                    setCountdown(10);
+                                    setIsTimerFinished(false);
+                                    if (hlsRef.current) {
+                                        hlsRef.current.destroy();
+                                        hlsRef.current = null;
+                                    }
+                                }}
+                                className="w-full flex items-center justify-center gap-1.5 text-xs text-gray-500 hover:text-white transition-colors py-1.5 font-medium"
+                            >
+                                <ArrowLeft className="w-3.5 h-3.5" />
+                                Escolher outra opção
+                            </button>
+                        )}
+                    </div>
+                )}
             </DialogContent>
         </Dialog>
     );
