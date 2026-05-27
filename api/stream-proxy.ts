@@ -99,7 +99,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).end();
   }
 
-  const { t: token, url: directUrl, ext, ref } = req.query;
+  const { t: token, url: directUrl, ext, ref, dl, f: filename } = req.query;
   let videoUrl: string;
 
   // 1. Encrypted token (secure, preferred)
@@ -187,6 +187,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       res.setHeader('Content-Type', detectedType);
       res.setHeader('Cache-Control', 'public, max-age=300');
+
+      if (dl === '1') {
+        const safeFilename = filename ? (filename as string) : 'video.m3u8';
+        res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeFilename)}"`);
+      }
 
       if (contentLength) {
         res.setHeader('Content-Length', contentLength);
@@ -337,6 +342,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // Set headers for binary streaming
     res.setHeader('Content-Type', detectedType);
     res.setHeader('Cache-Control', 'public, max-age=300');
+
+    if (dl === '1') {
+      const safeFilename = filename ? (filename as string) : 'video.mp4';
+      res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(safeFilename)}"`);
+    }
 
     if (contentLength) {
       res.setHeader('Content-Length', contentLength);

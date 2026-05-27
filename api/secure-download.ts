@@ -72,6 +72,44 @@ function decryptToken(token: string): { url: string; expired: boolean } | null {
   }
 }
 
+function encryptUrl(url: string, customValidityMs: number = 15 * 60 * 1000): string {
+  const now = Date.now();
+  const expiry = now + customValidityMs;
+  const nonce = Math.random().toString(36).substring(2, 8);
+  
+  const payload = `${nonce}|${expiry}|${url}`;
+  const salt = Math.floor(now / (5 * 60 * 1000)) & 0xFFFF;
+  const encrypted = xorCipher(payload, salt);
+  
+  const b64 = Buffer.from(encrypted, 'binary').toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
+  
+  const saltHex = salt.toString(16).padStart(4, '0');
+  
+  return saltHex + b64;
+}
+
+async function resolveTxtUrl(url: string): Promise<string> {
+  try {
+    const response = await fetch(url, { headers: FETCH_HEADERS });
+    if (response.ok) {
+      const text = await response.text();
+      const lines = text.trim().split('\n').filter(l => l.trim() && !l.trim().startsWith('#'));
+      if (lines.length >= 1) {
+        const firstLine = lines[0].trim();
+        if (firstLine.startsWith('http://') || firstLine.startsWith('https://')) {
+          return firstLine;
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Error resolving txt url:', err);
+  }
+  return url;
+}
+
 const FETCH_HEADERS: Record<string, string> = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   'Accept': '*/*',
@@ -108,12 +146,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const lowerUrl = videoUrl.toLowerCase().split('?')[0];
-    if (lowerUrl.endsWith('.txt') || lowerUrl.endsWith('.m3u8') || videoUrl.includes('typezero.top/pl/')) {
+    let resolvedVideoUrl = videoUrl;
+    let lowerUrl = videoUrl.toLowerCase().split('?')[0];
+
+    // If it's a .txt file, resolve the redirect URL inside it first
+    if (lowerUrl.endsWith('.txt')) {
+      resolvedVideoUrl = await resolveTxtUrl(videoUrl);
+      lowerUrl = resolvedVideoUrl.toLowerCase().split('?')[0];
+    }
+
+    if (lowerUrl.endsWith('.m3u8') || resolvedVideoUrl.includes('typezero.top/pl/') || resolvedVideoUrl.includes('typezero.top')) {
       // Instead of downloading and concatenating the entire HLS stream in Vercel (which hits memory/timeout limits),
       // we redirect the user to our stream-proxy endpoint which safely processes the manifest
       // External downloaders (like 1DM, IDM, ADM) can intercept this URL and download the HLS stream directly.
-      const proxyUrl = `/api/stream-proxy?t=${encodeURIComponent(token as string)}&dl=1`;
+      const hlsToken = encryptUrl(resolvedVideoUrl);
+      const filenameParam = filename ? `&f=${encodeURIComponent(filename as string)}` : '';
+      const proxyUrl = `/api/stream-proxy?t=${encodeURIComponent(hlsToken)}&dl=1${filenameParam}`;
       res.setHeader('Cache-Control', 'no-store, max-age=0');
       return res.redirect(302, proxyUrl);
     }
@@ -123,7 +171,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // This still hides the real URL from the DOM and the download button hover, 
     // satisfying the requirement while being much more robust.
     res.setHeader('Cache-Control', 'no-store, max-age=0');
-    return res.redirect(302, videoUrl);
+    return res.redirect(302, resolvedVideoUrl);
   } catch (error: any) {
     console.error('Secure download error:', error);
     if (!res.headersSent) {

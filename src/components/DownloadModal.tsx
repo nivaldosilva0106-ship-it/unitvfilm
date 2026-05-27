@@ -99,13 +99,17 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
                 const proxyUrl = createSecurePlaybackUrl(targetUrl);
                 const response = await fetch(proxyUrl);
                 if (!response.ok) throw new Error("Erro ao ler o arquivo de download.");
-                const text = await response.text();
-                const trimmed = text.trim();
-                const lines = trimmed.split('\n').filter(l => l.trim() && !l.trim().startsWith('#'));
-                if (lines.length >= 1) {
-                    const firstLine = lines[0].trim();
-                    if (firstLine.startsWith('http://') || firstLine.startsWith('https://')) {
-                        targetUrl = firstLine;
+                
+                const contentType = response.headers.get('content-type') || '';
+                if (!contentType.includes('video/') && !contentType.includes('application/octet-stream')) {
+                    const text = await response.text();
+                    const trimmed = text.trim();
+                    const lines = trimmed.split('\n').filter(l => l.trim() && !l.trim().startsWith('#'));
+                    if (lines.length >= 1) {
+                        const firstLine = lines[0].trim();
+                        if (firstLine.startsWith('http://') || firstLine.startsWith('https://')) {
+                            targetUrl = firstLine;
+                        }
                     }
                 }
             }

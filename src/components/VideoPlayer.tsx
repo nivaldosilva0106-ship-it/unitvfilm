@@ -167,6 +167,11 @@ const formatTime = (seconds: number): string => {
         }
 
         contentType = response.headers.get('content-type') || '';
+        if (contentType.includes('video/') || contentType.includes('application/octet-stream')) {
+          console.log('.txt resolves to a direct video stream, skipping manifest parsing');
+          setIsTxtResolving(false);
+          return;
+        }
         text = await response.text();
         
         // If the proxy/direct fetch already identified it as HLS manifest
