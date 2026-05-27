@@ -1089,6 +1089,14 @@ export interface HomePageConfig {
   heroSlider?: HeroSliderConfig;
 }
 
+export interface QuickAccessCard {
+  id: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  url: string;
+}
+
 export interface SiteSettings {
   loginBackgroundUrl?: string;
   holidayDecorationsEnabled?: boolean;
@@ -1110,6 +1118,7 @@ export interface SiteSettings {
   iptvApiBaseUrl?: string;
   maintenanceModeEnabled?: boolean;
   homePageConfig?: HomePageConfig;
+  quickAccessCards?: QuickAccessCard[];
 }
 
 export const getSiteSettings = async (bypassCache?: boolean): Promise<SiteSettings> => {

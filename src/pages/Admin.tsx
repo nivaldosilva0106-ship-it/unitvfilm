@@ -1,15 +1,16 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { addContent, getAllContents, deleteContent, updateContent, sendContentNotification } from "@/lib/firebase";
+import { addContent, getAllContents, deleteContent, updateContent, sendContentNotification, getSiteSettings } from "@/lib/firebase";
 import type { Content } from "@/types/content";
+import type { QuickAccessCard } from "@/lib/firebase";
 import { AdminContentForm } from "@/components/admin/AdminContentForm";
 import { AdminContentList } from "@/components/admin/AdminContentList";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminContentImporter } from "@/components/admin/AdminContentImporter";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Settings } from "lucide-react";
+import { Settings, ExternalLink } from "lucide-react";
 import { syncContentToExternal } from "@/lib/external-api";
 
 interface AdminContentFormProps {
@@ -23,6 +24,7 @@ const Admin = () => {
   const { isAdmin, loading } = useAuth();
   const [allContents, setAllContents] = useState<Content[]>([]);
   const [listSearchQuery, setListSearchQuery] = useState("");
+  const [quickAccessCards, setQuickAccessCards] = useState<QuickAccessCard[]>([]);
 
   const [editingContent, setEditingContent] = useState<Partial<Content>>({
     title: "",
@@ -47,8 +49,18 @@ const Admin = () => {
     }
     if (isAdmin) {
       loadContents();
+      loadQuickAccessCards();
     }
   }, [isAdmin, loading, navigate]);
+
+  const loadQuickAccessCards = async () => {
+    try {
+      const settings = await getSiteSettings();
+      setQuickAccessCards(settings.quickAccessCards || []);
+    } catch (error) {
+      console.error("Erro ao carregar cards de acesso rápido:", error);
+    }
+  };
 
   const loadContents = async () => {
     try {
@@ -232,25 +244,53 @@ const Admin = () => {
     <AdminLayout title="Gerenciar Conteúdos">
       <div className="grid lg:grid-cols-[1.2fr_0.8fr] gap-4 h-[calc(100vh-64px)] overflow-hidden">
         <div className="space-y-4 overflow-y-auto p-4 pt-4 lg:pl-6 text-white custom-scrollbar flex flex-col">
-          <div className="bg-secondary/20 border border-secondary/30 rounded-xl p-4 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
-                <Settings className="w-5 h-5" />
-              </div>
-              <div>
-                <h4 className="font-bold text-sm">Ferramentas de Apoio</h4>
-                <p className="text-[10px] text-muted-foreground">Gerador de Links Diretos Google Drive</p>
-              </div>
+          {quickAccessCards.length > 0 && (
+            <div className="flex gap-4 overflow-x-auto pb-2 snap-x custom-scrollbar flex-shrink-0">
+              {quickAccessCards.map((card) => (
+                <div 
+                  key={card.id} 
+                  className="bg-secondary/20 border border-secondary/30 rounded-xl p-4 flex items-center justify-between min-w-[280px] md:min-w-[320px] max-w-[350px] snap-start flex-shrink-0 gap-3"
+                >
+                  <div className="flex items-center gap-3 overflow-hidden">
+                    {card.imageUrl ? (
+                      <div className="relative w-10 h-10 flex-shrink-0">
+                        <img 
+                          src={card.imageUrl} 
+                          alt={card.title} 
+                          className="w-10 h-10 rounded-lg object-cover border border-white/10" 
+                          onError={(e) => {
+                            (e.target as HTMLElement).style.display = 'none';
+                            const fallback = (e.target as HTMLElement).nextElementSibling;
+                            if (fallback) fallback.classList.remove('hidden');
+                          }}
+                        />
+                        <div className="hidden w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400 absolute inset-0">
+                          <Settings className="w-5 h-5" />
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400 flex-shrink-0">
+                        <Settings className="w-5 h-5" />
+                      </div>
+                    )}
+                    <div className="overflow-hidden">
+                      <h4 className="font-bold text-sm truncate text-white">{card.title}</h4>
+                      <p className="text-[10px] text-muted-foreground truncate">{card.description || 'Acesso rápido'}</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10 flex-shrink-0"
+                    onClick={() => window.open(card.url, '_blank')}
+                  >
+                    <ExternalLink className="w-3.5 h-3.5 mr-1" />
+                    Abrir
+                  </Button>
+                </div>
+              ))}
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="border-blue-500/30 text-blue-400 hover:bg-blue-500/10"
-              onClick={() => window.open('https://ferramentas-lake.vercel.app/', '_blank')}
-            >
-              Abrir Ferramentas Tools
-            </Button>
-          </div>
+          )}
 
           <AdminContentImporter
             onImport={(importedData) => {

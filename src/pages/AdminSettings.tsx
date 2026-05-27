@@ -1,8 +1,9 @@
 // ... (imports)
 import { useState, useEffect } from "react";
-import { Copy, Check, AlertTriangle, Globe, Info, Smartphone, MonitorPlay, Loader2, Wifi, WifiOff, Trash2 } from "lucide-react";
+import { Copy, Check, AlertTriangle, Globe, Info, Smartphone, MonitorPlay, Loader2, Wifi, WifiOff, Trash2, Plus, ExternalLink, Link2 } from "lucide-react";
 import { toast } from "sonner";
 import { getSiteSettings, updateSiteSettings } from "@/lib/firebase";
+import type { QuickAccessCard } from "@/lib/firebase";
 import { uploadApkToSupabase, deleteApkFromSupabase } from "@/lib/supabase";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,10 @@ export const AdminSettings = () => {
         nostalgia: false
     });
     const [isImporting, setIsImporting] = useState(false);
+
+    // Quick Access Cards
+    const [quickAccessCards, setQuickAccessCards] = useState<QuickAccessCard[]>([]);
+    const [newCard, setNewCard] = useState({ title: "", description: "", imageUrl: "", url: "" });
 
     const { isAdmin, loading: authLoading } = useAuth();
     const navigate = useNavigate();
@@ -131,6 +136,7 @@ export const AdminSettings = () => {
             setMaintenanceModeEnabled(settings.maintenanceModeEnabled || false);
             setIptvApiKey(settings.iptvApiKey || "");
             setIptvApiBaseUrl(settings.iptvApiBaseUrl || "");
+            setQuickAccessCards(settings.quickAccessCards || []);
         } catch (error) {
             console.error("Error loading settings:", error);
             toast.error("Erro ao carregar configurações");
@@ -159,7 +165,8 @@ export const AdminSettings = () => {
                 iptvApiKey,
                 iptvApiBaseUrl,
                 enablePwaInstall,
-                maintenanceModeEnabled
+                maintenanceModeEnabled,
+                quickAccessCards
             });
             toast.success("Configurações salvas com sucesso!");
         } catch (error) {
@@ -888,6 +895,126 @@ export const AdminSettings = () => {
                                 </div>
                             </div>
                         </div>
+                    </div>
+
+                    {/* Quick Access Cards */}
+                    <div className="bg-card border border-border rounded-lg p-6">
+                        <h2 className="text-lg font-semibold mb-4 flex items-center gap-2 text-white">
+                            <Link2 className="w-5 h-5 text-emerald-500" />
+                            Cards de Acesso Rápido
+                        </h2>
+                        <p className="text-sm text-muted-foreground mb-6">
+                            Adicione cards de sites e ferramentas que aparecerão no topo da página de gerenciamento de conteúdos para acesso rápido.
+                        </p>
+
+                        {/* Add new card form */}
+                        <div className="space-y-4 p-4 bg-background/30 border border-border rounded-lg mb-6">
+                            <h3 className="font-medium text-sm text-white">Adicionar Novo Card</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                <div className="space-y-1">
+                                    <Label htmlFor="cardTitle" className="text-xs">Título *</Label>
+                                    <Input
+                                        id="cardTitle"
+                                        placeholder="Ex: Ferramentas Tools"
+                                        value={newCard.title}
+                                        onChange={(e) => setNewCard(prev => ({ ...prev, title: e.target.value }))}
+                                        className="bg-background/50 text-sm"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label htmlFor="cardDescription" className="text-xs">Descrição</Label>
+                                    <Input
+                                        id="cardDescription"
+                                        placeholder="Ex: Gerador de Links Diretos"
+                                        value={newCard.description}
+                                        onChange={(e) => setNewCard(prev => ({ ...prev, description: e.target.value }))}
+                                        className="bg-background/50 text-sm"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label htmlFor="cardImageUrl" className="text-xs">URL da Imagem / Ícone</Label>
+                                    <Input
+                                        id="cardImageUrl"
+                                        placeholder="https://exemplo.com/icone.png"
+                                        value={newCard.imageUrl}
+                                        onChange={(e) => setNewCard(prev => ({ ...prev, imageUrl: e.target.value }))}
+                                        className="bg-background/50 text-sm"
+                                    />
+                                </div>
+                                <div className="space-y-1">
+                                    <Label htmlFor="cardUrl" className="text-xs">URL do Site *</Label>
+                                    <Input
+                                        id="cardUrl"
+                                        placeholder="https://exemplo.com"
+                                        value={newCard.url}
+                                        onChange={(e) => setNewCard(prev => ({ ...prev, url: e.target.value }))}
+                                        className="bg-background/50 text-sm"
+                                    />
+                                </div>
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                className="border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10"
+                                disabled={!newCard.title.trim() || !newCard.url.trim()}
+                                onClick={() => {
+                                    const card: QuickAccessCard = {
+                                        id: `qac_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+                                        title: newCard.title.trim(),
+                                        description: newCard.description.trim(),
+                                        imageUrl: newCard.imageUrl.trim(),
+                                        url: newCard.url.trim(),
+                                    };
+                                    setQuickAccessCards(prev => [...prev, card]);
+                                    setNewCard({ title: "", description: "", imageUrl: "", url: "" });
+                                    toast.success("Card adicionado! Não esqueça de salvar as configurações.");
+                                }}
+                            >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Adicionar Card
+                            </Button>
+                        </div>
+
+                        {/* Cards list */}
+                        {quickAccessCards.length > 0 ? (
+                            <div className="space-y-3">
+                                <h3 className="font-medium text-sm text-white">Cards Configurados ({quickAccessCards.length})</h3>
+                                {quickAccessCards.map((card) => (
+                                    <div key={card.id} className="flex items-center gap-3 p-3 bg-background/30 border border-border rounded-lg group hover:border-emerald-500/30 transition-colors">
+                                        <div className="w-10 h-10 rounded-lg bg-zinc-800 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
+                                            {card.imageUrl ? (
+                                                <img src={card.imageUrl} alt={card.title} className="w-full h-full object-cover" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                                            ) : (
+                                                <ExternalLink className="w-4 h-4 text-muted-foreground" />
+                                            )}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-medium text-white truncate">{card.title}</p>
+                                            <p className="text-[10px] text-muted-foreground truncate">{card.description || card.url}</p>
+                                        </div>
+                                        <a href={card.url} target="_blank" rel="noopener noreferrer" className="text-[10px] text-blue-400 hover:underline hidden sm:block truncate max-w-[150px]">
+                                            {card.url}
+                                        </a>
+                                        <Button
+                                            type="button"
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-red-500 hover:text-red-400 hover:bg-red-500/10 shrink-0"
+                                            onClick={() => {
+                                                setQuickAccessCards(prev => prev.filter(c => c.id !== card.id));
+                                                toast.info("Card removido. Salve as configurações para confirmar.");
+                                            }}
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className="p-4 border border-dashed border-border rounded-lg text-center">
+                                <p className="text-sm text-muted-foreground">Nenhum card configurado. Adicione acima para criar atalhos rápidos.</p>
+                            </div>
+                        )}
                     </div>
 
                     {/* Cache Management */}
