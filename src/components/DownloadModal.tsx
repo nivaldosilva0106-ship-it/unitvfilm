@@ -1,6 +1,6 @@
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Download, Loader2, ArrowLeft } from "lucide-react";
+import { Download, Loader2, ArrowLeft, Copy, Check, ExternalLink } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import Hls from "hls.js";
 import { useAuth } from "@/contexts/AuthContext";
@@ -34,6 +34,9 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
     // Countdown state
     const [countdown, setCountdown] = useState<number>(10);
     const [isTimerFinished, setIsTimerFinished] = useState(false);
+
+    // Copy URL state
+    const [isCopied, setIsCopied] = useState(false);
     
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const hlsRef = useRef<Hls | null>(null);
@@ -48,6 +51,11 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
         originalUrl: link.url
     }));
 
+    // Check if the current selected link is a .txt link
+    const isTxtLink = selectedLink
+        ? selectedLink.url.toLowerCase().split('?')[0].endsWith('.txt')
+        : false;
+
     // Reset state on open/close
     useEffect(() => {
         if (!open) {
@@ -58,6 +66,7 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
             setResolveError(null);
             setCountdown(10);
             setIsTimerFinished(false);
+            setIsCopied(false);
             if (hlsRef.current) {
                 hlsRef.current.destroy();
                 hlsRef.current = null;
@@ -79,6 +88,7 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
         setPlaybackUrl(null);
         setCountdown(10);
         setIsTimerFinished(false);
+        setIsCopied(false);
 
         try {
             let targetUrl = link.url;
@@ -231,6 +241,19 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
         toast.success("Download iniciado!");
     };
 
+    // Handle Copy URL for .txt / IDM links
+    const handleCopyUrl = async () => {
+        if (!playbackUrl) return;
+        try {
+            await navigator.clipboard.writeText(playbackUrl);
+            setIsCopied(true);
+            toast.success("URL copiada! Cole no IDM ou 1DM para baixar.");
+            setTimeout(() => setIsCopied(false), 3000);
+        } catch {
+            toast.error("Não foi possível copiar a URL.");
+        }
+    };
+
     return (
         <Dialog open={open} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-[420px] bg-[#121212]/95 border-[#222]/80 backdrop-blur-xl text-white p-6 shadow-2xl rounded-2xl flex flex-col gap-5 border">
@@ -335,6 +358,43 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
                                     </p>
                                 )}
                             </div>
+
+                            {/* IDM / 1DM Notice for .txt links */}
+                            {isTxtLink && isTimerFinished && (
+                                <div className="w-full rounded-xl bg-amber-500/10 border border-amber-500/20 p-3 flex flex-col gap-2">
+                                    <div className="flex items-start gap-2">
+                                        <span className="text-amber-400 text-base leading-none mt-0.5">⚠️</span>
+                                        <div className="flex flex-col gap-1">
+                                            <p className="text-xs font-bold text-amber-300">
+                                                Este link requer um gestor de downloads externo
+                                            </p>
+                                            <p className="text-[11px] text-amber-200/70 leading-relaxed">
+                                                Para baixar este conteúdo, copie a URL e cole num gestor de downloads:
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <div className="flex gap-2 mt-1">
+                                        <a
+                                            href="https://www.internetdownloadmanager.com/"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex-1 flex items-center justify-center gap-1 text-[11px] font-bold bg-blue-600/20 hover:bg-blue-600/40 border border-blue-500/30 text-blue-300 rounded-lg py-1.5 transition-all"
+                                        >
+                                            <ExternalLink className="w-3 h-3" />
+                                            IDM (PC)
+                                        </a>
+                                        <a
+                                            href="https://play.google.com/store/apps/details?id=idm.internet.download.manager"
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex-1 flex items-center justify-center gap-1 text-[11px] font-bold bg-green-600/20 hover:bg-green-600/40 border border-green-500/30 text-green-300 rounded-lg py-1.5 transition-all"
+                                        >
+                                            <ExternalLink className="w-3 h-3" />
+                                            1DM (Android)
+                                        </a>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
@@ -356,6 +416,30 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
                             {isTimerFinished ? "Baixar Vídeo Agora" : `Aguarde (${countdown}s)`}
                         </Button>
 
+                        {/* Copy URL Button — only for .txt links and only after timer finishes */}
+                        {isTxtLink && isTimerFinished && playbackUrl && (
+                            <button
+                                onClick={handleCopyUrl}
+                                className={`w-full flex items-center justify-center gap-2 rounded-xl py-3 px-4 font-bold text-sm border transition-all duration-300 ${
+                                    isCopied
+                                        ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                                        : "bg-[#1c1c1c] hover:bg-[#252525] border-white/10 hover:border-amber-500/40 text-gray-300 hover:text-amber-300"
+                                }`}
+                            >
+                                {isCopied ? (
+                                    <>
+                                        <Check className="w-4 h-4 text-emerald-400" />
+                                        URL Copiada com Sucesso!
+                                    </>
+                                ) : (
+                                    <>
+                                        <Copy className="w-4 h-4" />
+                                        Copiar URL para IDM / 1DM
+                                    </>
+                                )}
+                            </button>
+                        )}
+
                         {/* Back Button (Only if there were multiple options) */}
                         {effectiveLinks.length > 1 && (
                             <button
@@ -366,6 +450,7 @@ export const DownloadModal = ({ open, onClose, downloadUrl, downloads, download_
                                     setResolveError(null);
                                     setCountdown(10);
                                     setIsTimerFinished(false);
+                                    setIsCopied(false);
                                     if (hlsRef.current) {
                                         hlsRef.current.destroy();
                                         hlsRef.current = null;
