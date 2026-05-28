@@ -192,7 +192,8 @@ export const AdminContentForm = ({ editingContent, setEditingContent, handleSave
       const isDownloadable = lower.endsWith('.mp4') || 
                            lower.endsWith('.ts') || 
                            lower.endsWith('.txt') || 
-                           lower.includes('drive.google.com');
+                           lower.includes('drive.google.com') ||
+                           lower.includes('tiktok.com');
       
       const isGoogle = url.includes('googleapis.com');
       const isTikTok = url.includes('tiktok.com');
