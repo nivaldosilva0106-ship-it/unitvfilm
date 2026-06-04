@@ -40,6 +40,8 @@ const Admin = () => {
     isPremium: false,
     external_sync_enabled: false,
     external_source_url: "",
+    is_cinema_mode: false,
+    adBlockFriendly: false,
   });
 
   useEffect(() => {
@@ -208,6 +210,8 @@ const Admin = () => {
         language: "pt-BR",
         release_date: "",
         isPremium: false,
+        is_cinema_mode: false,
+        adBlockFriendly: false,
       });
       loadContents();
     } catch (error) {

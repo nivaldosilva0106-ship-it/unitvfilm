@@ -199,9 +199,11 @@ export default function Categories() {
             return;
         }
 
-        if (content.is_cinema_mode) {
+        const sessionKey = `cinemaWarningShown_${content.id}`;
+        if (content.is_cinema_mode && !sessionStorage.getItem(sessionKey)) {
             setPendingPlayerState({ ...content, contentId: content.id });
             setShowCinemaModal(true);
+            sessionStorage.setItem(sessionKey, 'true');
         } else {
             navigate(`/watch/${content.id}`);
         }
@@ -440,9 +442,11 @@ export default function Categories() {
                     thumbnail={selectedSeries.thumbnail_url}
                     onPlayEpisode={(ep) => {
                         const watchUrl = `/watch/${selectedSeries.id}?season=${ep.season}&episode=${ep.episode}`;
-                        if (selectedSeries.is_cinema_mode) {
+                        const sessionKey = `cinemaWarningShown_${selectedSeries.id}`;
+                        if (selectedSeries.is_cinema_mode && !sessionStorage.getItem(sessionKey)) {
                             setPendingPlayerState({ contentId: selectedSeries.id, season: ep.season, episode: ep.episode });
                             setShowCinemaModal(true);
+                            sessionStorage.setItem(sessionKey, 'true');
                         } else {
                             navigate(watchUrl);
                         }

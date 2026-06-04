@@ -24,3 +24,24 @@ release
 *.njsproj
 *.sln
 *.sw?
+
+# Environment and private configs
+.env
+.env.lite
+
+# Temporary directories and scripts
+temp_apk/
+temp_jsdom/
+apply_trigger.cjs
+check_online.cjs
+check_supabase.cjs
+get_err.cjs
+test_settings.js
+test_settings.cjs
+test_scraper.js
+test_scraper.mjs
+test_render.tsx
+trace.cjs
+tsc_output.txt
+tsc_errors.log
+

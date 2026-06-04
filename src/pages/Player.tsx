@@ -175,8 +175,10 @@ const Player = () => {
                 }
                 setContent(found);
                 
-                if (found.adBlockFriendly) {
+                const sessionKey = `adWarningShown_${found.id}`;
+                if (found.adBlockFriendly && !sessionStorage.getItem(sessionKey)) {
                     setShowAdBlockModal(true);
+                    sessionStorage.setItem(sessionKey, 'true');
                 }
 
                 // Shuffle recommendations
@@ -1265,7 +1267,6 @@ const Player = () => {
                         // @ts-ignore
                         fetchPriority="high"
                         tabIndex={-1}
-                        sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
                     />
                 )}
 

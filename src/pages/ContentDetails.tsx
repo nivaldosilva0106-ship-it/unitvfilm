@@ -159,9 +159,11 @@ const ContentDetails = () => {
       return;
     }
 
-    if (content?.is_cinema_mode) {
+    const sessionKey = `cinemaWarningShown_${content.id}`;
+    if (content?.is_cinema_mode && !sessionStorage.getItem(sessionKey)) {
       setPendingPlayerState({ season, episode });
       setShowCinemaModal(true);
+      sessionStorage.setItem(sessionKey, 'true');
     } else {
       let url = `/watch/${content?.id}`;
       if (season && episode) {

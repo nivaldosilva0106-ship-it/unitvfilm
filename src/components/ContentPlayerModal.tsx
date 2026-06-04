@@ -390,7 +390,6 @@ export const ContentPlayerModal = ({
                   allowFullScreen
                   tabIndex={0}
                   referrerPolicy="no-referrer"
-                  sandbox="allow-scripts allow-same-origin allow-presentation allow-fullscreen"
                 />
               )}
 
