@@ -128,11 +128,9 @@ const MyList = () => {
       return;
     }
 
-    const sessionKey = `cinemaWarningShown_${content.id}`;
-    if (content.is_cinema_mode && !sessionStorage.getItem(sessionKey)) {
+    if (content.is_cinema_mode) {
       setPendingPlayerState({ ...content, contentId: content.id });
       setShowCinemaModal(true);
-      sessionStorage.setItem(sessionKey, 'true');
     } else {
       navigate(`/watch/${content.id}`);
     }
@@ -228,11 +226,9 @@ const MyList = () => {
           thumbnail={selectedSeries.thumbnail_url}
           onPlayEpisode={(ep) => {
             const watchUrl = `/watch/${selectedSeries.id}?season=${ep.season}&episode=${ep.episode}`;
-            const sessionKey = `cinemaWarningShown_${selectedSeries.id}`;
-            if (selectedSeries.is_cinema_mode && !sessionStorage.getItem(sessionKey)) {
+            if (selectedSeries.is_cinema_mode) {
               setPendingPlayerState({ contentId: selectedSeries.id, season: ep.season, episode: ep.episode });
               setShowCinemaModal(true);
-              sessionStorage.setItem(sessionKey, 'true');
             } else {
               navigate(watchUrl);
             }
