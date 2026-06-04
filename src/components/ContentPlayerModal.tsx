@@ -389,7 +389,6 @@ export const ContentPlayerModal = ({
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
                   allowFullScreen
                   tabIndex={0}
-                  referrerPolicy="no-referrer"
                 />
               )}
 
