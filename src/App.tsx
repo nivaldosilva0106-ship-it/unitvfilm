@@ -23,6 +23,7 @@ import { useAppConfig } from "@/hooks/useAppConfig";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ReminderAlert } from "./components/ReminderAlert";
 import { UserActivityTracker } from "./components/UserActivityTracker";
+import { LicenseGate } from "./components/LicenseGate";
 
 const queryClient = new QueryClient();
 
@@ -187,6 +188,7 @@ const App = () => {
   }, []);
 
   return (
+    <LicenseGate>
     <QueryClientProvider client={queryClient}>
       <ErrorBoundary>
         <AuthProvider>
@@ -281,6 +283,7 @@ const App = () => {
         </AuthProvider>
       </ErrorBoundary>
     </QueryClientProvider>
+    </LicenseGate>
   );
 };
 
