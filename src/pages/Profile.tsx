@@ -8,18 +8,32 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Camera, Check, MessageCircle, Lock, AlertTriangle, Library, Globe, Key, Eye, EyeOff, Trash2, Loader2
+  Camera, Check, MessageCircle, Lock, AlertTriangle, Library, Globe, Key, Eye, EyeOff, Trash2, Loader2, ShieldCheck, ShieldOff
 } from "lucide-react";
 import { toast } from "sonner";
 import { getAccountProfiles, getAvatars, createAccountProfile, updateAccountProfile, deleteAccountProfile, verifyRecoveryCode, validatePin, changePassword, deleteAccount } from "@/lib/firebase";
 import { Profile as UserProfileType, Avatar } from "@/types/user";
 import { cn } from "@/lib/utils";
 import { useAppConfig } from "@/hooks/useAppConfig";
+import { isLicenseGateEnabled, setLicenseGateEnabled } from "@/lib/license";
 
 const Profile = () => {
   const navigate = useNavigate();
   const { user, profile: accountProfile, currentProfile, logout, selectProfile, plan } = useAuth();
   const { performanceMode, setPerformanceMode, isLiteMode } = useAppConfig();
+
+  // License Gate toggle state (default: false = disabled)
+  const [licenseGateOn, setLicenseGateOn] = useState<boolean>(() => isLicenseGateEnabled());
+
+  const handleToggleLicenseGate = (value: boolean) => {
+    setLicenseGateEnabled(value);
+    setLicenseGateOn(value);
+    toast.success(
+      value
+        ? "🔒 Proteção por licença activada. Será pedida ao próximo acesso."
+        : "🔓 Protecção por licença desactivada. Acesso directo à plataforma."
+    );
+  };
 
   // State
   const [profiles, setProfiles] = useState<UserProfileType[]>([]);
@@ -518,6 +532,72 @@ const Profile = () => {
           >
             <Key className="w-4 h-4" /> Alterar Senha
           </Button>
+        </div>
+
+        {/* Proteção por Licença */}
+        <div className="mt-8 bg-zinc-900/30 border border-zinc-800/80 p-6 rounded-2xl max-w-2xl mx-auto space-y-5">
+          <h2 className="text-2xl font-bold flex items-center gap-2 text-white">
+            {licenseGateOn
+              ? <ShieldCheck className="w-6 h-6 text-emerald-500" />
+              : <ShieldOff className="w-6 h-6 text-zinc-500" />}
+            Protecção por Licença
+          </h2>
+          <p className="text-sm text-zinc-400">
+            Quando activada, o acesso à plataforma requer uma chave de licença válida antes de entrar.
+            Por padrão está <strong className="text-zinc-300">desactivada</strong> — ative apenas se quiser proteger o acesso.
+          </p>
+
+          {/* Toggle Card */}
+          <div
+            onClick={() => handleToggleLicenseGate(!licenseGateOn)}
+            className={cn(
+              "flex items-center justify-between p-5 rounded-2xl border cursor-pointer transition-all duration-300 select-none",
+              licenseGateOn
+                ? "bg-emerald-500/10 border-emerald-500/40 hover:bg-emerald-500/15"
+                : "bg-zinc-900/40 border-zinc-700/60 hover:bg-zinc-800/60"
+            )}
+          >
+            <div className="flex items-center gap-4">
+              <div className={cn(
+                "w-12 h-12 rounded-xl flex items-center justify-center transition-colors",
+                licenseGateOn ? "bg-emerald-500/20" : "bg-zinc-800"
+              )}>
+                {licenseGateOn
+                  ? <ShieldCheck className="w-6 h-6 text-emerald-400" />
+                  : <ShieldOff className="w-6 h-6 text-zinc-500" />}
+              </div>
+              <div>
+                <p className={cn("font-semibold text-sm", licenseGateOn ? "text-emerald-300" : "text-zinc-300")}>
+                  {licenseGateOn ? "Licença Activada" : "Licença Desactivada"}
+                </p>
+                <p className="text-[11px] text-zinc-500 mt-0.5">
+                  {licenseGateOn
+                    ? "Será necessária chave de licença para entrar"
+                    : "Acesso directo sem verificação de licença"}
+                </p>
+              </div>
+            </div>
+
+            {/* Custom Toggle Switch */}
+            <div className={cn(
+              "relative w-14 h-7 rounded-full transition-all duration-300 flex-shrink-0",
+              licenseGateOn ? "bg-emerald-500" : "bg-zinc-700"
+            )}>
+              <div className={cn(
+                "absolute top-0.5 w-6 h-6 bg-white rounded-full shadow-md transition-all duration-300",
+                licenseGateOn ? "left-7" : "left-0.5"
+              )} />
+            </div>
+          </div>
+
+          {licenseGateOn && (
+            <div className="flex items-start gap-2.5 px-4 py-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20">
+              <ShieldCheck className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-emerald-300/80 leading-relaxed">
+                A protecção está activa. Na próxima vez que a plataforma for aberta num dispositivo sem licença guardada, será pedida a chave de acesso.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Zona de Perigo - Deletar Conta */}

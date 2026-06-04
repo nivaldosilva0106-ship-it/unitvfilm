@@ -21,6 +21,30 @@ const ENV_AUTHORIZED_DOMAIN = import.meta.env.VITE_AUTHORIZED_DOMAIN as string |
 
 const LS_KEY = "__unitvfilm_lic__";
 
+// Key that stores whether the LicenseGate is enabled (default: disabled)
+const LS_GATE_ENABLED_KEY = "__unitvfilm_gate_enabled__";
+
+/** Returns whether the LicenseGate is enabled. Defaults to false (disabled) */
+export function isLicenseGateEnabled(): boolean {
+  try {
+    const val = localStorage.getItem(LS_GATE_ENABLED_KEY);
+    // If key was never set, default to false (disabled)
+    if (val === null) return false;
+    return val === "true";
+  } catch {
+    return false;
+  }
+}
+
+/** Enable or disable the LicenseGate */
+export function setLicenseGateEnabled(enabled: boolean): void {
+  try {
+    localStorage.setItem(LS_GATE_ENABLED_KEY, enabled ? "true" : "false");
+  } catch {
+    // ignore
+  }
+}
+
 /** Compute SHA-256 hash of a string using the Web Crypto API */
 async function sha256(message: string): Promise<string> {
   const msgBuffer = new TextEncoder().encode(message);
@@ -81,5 +105,7 @@ export function clearLicense(): void {
 
 /** Main gate check — returns true if app should be accessible */
 export function isLicenseGranted(): boolean {
+  // If the gate is disabled, always grant access
+  if (!isLicenseGateEnabled()) return true;
   return isAuthorizedDomain() || hasSavedLicense();
 }

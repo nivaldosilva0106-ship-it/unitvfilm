@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { ShieldCheck, Lock, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
-import { isLicenseGranted, validateLicenseKey } from "@/lib/license";
+import { isLicenseGranted, isLicenseGateEnabled, validateLicenseKey } from "@/lib/license";
 
 interface LicenseGateProps {
   children: React.ReactNode;
@@ -19,6 +19,11 @@ export const LicenseGate = ({ children }: LicenseGateProps) => {
   const cooldownRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
+    // If the gate is disabled (default), skip entirely
+    if (!isLicenseGateEnabled()) {
+      setGranted(true);
+      return;
+    }
     // Check on mount — instant if authorized domain or saved key
     setGranted(isLicenseGranted());
   }, []);
