@@ -112,11 +112,7 @@ const TagView = () => {
                             <ArrowLeft className="w-5 h-5 mr-2" /> Voltar
                         </Button>
 
-                        {!tagConfig.bgImage && (
-                            <div className="w-32 h-32 md:w-40 md:h-40 bg-zinc-900/80 rounded-full md:rounded-2xl border border-white/10 shadow-2xl flex items-center justify-center animate-scale-in text-6xl md:text-8xl">
-                                {tagConfig.emoji}
-                            </div>
-                        )}
+
 
                         <div className="text-center md:text-left">
                             <h1 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter mb-2 animate-slide-up drop-shadow-lg">
