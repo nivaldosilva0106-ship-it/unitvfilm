@@ -12,8 +12,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export const TAG_CONFIG: Record<string, { name: string, emoji: string, bgImage: string | null, description: string, key: keyof Content }> = {
-    'portugal': { name: 'Portugal', emoji: '🇵🇹', bgImage: '/icons/portugal_bg.png', description: 'Filmes e séries de Portugal ou com áudio PT-PT.', key: 'tag_portugal' },
-    'brasil': { name: 'Brasil', emoji: '🇧🇷', bgImage: '/icons/brasil_bg.png', description: 'Filmes e séries do Brasil ou com áudio PT-BR.', key: 'tag_brasil' },
+    'portugal': { name: 'Portugal', emoji: '🇵🇹', bgImage: '/bandeira/pt.png', description: 'Filmes e séries de Portugal ou com áudio PT-PT.', key: 'tag_portugal' },
+    'brasil': { name: 'Brasil', emoji: '🇧🇷', bgImage: '/bandeira/br.png', description: 'Filmes e séries do Brasil ou com áudio PT-BR.', key: 'tag_brasil' },
     'dublado': { name: 'Dublado', emoji: '🎤', bgImage: null, description: 'Conteúdos com dublagem disponível.', key: 'tag_dublado' },
     'legenda': { name: 'Legendado', emoji: '📝', bgImage: null, description: 'Conteúdos com legendas disponíveis.', key: 'tag_legenda' },
 };
