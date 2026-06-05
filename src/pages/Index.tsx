@@ -8,7 +8,8 @@ import { ContentRow } from "@/components/ContentRow";
 import { MarqueeContentRow } from "@/components/MarqueeContentRow";
 import { CategoryNavigation } from "@/components/CategoryNavigation";
 import { Content } from "@/types/content";
-import { getAllContents, getMyList, addToMyList, removeFromMyList, getSliderSettings, getSiteSettings, type SliderSettings, type SiteSettings } from "@/lib/firebase";
+import { getAllContents, getMyList, addToMyList, removeFromMyList, getSliderSettings, getSiteSettings, getUserAllProgress, type SliderSettings, type SiteSettings } from "@/lib/firebase";
+import { UserContentProgress } from "@/types/user";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -73,6 +74,7 @@ const Index = () => {
   const [showConnectivityModal, setShowConnectivityModal] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
   const [hasChosenOnline, setHasChosenOnline] = useState(false);
+  const [continueWatchingContents, setContinueWatchingContents] = useState<Content[]>([]);
 
   useEffect(() => {
     if (!authLoading && user && !currentProfile) {
@@ -510,6 +512,41 @@ const Index = () => {
     return finalSections;
   }, [categorizedContent, selectedCategory, siteSettings, isLiteMode, maxSectionsPerPage]);
 
+  // Load Continue Watching data
+  useEffect(() => {
+    const loadContinueWatching = async () => {
+      if (!currentProfile?.id || allContentData.length === 0) return;
+      try {
+        const allProgress = await getUserAllProgress(currentProfile.id);
+        if (allProgress.length === 0) {
+          setContinueWatchingContents([]);
+          return;
+        }
+        // Sort by most recently updated
+        const sorted = [...allProgress].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+        // Take only the latest 10
+        const latest10 = sorted.slice(0, 10);
+        // Deduplicate by contentId (keep the most recent entry per content)
+        const seen = new Set<string>();
+        const unique: UserContentProgress[] = [];
+        for (const p of latest10) {
+          if (!seen.has(p.contentId)) {
+            seen.add(p.contentId);
+            unique.push(p);
+          }
+        }
+        // Map to actual Content objects
+        const contents = unique
+          .map(p => allContentData.find(c => c.id === p.contentId))
+          .filter(Boolean) as Content[];
+        setContinueWatchingContents(contents);
+      } catch (err) {
+        console.error('[UniTvFilm] Error loading continue watching:', err);
+      }
+    };
+    loadContinueWatching();
+  }, [currentProfile?.id, allContentData]);
+
   const currentTrailer = trailerContents[currentTrailerIndex] || null;
 
   const trailerContentsRef = useRef(trailerContents);
@@ -764,23 +801,27 @@ const Index = () => {
 
         {/* Custom Tags Section */}
         {selectedCategory === 'Todos' && (
-          <div className="mb-12 px-4 sm:px-8">
-            <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 sm:grid sm:grid-cols-2 md:grid-cols-4 sm:gap-4 sm:overflow-visible">
+          <div className="mb-8 px-4 sm:px-8">
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 sm:grid sm:grid-cols-4 sm:gap-3 sm:overflow-visible">
               {[
-                { id: 'portugal', name: 'Portugal', emoji: '🇵🇹', gradient: 'from-green-600/20 to-red-600/20', hover: 'hover:border-green-500/50', bg: 'bg-zinc-900/50' },
-                { id: 'brasil', name: 'Brasil', emoji: '🇧🇷', gradient: 'from-green-500/20 to-yellow-500/20', hover: 'hover:border-yellow-400/50', bg: 'bg-zinc-900/50' },
-                { id: 'dublado', name: 'Dublado', emoji: '🎤', gradient: 'from-blue-600/20 to-cyan-600/20', hover: 'hover:border-cyan-400/50', bg: 'bg-zinc-900/50' },
-                { id: 'legenda', name: 'Legendado', emoji: '📝', gradient: 'from-purple-600/20 to-pink-600/20', hover: 'hover:border-pink-400/50', bg: 'bg-zinc-900/50' },
+                { id: 'portugal', name: 'PORTUGAL', bgImage: '/icons/portugal_bg.png', hover: 'hover:border-green-500/50' },
+                { id: 'brasil', name: 'BRASIL', bgImage: '/icons/brasil_bg.png', hover: 'hover:border-yellow-400/50' },
+                { id: 'dublado', name: 'DUBLADO', bgImage: null, hover: 'hover:border-cyan-400/50' },
+                { id: 'legenda', name: 'LEGENDADO', bgImage: null, hover: 'hover:border-pink-400/50' },
               ].map(tag => (
                 <div
                   key={tag.id}
                   onClick={() => navigate(`/tag/${tag.id}`)}
-                  className={`flex-shrink-0 w-[140px] h-[100px] sm:w-auto sm:h-auto sm:aspect-[2/1] relative overflow-hidden group cursor-pointer rounded-2xl border border-white/5 ${tag.bg} p-4 flex flex-row items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:bg-zinc-800 shadow-lg ${tag.hover} ${FOCUSABLE_CLASS}`}
+                  className={`flex-shrink-0 w-[110px] h-[56px] sm:w-auto sm:h-[56px] relative overflow-hidden group cursor-pointer rounded-xl border border-white/10 flex items-center justify-center transition-all duration-300 hover:scale-[1.03] shadow-md ${tag.hover} ${FOCUSABLE_CLASS}`}
                   tabIndex={0}
                 >
-                  <div className={`absolute inset-0 bg-gradient-to-br ${tag.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
-                  <span className="text-3xl md:text-4xl relative z-10 filter drop-shadow-md group-hover:scale-110 transition-transform duration-300">{tag.emoji}</span>
-                  <span className="text-base md:text-lg font-bold text-white relative z-10 tracking-tight uppercase italic">{tag.name}</span>
+                  {tag.bgImage ? (
+                    <img src={tag.bgImage} alt={tag.name} className="absolute inset-0 w-full h-full object-cover" />
+                  ) : (
+                    <div className="absolute inset-0 bg-zinc-800" />
+                  )}
+                  <div className="absolute inset-0 bg-black/50" />
+                  <span className="text-sm font-bold text-white relative z-10 tracking-wider uppercase">{tag.name}</span>
                 </div>
               ))}
             </div>
@@ -861,6 +902,18 @@ const Index = () => {
                     hideDownloadIcon={true}
                     providerLogos={siteSettings?.providerLogos}
                     onViewMore={() => navigate(`/categories?filter=${encodeURIComponent(section.category || '')}`)}
+                  />
+                )}
+                {index === 0 && continueWatchingContents.length > 0 && (
+                  <ContentRow
+                    title="Continuar Assistindo"
+                    contents={continueWatchingContents}
+                    onPlayContent={handlePlayContent}
+                    onInfoContent={handleInfoContent}
+                    onDetailsContent={handleDetailsContent}
+                    onDownloadContent={handleDownloadContent}
+                    hideDownloadIcon={true}
+                    providerLogos={siteSettings?.providerLogos}
                   />
                 )}
                 {index === 1 && (

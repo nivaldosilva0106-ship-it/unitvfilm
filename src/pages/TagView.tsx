@@ -11,11 +11,11 @@ import { getAllContents, getSiteSettings, type SiteSettings } from "@/lib/fireba
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
-export const TAG_CONFIG: Record<string, { name: string, emoji: string, description: string, key: keyof Content }> = {
-    'portugal': { name: 'Portugal', emoji: '🇵🇹', description: 'Filmes e séries de Portugal ou com áudio PT-PT.', key: 'tag_portugal' },
-    'brasil': { name: 'Brasil', emoji: '🇧🇷', description: 'Filmes e séries do Brasil ou com áudio PT-BR.', key: 'tag_brasil' },
-    'dublado': { name: 'Dublado', emoji: '🎤', description: 'Conteúdos com dublagem disponível.', key: 'tag_dublado' },
-    'legenda': { name: 'Legendado', emoji: '📝', description: 'Conteúdos com legendas disponíveis.', key: 'tag_legenda' },
+export const TAG_CONFIG: Record<string, { name: string, emoji: string, bgImage: string | null, description: string, key: keyof Content }> = {
+    'portugal': { name: 'Portugal', emoji: '🇵🇹', bgImage: '/icons/portugal_bg.png', description: 'Filmes e séries de Portugal ou com áudio PT-PT.', key: 'tag_portugal' },
+    'brasil': { name: 'Brasil', emoji: '🇧🇷', bgImage: '/icons/brasil_bg.png', description: 'Filmes e séries do Brasil ou com áudio PT-BR.', key: 'tag_brasil' },
+    'dublado': { name: 'Dublado', emoji: '🎤', bgImage: null, description: 'Conteúdos com dublagem disponível.', key: 'tag_dublado' },
+    'legenda': { name: 'Legendado', emoji: '📝', bgImage: null, description: 'Conteúdos com legendas disponíveis.', key: 'tag_legenda' },
 };
 
 const TagView = () => {
@@ -94,7 +94,14 @@ const TagView = () => {
             <main className="pt-24 pb-20 px-4 sm:px-8">
                 {/* Hero / Header Section */}
                 <div className="relative mb-12 rounded-3xl overflow-hidden animate-fade-in">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-zinc-900 to-black opacity-50" />
+                    {tagConfig.bgImage ? (
+                        <>
+                            <img src={tagConfig.bgImage} alt={tagConfig.name} className="absolute inset-0 w-full h-full object-cover" />
+                            <div className="absolute inset-0 bg-black/50" />
+                        </>
+                    ) : (
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-zinc-900 to-black opacity-50" />
+                    )}
                     
                     <div className="relative z-10 p-8 md:p-12 flex flex-col md:flex-row items-center gap-8 backdrop-blur-sm border border-white/5">
                         <Button 
@@ -105,15 +112,17 @@ const TagView = () => {
                             <ArrowLeft className="w-5 h-5 mr-2" /> Voltar
                         </Button>
 
-                        <div className="w-32 h-32 md:w-40 md:h-40 bg-zinc-900/80 rounded-full md:rounded-2xl border border-white/10 shadow-2xl flex items-center justify-center animate-scale-in text-6xl md:text-8xl">
-                            {tagConfig.emoji}
-                        </div>
+                        {!tagConfig.bgImage && (
+                            <div className="w-32 h-32 md:w-40 md:h-40 bg-zinc-900/80 rounded-full md:rounded-2xl border border-white/10 shadow-2xl flex items-center justify-center animate-scale-in text-6xl md:text-8xl">
+                                {tagConfig.emoji}
+                            </div>
+                        )}
 
                         <div className="text-center md:text-left">
-                            <h1 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter mb-2 animate-slide-up">
+                            <h1 className="text-4xl md:text-6xl font-black uppercase italic tracking-tighter mb-2 animate-slide-up drop-shadow-lg">
                                 {tagConfig.name}
                             </h1>
-                            <p className="text-zinc-400 text-lg max-w-2xl animate-slide-up" style={{ animationDelay: '100ms' }}>
+                            <p className="text-zinc-300 text-lg max-w-2xl animate-slide-up drop-shadow-md" style={{ animationDelay: '100ms' }}>
                                 {tagConfig.description}
                             </p>
                         </div>
