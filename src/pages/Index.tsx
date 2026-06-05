@@ -775,8 +775,8 @@ const Index = () => {
           <div className="mb-8 px-4 sm:px-8">
             <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2 sm:grid sm:grid-cols-4 sm:gap-3 sm:overflow-visible">
               {[
-                { id: 'portugal', name: 'PORTUGAL', bgImage: '/bandeira/pt.png', hover: 'hover:border-green-500/50' },
-                { id: 'brasil', name: 'BRASIL', bgImage: '/bandeira/br.png', hover: 'hover:border-yellow-400/50' },
+                { id: 'portugal', name: 'PORTUGAL', bgImage: '/bandeira/pt.png?v=2', hover: 'hover:border-green-500/50' },
+                { id: 'brasil', name: 'BRASIL', bgImage: '/bandeira/br.png?v=2', hover: 'hover:border-yellow-400/50' },
                 { id: 'dublado', name: 'DUBLADO', bgImage: null, hover: 'hover:border-cyan-400/50' },
                 { id: 'legenda', name: 'LEGENDADO', bgImage: null, hover: 'hover:border-pink-400/50' },
               ].map(tag => (
