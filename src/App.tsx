@@ -69,6 +69,7 @@ const Notifications = lazyWithRetry(() => import("./pages/Notifications"));
 const NostalgiaTube = lazyWithRetry(() => import("./pages/NostalgiaTube"));
 const Canais24h = lazyWithRetry(() => import("./pages/Canais24h"));
 const ProviderView = lazyWithRetry(() => import("./pages/ProviderView"));
+const TagView = lazyWithRetry(() => import("./pages/TagView"));
 const VerifyCode = lazyWithRetry(() => import("./pages/VerifyCode"));
 const NotFound = lazyWithRetry(() => import("./pages/NotFound"));
 const UpdatePassword = lazyWithRetry(() => import("./pages/UpdatePassword"));
@@ -247,6 +248,7 @@ const App = () => {
                   <Route path="/nostalgia" element={<NostalgiaTube />} />
                   <Route path="/nostalgia/:id" element={<NostalgiaTube />} />
                   <Route path="/provider/:providerId" element={<ProviderView />} />
+                  <Route path="/tag/:tagId" element={<TagView />} />
                   <Route path="/canais24h" element={<Canais24h />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/terms" element={<TermsOfUse />} />

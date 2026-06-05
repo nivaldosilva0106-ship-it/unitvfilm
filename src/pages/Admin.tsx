@@ -42,6 +42,10 @@ const Admin = () => {
     external_source_url: "",
     is_cinema_mode: false,
     adBlockFriendly: false,
+    tag_portugal: false,
+    tag_brasil: false,
+    tag_dublado: false,
+    tag_legenda: false,
   });
 
   useEffect(() => {
@@ -212,6 +216,10 @@ const Admin = () => {
         isPremium: false,
         is_cinema_mode: false,
         adBlockFriendly: false,
+        tag_portugal: false,
+        tag_brasil: false,
+        tag_dublado: false,
+        tag_legenda: false,
       });
       loadContents();
     } catch (error) {

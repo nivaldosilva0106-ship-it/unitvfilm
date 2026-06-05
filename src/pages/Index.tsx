@@ -762,6 +762,31 @@ const Index = () => {
           </div>
         )}
 
+        {/* Custom Tags Section */}
+        {selectedCategory === 'Todos' && (
+          <div className="mb-12 px-4 sm:px-8">
+            <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2 sm:grid sm:grid-cols-2 md:grid-cols-4 sm:gap-4 sm:overflow-visible">
+              {[
+                { id: 'portugal', name: 'Portugal', emoji: '🇵🇹', gradient: 'from-green-600/20 to-red-600/20', hover: 'hover:border-green-500/50', bg: 'bg-zinc-900/50' },
+                { id: 'brasil', name: 'Brasil', emoji: '🇧🇷', gradient: 'from-green-500/20 to-yellow-500/20', hover: 'hover:border-yellow-400/50', bg: 'bg-zinc-900/50' },
+                { id: 'dublado', name: 'Dublado', emoji: '🎤', gradient: 'from-blue-600/20 to-cyan-600/20', hover: 'hover:border-cyan-400/50', bg: 'bg-zinc-900/50' },
+                { id: 'legenda', name: 'Legendado', emoji: '📝', gradient: 'from-purple-600/20 to-pink-600/20', hover: 'hover:border-pink-400/50', bg: 'bg-zinc-900/50' },
+              ].map(tag => (
+                <div
+                  key={tag.id}
+                  onClick={() => navigate(`/tag/${tag.id}`)}
+                  className={`flex-shrink-0 w-[140px] h-[100px] sm:w-auto sm:h-auto sm:aspect-[2/1] relative overflow-hidden group cursor-pointer rounded-2xl border border-white/5 ${tag.bg} p-4 flex flex-row items-center justify-center gap-3 transition-all duration-300 hover:scale-[1.02] hover:bg-zinc-800 shadow-lg ${tag.hover} ${FOCUSABLE_CLASS}`}
+                  tabIndex={0}
+                >
+                  <div className={`absolute inset-0 bg-gradient-to-br ${tag.gradient} opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                  <span className="text-3xl md:text-4xl relative z-10 filter drop-shadow-md group-hover:scale-110 transition-transform duration-300">{tag.emoji}</span>
+                  <span className="text-base md:text-lg font-bold text-white relative z-10 tracking-tight uppercase italic">{tag.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Local Content Section - Respects profile settings */}
         {(!selectedCategory || selectedCategory === 'Todos') && canShowLocalLib && (
           <LocalContentSection />

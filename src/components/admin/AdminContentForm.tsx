@@ -3225,6 +3225,44 @@ ${ep.url || ""}`;
         </div>
       </div>
 
+      <div className="space-y-4 p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg">
+        <Label className="text-sm font-semibold text-white">Tags Regionais e Áudio</Label>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="tag_portugal"
+              checked={editingContent.tag_portugal || false}
+              onCheckedChange={(checked) => setEditingContent(prev => ({ ...prev, tag_portugal: checked }))}
+            />
+            <Label htmlFor="tag_portugal" className="cursor-pointer text-sm">🇵🇹 Portugal</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="tag_brasil"
+              checked={editingContent.tag_brasil || false}
+              onCheckedChange={(checked) => setEditingContent(prev => ({ ...prev, tag_brasil: checked }))}
+            />
+            <Label htmlFor="tag_brasil" className="cursor-pointer text-sm">🇧🇷 Brasil</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="tag_dublado"
+              checked={editingContent.tag_dublado || false}
+              onCheckedChange={(checked) => setEditingContent(prev => ({ ...prev, tag_dublado: checked }))}
+            />
+            <Label htmlFor="tag_dublado" className="cursor-pointer text-sm">🎤 Dublado</Label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Switch
+              id="tag_legenda"
+              checked={editingContent.tag_legenda || false}
+              onCheckedChange={(checked) => setEditingContent(prev => ({ ...prev, tag_legenda: checked }))}
+            />
+            <Label htmlFor="tag_legenda" className="cursor-pointer text-sm">📝 Legendado</Label>
+          </div>
+        </div>
+      </div>
+
       <div className="space-y-2">
         <Label>Provedor de Streaming (Icone no Card)</Label>
         <Select 

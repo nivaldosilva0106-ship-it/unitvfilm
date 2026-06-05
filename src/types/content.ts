@@ -89,4 +89,8 @@ export interface Content {
   watch_provider?: 'netflix' | 'amazon' | 'hbo' | 'disney' | 'apple' | 'hulu' | 'paramount' | 'starplus' | 'globoplay' | 'crunchyroll' | 'skyshowtime' | 'youtube' | 'other';
   external_sync_enabled?: boolean;
   external_source_url?: string;
+  tag_portugal?: boolean;
+  tag_brasil?: boolean;
+  tag_dublado?: boolean;
+  tag_legenda?: boolean;
 }
