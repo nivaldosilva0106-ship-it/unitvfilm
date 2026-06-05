@@ -3250,7 +3250,7 @@ ${ep.url || ""}`;
               checked={editingContent.tag_dublado || false}
               onCheckedChange={(checked) => setEditingContent(prev => ({ ...prev, tag_dublado: checked }))}
             />
-            <Label htmlFor="tag_dublado" className="cursor-pointer text-sm">🎤 Dublado</Label>
+            <Label htmlFor="tag_dublado" className="cursor-pointer text-sm">Dublado</Label>
           </div>
           <div className="flex items-center space-x-2">
             <Switch
@@ -3258,7 +3258,7 @@ ${ep.url || ""}`;
               checked={editingContent.tag_legenda || false}
               onCheckedChange={(checked) => setEditingContent(prev => ({ ...prev, tag_legenda: checked }))}
             />
-            <Label htmlFor="tag_legenda" className="cursor-pointer text-sm">📝 Legendado</Label>
+            <Label htmlFor="tag_legenda" className="cursor-pointer text-sm">Legendado</Label>
           </div>
         </div>
       </div>
