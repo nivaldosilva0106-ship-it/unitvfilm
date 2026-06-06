@@ -108,6 +108,9 @@ const Player = () => {
     const hasIncrementedRef = useRef(false);
     const hasPromptedRef = useRef<string | null>(null);
 
+    // TikTok URL resolution state - maps original TikTok URLs to resolved direct video URLs
+    const [resolvedTiktokUrls, setResolvedTiktokUrls] = useState<Record<string, string>>({});
+
     const seasonParam = searchParams.get('season');
     const episodeParam = searchParams.get('episode');
 
@@ -426,11 +429,25 @@ const Player = () => {
     }, [accessState.granted, content, currentProfile, lastPositionSeconds, seasonParam, episodeParam, profile]);
 
 
+    // Helper to detect TikTok URLs
+    const isTiktokUrl = (url?: string) => {
+        if (!url) return false;
+        return url.includes('tiktok.com/');
+    };
+
     // 3. Sources Logic
     const allSources = useMemo(() => {
         if (!content) return [];
 
         const sources: { name: string; url: string; type: 'internal' | 'embed'; subtitle_url?: string }[] = [];
+
+        // Helper: resolve a URL, replacing TikTok page URLs with resolved direct video URLs
+        const resolveUrl = (url: string) => {
+            if (isTiktokUrl(url) && resolvedTiktokUrls[url]) {
+                return resolvedTiktokUrls[url];
+            }
+            return url;
+        };
 
         // For series with episodes, check if current episode has internal_player_url
         const isSeries = content.category?.toLowerCase() === 'series' || 
@@ -444,12 +461,16 @@ const Player = () => {
             const episodeData = content.episodes?.find(ep => ep.season === s && ep.episode === e);
 
             if (episodeData?.internal_player_url) {
-                sources.push({
-                    name: 'Player Interno',
-                    url: episodeData.internal_player_url,
-                    type: 'internal',
-                    subtitle_url: episodeData.subtitle_url
-                });
+                const resolvedInternalUrl = resolveUrl(episodeData.internal_player_url);
+                // Only add as internal source if URL is resolved (or not a TikTok URL)
+                if (!isTiktokUrl(episodeData.internal_player_url) || resolvedTiktokUrls[episodeData.internal_player_url]) {
+                    sources.push({
+                        name: 'Player Interno',
+                        url: resolvedInternalUrl,
+                        type: 'internal',
+                        subtitle_url: episodeData.subtitle_url
+                    });
+                }
             }
             if (episodeData?.url) {
                 sources.push({ name: 'Player Embed', url: episodeData.url, type: 'embed' });
@@ -457,12 +478,15 @@ const Player = () => {
         } else {
             // For movies/TV
             if (content.internal_player_url) {
-                sources.push({
-                    name: 'Player Interno',
-                    url: content.internal_player_url,
-                    type: 'internal',
-                    subtitle_url: content.subtitle_url
-                });
+                const resolvedInternalUrl = resolveUrl(content.internal_player_url);
+                if (!isTiktokUrl(content.internal_player_url) || resolvedTiktokUrls[content.internal_player_url]) {
+                    sources.push({
+                        name: 'Player Interno',
+                        url: resolvedInternalUrl,
+                        type: 'internal',
+                        subtitle_url: content.subtitle_url
+                    });
+                }
             }
 
             const currentUrls = (content.video_urls && content.video_urls.length > 0)
@@ -475,7 +499,54 @@ const Player = () => {
         }
 
         return sources;
-    }, [content, seasonParam, episodeParam]);
+    }, [content, seasonParam, episodeParam, resolvedTiktokUrls]);
+
+    // Resolve TikTok URLs to direct video URLs via TikWM API
+    useEffect(() => {
+        if (!content) return;
+
+        // Collect all TikTok URLs that need resolving
+        const tiktokUrlsToResolve: string[] = [];
+
+        const isSeries = content.category?.toLowerCase() === 'series' || 
+                        content.category?.toLowerCase() === 'série' || 
+                        content.category?.toLowerCase() === 'serie' ||
+                        (content.episodes && content.episodes.length > 0);
+
+        if (isSeries && seasonParam && episodeParam) {
+            const s = parseInt(seasonParam);
+            const e = parseInt(episodeParam);
+            const episodeData = content.episodes?.find(ep => ep.season === s && ep.episode === e);
+            if (episodeData?.internal_player_url && isTiktokUrl(episodeData.internal_player_url)) {
+                tiktokUrlsToResolve.push(episodeData.internal_player_url);
+            }
+        } else {
+            if (content.internal_player_url && isTiktokUrl(content.internal_player_url)) {
+                tiktokUrlsToResolve.push(content.internal_player_url);
+            }
+        }
+
+        // Filter out already resolved URLs
+        const unresolved = tiktokUrlsToResolve.filter(url => !resolvedTiktokUrls[url]);
+        if (unresolved.length === 0) return;
+
+        // Resolve each TikTok URL
+        unresolved.forEach(async (tiktokUrl) => {
+            try {
+                const res = await fetch(`https://www.tikwm.com/api/?url=${encodeURIComponent(tiktokUrl)}`);
+                const data = await res.json();
+                if (data.code === 0 && data.data && data.data.play) {
+                    setResolvedTiktokUrls(prev => ({ ...prev, [tiktokUrl]: data.data.play }));
+                } else {
+                    console.error('TikTok API Error for', tiktokUrl, ':', data.msg || 'Unknown error');
+                    toast.error('Erro ao carregar vídeo do TikTok');
+                }
+            } catch (error) {
+                console.error('Failed to resolve TikTok URL:', tiktokUrl, error);
+                toast.error('Erro ao conectar com API do TikTok');
+            }
+        });
+    }, [content, seasonParam, episodeParam, resolvedTiktokUrls]);
 
     const currentSource = allSources[currentSourceIndex] || allSources[0];
 
