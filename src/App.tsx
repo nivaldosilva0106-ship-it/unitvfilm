@@ -19,6 +19,7 @@ import { MobileBottomNav } from "@/components/MobileBottomNav";
 import { TVSidebar } from "@/components/TVSidebar";
 import { RedirectManager } from "@/components/RedirectManager";
 import { useAppConfig } from "@/hooks/useAppConfig";
+import { AdminPinGuard } from "@/components/admin/AdminPinGuard";
 
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { ReminderAlert } from "./components/ReminderAlert";
@@ -227,15 +228,15 @@ const App = () => {
                   <Route path="/update-password" element={<UpdatePassword />} />
                   <Route path="/confirm-email" element={<ConfirmEmail />} />
                   <Route path="/search" element={<Search />} />
-                  <Route path="/admin" element={<Admin />} />
-                  <Route path="/admin/ads" element={<AdminAds />} />
-                  <Route path="/admin/payments" element={<AdminPayments />} />
-                  <Route path="/admin/settings" element={<AdminSettings />} />
-                  <Route path="/admin/slider" element={<AdminSlider />} />
-                  <Route path="/admin/home-page" element={<AdminHomePageManager />} />
-                  <Route path="/admin/plans" element={<AdminPlans />} />
-                  <Route path="/admin/system" element={<AdminSystem />} />
-                  <Route path="/admin/notifications" element={<AdminNotifications />} />
+                  <Route path="/admin" element={<AdminPinGuard><Admin /></AdminPinGuard>} />
+                  <Route path="/admin/ads" element={<AdminPinGuard><AdminAds /></AdminPinGuard>} />
+                  <Route path="/admin/payments" element={<AdminPinGuard><AdminPayments /></AdminPinGuard>} />
+                  <Route path="/admin/settings" element={<AdminPinGuard><AdminSettings /></AdminPinGuard>} />
+                  <Route path="/admin/slider" element={<AdminPinGuard><AdminSlider /></AdminPinGuard>} />
+                  <Route path="/admin/home-page" element={<AdminPinGuard><AdminHomePageManager /></AdminPinGuard>} />
+                  <Route path="/admin/plans" element={<AdminPinGuard><AdminPlans /></AdminPinGuard>} />
+                  <Route path="/admin/system" element={<AdminPinGuard><AdminSystem /></AdminPinGuard>} />
+                  <Route path="/admin/notifications" element={<AdminPinGuard><AdminNotifications /></AdminPinGuard>} />
                   <Route path="/payment" element={<Payment />} />
                   <Route path="/content/:id" element={<ContentDetails />} />
                   <Route path="/watch/:id" element={<Player />} />
@@ -259,21 +260,27 @@ const App = () => {
                   <Route path="/iptv" element={<IPTV />} />
 
                   <Route path="/admin/users" element={
-                    <AdminLayout title="Gerenciar Usuários">
-                      <AdminUsers />
-                    </AdminLayout>
+                    <AdminPinGuard>
+                      <AdminLayout title="Gerenciar Usuários">
+                        <AdminUsers />
+                      </AdminLayout>
+                    </AdminPinGuard>
                   } />
 
                   <Route path="/admin/activity" element={
-                    <AdminLayout title="Painel de Atividades">
-                      <AdminActivity />
-                    </AdminLayout>
+                    <AdminPinGuard>
+                      <AdminLayout title="Painel de Atividades">
+                        <AdminActivity />
+                      </AdminLayout>
+                    </AdminPinGuard>
                   } />
 
                   <Route path="/admin/avatars" element={
-                    <AdminLayout title="Gerenciar Avatares">
-                      <AdminAvatars />
-                    </AdminLayout>
+                    <AdminPinGuard>
+                      <AdminLayout title="Gerenciar Avatares">
+                        <AdminAvatars />
+                      </AdminLayout>
+                    </AdminPinGuard>
                   } />
                   <Route path="*" element={<NotFound />} />
                 </Routes>
